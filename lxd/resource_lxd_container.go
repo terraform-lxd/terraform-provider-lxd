@@ -42,12 +42,6 @@ func resourceLxdContainer() *schema.Resource {
 				ForceNew: true,
 			},
 
-			"ipv4": &schema.Schema{
-				Type:     schema.TypeString,
-				Computed: true,
-				ForceNew: false,
-			},
-
 			"ephemeral": &schema.Schema{
 				Type:     schema.TypeBool,
 				Optional: true,
@@ -58,6 +52,12 @@ func resourceLxdContainer() *schema.Resource {
 				Type:     schema.TypeBool,
 				Optional: true,
 				Default:  false,
+				ForceNew: false,
+			},
+
+			"ip_address": &schema.Schema{
+				Type:     schema.TypeString,
+				Computed: true,
 				ForceNew: false,
 			},
 
@@ -130,7 +130,7 @@ func resourceLxdContainerRead(d *schema.ResourceData, meta interface{}) error {
 	sshIP := ""
 	gotIp := false
 	cycles := 0
-	for gotIp == false && cycles < 15 {
+	for !gotIp && cycles < 15 {
 		cycles += 1
 		ct, _ := client.ContainerStatus(d.Get("name").(string))
 		d.Set("status", ct.Status.Status)
@@ -138,7 +138,7 @@ func resourceLxdContainerRead(d *schema.ResourceData, meta interface{}) error {
 		for _, ip := range ct.Status.Ips {
 
 			if ip.Protocol == "IPV4" && ip.Address != "127.0.0.1" {
-				d.Set("ipv4", ip.Address)
+				d.Set("ip_address", ip.Address)
 				gotIp = true
 			}
 		}
