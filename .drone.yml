@@ -13,9 +13,9 @@ publish:
     acl:
       - project-owners-$$PROJECT_UID:OWNER
       - project-viewers-$$PROJECT_UID:READER
-    when:
-      repo: mmorrison/terraform-provider-lxd
-      branch: master
+    # when:
+    #   repo: mmorrison/terraform-provider-lxd
+    #   branch: master
   gcs:
     auth_key: "$$SERVICE_ACCOUNT_KEY"
     source: terraform-provider-lxd
@@ -23,6 +23,6 @@ publish:
     acl:
       - project-owners-$$PROJECT_UID:OWNER
       - project-viewers-$$PROJECT_UID:READER
-    when:
-      repo: mmorrison/terraform-provider-lxd
-      branch: master
+    # when:
+    #   repo: mmorrison/terraform-provider-lxd
+    #   branch: master
