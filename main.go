@@ -2,7 +2,8 @@ package main
 
 import (
 	"github.com/hashicorp/terraform/plugin"
-	"github.com/sl1pm4t/terraform-provider-lxd/lxd"
+	//"github.com/sl1pm4t/terraform-provider-lxd/lxd"
+	"git.t3.broadsoft.com/mmorrison/terraform-provider-lxd/lxd"
 )
 
 func main() {
