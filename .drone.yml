@@ -1,0 +1,21 @@
+build:
+  image: golang
+  commands:
+    - go get -v
+    - go build -v
+    - go test -v ./...
+# publish:
+#   gcs:
+#     auth_key: "$$SERVICE_ACCOUNT_KEY"
+#     source: terraform-provider-nfm
+#     target: t3terraform/bin/terraform-provider-nfm 
+#     acl:
+#       - project-owners-1059390446178:OWNER
+#       - project-viewers-1059390446178:READER
+#   gcs:
+#     auth_key: "$$SERVICE_ACCOUNT_KEY"
+#     source: terraform-provider-nfm
+#     target: t3terraform/builds/terraform-provider-nfm/$$COMMIT/terraform-provider-nfm
+#     acl:
+#       - project-owners-1059390446178:OWNER
+#       - project-viewers-1059390446178:READER

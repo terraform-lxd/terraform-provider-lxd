@@ -58,3 +58,10 @@ resource "lxd_container" "tf-lxd-acctest-basic" {
   image = "ubuntu"
   profiles = ["default"]
 }`
+
+const testAccComputeInstance_ssh_provisioner = `
+resource "lxd_container" "tf-lxd-acctest-basic" {
+  name = "tf-lxd-acctest-basic"
+  image = "ubuntu"
+  profiles = ["default"]
+}`

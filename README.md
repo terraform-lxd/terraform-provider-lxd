@@ -11,7 +11,7 @@ LXD Resource provider for Terraform
 
 This provider connects to the LXD daemon over local Unix socket or HTTPS.
 
-It makes use of the [LXD client library](github.com/lxc/lxd), which currently looks in `~/.config/lxc/` for `client.crt` and `client.key` files that must exist to be able to communicate with the LXD daemon.
+It makes use of the [LXD client library](http://github.com/lxc/lxd), which currently looks in `~/.config/lxc/` for `client.crt` and `client.key` files that must exist to be able to communicate with the LXD daemon.
 
 To generate these files and store them in the LXD daemon, follow these [steps](https://linuxcontainers.org/lxd/getting-started-cli/#multiple-hosts).
 
