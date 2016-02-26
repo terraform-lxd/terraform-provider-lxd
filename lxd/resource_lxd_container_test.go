@@ -37,15 +37,11 @@ func testAccContainerRunning(n string) resource.TestCheckFunc {
 		}
 
 		client := testAccProvider.Meta().(*lxd.Client)
-		containers, err := client.ListContainers()
-		if err != nil {
-			return err
-		}
+		ct := getContainerState(client, rs.Primary.ID)
+		if ct != nil {
+			fmt.Printf("%+v\n", ct)
 
-		for _, c := range containers {
-			if c.State.Name == rs.Primary.ID {
-				return nil
-			}
+			return nil
 		}
 
 		return fmt.Errorf("Container not found: %s", rs.Primary.ID)

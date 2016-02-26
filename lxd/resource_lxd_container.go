@@ -130,16 +130,21 @@ func resourceLxdContainerRead(d *schema.ResourceData, meta interface{}) error {
 	sshIP := ""
 	gotIp := false
 	cycles := 0
+
+	// wait for NIC to come up and get IP from DHCP
 	for !gotIp && cycles < 15 {
 		cycles += 1
-		ct, _ := client.ContainerStatus(d.Get("name").(string))
-		d.Set("status", ct.Status.Status)
-		d.Set("mac_address", ct.Config["volatile.eth0.hwaddr"])
-		for _, ip := range ct.Status.Ips {
-
-			if ip.Protocol == "IPV4" && ip.Address != "127.0.0.1" {
-				d.Set("ip_address", ip.Address)
-				gotIp = true
+		ct, _ := client.ContainerState(d.Get("name").(string))
+		d.Set("status", ct.Status)
+		for iface, net := range ct.Network {
+			if iface != "lo" {
+				for _, ip := range net.Addresses {
+					if ip.Family == "inet" {
+						d.Set("ip_address", ip.Address)
+						d.Set("mac_address", net.Hwaddr)
+						gotIp = true
+					}
+				}
 			}
 		}
 		time.Sleep(1 * time.Second)
@@ -163,8 +168,8 @@ func resourceLxdContainerDelete(d *schema.ResourceData, meta interface{}) (err e
 	client := meta.(*lxd.Client)
 	name := d.Get("name").(string)
 
-	cstate := getContainerState(client, name)
-	if cstate.Status.Status == "Running" {
+	ct, _ := client.ContainerState(d.Get("name").(string))
+	if ct.Status == "Running" {
 		stopResp, err := client.Action(name, shared.Stop, 30, true)
 		if err == nil {
 			err = client.WaitForSuccess(stopResp.Operation)
@@ -183,23 +188,19 @@ func resourceLxdContainerDelete(d *schema.ResourceData, meta interface{}) (err e
 
 func resourceLxdContainerExists(d *schema.ResourceData, meta interface{}) (exists bool, err error) {
 	client := meta.(*lxd.Client)
-	name := d.Get("name").(string)
 
 	exists = false
 
-	var ct *shared.ContainerState
-	ct, err = client.ContainerStatus(name)
-	if err == nil {
-		if ct != nil && ct.Name == name {
-			exists = true
-		}
+	ct, err := client.ContainerState(d.Get("name").(string))
+	if err == nil && ct != nil {
+		exists = true
 	}
 
 	return
 }
 
 func getContainerState(client *lxd.Client, name string) *shared.ContainerState {
-	ct, err := client.ContainerStatus(name)
+	ct, err := client.ContainerState(name)
 	if err != nil {
 		return nil
 	}
