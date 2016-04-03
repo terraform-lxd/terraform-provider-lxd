@@ -44,7 +44,8 @@ resource "lxd_container" "test1" {
 
   * `address`  - *Optional* - Unix socket file path or IP / FQDN where LXD daemon can be reached. Defaults to `/var/lib/lxd/unix.socket`
   * `scheme`   - *Optional* - `https` or `unix`. Defaults to `unix`.
-  * `port`     - *Optional* - `https` scheme only - The port on which the LXD daemon is listeneing. Defaults to 8443.
+  * `port`     - *Optional* - `https` scheme only - The port on which the LXD daemon is listening. Defaults to 8443.
+  * `remote`   - *Optional* - Name of the remote LXD as it exists in the local lxc config. Defaults to `local`.
   
 #### Resource
 
@@ -58,12 +59,8 @@ resource "lxd_container" "test1" {
 
 ## Known Limitations
 
-All the base LXD images do not include SSH server therefore terraform will be unable to connect to the container over
-SSH to execute any `provisioners` unless the container is started from a base image where SSH has been installed.
-
-## Misc
-
-This has only been tested on Ubuntu 14.10 against LXD version 0.21
+All the base LXD images do not include an SSH server, therefore terraform will be unable to execute any `provisioners`.
+A basic base image must be prepared in advance, that includes the SSH server.
 
 ## To Do
 

@@ -67,6 +67,7 @@ func init() {
 		"lxd_address": "The FQDN or IP where the LXD daemon can be contacted. (default = /var/lib/lxd/unix.socket)",
 		"lxd_scheme":  "unix or https (default = unix)",
 		"lxd_port":    "Port LXD Daemon is listening on (default 8443).",
+		"lxd_remote":  "Name of the LXD remote. Required when lxd_scheme set to https, to enable locating server certificate.",
 	}
 }
 
@@ -87,7 +88,7 @@ func providerConfigure(d *schema.ResourceData) (interface{}, error) {
 	// build LXD config
 	config := lxd.Config{
 		ConfigDir: os.ExpandEnv("$HOME/.config/lxc"),
-		Remotes: make(map[string]lxd.RemoteConfig),
+		Remotes:   make(map[string]lxd.RemoteConfig),
 	}
 	config.Remotes[remote] = lxd.RemoteConfig{Addr: daemon_addr}
 
