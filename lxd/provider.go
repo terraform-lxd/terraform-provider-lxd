@@ -7,7 +7,14 @@ import (
 
 	"github.com/gpmgo/gopm/modules/log"
 	"github.com/lxc/lxd"
+	"github.com/lxc/lxd/shared"
+	"os"
 )
+
+type LxdProvider struct {
+	Remote string
+	Client *lxd.Client
+}
 
 // Provider returns a terraform.ResourceProvider.
 func Provider() terraform.ResourceProvider {
@@ -20,21 +27,28 @@ func Provider() terraform.ResourceProvider {
 				Type:        schema.TypeString,
 				Optional:    true,
 				Description: descriptions["lxd_address"],
-				Default:     "/var/lib/lxd/unix.socket",
+				DefaultFunc: schema.EnvDefaultFunc("LXD_ADDR", "/var/lib/lxd/unix.socket"),
 			},
 
 			"scheme": &schema.Schema{
 				Type:        schema.TypeString,
 				Optional:    true,
-				Default:     "unix",
 				Description: descriptions["lxd_scheme"],
+				DefaultFunc: schema.EnvDefaultFunc("LXD_SCHEME", "unix"),
 			},
 
 			"port": &schema.Schema{
 				Type:        schema.TypeString,
 				Optional:    true,
-				Default:     "8443",
 				Description: descriptions["lxd_port"],
+				DefaultFunc: schema.EnvDefaultFunc("LXD_PORT", "8443"),
+			},
+
+			"remote": &schema.Schema{
+				Type:        schema.TypeString,
+				Optional:    true,
+				Description: descriptions["lxd_remote"],
+				DefaultFunc: schema.EnvDefaultFunc("LXD_REMOTE", "local"),
 			},
 		},
 
@@ -57,9 +71,10 @@ func init() {
 }
 
 func providerConfigure(d *schema.ResourceData) (interface{}, error) {
+	remote := d.Get("remote").(string)
+	scheme := d.Get("scheme").(string)
 
 	daemon_addr := ""
-	scheme := d.Get("scheme")
 	switch scheme {
 	case "unix":
 		daemon_addr = fmt.Sprintf("unix:%s", d.Get("address"))
@@ -69,13 +84,27 @@ func providerConfigure(d *schema.ResourceData) (interface{}, error) {
 		log.Fatal("Invalid scheme: %s", scheme)
 	}
 
+	// build LXD config
 	config := lxd.Config{
-		Remotes: map[string]lxd.RemoteConfig{
-			"terraform": lxd.RemoteConfig{Addr: daemon_addr},
-		},
+		ConfigDir: os.ExpandEnv("$HOME/.config/lxc"),
+		Remotes: make(map[string]lxd.RemoteConfig),
+	}
+	config.Remotes[remote] = lxd.RemoteConfig{Addr: daemon_addr}
+
+	if scheme == "https" {
+		// validate certifictes exist
+		certf := config.ConfigPath("client.crt")
+		keyf := config.ConfigPath("client.key")
+		if !shared.PathExists(certf) || !shared.PathExists(keyf) {
+			log.Error("Certificate or key not found:\n\t%s\n\t%s", certf, keyf)
+		}
+		serverCertf := config.ServerCertPath(remote)
+		if !shared.PathExists(serverCertf) {
+			log.Error("Server certificate not found:\n\t%s", serverCertf)
+		}
 	}
 
-	client, err := lxd.NewClient(&config, "terraform")
+	client, err := lxd.NewClient(&config, remote)
 	if err != nil {
 		log.Error("Could not create LXD client: %s", err)
 		return nil, err
@@ -85,9 +114,17 @@ func providerConfigure(d *schema.ResourceData) (interface{}, error) {
 		return nil, err
 	}
 
-	return client, nil
+	lxdProv := LxdProvider{
+		Remote: remote,
+		Client: client,
+	}
+
+	return &lxdProv, nil
 }
 
 func validateClient(client *lxd.Client) error {
-	return client.Finger()
+	if _, err := client.GetServerConfig(); err != nil {
+		return err
+	}
+	return nil
 }

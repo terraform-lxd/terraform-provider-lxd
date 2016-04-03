@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
-	"github.com/lxc/lxd"
 	"testing"
 )
 
@@ -36,7 +35,7 @@ func testAccContainerRunning(n string) resource.TestCheckFunc {
 			return fmt.Errorf("No ID is set")
 		}
 
-		client := testAccProvider.Meta().(*lxd.Client)
+		client := testAccProvider.Meta().(*LxdProvider).Client
 		ct := getContainerState(client, rs.Primary.ID)
 		if ct != nil {
 			fmt.Printf("%+v\n", ct)

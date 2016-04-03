@@ -76,7 +76,8 @@ func resourceLxdContainer() *schema.Resource {
 
 func resourceLxdContainerCreate(d *schema.ResourceData, meta interface{}) error {
 	var err error
-	client := meta.(*lxd.Client)
+	client := meta.(*LxdProvider).Client
+	remote := meta.(*LxdProvider).Remote
 
 	name := d.Get("name").(string)
 	ephem := d.Get("ephemeral").(bool)
@@ -95,7 +96,7 @@ func resourceLxdContainerCreate(d *schema.ResourceData, meta interface{}) error 
 
 	//client.Init = (name string, imgremote string, image string, profiles *[]string, config map[string]string, ephem bool)
 	var resp *lxd.Response
-	if resp, err = client.Init(name, "terraform", d.Get("image").(string), &profiles, nil, ephem); err != nil {
+	if resp, err = client.Init(name, remote, d.Get("image").(string), &profiles, nil, ephem); err != nil {
 		return err
 	}
 
@@ -104,7 +105,7 @@ func resourceLxdContainerCreate(d *schema.ResourceData, meta interface{}) error 
 	err = client.WaitForSuccess(resp.Operation)
 	if err == nil {
 		// Start container
-		resp, err = client.Action(name, shared.Start, -1, false)
+		resp, err = client.Action(name, shared.Start, -1, false, false)
 		if err != nil {
 			// Container has been created, but daemon rejected start request
 			return err
@@ -125,7 +126,7 @@ func resourceLxdContainerCreate(d *schema.ResourceData, meta interface{}) error 
 }
 
 func resourceLxdContainerRead(d *schema.ResourceData, meta interface{}) error {
-	client := meta.(*lxd.Client)
+	client := meta.(*LxdProvider).Client
 
 	sshIP := ""
 	gotIp := false
@@ -165,12 +166,12 @@ func resourceLxdContainerUpdate(d *schema.ResourceData, meta interface{}) error 
 }
 
 func resourceLxdContainerDelete(d *schema.ResourceData, meta interface{}) (err error) {
-	client := meta.(*lxd.Client)
+	client := meta.(*LxdProvider).Client
 	name := d.Get("name").(string)
 
 	ct, _ := client.ContainerState(d.Get("name").(string))
 	if ct.Status == "Running" {
-		stopResp, err := client.Action(name, shared.Stop, 30, true)
+		stopResp, err := client.Action(name, shared.Stop, 30, true, false)
 		if err == nil {
 			err = client.WaitForSuccess(stopResp.Operation)
 		}
@@ -187,7 +188,7 @@ func resourceLxdContainerDelete(d *schema.ResourceData, meta interface{}) (err e
 }
 
 func resourceLxdContainerExists(d *schema.ResourceData, meta interface{}) (exists bool, err error) {
-	client := meta.(*lxd.Client)
+	client := meta.(*LxdProvider).Client
 
 	exists = false
 
