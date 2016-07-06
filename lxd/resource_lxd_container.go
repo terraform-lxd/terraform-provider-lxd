@@ -96,7 +96,7 @@ func resourceLxdContainerCreate(d *schema.ResourceData, meta interface{}) error 
 
 	//client.Init = (name string, imgremote string, image string, profiles *[]string, config map[string]string, ephem bool)
 	var resp *lxd.Response
-	if resp, err = client.Init(name, remote, d.Get("image").(string), &profiles, nil, ephem); err != nil {
+	if resp, err = client.Init(name, remote, d.Get("image").(string), &profiles, nil, nil, ephem); err != nil {
 		return err
 	}
 
