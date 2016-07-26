@@ -31,7 +31,9 @@ Resource
 ```
 resource "lxd_container" "test1" {
   name      = "test1"
-  image     = "ubuntu"
+  image     = "ubuntu"     # this assumes an image has been cached locally with the alias 'ubunut'
+                           # e.g.
+                           # lxc image copy images:ubuntu/xenial/amd64 local: --alias=ubuntu
   profiles  = ["default"]
   ephemeral = false
 }
