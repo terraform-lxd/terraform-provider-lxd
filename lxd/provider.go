@@ -2,13 +2,14 @@ package lxd
 
 import (
 	"fmt"
+	"log"
+	"os"
+
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/hashicorp/terraform/terraform"
 
-	"github.com/gpmgo/gopm/modules/log"
 	"github.com/lxc/lxd"
 	"github.com/lxc/lxd/shared"
-	"os"
 )
 
 type LxdProvider struct {
@@ -82,7 +83,8 @@ func providerConfigure(d *schema.ResourceData) (interface{}, error) {
 	case "https":
 		daemon_addr = fmt.Sprintf("https://%s:%s", d.Get("address"), d.Get("port"))
 	default:
-		log.Fatal("Invalid scheme: %s", scheme)
+		err := fmt.Errorf("Invalid scheme: %s", scheme)
+		return nil, err
 	}
 
 	// build LXD config
@@ -91,25 +93,29 @@ func providerConfigure(d *schema.ResourceData) (interface{}, error) {
 		Remotes:   make(map[string]lxd.RemoteConfig),
 	}
 	config.Remotes[remote] = lxd.RemoteConfig{Addr: daemon_addr}
+	log.Printf("[DEBUG] LXD Config: %#v", config)
 
 	if scheme == "https" {
 		// validate certifictes exist
 		certf := config.ConfigPath("client.crt")
 		keyf := config.ConfigPath("client.key")
 		if !shared.PathExists(certf) || !shared.PathExists(keyf) {
-			log.Error("Certificate or key not found:\n\t%s\n\t%s", certf, keyf)
+			err := fmt.Errorf("Certificate or key not found:\n\t%s\n\t%s", certf, keyf)
+			return nil, err
 		}
 		serverCertf := config.ServerCertPath(remote)
 		if !shared.PathExists(serverCertf) {
-			log.Error("Server certificate not found:\n\t%s", serverCertf)
+			err := fmt.Errorf("Server certificate not found:\n\t%s", serverCertf)
+			return nil, err
 		}
 	}
 
 	client, err := lxd.NewClient(&config, remote)
 	if err != nil {
-		log.Error("Could not create LXD client: %s", err)
+		err := fmt.Errorf("Could not create LXD client: %s", err)
 		return nil, err
 	}
+	log.Printf("[DEBUG] LXD Client: %#v", client)
 
 	if err := validateClient(client); err != nil {
 		return nil, err
