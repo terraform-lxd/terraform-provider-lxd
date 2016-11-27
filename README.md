@@ -2,6 +2,8 @@
 
 LXD Resource provider for Terraform
 
+[![Build Status](https://travis-ci.org/sl1pm4t/terraform-provider-lxd.svg?branch=master)](https://travis-ci.org/sl1pm4t/terraform-provider-lxd)
+
 ## Prerequisites
 
 * [Terraform](http://terraform.io)
@@ -17,18 +19,18 @@ To generate these files and store them in the LXD daemon, follow these [steps](h
 
 ### Example Configuration
 
-Provider (HTTPS)
+**Provider (HTTPS)**
 
-```
+```hcl
 provider "lxd" {
   scheme  = "https"
   address = "10.1.1.8"
 }
 ```
 
-Resource
+**Resource**
 
-```
+```hcl
 resource "lxd_container" "test1" {
   name      = "test1"
   image     = "ubuntu"     # this assumes an image has been cached locally with the alias 'ubuntu'
@@ -40,6 +42,7 @@ resource "lxd_container" "test1" {
 ```
 
 ### Reference
+
 #### Provider
 
 ##### Parameters
