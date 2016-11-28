@@ -11,7 +11,7 @@ import (
 )
 
 func TestAccContainer_basic1(t *testing.T) {
-	var container shared.ContainerState
+	var container shared.ContainerInfo
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:  func() { testAccPreCheck(t) },
@@ -20,14 +20,14 @@ func TestAccContainer_basic1(t *testing.T) {
 			resource.TestStep{
 				Config: testAccContainer_basic,
 				Check: resource.ComposeTestCheckFunc(
-					testAccContainerRunning(t, "lxd_container.tf-lxd-acctest-basic", &container),
+					testAccContainerRunning(t, "lxd_container.container1", &container),
 				),
 			},
 		},
 	})
 }
 
-func testAccContainerRunning(t *testing.T, n string, container *shared.ContainerState) resource.TestCheckFunc {
+func testAccContainerRunning(t *testing.T, n string, container *shared.ContainerInfo) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		rs, ok := s.RootModule().Resources[n]
 		if !ok {
@@ -39,10 +39,13 @@ func testAccContainerRunning(t *testing.T, n string, container *shared.Container
 		}
 
 		client := testAccProvider.Meta().(*LxdProvider).Client
-		ct := getContainerState(client, rs.Primary.ID)
+		ct, err := client.ContainerInfo(rs.Primary.ID)
+		if err != nil {
+			return err
+		}
+
 		if ct != nil {
-			t.Logf("[DEBUG] Container: %#v", ct)
-			container = ct
+			*container = *ct
 			return nil
 		}
 
@@ -50,9 +53,9 @@ func testAccContainerRunning(t *testing.T, n string, container *shared.Container
 	}
 }
 
-const testAccContainer_basic = `
-resource "lxd_container" "tf-lxd-acctest-basic" {
-  name = "tf-lxd-acctest-basic"
-  image = "ubuntu"
-  profiles = ["default"]
-}`
+var testAccContainer_basic = `
+  resource "lxd_container" "container1" {
+    name = "container1"
+    image = "ubuntu"
+    profiles = ["default"]
+  }`
