@@ -38,6 +38,11 @@ resource "lxd_container" "test1" {
                            # lxc image copy images:ubuntu/xenial/amd64 local: --alias=ubuntu
   profiles  = ["default"]
   ephemeral = false
+
+  config {
+    limits.cpu = 2         # this must be a valid container config setting or LXD will throw a
+                           # "Bad key: foo" error. See reference below.
+  }
 }
 ```
 
@@ -51,7 +56,7 @@ resource "lxd_container" "test1" {
   * `scheme`   - *Optional* - `https` or `unix`. Defaults to `unix`.
   * `port`     - *Optional* - `https` scheme only - The port on which the LXD daemon is listening. Defaults to 8443.
   * `remote`   - *Optional* - Name of the remote LXD as it exists in the local lxc config. Defaults to `local`.
-  
+
 #### Resource
 
 ##### Parameters
@@ -61,6 +66,7 @@ resource "lxd_container" "test1" {
   * `profiles`  - *Optional* -Array of LXD config profiles to apply to the new container.
   * `ephemeral` - *Optional* -Boolean indicating if this container is ephemeral. Default = false.
   * `privileged`- *Optional* -Boolean indicating if this container will run in privileged mode. Default = false.
+  * `config`    - *Optional* -Map of key/value pairs of [container config settings](https://github.com/lxc/lxd/blob/master/doc/configuration.md#container-configuration).
 
 ## Known Limitations
 
@@ -69,12 +75,10 @@ A basic base image must be prepared in advance, that includes the SSH server.
 
 ## To Do
 
-- [ ] Support for container config map
 - [ ] Support for using client cert / key from other paths
 - [ ] Ability to update container profile/config
 - [ ] Ability to exec commands via LXD WebSocket channel
 - [ ] Ability to upload files via LXD WebSocket channel
-- [ ] Ability to specify CPU / Memory limits
 - [ ] Volumes support
 - [ ] Add LXD `profile` resource
 - [ ] Add LXD `image` resource
