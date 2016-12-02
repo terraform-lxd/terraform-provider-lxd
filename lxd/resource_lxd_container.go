@@ -1,6 +1,7 @@
 package lxd
 
 import (
+	"log"
 	"time"
 
 	"github.com/hashicorp/terraform/helper/schema"
@@ -81,6 +82,7 @@ func resourceLxdContainerCreate(d *schema.ResourceData, meta interface{}) error 
 
 	name := d.Get("name").(string)
 	ephem := d.Get("ephemeral").(bool)
+	config := resourceLxdContainerConfigMap(d.Get("config"))
 
 	/*
 	 * requested_empty_profiles means user requested empty
@@ -96,37 +98,39 @@ func resourceLxdContainerCreate(d *schema.ResourceData, meta interface{}) error 
 
 	//client.Init = (name string, imgremote string, image string, profiles *[]string, config map[string]string, ephem bool)
 	var resp *lxd.Response
-	if resp, err = client.Init(name, remote, d.Get("image").(string), &profiles, nil, nil, ephem); err != nil {
+	if resp, err = client.Init(name, remote, d.Get("image").(string), &profiles, config, nil, ephem); err != nil {
+		return err
+	}
+
+	err = client.WaitForSuccess(resp.Operation)
+	if err != nil {
+		return err
+	}
+
+	// Start container
+	resp, err = client.Action(name, shared.Start, -1, false, false)
+	if err != nil {
+		// Container has been created, but daemon rejected start request
+		return err
+	}
+
+	if err := client.WaitForSuccess(resp.Operation); err != nil {
+		// Container could not be started
 		return err
 	}
 
 	d.SetId(name)
-
-	err = client.WaitForSuccess(resp.Operation)
-	if err == nil {
-		// Start container
-		resp, err = client.Action(name, shared.Start, -1, false, false)
-		if err != nil {
-			// Container has been created, but daemon rejected start request
-			return err
-		}
-
-		if err := client.WaitForSuccess(resp.Operation); err != nil {
-			// Container could not be started
-			return err
-		}
-
-		return resourceLxdContainerRead(d, meta)
-	}
-
-	// Resource didn't create
-	d.SetId("")
-
-	return err
+	return resourceLxdContainerRead(d, meta)
 }
 
 func resourceLxdContainerRead(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*LxdProvider).Client
+
+	container, err := client.ContainerInfo(d.Id())
+	if err != nil {
+		return err
+	}
+	log.Printf("[DEBUG] Retrieved container %s: %#v", d.Id(), container)
 
 	sshIP := ""
 	gotIp := false
@@ -198,6 +202,19 @@ func resourceLxdContainerExists(d *schema.ResourceData, meta interface{}) (exist
 	}
 
 	return
+}
+
+func resourceLxdContainerConfigMap(c interface{}) map[string]string {
+	config := make(map[string]string)
+	if v, ok := c.(map[string]interface{}); ok {
+		for key, val := range v {
+			config[key] = val.(string)
+		}
+	}
+
+	log.Printf("[DEBUG]: LXD Container Configuration Map: %#v", config)
+
+	return config
 }
 
 func getContainerState(client *lxd.Client, name string) *shared.ContainerState {

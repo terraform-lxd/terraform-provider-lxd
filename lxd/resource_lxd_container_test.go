@@ -10,7 +10,7 @@ import (
 	"github.com/lxc/lxd/shared"
 )
 
-func TestAccContainer_basic1(t *testing.T) {
+func TestAccContainer_basic(t *testing.T) {
 	var container shared.ContainerInfo
 
 	resource.Test(t, resource.TestCase{
@@ -21,6 +21,25 @@ func TestAccContainer_basic1(t *testing.T) {
 				Config: testAccContainer_basic,
 				Check: resource.ComposeTestCheckFunc(
 					testAccContainerRunning(t, "lxd_container.container1", &container),
+				),
+			},
+		},
+	})
+}
+
+func TestAccContainer_config(t *testing.T) {
+	var container shared.ContainerInfo
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:  func() { testAccPreCheck(t) },
+		Providers: testAccProviders,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccContainer_config,
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr("lxd_container.container1", "config.limits.cpu", "2"),
+					testAccContainerRunning(t, "lxd_container.container1", &container),
+					testAccContainerConfig(&container, "limits.cpu", "2"),
 				),
 			},
 		},
@@ -53,9 +72,41 @@ func testAccContainerRunning(t *testing.T, n string, container *shared.Container
 	}
 }
 
+func testAccContainerConfig(container *shared.ContainerInfo, k, v string) resource.TestCheckFunc {
+	return func(s *terraform.State) error {
+		if container.Config == nil {
+			return fmt.Errorf("No config")
+		}
+
+		for key, value := range container.Config {
+			if k != key {
+				continue
+			}
+
+			if v == value {
+				return nil
+			}
+
+			return fmt.Errorf("Bad value for %s: %s", k, value)
+		}
+
+		return fmt.Errorf("Config not found: %s", k)
+	}
+}
+
 var testAccContainer_basic = `
   resource "lxd_container" "container1" {
     name = "container1"
     image = "ubuntu"
     profiles = ["default"]
+  }`
+
+var testAccContainer_config = `
+  resource "lxd_container" "container1" {
+    name = "container1"
+    image = "ubuntu"
+    profiles = ["default"]
+    config {
+      limits.cpu = 2
+    }
   }`
