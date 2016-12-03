@@ -85,6 +85,7 @@ func resourceLxdContainerCreate(d *schema.ResourceData, meta interface{}) error 
 
 	name := d.Get("name").(string)
 	ephem := d.Get("ephemeral").(bool)
+	image := d.Get("image").(string)
 	config := resourceLxdContainerConfigMap(d.Get("config"))
 
 	/*
@@ -101,7 +102,7 @@ func resourceLxdContainerCreate(d *schema.ResourceData, meta interface{}) error 
 
 	//client.Init = (name string, imgremote string, image string, profiles *[]string, config map[string]string, ephem bool)
 	var resp *lxd.Response
-	if resp, err = client.Init(name, remote, d.Get("image").(string), &profiles, config, nil, ephem); err != nil {
+	if resp, err = client.Init(name, remote, image, &profiles, config, nil, ephem); err != nil {
 		return err
 	}
 
@@ -137,16 +138,17 @@ func resourceLxdContainerCreate(d *schema.ResourceData, meta interface{}) error 
 
 func resourceLxdContainerRead(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*LxdProvider).Client
+	name := d.Id()
 
-	container, err := client.ContainerInfo(d.Id())
+	container, err := client.ContainerInfo(name)
 	if err != nil {
 		return err
 	}
-	log.Printf("[DEBUG] Retrieved container %s: %#v", d.Id(), container)
+	log.Printf("[DEBUG] Retrieved container %s: %#v", name, container)
 
 	sshIP := ""
 
-	ct, err := client.ContainerState(d.Id())
+	ct, err := client.ContainerState(name)
 	if err != nil {
 		return err
 	}
@@ -181,7 +183,7 @@ func resourceLxdContainerUpdate(d *schema.ResourceData, meta interface{}) error 
 
 func resourceLxdContainerDelete(d *schema.ResourceData, meta interface{}) (err error) {
 	client := meta.(*LxdProvider).Client
-	name := d.Get("name").(string)
+	name := d.Id()
 
 	ct, _ := client.ContainerState(name)
 	if ct.Status == "Running" {
@@ -212,10 +214,11 @@ func resourceLxdContainerDelete(d *schema.ResourceData, meta interface{}) (err e
 
 func resourceLxdContainerExists(d *schema.ResourceData, meta interface{}) (exists bool, err error) {
 	client := meta.(*LxdProvider).Client
+	name := d.Id()
 
 	exists = false
 
-	ct, err := client.ContainerState(d.Get("name").(string))
+	ct, err := client.ContainerState(name)
 	if err == nil && ct != nil {
 		exists = true
 	}
@@ -231,7 +234,7 @@ func resourceLxdContainerConfigMap(c interface{}) map[string]string {
 		}
 	}
 
-	log.Printf("[DEBUG]: LXD Container Configuration Map: %#v", config)
+	log.Printf("[DEBUG] LXD Container Configuration Map: %#v", config)
 
 	return config
 }
@@ -245,12 +248,4 @@ func resourceLxdContainerRefresh(client *lxd.Client, name string) resource.State
 
 		return ct, ct.Status, nil
 	}
-}
-
-func getContainerState(client *lxd.Client, name string) *shared.ContainerState {
-	ct, err := client.ContainerState(name)
-	if err != nil {
-		return nil
-	}
-	return ct
 }
