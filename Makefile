@@ -1,5 +1,6 @@
 test:
 	go get ./...
+	go get github.com/dustinkirkland/golang-petname
 	go test -v ./lxd
 
 testacc:

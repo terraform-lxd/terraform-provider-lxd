@@ -2,7 +2,10 @@ package lxd
 
 import (
 	"fmt"
+	"strings"
 	"testing"
+
+	"github.com/dustinkirkland/golang-petname"
 
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
@@ -12,15 +15,17 @@ import (
 
 func TestAccContainer_basic(t *testing.T) {
 	var container shared.ContainerInfo
+	containerName := strings.ToLower(petname.Generate(2, "-"))
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:  func() { testAccPreCheck(t) },
 		Providers: testAccProviders,
 		Steps: []resource.TestStep{
 			resource.TestStep{
-				Config: testAccContainer_basic,
+				Config: testAccContainer_basic(containerName),
 				Check: resource.ComposeTestCheckFunc(
 					testAccContainerRunning(t, "lxd_container.container1", &container),
+					resource.TestCheckResourceAttr("lxd_container.container1", "name", containerName),
 				),
 			},
 		},
@@ -29,14 +34,16 @@ func TestAccContainer_basic(t *testing.T) {
 
 func TestAccContainer_config(t *testing.T) {
 	var container shared.ContainerInfo
+	containerName := strings.ToLower(petname.Generate(2, "-"))
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:  func() { testAccPreCheck(t) },
 		Providers: testAccProviders,
 		Steps: []resource.TestStep{
 			resource.TestStep{
-				Config: testAccContainer_config,
+				Config: testAccContainer_config(containerName),
 				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr("lxd_container.container1", "name", containerName),
 					resource.TestCheckResourceAttr("lxd_container.container1", "config.limits.cpu", "2"),
 					testAccContainerRunning(t, "lxd_container.container1", &container),
 					testAccContainerConfig(&container, "limits.cpu", "2"),
@@ -94,19 +101,21 @@ func testAccContainerConfig(container *shared.ContainerInfo, k, v string) resour
 	}
 }
 
-var testAccContainer_basic = `
-  resource "lxd_container" "container1" {
-    name = "container1"
-    image = "ubuntu"
-    profiles = ["default"]
-  }`
+func testAccContainer_basic(name string) string {
+	return fmt.Sprintf(`resource "lxd_container" "container1" {
+  name = "%s"
+  image = "ubuntu"
+  profiles = ["default"]
+}`, name)
+}
 
-var testAccContainer_config = `
-  resource "lxd_container" "container1" {
-    name = "container1"
-    image = "ubuntu"
-    profiles = ["default"]
-    config {
-      limits.cpu = 2
-    }
-  }`
+func testAccContainer_config(name string) string {
+	return fmt.Sprintf(`resource "lxd_container" "container1" {
+  name = "%s"
+  image = "ubuntu"
+  profiles = ["default"]
+  config {
+    limits.cpu = 2
+  }
+}`, name)
+}
