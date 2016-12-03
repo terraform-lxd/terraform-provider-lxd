@@ -34,7 +34,7 @@ func resourceLxdContainer() *schema.Resource {
 			},
 
 			"profiles": &schema.Schema{
-				Type:     schema.TypeSet,
+				Type:     schema.TypeList,
 				Optional: true,
 				Elem:     &schema.Schema{Type: schema.TypeString},
 				ForceNew: false,
@@ -93,9 +93,8 @@ func resourceLxdContainerCreate(d *schema.ResourceData, meta interface{}) error 
 	 * !requested_empty_profiles but len(profArgs) == 0 means use profile default
 	 */
 	profiles := []string{}
-	if v := d.Get("profiles"); v != nil {
-		vs := v.(*schema.Set)
-		for _, v := range vs.List() {
+	if v, ok := d.GetOk("profiles"); ok {
+		for _, v := range v.([]interface{}) {
 			profiles = append(profiles, v.(string))
 		}
 	}
