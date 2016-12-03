@@ -1,10 +1,13 @@
 package lxd
 
 import (
+	"fmt"
 	"log"
 	"time"
 
+	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
+
 	"github.com/lxc/lxd"
 	"github.com/lxc/lxd/shared"
 )
@@ -102,21 +105,30 @@ func resourceLxdContainerCreate(d *schema.ResourceData, meta interface{}) error 
 		return err
 	}
 
+	// Wait for the LXC container to be created
 	err = client.WaitForSuccess(resp.Operation)
 	if err != nil {
 		return err
 	}
 
 	// Start container
-	resp, err = client.Action(name, shared.Start, -1, false, false)
+	_, err = client.Action(name, shared.Start, -1, false, false)
 	if err != nil {
 		// Container has been created, but daemon rejected start request
 		return err
 	}
 
-	if err := client.WaitForSuccess(resp.Operation); err != nil {
-		// Container could not be started
-		return err
+	// Wait until the container is in a Running state
+	stateConf := &resource.StateChangeConf{
+		Target:     []string{"Running"},
+		Refresh:    resourceLxdContainerRefresh(client, name),
+		Timeout:    3 * time.Minute,
+		Delay:      10 * time.Second,
+		MinTimeout: 3 * time.Second,
+	}
+
+	if _, err = stateConf.WaitForState(); err != nil {
+		return fmt.Errorf("Error waiting for container (%s) to become active: %s", name, err)
 	}
 
 	d.SetId(name)
@@ -133,26 +145,24 @@ func resourceLxdContainerRead(d *schema.ResourceData, meta interface{}) error {
 	log.Printf("[DEBUG] Retrieved container %s: %#v", d.Id(), container)
 
 	sshIP := ""
-	gotIp := false
-	cycles := 0
 
-	// wait for NIC to come up and get IP from DHCP
-	for !gotIp && cycles < 15 {
-		cycles += 1
-		ct, _ := client.ContainerState(d.Get("name").(string))
-		d.Set("status", ct.Status)
-		for iface, net := range ct.Network {
-			if iface != "lo" {
-				for _, ip := range net.Addresses {
-					if ip.Family == "inet" {
-						d.Set("ip_address", ip.Address)
-						d.Set("mac_address", net.Hwaddr)
-						gotIp = true
-					}
+	ct, err := client.ContainerState(d.Id())
+	if err != nil {
+		return err
+	}
+
+	d.Set("status", ct.Status)
+
+	for iface, net := range ct.Network {
+		if iface != "lo" {
+			for _, ip := range net.Addresses {
+				if ip.Family == "inet" {
+					d.Set("ip_address", ip.Address)
+					sshIP = ip.Address
+					d.Set("mac_address", net.Hwaddr)
 				}
 			}
 		}
-		time.Sleep(1 * time.Second)
 	}
 
 	// Initialize the connection info
@@ -173,22 +183,31 @@ func resourceLxdContainerDelete(d *schema.ResourceData, meta interface{}) (err e
 	client := meta.(*LxdProvider).Client
 	name := d.Get("name").(string)
 
-	ct, _ := client.ContainerState(d.Get("name").(string))
+	ct, _ := client.ContainerState(name)
 	if ct.Status == "Running" {
-		stopResp, err := client.Action(name, shared.Stop, 30, true, false)
-		if err == nil {
-			err = client.WaitForSuccess(stopResp.Operation)
+		if _, err := client.Action(name, shared.Stop, 30, true, false); err != nil {
+			return err
+		}
+
+		// Wait until the container is in a Stopped state
+		stateConf := &resource.StateChangeConf{
+			Target:     []string{"Stopped"},
+			Refresh:    resourceLxdContainerRefresh(client, name),
+			Timeout:    3 * time.Minute,
+			Delay:      10 * time.Second,
+			MinTimeout: 3 * time.Second,
+		}
+
+		if _, err = stateConf.WaitForState(); err != nil {
+			return fmt.Errorf("Error waiting for container (%s) to stop: %s", name, err)
 		}
 	}
 
-	if err == nil {
-		var resp *lxd.Response
-		if resp, err = client.Delete(name); err == nil {
-			err = client.WaitForSuccess(resp.Operation)
-		}
+	if _, err = client.Delete(name); err != nil {
+		return err
 	}
 
-	return err
+	return nil
 }
 
 func resourceLxdContainerExists(d *schema.ResourceData, meta interface{}) (exists bool, err error) {
@@ -215,6 +234,17 @@ func resourceLxdContainerConfigMap(c interface{}) map[string]string {
 	log.Printf("[DEBUG]: LXD Container Configuration Map: %#v", config)
 
 	return config
+}
+
+func resourceLxdContainerRefresh(client *lxd.Client, name string) resource.StateRefreshFunc {
+	return func() (interface{}, string, error) {
+		ct, err := client.ContainerState(name)
+		if err != nil {
+			return ct, "Error", err
+		}
+
+		return ct, ct.Status, nil
+	}
 }
 
 func getContainerState(client *lxd.Client, name string) *shared.ContainerState {
