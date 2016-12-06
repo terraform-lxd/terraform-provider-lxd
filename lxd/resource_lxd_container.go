@@ -50,6 +50,7 @@ func resourceLxdContainer() *schema.Resource {
 				Type:     schema.TypeBool,
 				Optional: true,
 				Default:  false,
+				ForceNew: true,
 			},
 
 			"privileged": &schema.Schema{
@@ -176,6 +177,27 @@ func resourceLxdContainerRead(d *schema.ResourceData, meta interface{}) error {
 }
 
 func resourceLxdContainerUpdate(d *schema.ResourceData, meta interface{}) error {
+	client := meta.(*LxdProvider).Client
+	name := d.Id()
+
+	// st will hold the updated container information.
+	var st shared.BriefContainerInfo
+	var changed bool
+
+	if d.HasChange("profiles") {
+		_, newProfiles := d.GetChange("profiles")
+		if v, ok := newProfiles.([]string); ok {
+			st.Profiles = v
+			changed = true
+		}
+	}
+
+	if changed {
+		err := client.UpdateContainerConfig(name, st)
+		if err != nil {
+			return err
+		}
+	}
 
 	return nil
 }
