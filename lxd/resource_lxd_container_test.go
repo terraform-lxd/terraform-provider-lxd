@@ -53,7 +53,7 @@ func TestAccContainer_config(t *testing.T) {
 	})
 }
 
-func TestAccContainer_update(t *testing.T) {
+func TestAccContainer_profile(t *testing.T) {
 	var container shared.ContainerInfo
 	containerName := strings.ToLower(petname.Generate(2, "-"))
 
@@ -62,19 +62,21 @@ func TestAccContainer_update(t *testing.T) {
 		Providers: testAccProviders,
 		Steps: []resource.TestStep{
 			resource.TestStep{
-				Config: testAccContainer_update_1(containerName),
+				Config: testAccContainer_profile_1(containerName),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("lxd_container.container1", "name", containerName),
 					resource.TestCheckResourceAttr("lxd_container.container1", "profiles.0", "default"),
 					testAccContainerRunning(t, "lxd_container.container1", &container),
+					testAccContainerProfile(&container, "default"),
 				),
 			},
 			resource.TestStep{
-				Config: testAccContainer_update_2(containerName),
+				Config: testAccContainer_profile_2(containerName),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("lxd_container.container1", "name", containerName),
 					resource.TestCheckResourceAttr("lxd_container.container1", "profiles.1", "docker"),
 					testAccContainerRunning(t, "lxd_container.container1", &container),
+					testAccContainerProfile(&container, "docker"),
 				),
 			},
 		},
@@ -129,6 +131,22 @@ func testAccContainerConfig(container *shared.ContainerInfo, k, v string) resour
 	}
 }
 
+func testAccContainerProfile(container *shared.ContainerInfo, profile string) resource.TestCheckFunc {
+	return func(s *terraform.State) error {
+		if container.Profiles == nil {
+			return fmt.Errorf("No config")
+		}
+
+		for _, v := range container.Profiles {
+			if v == profile {
+				return nil
+			}
+		}
+
+		return fmt.Errorf("Profile not found: %s", profile)
+	}
+}
+
 func testAccContainer_basic(name string) string {
 	return fmt.Sprintf(`resource "lxd_container" "container1" {
   name = "%s"
@@ -148,7 +166,7 @@ func testAccContainer_config(name string) string {
 }`, name)
 }
 
-func testAccContainer_update_1(name string) string {
+func testAccContainer_profile_1(name string) string {
 	return fmt.Sprintf(`resource "lxd_container" "container1" {
 	name = "%s"
 	image = "ubuntu"
@@ -156,7 +174,7 @@ func testAccContainer_update_1(name string) string {
 }`, name)
 }
 
-func testAccContainer_update_2(name string) string {
+func testAccContainer_profile_2(name string) string {
 	return fmt.Sprintf(`resource "lxd_container" "container1" {
 	name = "%s"
 	image = "ubuntu"
