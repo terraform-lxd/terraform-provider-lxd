@@ -184,11 +184,21 @@ func resourceLxdContainerUpdate(d *schema.ResourceData, meta interface{}) error 
 	var st shared.BriefContainerInfo
 	var changed bool
 
+	ct, err := client.ContainerInfo(name)
+	if err != nil {
+		return err
+	}
+	st.Devices = ct.Devices
+
 	if d.HasChange("profiles") {
 		_, newProfiles := d.GetChange("profiles")
-		if v, ok := newProfiles.([]string); ok {
-			st.Profiles = v
+		if v, ok := newProfiles.([]interface{}); ok {
 			changed = true
+			var profiles []string
+			for _, p := range v {
+				profiles = append(profiles, p.(string))
+			}
+			st.Profiles = profiles
 		}
 	}
 
