@@ -40,6 +40,14 @@ func resourceLxdContainer() *schema.Resource {
 				ForceNew: false,
 			},
 
+			"device": &schema.Schema{
+				Type:     schema.TypeList,
+				Optional: true,
+				Elem: &schema.Schema{
+					Type: schema.TypeMap,
+				},
+			},
+
 			"config": &schema.Schema{
 				Type:     schema.TypeMap,
 				Optional: true,
@@ -88,6 +96,7 @@ func resourceLxdContainerCreate(d *schema.ResourceData, meta interface{}) error 
 	ephem := d.Get("ephemeral").(bool)
 	image := d.Get("image").(string)
 	config := resourceLxdContainerConfigMap(d.Get("config"))
+	devices := resourceLxdContainerDevices(d.Get("device"))
 
 	/*
 	 * requested_empty_profiles means user requested empty
@@ -100,9 +109,9 @@ func resourceLxdContainerCreate(d *schema.ResourceData, meta interface{}) error 
 		}
 	}
 
-	//client.Init = (name string, imgremote string, image string, profiles *[]string, config map[string]string, ephem bool)
+	// client.Init = (name string, imgremote string, image string, profiles *[]string, config map[string]string, devices shared.Devices, ephem bool)
 	var resp *lxd.Response
-	if resp, err = client.Init(name, remote, image, &profiles, config, nil, ephem); err != nil {
+	if resp, err = client.Init(name, remote, image, &profiles, config, devices, ephem); err != nil {
 		return err
 	}
 
@@ -146,8 +155,6 @@ func resourceLxdContainerRead(d *schema.ResourceData, meta interface{}) error {
 	}
 	log.Printf("[DEBUG] Retrieved container %s: %#v", name, container)
 
-	sshIP := ""
-
 	ct, err := client.ContainerState(name)
 	if err != nil {
 		return err
@@ -155,6 +162,9 @@ func resourceLxdContainerRead(d *schema.ResourceData, meta interface{}) error {
 
 	d.Set("status", ct.Status)
 
+	log.Printf("[DEBUG] omg %#v", d.Get("device"))
+
+	sshIP := ""
 	for iface, net := range ct.Network {
 		if iface != "lo" {
 			for _, ip := range net.Addresses {
@@ -200,6 +210,25 @@ func resourceLxdContainerUpdate(d *schema.ResourceData, meta interface{}) error 
 			}
 			st.Profiles = profiles
 		}
+	}
+
+	if d.HasChange("device") {
+		changed = true
+		old, new := d.GetChange("device")
+		oldDevices := resourceLxdContainerDevices(old)
+		newDevices := resourceLxdContainerDevices(new)
+
+		for n, _ := range oldDevices {
+			delete(st.Devices, n)
+		}
+
+		for n, d := range newDevices {
+			if n != "" {
+				st.Devices[n] = d
+			}
+		}
+
+		log.Printf("[DEBUG] Updated device list: %#v", st.Devices)
 	}
 
 	if changed {
@@ -268,6 +297,30 @@ func resourceLxdContainerConfigMap(c interface{}) map[string]string {
 	log.Printf("[DEBUG] LXD Container Configuration Map: %#v", config)
 
 	return config
+}
+
+func resourceLxdContainerDevices(d interface{}) shared.Devices {
+	devices := make(shared.Devices)
+	if deviceList, ok := d.([]interface{}); ok {
+		for _, v := range deviceList {
+			if v, ok := v.(map[string]interface{}); ok {
+				if n, ok := v["name"]; ok {
+					name := n.(string)
+					device := make(shared.Device)
+					for key, val := range v {
+						if key != "name" {
+							device[key] = val.(string)
+						}
+					}
+					devices[name] = device
+				}
+			}
+		}
+	}
+
+	log.Printf("[DEBUG] LXD Container Devices: %#v", devices)
+
+	return devices
 }
 
 func resourceLxdContainerRefresh(client *lxd.Client, name string) resource.StateRefreshFunc {
