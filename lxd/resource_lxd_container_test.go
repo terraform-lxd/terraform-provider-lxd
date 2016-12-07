@@ -83,6 +83,48 @@ func TestAccContainer_profile(t *testing.T) {
 	})
 }
 
+func TestAccContainer_device(t *testing.T) {
+	var container shared.ContainerInfo
+	containerName := strings.ToLower(petname.Generate(2, "-"))
+
+	device1 := shared.Device{
+		"type":   "disk",
+		"source": "/tmp",
+		"path":   "/tmp/shared",
+	}
+
+	device2 := shared.Device{
+		"type":   "disk",
+		"source": "/tmp",
+		"path":   "/tmp/shared2",
+	}
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:  func() { testAccPreCheck(t) },
+		Providers: testAccProviders,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccContainer_device_1(containerName),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr("lxd_container.container1", "name", containerName),
+					resource.TestCheckResourceAttr("lxd_container.container1", "device.0.path", "/tmp/shared"),
+					testAccContainerRunning(t, "lxd_container.container1", &container),
+					testAccContainerDevice(&container, "shared", device1),
+				),
+			},
+			resource.TestStep{
+				Config: testAccContainer_device_2(containerName),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr("lxd_container.container1", "name", containerName),
+					resource.TestCheckResourceAttr("lxd_container.container1", "device.0.path", "/tmp/shared2"),
+					testAccContainerRunning(t, "lxd_container.container1", &container),
+					testAccContainerDevice(&container, "shared", device2),
+				),
+			},
+		},
+	})
+}
+
 func testAccContainerRunning(t *testing.T, n string, container *shared.ContainerInfo) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		rs, ok := s.RootModule().Resources[n]
@@ -134,7 +176,7 @@ func testAccContainerConfig(container *shared.ContainerInfo, k, v string) resour
 func testAccContainerProfile(container *shared.ContainerInfo, profile string) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		if container.Profiles == nil {
-			return fmt.Errorf("No config")
+			return fmt.Errorf("No profiles")
 		}
 
 		for _, v := range container.Profiles {
@@ -144,6 +186,20 @@ func testAccContainerProfile(container *shared.ContainerInfo, profile string) re
 		}
 
 		return fmt.Errorf("Profile not found: %s", profile)
+	}
+}
+
+func testAccContainerDevice(container *shared.ContainerInfo, deviceName string, device shared.Device) resource.TestCheckFunc {
+	return func(s *terraform.State) error {
+		if container.Devices == nil {
+			return fmt.Errorf("No devices")
+		}
+
+		if container.Devices.Contains(deviceName, device) {
+			return nil
+		}
+
+		return fmt.Errorf("Device not found: %s", deviceName)
 	}
 }
 
@@ -179,5 +235,35 @@ func testAccContainer_profile_2(name string) string {
 	name = "%s"
 	image = "ubuntu"
 	profiles = ["default", "docker"]
+}`, name)
+}
+
+func testAccContainer_device_1(name string) string {
+	return fmt.Sprintf(`resource "lxd_container" "container1" {
+	name = "%s"
+	image = "ubuntu"
+	profiles = ["default"]
+
+	device {
+		name = "shared"
+		type = "disk"
+		source = "/tmp"
+		path = "/tmp/shared"
+	}
+}`, name)
+}
+
+func testAccContainer_device_2(name string) string {
+	return fmt.Sprintf(`resource "lxd_container" "container1" {
+	name = "%s"
+	image = "ubuntu"
+	profiles = ["default"]
+
+	device {
+		name = "shared"
+		type = "disk"
+		source = "/tmp"
+		path = "/tmp/shared2"
+	}
 }`, name)
 }
