@@ -43,8 +43,37 @@ func resourceLxdContainer() *schema.Resource {
 			"device": &schema.Schema{
 				Type:     schema.TypeList,
 				Optional: true,
-				Elem: &schema.Schema{
-					Type: schema.TypeMap,
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"name": &schema.Schema{
+							Type:     schema.TypeString,
+							Required: true,
+						},
+
+						"type": &schema.Schema{
+							Type:     schema.TypeString,
+							Required: true,
+							ValidateFunc: func(v interface{}, k string) (ws []string, errors []error) {
+								value := v.(string)
+								validTypes := []string{"none", "disk", "nic", "unix-char", "unix-block", "usb", "gpu"}
+								valid := false
+								for _, v := range validTypes {
+									if value == v {
+										valid = true
+									}
+								}
+								if !valid {
+									errors = append(errors, fmt.Errorf("Device must have a type of: %v", validTypes))
+								}
+								return
+							},
+						},
+
+						"properties": &schema.Schema{
+							Type:     schema.TypeMap,
+							Required: true,
+						},
+					},
 				},
 			},
 
@@ -162,8 +191,6 @@ func resourceLxdContainerRead(d *schema.ResourceData, meta interface{}) error {
 
 	d.Set("status", ct.Status)
 
-	log.Printf("[DEBUG] omg %#v", d.Get("device"))
-
 	sshIP := ""
 	for iface, net := range ct.Network {
 		if iface != "lo" {
@@ -208,7 +235,10 @@ func resourceLxdContainerUpdate(d *schema.ResourceData, meta interface{}) error 
 			for _, p := range v {
 				profiles = append(profiles, p.(string))
 			}
+
 			st.Profiles = profiles
+
+			log.Printf("[DEBUG] Updated profiles: %#v", st.Profiles)
 		}
 	}
 
@@ -301,21 +331,18 @@ func resourceLxdContainerConfigMap(c interface{}) map[string]string {
 
 func resourceLxdContainerDevices(d interface{}) shared.Devices {
 	devices := make(shared.Devices)
-	if deviceList, ok := d.([]interface{}); ok {
-		for _, v := range deviceList {
-			if v, ok := v.(map[string]interface{}); ok {
-				if n, ok := v["name"]; ok {
-					name := n.(string)
-					device := make(shared.Device)
-					for key, val := range v {
-						if key != "name" {
-							device[key] = val.(string)
-						}
-					}
-					devices[name] = device
-				}
-			}
+	for _, v := range d.([]interface{}) {
+		device := make(shared.Device)
+		d := v.(map[string]interface{})
+		deviceName := d["name"].(string)
+		deviceType := d["type"].(string)
+		deviceProperties := d["properties"].(map[string]interface{})
+		device["type"] = deviceType
+		for key, val := range deviceProperties {
+			device[key] = val.(string)
 		}
+
+		devices[deviceName] = device
 	}
 
 	log.Printf("[DEBUG] LXD Container Devices: %#v", devices)

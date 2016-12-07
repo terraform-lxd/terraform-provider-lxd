@@ -107,7 +107,7 @@ func TestAccContainer_device(t *testing.T) {
 				Config: testAccContainer_device_1(containerName),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("lxd_container.container1", "name", containerName),
-					resource.TestCheckResourceAttr("lxd_container.container1", "device.0.path", "/tmp/shared"),
+					resource.TestCheckResourceAttr("lxd_container.container1", "device.0.properties.path", "/tmp/shared"),
 					testAccContainerRunning(t, "lxd_container.container1", &container),
 					testAccContainerDevice(&container, "shared", device1),
 				),
@@ -116,7 +116,7 @@ func TestAccContainer_device(t *testing.T) {
 				Config: testAccContainer_device_2(containerName),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("lxd_container.container1", "name", containerName),
-					resource.TestCheckResourceAttr("lxd_container.container1", "device.0.path", "/tmp/shared2"),
+					resource.TestCheckResourceAttr("lxd_container.container1", "device.0.properties.path", "/tmp/shared2"),
 					testAccContainerRunning(t, "lxd_container.container1", &container),
 					testAccContainerDevice(&container, "shared", device2),
 				),
@@ -247,8 +247,10 @@ func testAccContainer_device_1(name string) string {
 	device {
 		name = "shared"
 		type = "disk"
-		source = "/tmp"
-		path = "/tmp/shared"
+		properties {
+			source = "/tmp"
+			path = "/tmp/shared"
+		}
 	}
 }`, name)
 }
@@ -262,8 +264,10 @@ func testAccContainer_device_2(name string) string {
 	device {
 		name = "shared"
 		type = "disk"
-		source = "/tmp"
-		path = "/tmp/shared2"
+		properties {
+			source = "/tmp"
+			path = "/tmp/shared2"
+		}
 	}
 }`, name)
 }
