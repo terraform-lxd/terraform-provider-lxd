@@ -125,6 +125,75 @@ func TestAccContainer_device(t *testing.T) {
 	})
 }
 
+func TestAccContainer_addDevice(t *testing.T) {
+	var container shared.ContainerInfo
+	containerName := strings.ToLower(petname.Generate(2, "-"))
+
+	device := shared.Device{
+		"type":   "disk",
+		"source": "/tmp",
+		"path":   "/tmp/shared",
+	}
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:  func() { testAccPreCheck(t) },
+		Providers: testAccProviders,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccContainer_addDevice_1(containerName),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr("lxd_container.container1", "name", containerName),
+					testAccContainerRunning(t, "lxd_container.container1", &container),
+				),
+			},
+			resource.TestStep{
+				Config: testAccContainer_addDevice_2(containerName),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr("lxd_container.container1", "name", containerName),
+					resource.TestCheckResourceAttr("lxd_container.container1", "device.0.properties.path", "/tmp/shared"),
+					testAccContainerRunning(t, "lxd_container.container1", &container),
+					testAccContainerDevice(&container, "shared", device),
+				),
+			},
+		},
+	})
+}
+
+func TestAccContainer_removeDevice(t *testing.T) {
+	var container shared.ContainerInfo
+	containerName := strings.ToLower(petname.Generate(2, "-"))
+
+	device := shared.Device{
+		"type":   "disk",
+		"source": "/tmp",
+		"path":   "/tmp/shared",
+	}
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:  func() { testAccPreCheck(t) },
+		Providers: testAccProviders,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccContainer_removeDevice_1(containerName),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr("lxd_container.container1", "name", containerName),
+					resource.TestCheckResourceAttr("lxd_container.container1", "device.0.properties.path", "/tmp/shared"),
+					testAccContainerRunning(t, "lxd_container.container1", &container),
+					testAccContainerDevice(&container, "shared", device),
+				),
+			},
+			resource.TestStep{
+				Config: testAccContainer_removeDevice_2(containerName),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr("lxd_container.container1", "name", containerName),
+					testAccContainerRunning(t, "lxd_container.container1", &container),
+					testAccContainerNoDevice(&container, "shared", device),
+				),
+			},
+		},
+	})
+}
+
 func testAccContainerRunning(t *testing.T, n string, container *shared.ContainerInfo) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		rs, ok := s.RootModule().Resources[n]
@@ -203,6 +272,20 @@ func testAccContainerDevice(container *shared.ContainerInfo, deviceName string, 
 	}
 }
 
+func testAccContainerNoDevice(container *shared.ContainerInfo, deviceName string, device shared.Device) resource.TestCheckFunc {
+	return func(s *terraform.State) error {
+		if container.Devices == nil {
+			return nil
+		}
+
+		if container.Devices.Contains(deviceName, device) {
+			return fmt.Errorf("Device still exists: %s", deviceName)
+		}
+
+		return nil
+	}
+}
+
 func testAccContainer_basic(name string) string {
 	return fmt.Sprintf(`resource "lxd_container" "container1" {
   name = "%s"
@@ -269,5 +352,55 @@ func testAccContainer_device_2(name string) string {
 			path = "/tmp/shared2"
 		}
 	}
+}`, name)
+}
+
+func testAccContainer_addDevice_1(name string) string {
+	return fmt.Sprintf(`resource "lxd_container" "container1" {
+	name = "%s"
+	image = "ubuntu"
+	profiles = ["default"]
+}`, name)
+}
+
+func testAccContainer_addDevice_2(name string) string {
+	return fmt.Sprintf(`resource "lxd_container" "container1" {
+	name = "%s"
+	image = "ubuntu"
+	profiles = ["default"]
+
+	device {
+		name = "shared"
+		type = "disk"
+		properties {
+			source = "/tmp"
+			path = "/tmp/shared"
+		}
+	}
+}`, name)
+}
+
+func testAccContainer_removeDevice_1(name string) string {
+	return fmt.Sprintf(`resource "lxd_container" "container1" {
+	name = "%s"
+	image = "ubuntu"
+	profiles = ["default"]
+
+	device {
+		name = "shared"
+		type = "disk"
+		properties {
+			source = "/tmp"
+			path = "/tmp/shared"
+		}
+	}
+}`, name)
+}
+
+func testAccContainer_removeDevice_2(name string) string {
+	return fmt.Sprintf(`resource "lxd_container" "container1" {
+	name = "%s"
+	image = "ubuntu"
+	profiles = ["default"]
 }`, name)
 }
