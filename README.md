@@ -43,6 +43,15 @@ resource "lxd_container" "test1" {
     limits.cpu = 2         # this must be a valid container config setting or LXD will throw a
                            # "Bad key: foo" error. See reference below.
   }
+
+  device {
+    name = "shared"
+    type = "disk"          # Type must be one of none, disk, nic, unix-char, unix-block, usb, gpu
+    properties {           # Properties are valid key/value pairs of the device.
+      source = "/tmp"      # See the LXD documentation for further information.
+      path = "/tmp"
+    }
+  }
 }
 ```
 
@@ -67,6 +76,13 @@ resource "lxd_container" "test1" {
   * `ephemeral` - *Optional* -Boolean indicating if this container is ephemeral. Default = false.
   * `privileged`- *Optional* -Boolean indicating if this container will run in privileged mode. Default = false.
   * `config`    - *Optional* -Map of key/value pairs of [container config settings](https://github.com/lxc/lxd/blob/master/doc/configuration.md#container-configuration).
+  * `device`    - *Optional* -Device definition. See reference below.
+
+##### Device Block
+
+  * `name`      - *Required* -Name of the device.
+  * `type`      - *Required* -Type of the device Must be one of none, disk, nic, unix-char, unix-block, usb, gpu.
+  * `properties`- *Required* -Map of key/value pairs of [https://github.com/lxc/lxd/blob/master/doc/configuration.md#devices-configuration](device properties).
 
 ## Known Limitations
 
