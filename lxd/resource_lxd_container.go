@@ -40,6 +40,43 @@ func resourceLxdContainer() *schema.Resource {
 				ForceNew: false,
 			},
 
+			"device": &schema.Schema{
+				Type:     schema.TypeList,
+				Optional: true,
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"name": &schema.Schema{
+							Type:     schema.TypeString,
+							Required: true,
+						},
+
+						"type": &schema.Schema{
+							Type:     schema.TypeString,
+							Required: true,
+							ValidateFunc: func(v interface{}, k string) (ws []string, errors []error) {
+								value := v.(string)
+								validTypes := []string{"none", "disk", "nic", "unix-char", "unix-block", "usb", "gpu"}
+								valid := false
+								for _, v := range validTypes {
+									if value == v {
+										valid = true
+									}
+								}
+								if !valid {
+									errors = append(errors, fmt.Errorf("Device must have a type of: %v", validTypes))
+								}
+								return
+							},
+						},
+
+						"properties": &schema.Schema{
+							Type:     schema.TypeMap,
+							Required: true,
+						},
+					},
+				},
+			},
+
 			"config": &schema.Schema{
 				Type:     schema.TypeMap,
 				Optional: true,
@@ -88,6 +125,7 @@ func resourceLxdContainerCreate(d *schema.ResourceData, meta interface{}) error 
 	ephem := d.Get("ephemeral").(bool)
 	image := d.Get("image").(string)
 	config := resourceLxdContainerConfigMap(d.Get("config"))
+	devices := resourceLxdContainerDevices(d.Get("device"))
 
 	/*
 	 * requested_empty_profiles means user requested empty
@@ -100,9 +138,9 @@ func resourceLxdContainerCreate(d *schema.ResourceData, meta interface{}) error 
 		}
 	}
 
-	//client.Init = (name string, imgremote string, image string, profiles *[]string, config map[string]string, ephem bool)
+	// client.Init = (name string, imgremote string, image string, profiles *[]string, config map[string]string, devices shared.Devices, ephem bool)
 	var resp *lxd.Response
-	if resp, err = client.Init(name, remote, image, &profiles, config, nil, ephem); err != nil {
+	if resp, err = client.Init(name, remote, image, &profiles, config, devices, ephem); err != nil {
 		return err
 	}
 
@@ -146,8 +184,6 @@ func resourceLxdContainerRead(d *schema.ResourceData, meta interface{}) error {
 	}
 	log.Printf("[DEBUG] Retrieved container %s: %#v", name, container)
 
-	sshIP := ""
-
 	ct, err := client.ContainerState(name)
 	if err != nil {
 		return err
@@ -155,6 +191,7 @@ func resourceLxdContainerRead(d *schema.ResourceData, meta interface{}) error {
 
 	d.Set("status", ct.Status)
 
+	sshIP := ""
 	for iface, net := range ct.Network {
 		if iface != "lo" {
 			for _, ip := range net.Addresses {
@@ -198,8 +235,30 @@ func resourceLxdContainerUpdate(d *schema.ResourceData, meta interface{}) error 
 			for _, p := range v {
 				profiles = append(profiles, p.(string))
 			}
+
 			st.Profiles = profiles
+
+			log.Printf("[DEBUG] Updated profiles: %#v", st.Profiles)
 		}
+	}
+
+	if d.HasChange("device") {
+		changed = true
+		old, new := d.GetChange("device")
+		oldDevices := resourceLxdContainerDevices(old)
+		newDevices := resourceLxdContainerDevices(new)
+
+		for n, _ := range oldDevices {
+			delete(st.Devices, n)
+		}
+
+		for n, d := range newDevices {
+			if n != "" {
+				st.Devices[n] = d
+			}
+		}
+
+		log.Printf("[DEBUG] Updated device list: %#v", st.Devices)
 	}
 
 	if changed {
@@ -268,6 +327,27 @@ func resourceLxdContainerConfigMap(c interface{}) map[string]string {
 	log.Printf("[DEBUG] LXD Container Configuration Map: %#v", config)
 
 	return config
+}
+
+func resourceLxdContainerDevices(d interface{}) shared.Devices {
+	devices := make(shared.Devices)
+	for _, v := range d.([]interface{}) {
+		device := make(shared.Device)
+		d := v.(map[string]interface{})
+		deviceName := d["name"].(string)
+		deviceType := d["type"].(string)
+		deviceProperties := d["properties"].(map[string]interface{})
+		device["type"] = deviceType
+		for key, val := range deviceProperties {
+			device[key] = val.(string)
+		}
+
+		devices[deviceName] = device
+	}
+
+	log.Printf("[DEBUG] LXD Container Devices: %#v", devices)
+
+	return devices
 }
 
 func resourceLxdContainerRefresh(client *lxd.Client, name string) resource.StateRefreshFunc {
