@@ -3,7 +3,10 @@ package lxd
 import (
 	"errors"
 	"log"
+	"regexp"
 	"strings"
+
+	"sort"
 
 	gospew "github.com/davecgh/go-spew/spew"
 	"github.com/hashicorp/terraform/helper/schema"
@@ -40,7 +43,7 @@ func dataSourceLxdImage() *schema.Resource {
 			"most_recent": {
 				Type:     schema.TypeBool,
 				Optional: true,
-				Default:  false,
+				Default:  true,
 				ForceNew: true,
 			},
 			"public": {
@@ -49,10 +52,15 @@ func dataSourceLxdImage() *schema.Resource {
 				Default:  true,
 				ForceNew: true,
 			},
-			"arch": {
+			"architecture": {
 				Type:     schema.TypeString,
 				Optional: true,
 				Default:  "amd64",
+				ForceNew: true,
+			},
+			"release": {
+				Type:     schema.TypeString,
+				Optional: true,
 				ForceNew: true,
 			},
 			// Computed values.
@@ -78,6 +86,20 @@ func dataSourceLxdImage() *schema.Resource {
 			},
 		},
 	}
+}
+
+type Matches []shared.ImageInfo
+
+func (m Matches) Len() int {
+	return len(m)
+}
+
+func (m Matches) Less(i, j int) bool {
+	return m[i].CreationDate.Unix() > m[j].CreationDate.Unix()
+}
+
+func (m Matches) Swap(i, j int) {
+	m[i], m[j] = m[j], m[i]
 }
 
 // dataSourceLxdImageRead performs the image lookup.
@@ -106,15 +128,47 @@ func dataSourceLxdImageRead(d *schema.ResourceData, meta interface{}) error {
 		return err
 	}
 
+	var matches Matches
+
 	for _, v := range imInfo {
 		log.Printf("\n[DEBUG] %s", gospew.Sdump(v))
 
-		for _, a := range v.Aliases {
-			if a.Name == d.Get("alias_regex").(string) {
-				setSchemaDataFromImageInfo(d, v)
-				break
+		arch := d.Get("architecture").(string)
+		if imgArch, ok := v.Properties["architecture"]; ok {
+			if imgArch != arch {
+				continue
 			}
 		}
+
+		releaseFilter := d.Get("release").(string)
+		if rel, ok := v.Properties["release"]; ok {
+			if rel != releaseFilter {
+				continue
+			}
+		}
+
+		desc := d.Get("description_regex").(string)
+		if imgDesc, ok := v.Properties["description"]; ok {
+			if matched, _ := regexp.MatchString(desc, imgDesc); !matched {
+				continue
+			}
+		}
+		// for _, a := range v.Aliases {
+		// 	if a.Name == d.Get("alias_regex").(string) {
+		// 		setSchemaDataFromImageInfo(d, v)
+		// 		break
+		// 	}
+		// }
+		matches = append(matches, v)
+	}
+
+	if len(matches) > 1 {
+		if d.Get("most_recent").(bool) {
+			sort.Sort(matches)
+			setSchemaDataFromImageInfo(d, matches[0])
+			return nil
+		}
+		return errors.New("lookup returned too many results & most_recent == false")
 	}
 
 	return nil
@@ -122,13 +176,14 @@ func dataSourceLxdImageRead(d *schema.ResourceData, meta interface{}) error {
 
 func setSchemaDataFromImageInfo(d *schema.ResourceData, ii shared.ImageInfo) {
 	d.SetId(ii.Fingerprint)
-	d.Set("arch", ii.Architecture)
+	d.Set("architecture", ii.Properties["architecture"])
 	d.Set("public", ii.Public)
 	d.Set("size", ii.Size)
 	d.Set("fingerprint", ii.Fingerprint)
 	d.Set("name", ii.Aliases[0].Name)
 	d.Set("description", ii.Aliases[0].Description)
 	d.Set("os", ii.Properties["os"])
+	d.Set("release", ii.Properties["release"])
 
 }
 
@@ -137,11 +192,14 @@ func validateRemote(v interface{}, n string) (ws []string, es []error) {
 
 	switch strings.ToLower(val) {
 	case "provider":
+		return nil, nil
 	case "ubuntu":
+		return nil, nil
 	case "ubuntu-daily":
+		return nil, nil
 	case "images":
 		// expected values
 		return nil, nil
 	}
-	return nil, append(es, errors.New("Invalid remote value. Should be 'Provider', 'Images', 'Ubuntu' or 'Ubuntu-daily'"))
+	return nil, append(es, errors.New("Invalid remote value. Should be 'Provider', 'Images', 'Ubuntu' or 'Ubuntu-Daily'"))
 }

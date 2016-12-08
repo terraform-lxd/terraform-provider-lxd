@@ -205,7 +205,7 @@ func testAccContainerRunning(t *testing.T, n string, container *shared.Container
 			return fmt.Errorf("No ID is set")
 		}
 
-		client := testAccProvider.Meta().(*APIClient).Client
+		client := testAccProvider.Meta().(*ProviderConfig).Client
 		ct, err := client.ContainerInfo(rs.Primary.ID)
 		if err != nil {
 			return err

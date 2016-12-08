@@ -12,7 +12,7 @@ import (
 	"github.com/lxc/lxd/shared"
 )
 
-// ProviderConfig is the LXD Terraform Provider client
+// ProviderConfig is the LXD Terraform Provider configuration and client
 type ProviderConfig struct {
 	Remote string
 	Client *lxd.Client
@@ -102,7 +102,7 @@ func providerConfigure(d *schema.ResourceData) (interface{}, error) {
 	log.Printf("[DEBUG] LXD Config: %#v", config)
 
 	if scheme == "https" {
-		// validate certifictes exist
+		// validate certificates exist
 		certf := config.ConfigPath("client.crt")
 		keyf := config.ConfigPath("client.key")
 		if !shared.PathExists(certf) || !shared.PathExists(keyf) {
