@@ -51,22 +51,9 @@ func resourceLxdContainer() *schema.Resource {
 						},
 
 						"type": &schema.Schema{
-							Type:     schema.TypeString,
-							Required: true,
-							ValidateFunc: func(v interface{}, k string) (ws []string, errors []error) {
-								value := v.(string)
-								validTypes := []string{"none", "disk", "nic", "unix-char", "unix-block", "usb", "gpu"}
-								valid := false
-								for _, v := range validTypes {
-									if value == v {
-										valid = true
-									}
-								}
-								if !valid {
-									errors = append(errors, fmt.Errorf("Device must have a type of: %v", validTypes))
-								}
-								return
-							},
+							Type:         schema.TypeString,
+							Required:     true,
+							ValidateFunc: resourceLxdValidateDeviceType,
 						},
 
 						"properties": &schema.Schema{
@@ -124,8 +111,8 @@ func resourceLxdContainerCreate(d *schema.ResourceData, meta interface{}) error 
 	name := d.Get("name").(string)
 	ephem := d.Get("ephemeral").(bool)
 	image := d.Get("image").(string)
-	config := resourceLxdContainerConfigMap(d.Get("config"))
-	devices := resourceLxdContainerDevices(d.Get("device"))
+	config := resourceLxdConfigMap(d.Get("config"))
+	devices := resourceLxdDevices(d.Get("device"))
 
 	/*
 	 * requested_empty_profiles means user requested empty
@@ -245,8 +232,8 @@ func resourceLxdContainerUpdate(d *schema.ResourceData, meta interface{}) error 
 	if d.HasChange("device") {
 		changed = true
 		old, new := d.GetChange("device")
-		oldDevices := resourceLxdContainerDevices(old)
-		newDevices := resourceLxdContainerDevices(new)
+		oldDevices := resourceLxdDevices(old)
+		newDevices := resourceLxdDevices(new)
 
 		for n, _ := range oldDevices {
 			delete(st.Devices, n)
@@ -295,7 +282,14 @@ func resourceLxdContainerDelete(d *schema.ResourceData, meta interface{}) (err e
 		}
 	}
 
-	if _, err = client.Delete(name); err != nil {
+	resp, err := client.Delete(name)
+	if err != nil {
+		return err
+	}
+
+	// Wait for the LXC container to be deleted
+	err = client.WaitForSuccess(resp.Operation)
+	if err != nil {
 		return err
 	}
 
@@ -314,40 +308,6 @@ func resourceLxdContainerExists(d *schema.ResourceData, meta interface{}) (exist
 	}
 
 	return
-}
-
-func resourceLxdContainerConfigMap(c interface{}) map[string]string {
-	config := make(map[string]string)
-	if v, ok := c.(map[string]interface{}); ok {
-		for key, val := range v {
-			config[key] = val.(string)
-		}
-	}
-
-	log.Printf("[DEBUG] LXD Container Configuration Map: %#v", config)
-
-	return config
-}
-
-func resourceLxdContainerDevices(d interface{}) shared.Devices {
-	devices := make(shared.Devices)
-	for _, v := range d.([]interface{}) {
-		device := make(shared.Device)
-		d := v.(map[string]interface{})
-		deviceName := d["name"].(string)
-		deviceType := d["type"].(string)
-		deviceProperties := d["properties"].(map[string]interface{})
-		device["type"] = deviceType
-		for key, val := range deviceProperties {
-			device[key] = val.(string)
-		}
-
-		devices[deviceName] = device
-	}
-
-	log.Printf("[DEBUG] LXD Container Devices: %#v", devices)
-
-	return devices
 }
 
 func resourceLxdContainerRefresh(client *lxd.Client, name string) resource.StateRefreshFunc {

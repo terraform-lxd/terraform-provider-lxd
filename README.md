@@ -53,6 +53,14 @@ resource "lxd_container" "test1" {
     }
   }
 }
+
+resource "lxd_profile" "profile1" {
+  name = "profile1"
+
+  config {
+    limits.cpu = 2
+  }
+}
 ```
 
 ### Reference
@@ -67,6 +75,8 @@ resource "lxd_container" "test1" {
   * `remote`   - *Optional* - Name of the remote LXD as it exists in the local lxc config. Defaults to `local`.
 
 #### Resource
+
+**lxd_container**
 
 ##### Parameters
 
@@ -84,6 +94,19 @@ resource "lxd_container" "test1" {
   * `type`      - *Required* -Type of the device Must be one of none, disk, nic, unix-char, unix-block, usb, gpu.
   * `properties`- *Required* -Map of key/value pairs of [https://github.com/lxc/lxd/blob/master/doc/configuration.md#devices-configuration](device properties).
 
+**lxd_profile**
+
+  * `name`      - *Required* -Name of the container.
+  * `config`    - *Optional* -Map of key/value pairs of [container config settings](https://github.com/lxc/lxd/blob/master/doc/configuration.md#container-configuration).
+  * `device`    - *Optional* -Device definition. See reference below.
+
+##### Device Block
+
+  * `name`      - *Required* -Name of the device.
+  * `type`      - *Required* -Type of the device Must be one of none, disk, nic, unix-char, unix-block, usb, gpu.
+  * `properties`- *Required* -Map of key/value pairs of [https://github.com/lxc/lxd/blob/master/doc/configuration.md#devices-configuration](device properties).
+
+
 ## Known Limitations
 
 All the base LXD images do not include an SSH server, therefore terraform will be unable to execute any `provisioners`.
@@ -96,5 +119,4 @@ A basic base image must be prepared in advance, that includes the SSH server.
 - [ ] Ability to exec commands via LXD WebSocket channel
 - [ ] Ability to upload files via LXD WebSocket channel
 - [ ] Volumes support
-- [ ] Add LXD `profile` resource
 - [ ] Add LXD `image` resource
