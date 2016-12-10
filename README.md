@@ -92,7 +92,7 @@ resource "lxd_profile" "profile1" {
 
   * `name`      - *Required* -Name of the device.
   * `type`      - *Required* -Type of the device Must be one of none, disk, nic, unix-char, unix-block, usb, gpu.
-  * `properties`- *Required* -Map of key/value pairs of [https://github.com/lxc/lxd/blob/master/doc/configuration.md#devices-configuration](device properties).
+  * `properties`- *Required* -Map of key/value pairs of [device properties](https://github.com/lxc/lxd/blob/master/doc/configuration.md#devices-configuration).
 
 **lxd_profile**
 
@@ -104,7 +104,7 @@ resource "lxd_profile" "profile1" {
 
   * `name`      - *Required* -Name of the device.
   * `type`      - *Required* -Type of the device Must be one of none, disk, nic, unix-char, unix-block, usb, gpu.
-  * `properties`- *Required* -Map of key/value pairs of [https://github.com/lxc/lxd/blob/master/doc/configuration.md#devices-configuration](device properties).
+  * `properties`- *Required* -Map of key/value pairs of [device properties](https://github.com/lxc/lxd/blob/master/doc/configuration.md#devices-configuration).
 
 
 ## Known Limitations
