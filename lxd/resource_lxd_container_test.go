@@ -242,6 +242,28 @@ func testAccContainerConfig(container *shared.ContainerInfo, k, v string) resour
 	}
 }
 
+func testAccContainerExpandedConfig(container *shared.ContainerInfo, k, v string) resource.TestCheckFunc {
+	return func(s *terraform.State) error {
+		if container.ExpandedConfig == nil {
+			return fmt.Errorf("No expanded config")
+		}
+
+		for key, value := range container.ExpandedConfig {
+			if k != key {
+				continue
+			}
+
+			if v == value {
+				return nil
+			}
+
+			return fmt.Errorf("Bad value for %s: %s", k, value)
+		}
+
+		return fmt.Errorf("Expanded Config not found: %s", k)
+	}
+}
+
 func testAccContainerProfile(container *shared.ContainerInfo, profile string) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		if container.Profiles == nil {
@@ -269,6 +291,20 @@ func testAccContainerDevice(container *shared.ContainerInfo, deviceName string, 
 		}
 
 		return fmt.Errorf("Device not found: %s", deviceName)
+	}
+}
+
+func testAccContainerExpandedDevice(container *shared.ContainerInfo, deviceName string, device shared.Device) resource.TestCheckFunc {
+	return func(s *terraform.State) error {
+		if container.ExpandedDevices == nil {
+			return fmt.Errorf("No expanded devices")
+		}
+
+		if container.ExpandedDevices.Contains(deviceName, device) {
+			return nil
+		}
+
+		return fmt.Errorf("Expanded Device not found: %s", deviceName)
 	}
 }
 
