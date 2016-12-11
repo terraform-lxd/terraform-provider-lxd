@@ -31,26 +31,14 @@ provider "lxd" {
 **Resource**
 
 ```hcl
-resource "lxd_container" "test1" {
-  name      = "test1"
-  image     = "ubuntu"     # this assumes an image has been cached locally with the alias 'ubuntu'
-                           # e.g.
-                           # lxc image copy images:ubuntu/xenial/amd64 local: --alias=ubuntu
-  profiles  = ["default"]
-  ephemeral = false
+resource "lxd_network" "eth1" {
+  name = "eth1"
 
   config {
-    limits.cpu = 2         # this must be a valid container config setting or LXD will throw a
-                           # "Bad key: foo" error. See reference below.
-  }
-
-  device {
-    name = "shared"
-    type = "disk"          # Type must be one of none, disk, nic, unix-char, unix-block, usb, gpu
-    properties {           # Properties are valid key/value pairs of the device.
-      source = "/tmp"      # See the LXD documentation for further information.
-      path = "/tmp"
-    }
+    ipv4.address = "10.150.19.1/24"
+    ipv4.nat = "true"
+    ipv6.address = "fd42:474b:622d:259d::1/64"
+    ipv6.nat = "true"
   }
 }
 
@@ -60,12 +48,45 @@ resource "lxd_profile" "profile1" {
   config {
     limits.cpu = 2
   }
+
+  device {
+    name = "eth1"
+    type = "nic"
+    properties {
+      nictype = "bridged"
+      parent = "${lxd_network.eth1.name}"
+    }
+  }
 }
+
+resource "lxd_container" "test1" {
+  name      = "test1"
+
+  # this assumes an image has been cached locally with the alias 'ubuntu'
+  # e.g.
+  # lxc image copy images:ubuntu/xenial/amd64 local: --alias=ubuntu
+  image     = "ubuntu"
+
+  profiles  = ["default", "${lxd_profile.profile1.name}"]
+  ephemeral = false
+
+  device {
+    name = "shared"
+    type = "disk"
+    properties {
+      source = "/tmp"
+      path = "/tmp"
+    }
+  }
+}
+
 ```
 
-### Reference
+## Reference
 
-#### Provider
+### Provider
+
+#### lxd
 
 ##### Parameters
 
@@ -74,9 +95,41 @@ resource "lxd_profile" "profile1" {
   * `port`     - *Optional* - `https` scheme only - The port on which the LXD daemon is listening. Defaults to 8443.
   * `remote`   - *Optional* - Name of the remote LXD as it exists in the local lxc config. Defaults to `local`.
 
-#### Resource
+### Resources
 
-**lxd_container**
+The following resources currently exist:
+
+  * `lxd_profile` - Creates and manages a Profile
+  * `lxd_network` - Creates and manages a Network
+  * `lxd_container` - Creates and manages a Container
+
+#### lxd_profile
+
+##### Parameters
+
+  * `name`      - *Required* -Name of the container.
+  * `config`    - *Optional* -Map of key/value pairs of [container config settings](https://github.com/lxc/lxd/blob/master/doc/configuration.md#container-configuration).
+  * `device`    - *Optional* -Device definition. See reference below.
+
+##### Device Block
+
+  * `name`      - *Required* -Name of the device.
+  * `type`      - *Required* -Type of the device Must be one of none, disk, nic, unix-char, unix-block, usb, gpu.
+  * `properties`- *Required* -Map of key/value pairs of [device properties](https://github.com/lxc/lxd/blob/master/doc/configuration.md#devices-configuration).
+
+#### lxd_network
+
+##### Parameters
+
+  * `name`      - *Required* -Name of the network. This is usually the device the network will appear as to containers.
+  * `config`    - *Optional* -Map of key/value pairs of [network config settings](https://github.com/lxc/lxd/blob/master/doc/configuration.md#network-configuration).
+
+##### Exported Attributes
+
+  * `type`      - The type of network. This will be either bridged or physical.
+  * `managed`   - Whether or not the network is managed.
+
+#### lxd_container
 
 ##### Parameters
 
@@ -93,19 +146,6 @@ resource "lxd_profile" "profile1" {
   * `name`      - *Required* -Name of the device.
   * `type`      - *Required* -Type of the device Must be one of none, disk, nic, unix-char, unix-block, usb, gpu.
   * `properties`- *Required* -Map of key/value pairs of [device properties](https://github.com/lxc/lxd/blob/master/doc/configuration.md#devices-configuration).
-
-**lxd_profile**
-
-  * `name`      - *Required* -Name of the container.
-  * `config`    - *Optional* -Map of key/value pairs of [container config settings](https://github.com/lxc/lxd/blob/master/doc/configuration.md#container-configuration).
-  * `device`    - *Optional* -Device definition. See reference below.
-
-##### Device Block
-
-  * `name`      - *Required* -Name of the device.
-  * `type`      - *Required* -Type of the device Must be one of none, disk, nic, unix-char, unix-block, usb, gpu.
-  * `properties`- *Required* -Map of key/value pairs of [device properties](https://github.com/lxc/lxd/blob/master/doc/configuration.md#devices-configuration).
-
 
 ## Known Limitations
 
