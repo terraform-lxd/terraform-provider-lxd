@@ -99,6 +99,36 @@ func resourceLxdContainer() *schema.Resource {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
+
+			"network": &schema.Schema{
+				Type:     schema.TypeList,
+				Computed: true,
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"interface": &schema.Schema{
+							Type:     schema.TypeString,
+							Computed: true,
+						},
+
+						"addresses.ipv4": &schema.Schema{
+							Type:     schema.TypeList,
+							Elem:     &schema.Schema{Type: schema.TypeString},
+							Computed: true,
+						},
+
+						"addresses.ipv6": &schema.Schema{
+							Type:     schema.TypeList,
+							Elem:     &schema.Schema{Type: schema.TypeString},
+							Computed: true,
+						},
+
+						"mac_address": &schema.Schema{
+							Type:     schema.TypeString,
+							Computed: true,
+						},
+					},
+				},
+			},
 		},
 	}
 }
@@ -179,17 +209,38 @@ func resourceLxdContainerRead(d *schema.ResourceData, meta interface{}) error {
 	d.Set("status", ct.Status)
 
 	sshIP := ""
+	var networks []map[string]interface{}
 	for iface, net := range ct.Network {
 		if iface != "lo" {
+			v4Addresses := []string{}
+			v6Addresses := []string{}
+
 			for _, ip := range net.Addresses {
+				switch ip.Family {
+				case "inet":
+					v4Addresses = append(v4Addresses, ip.Address)
+				case "inet6":
+					v6Addresses = append(v6Addresses, ip.Address)
+				}
+
 				if ip.Family == "inet" {
 					d.Set("ip_address", ip.Address)
 					sshIP = ip.Address
 					d.Set("mac_address", net.Hwaddr)
 				}
 			}
+
+			network := make(map[string]interface{})
+			network["interface"] = iface
+			network["mac_address"] = net.Hwaddr
+			network["addresses.ipv4"] = v4Addresses
+			network["addresses.ipv6"] = v6Addresses
+			networks = append(networks, network)
 		}
 	}
+
+	log.Printf("[DEBUG] Container networks for %s: %#v", name, networks)
+	d.Set("network", networks)
 
 	// Initialize the connection info
 	d.SetConnInfo(map[string]string{
