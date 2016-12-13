@@ -55,7 +55,6 @@ func dataSourceLxdImage() *schema.Resource {
 			"architecture": {
 				Type:     schema.TypeString,
 				Optional: true,
-				Default:  "amd64",
 				ForceNew: true,
 			},
 			"release": {
@@ -64,8 +63,12 @@ func dataSourceLxdImage() *schema.Resource {
 				ForceNew: true,
 			},
 			// Computed values.
-			"size": {
-				Type:     schema.TypeInt,
+			"aliases": {
+				Type:     schema.TypeString,
+				Computed: true,
+			},
+			"description": {
+				Type:     schema.TypeString,
 				Computed: true,
 			},
 			"fingerprint": {
@@ -76,11 +79,15 @@ func dataSourceLxdImage() *schema.Resource {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
-			"description": {
+			"os": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
-			"os": {
+			"size": {
+				Type:     schema.TypeInt,
+				Computed: true,
+			},
+			"version": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
@@ -106,11 +113,11 @@ func (m Matches) Swap(i, j int) {
 func dataSourceLxdImageRead(d *schema.ResourceData, meta interface{}) error {
 	var err error
 	// get client for Provider remote
-	c := meta.(*ProviderConfig).Client
+	c := meta.(*LxdProvider).Client
 
 	// Check if datasource is configured to use non-provider remote (i.e. one of the public remotes)
 	dRemote := strings.ToLower(d.Get("remote").(string))
-	if dRemote != "provider" {
+	if dRemote != "provider" || dRemote != "local" {
 		if remote, ok := lxd.DefaultRemotes[dRemote]; ok {
 			c, err = lxd.NewClientFromInfo(lxd.ConnectInfo{
 				Name:         dRemote,
@@ -122,7 +129,6 @@ func dataSourceLxdImageRead(d *schema.ResourceData, meta interface{}) error {
 		}
 	}
 
-	// rem := meta.(*LxdProvider).Remote
 	imInfo, err := c.ListImages()
 	if err != nil {
 		return err
@@ -133,36 +139,65 @@ func dataSourceLxdImageRead(d *schema.ResourceData, meta interface{}) error {
 	for _, v := range imInfo {
 		log.Printf("\n[DEBUG] %s", gospew.Sdump(v))
 
-		arch := d.Get("architecture").(string)
-		if imgArch, ok := v.Properties["architecture"]; ok {
-			if imgArch != arch {
+		public := d.Get("public").(bool)
+		if public != v.Public {
+			continue
+		}
+
+		if val, ok := d.GetOk("architecture"); ok {
+			arch := val.(string)
+			if imgArch, ok := v.Properties["architecture"]; ok {
+				if imgArch != arch {
+					continue
+				}
+			}
+		}
+
+		if val, ok := d.GetOk("release"); ok {
+			releaseFilter := val.(string)
+			if rel, ok := v.Properties["release"]; ok {
+				if rel != releaseFilter {
+					continue
+				}
+			}
+		}
+
+		if val, ok := d.GetOk("description_regex"); ok {
+			desc := val.(string)
+			if imgDesc, ok := v.Properties["description"]; ok {
+				if matched, _ := regexp.MatchString(desc, imgDesc); !matched {
+					continue
+				}
+			}
+		}
+
+		if val, ok := d.GetOk("alias_regex"); ok {
+			alias := val.(string)
+			foundMatch := false
+			for _, imgAlias := range v.Aliases {
+				if matched, _ := regexp.MatchString(alias, imgAlias.Name); matched {
+					foundMatch = true
+				}
+			}
+			if prop, ok := v.Properties["aliases"]; !foundMatch && ok {
+				for _, a := range strings.Split(prop, ",") {
+					if matched, _ := regexp.MatchString(alias, a); matched {
+						foundMatch = true
+					}
+
+				}
+			}
+			if !foundMatch {
 				continue
 			}
 		}
 
-		releaseFilter := d.Get("release").(string)
-		if rel, ok := v.Properties["release"]; ok {
-			if rel != releaseFilter {
-				continue
-			}
-		}
-
-		desc := d.Get("description_regex").(string)
-		if imgDesc, ok := v.Properties["description"]; ok {
-			if matched, _ := regexp.MatchString(desc, imgDesc); !matched {
-				continue
-			}
-		}
-		// for _, a := range v.Aliases {
-		// 	if a.Name == d.Get("alias_regex").(string) {
-		// 		setSchemaDataFromImageInfo(d, v)
-		// 		break
-		// 	}
-		// }
 		matches = append(matches, v)
 	}
 
-	if len(matches) > 1 {
+	if len(matches) == 1 {
+		setSchemaDataFromImageInfo(d, matches[0])
+	} else if len(matches) > 1 {
 		if d.Get("most_recent").(bool) {
 			sort.Sort(matches)
 			setSchemaDataFromImageInfo(d, matches[0])
@@ -176,30 +211,39 @@ func dataSourceLxdImageRead(d *schema.ResourceData, meta interface{}) error {
 
 func setSchemaDataFromImageInfo(d *schema.ResourceData, ii shared.ImageInfo) {
 	d.SetId(ii.Fingerprint)
+	d.Set("aliases", ii.Properties["aliases"])
 	d.Set("architecture", ii.Properties["architecture"])
-	d.Set("public", ii.Public)
-	d.Set("size", ii.Size)
-	d.Set("fingerprint", ii.Fingerprint)
-	d.Set("name", ii.Aliases[0].Name)
 	d.Set("description", ii.Aliases[0].Description)
-	d.Set("os", ii.Properties["os"])
+	d.Set("fingerprint", ii.Fingerprint)
+	d.Set("label", ii.Properties["label"])
+	d.Set("name", ii.Aliases[0].Name)
+	if val, ok := ii.Properties["os"]; ok {
+		d.Set("os", val)
+	} else if val, ok := ii.Properties["distribution"]; ok {
+		d.Set("os", val)
+	}
+	d.Set("public", ii.Public)
 	d.Set("release", ii.Properties["release"])
-
+	d.Set("serial", ii.Properties["serial"])
+	d.Set("size", ii.Size)
+	d.Set("version", ii.Properties["version"])
 }
 
 func validateRemote(v interface{}, n string) (ws []string, es []error) {
 	val := v.(string)
 
 	switch strings.ToLower(val) {
+	case "local":
+		fallthrough
 	case "provider":
-		return nil, nil
+		fallthrough
 	case "ubuntu":
-		return nil, nil
+		fallthrough
 	case "ubuntu-daily":
-		return nil, nil
+		fallthrough
 	case "images":
 		// expected values
 		return nil, nil
 	}
-	return nil, append(es, errors.New("Invalid remote value. Should be 'Provider', 'Images', 'Ubuntu' or 'Ubuntu-Daily'"))
+	return nil, append(es, errors.New("Invalid remote value. Should be 'Provider' / 'Local', 'Images', 'Ubuntu' or 'Ubuntu-Daily'"))
 }
