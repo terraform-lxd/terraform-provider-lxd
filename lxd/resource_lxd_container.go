@@ -105,8 +105,8 @@ func resourceLxdContainer() *schema.Resource {
 
 func resourceLxdContainerCreate(d *schema.ResourceData, meta interface{}) error {
 	var err error
-	client := meta.(*ProviderConfig).Client
-	remote := meta.(*ProviderConfig).Remote
+	client := meta.(*LxdProvider).Client
+	remote := meta.(*LxdProvider).Remote
 
 	name := d.Get("name").(string)
 	ephem := d.Get("ephemeral").(bool)
@@ -162,7 +162,7 @@ func resourceLxdContainerCreate(d *schema.ResourceData, meta interface{}) error 
 }
 
 func resourceLxdContainerRead(d *schema.ResourceData, meta interface{}) error {
-	client := meta.(*ProviderConfig).Client
+	client := meta.(*LxdProvider).Client
 	name := d.Id()
 
 	container, err := client.ContainerInfo(name)
@@ -259,7 +259,7 @@ func resourceLxdContainerUpdate(d *schema.ResourceData, meta interface{}) error 
 }
 
 func resourceLxdContainerDelete(d *schema.ResourceData, meta interface{}) (err error) {
-	client := meta.(*ProviderConfig).Client
+	client := meta.(*LxdProvider).Client
 	name := d.Id()
 
 	ct, _ := client.ContainerState(name)
@@ -297,7 +297,7 @@ func resourceLxdContainerDelete(d *schema.ResourceData, meta interface{}) (err e
 }
 
 func resourceLxdContainerExists(d *schema.ResourceData, meta interface{}) (exists bool, err error) {
-	client := meta.(*ProviderConfig).Client
+	client := meta.(*LxdProvider).Client
 	name := d.Id()
 
 	exists = false

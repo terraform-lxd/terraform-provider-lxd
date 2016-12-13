@@ -13,7 +13,7 @@ import (
 	"github.com/lxc/lxd/shared"
 )
 
-func TestAccContainerBasic(t *testing.T) {
+func TestAccContainer_basic(t *testing.T) {
 	var container shared.ContainerInfo
 	containerName := strings.ToLower(petname.Generate(2, "-"))
 
@@ -22,7 +22,7 @@ func TestAccContainerBasic(t *testing.T) {
 		Providers: testAccProviders,
 		Steps: []resource.TestStep{
 			resource.TestStep{
-				Config: testAccContainerBasic(containerName),
+				Config: testAccContainer_basic(containerName),
 				Check: resource.ComposeTestCheckFunc(
 					testAccContainerRunning(t, "lxd_container.container1", &container),
 					resource.TestCheckResourceAttr("lxd_container.container1", "name", containerName),
@@ -32,7 +32,7 @@ func TestAccContainerBasic(t *testing.T) {
 	})
 }
 
-func TestAccContainerConfig(t *testing.T) {
+func TestAccContainer_config(t *testing.T) {
 	var container shared.ContainerInfo
 	containerName := strings.ToLower(petname.Generate(2, "-"))
 
@@ -41,7 +41,7 @@ func TestAccContainerConfig(t *testing.T) {
 		Providers: testAccProviders,
 		Steps: []resource.TestStep{
 			resource.TestStep{
-				Config: testAccContainerWConfig(containerName),
+				Config: testAccContainer_config(containerName),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("lxd_container.container1", "name", containerName),
 					resource.TestCheckResourceAttr("lxd_container.container1", "config.limits.cpu", "2"),
@@ -205,7 +205,7 @@ func testAccContainerRunning(t *testing.T, n string, container *shared.Container
 			return fmt.Errorf("No ID is set")
 		}
 
-		client := testAccProvider.Meta().(*ProviderConfig).Client
+		client := testAccProvider.Meta().(*LxdProvider).Client
 		ct, err := client.ContainerInfo(rs.Primary.ID)
 		if err != nil {
 			return err
@@ -322,7 +322,7 @@ func testAccContainerNoDevice(container *shared.ContainerInfo, deviceName string
 	}
 }
 
-func testAccContainerBasic(name string) string {
+func testAccContainer_basic(name string) string {
 	return fmt.Sprintf(`resource "lxd_container" "container1" {
   name = "%s"
   image = "ubuntu"
@@ -330,7 +330,7 @@ func testAccContainerBasic(name string) string {
 }`, name)
 }
 
-func testAccContainerWConfig(name string) string {
+func testAccContainer_config(name string) string {
 	return fmt.Sprintf(`resource "lxd_container" "container1" {
   name = "%s"
   image = "ubuntu"

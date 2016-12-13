@@ -12,8 +12,8 @@ import (
 	"github.com/lxc/lxd/shared"
 )
 
-// ProviderConfig is the LXD Terraform Provider configuration and client
-type ProviderConfig struct {
+// LxdProvider is the LXD Terraform Provider configuration and client
+type LxdProvider struct {
 	Remote string
 	Client *lxd.Client
 }
@@ -127,7 +127,7 @@ func providerConfigure(d *schema.ResourceData) (interface{}, error) {
 		return nil, err
 	}
 
-	lxdProv := ProviderConfig{
+	lxdProv := LxdProvider{
 		Remote: remote,
 		Client: client,
 	}
