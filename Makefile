@@ -8,7 +8,7 @@ testacc:
 
 build:
 	go build -v
-	tar czvf terraform-provider-lxd_${TRAVIS_TAG}_${GIMME_OS}_${GIMME_ARCH}.tar.gz terraform-provider-lxd
+	tar czvf terraform-provider-lxd_${TRAVIS_TAG}_linux_amd64.tar.gz terraform-provider-lxd
 
 dev:
 	go build -v
