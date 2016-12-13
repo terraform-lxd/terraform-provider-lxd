@@ -5,3 +5,10 @@ test:
 
 testacc:
 	TF_LOG=debug TF_ACC=1 go test ./lxd -v $(TESTARGS)
+
+build:
+	go build -v
+	tar czvf terraform-provider-lxd_${TRAVIS_TAG}_${GIMME_OS}_${GIMME_ARCH}.tar.gz terraform-provider-lxd
+
+dev:
+	go build -v
