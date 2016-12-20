@@ -48,6 +48,10 @@ func resourceLxdNetworkCreate(d *schema.ResourceData, meta interface{}) error {
 
 	log.Printf("[DEBUG] Creating network %s with config: %#v", name, config)
 	if err := client.NetworkCreate(name, config); err != nil {
+		if err.Error() == "not implemented" {
+			err = ErrNetworksNotImplemented
+		}
+
 		return err
 	}
 
