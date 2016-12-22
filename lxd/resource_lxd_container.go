@@ -101,33 +101,8 @@ func resourceLxdContainer() *schema.Resource {
 			},
 
 			"network": &schema.Schema{
-				Type:     schema.TypeList,
+				Type:     schema.TypeMap,
 				Computed: true,
-				Elem: &schema.Resource{
-					Schema: map[string]*schema.Schema{
-						"interface": &schema.Schema{
-							Type:     schema.TypeString,
-							Computed: true,
-						},
-
-						"addresses.ipv4": &schema.Schema{
-							Type:     schema.TypeList,
-							Elem:     &schema.Schema{Type: schema.TypeString},
-							Computed: true,
-						},
-
-						"addresses.ipv6": &schema.Schema{
-							Type:     schema.TypeList,
-							Elem:     &schema.Schema{Type: schema.TypeString},
-							Computed: true,
-						},
-
-						"mac_address": &schema.Schema{
-							Type:     schema.TypeString,
-							Computed: true,
-						},
-					},
-				},
 			},
 		},
 	}
@@ -209,7 +184,7 @@ func resourceLxdContainerRead(d *schema.ResourceData, meta interface{}) error {
 	d.Set("status", ct.Status)
 
 	sshIP := ""
-	var networks []map[string]interface{}
+	networks := make(map[string]string)
 	for iface, net := range ct.Network {
 		if iface != "lo" {
 			v4Addresses := []string{}
@@ -230,12 +205,18 @@ func resourceLxdContainerRead(d *schema.ResourceData, meta interface{}) error {
 				}
 			}
 
-			network := make(map[string]interface{})
-			network["interface"] = iface
-			network["mac_address"] = net.Hwaddr
-			network["addresses.ipv4"] = v4Addresses
-			network["addresses.ipv6"] = v6Addresses
-			networks = append(networks, network)
+			keyName := fmt.Sprintf("%s.mac_address", iface)
+			networks[keyName] = net.Hwaddr
+
+			for i, ip := range v4Addresses {
+				keyName := fmt.Sprintf("%s.addresses.ipv4.%d", iface, i)
+				networks[keyName] = ip
+			}
+
+			for i, ip := range v6Addresses {
+				keyName := fmt.Sprintf("%s.addresses.ipv6.%d", iface, i)
+				networks[keyName] = ip
+			}
 		}
 	}
 
