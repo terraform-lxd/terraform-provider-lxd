@@ -5,7 +5,7 @@ import (
 
 	"github.com/hashicorp/terraform/helper/schema"
 
-	"github.com/lxc/lxd/shared"
+	"github.com/lxc/lxd/shared/api"
 )
 
 func resourceLxdProfile() *schema.Resource {
@@ -73,8 +73,7 @@ func resourceLxdProfileCreate(d *schema.ResourceData, meta interface{}) error {
 		return err
 	}
 
-	profile := shared.ProfileConfig{
-		Name:        name,
+	profile := api.ProfilePut{
 		Config:      config,
 		Description: description,
 		Devices:     devices,
@@ -118,10 +117,17 @@ func resourceLxdProfileUpdate(d *schema.ResourceData, meta interface{}) error {
 		return err
 	}
 
+	// Copy the current profile config into the updatable profile struct.
+	newProfile := api.ProfilePut{
+		Config:      profile.Config,
+		Description: profile.Description,
+		Devices:     profile.Devices,
+	}
+
 	if d.HasChange("description") {
 		changed = true
 		_, newDescription := d.GetChange("description")
-		profile.Description = newDescription.(string)
+		newProfile.Description = newDescription.(string)
 	}
 
 	if d.HasChange("device") {
@@ -131,20 +137,20 @@ func resourceLxdProfileUpdate(d *schema.ResourceData, meta interface{}) error {
 		newDevices := resourceLxdDevices(new)
 
 		for n, _ := range oldDevices {
-			delete(profile.Devices, n)
+			delete(newProfile.Devices, n)
 		}
 
 		for n, d := range newDevices {
 			if n != "" {
-				profile.Devices[n] = d
+				newProfile.Devices[n] = d
 			}
 		}
 
-		log.Printf("[DEBUG] Updated device list: %#v", profile.Devices)
+		log.Printf("[DEBUG] Updated device list: %#v", newProfile.Devices)
 	}
 
 	if changed {
-		err := client.PutProfile(name, *profile)
+		err := client.PutProfile(name, newProfile)
 		if err != nil {
 			return err
 		}

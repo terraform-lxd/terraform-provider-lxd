@@ -3,8 +3,6 @@ package lxd
 import (
 	"fmt"
 	"log"
-
-	"github.com/lxc/lxd/shared"
 )
 
 func resourceLxdConfigMap(c interface{}) map[string]string {
@@ -20,10 +18,10 @@ func resourceLxdConfigMap(c interface{}) map[string]string {
 	return config
 }
 
-func resourceLxdDevices(d interface{}) shared.Devices {
-	devices := make(shared.Devices)
+func resourceLxdDevices(d interface{}) map[string]map[string]string {
+	devices := make(map[string]map[string]string)
 	for _, v := range d.([]interface{}) {
-		device := make(shared.Device)
+		device := make(map[string]string)
 		d := v.(map[string]interface{})
 		deviceName := d["name"].(string)
 		deviceType := d["type"].(string)

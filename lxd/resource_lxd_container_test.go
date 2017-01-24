@@ -2,6 +2,7 @@ package lxd
 
 import (
 	"fmt"
+	"reflect"
 	"strings"
 	"testing"
 
@@ -10,11 +11,11 @@ import (
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
 
-	"github.com/lxc/lxd/shared"
+	"github.com/lxc/lxd/shared/api"
 )
 
 func TestAccContainer_basic(t *testing.T) {
-	var container shared.ContainerInfo
+	var container api.Container
 	containerName := strings.ToLower(petname.Generate(2, "-"))
 
 	resource.Test(t, resource.TestCase{
@@ -33,7 +34,7 @@ func TestAccContainer_basic(t *testing.T) {
 }
 
 func TestAccContainer_config(t *testing.T) {
-	var container shared.ContainerInfo
+	var container api.Container
 	containerName := strings.ToLower(petname.Generate(2, "-"))
 
 	resource.Test(t, resource.TestCase{
@@ -53,8 +54,10 @@ func TestAccContainer_config(t *testing.T) {
 	})
 }
 
-func TestAccContainer_profile(t *testing.T) {
-	var container shared.ContainerInfo
+func TestAccContainer_addProfile(t *testing.T) {
+	var profile api.Profile
+	var container api.Container
+	profileName := strings.ToLower(petname.Generate(2, "-"))
 	containerName := strings.ToLower(petname.Generate(2, "-"))
 
 	resource.Test(t, resource.TestCase{
@@ -62,21 +65,64 @@ func TestAccContainer_profile(t *testing.T) {
 		Providers: testAccProviders,
 		Steps: []resource.TestStep{
 			resource.TestStep{
-				Config: testAccContainer_profile_1(containerName),
+				Config: testAccContainer_addProfile_1(profileName, containerName),
 				Check: resource.ComposeTestCheckFunc(
-					resource.TestCheckResourceAttr("lxd_container.container1", "name", containerName),
-					resource.TestCheckResourceAttr("lxd_container.container1", "profiles.0", "default"),
+					testAccProfileRunning(t, "lxd_profile.profile1", &profile),
 					testAccContainerRunning(t, "lxd_container.container1", &container),
+					resource.TestCheckResourceAttr("lxd_profile.profile1", "name", profileName),
+					resource.TestCheckResourceAttr("lxd_container.container1", "name", containerName),
 					testAccContainerProfile(&container, "default"),
+					testAccContainerProfile(&container, "docker"),
 				),
 			},
 			resource.TestStep{
-				Config: testAccContainer_profile_2(containerName),
+				Config: testAccContainer_addProfile_2(profileName, containerName),
 				Check: resource.ComposeTestCheckFunc(
-					resource.TestCheckResourceAttr("lxd_container.container1", "name", containerName),
-					resource.TestCheckResourceAttr("lxd_container.container1", "profiles.1", "docker"),
+					testAccProfileRunning(t, "lxd_profile.profile1", &profile),
 					testAccContainerRunning(t, "lxd_container.container1", &container),
+					resource.TestCheckResourceAttr("lxd_profile.profile1", "name", profileName),
+					resource.TestCheckResourceAttr("lxd_container.container1", "name", containerName),
+					testAccContainerProfile(&container, "default"),
 					testAccContainerProfile(&container, "docker"),
+					testAccContainerProfile(&container, profileName),
+				),
+			},
+		},
+	})
+}
+
+func TestAccContainer_removeProfile(t *testing.T) {
+	var profile api.Profile
+	var container api.Container
+	profileName := strings.ToLower(petname.Generate(2, "-"))
+	containerName := strings.ToLower(petname.Generate(2, "-"))
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:  func() { testAccPreCheck(t) },
+		Providers: testAccProviders,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccContainer_removeProfile_1(profileName, containerName),
+				Check: resource.ComposeTestCheckFunc(
+					testAccProfileRunning(t, "lxd_profile.profile1", &profile),
+					testAccContainerRunning(t, "lxd_container.container1", &container),
+					resource.TestCheckResourceAttr("lxd_profile.profile1", "name", profileName),
+					resource.TestCheckResourceAttr("lxd_container.container1", "name", containerName),
+					testAccContainerProfile(&container, "default"),
+					testAccContainerProfile(&container, "docker"),
+					testAccContainerProfile(&container, profileName),
+				),
+			},
+			resource.TestStep{
+				Config: testAccContainer_removeProfile_2(profileName, containerName),
+				Check: resource.ComposeTestCheckFunc(
+					testAccProfileRunning(t, "lxd_profile.profile1", &profile),
+					testAccContainerRunning(t, "lxd_container.container1", &container),
+					resource.TestCheckResourceAttr("lxd_profile.profile1", "name", profileName),
+					resource.TestCheckResourceAttr("lxd_container.container1", "name", containerName),
+					testAccContainerProfile(&container, "default"),
+					testAccContainerProfile(&container, "docker"),
+					testAccContainerNoProfile(&container, profileName),
 				),
 			},
 		},
@@ -84,16 +130,16 @@ func TestAccContainer_profile(t *testing.T) {
 }
 
 func TestAccContainer_device(t *testing.T) {
-	var container shared.ContainerInfo
+	var container api.Container
 	containerName := strings.ToLower(petname.Generate(2, "-"))
 
-	device1 := shared.Device{
+	device1 := map[string]string{
 		"type":   "disk",
 		"source": "/tmp",
 		"path":   "/tmp/shared",
 	}
 
-	device2 := shared.Device{
+	device2 := map[string]string{
 		"type":   "disk",
 		"source": "/tmp",
 		"path":   "/tmp/shared2",
@@ -126,10 +172,10 @@ func TestAccContainer_device(t *testing.T) {
 }
 
 func TestAccContainer_addDevice(t *testing.T) {
-	var container shared.ContainerInfo
+	var container api.Container
 	containerName := strings.ToLower(petname.Generate(2, "-"))
 
-	device := shared.Device{
+	device := map[string]string{
 		"type":   "disk",
 		"source": "/tmp",
 		"path":   "/tmp/shared",
@@ -160,10 +206,10 @@ func TestAccContainer_addDevice(t *testing.T) {
 }
 
 func TestAccContainer_removeDevice(t *testing.T) {
-	var container shared.ContainerInfo
+	var container api.Container
 	containerName := strings.ToLower(petname.Generate(2, "-"))
 
-	device := shared.Device{
+	device := map[string]string{
 		"type":   "disk",
 		"source": "/tmp",
 		"path":   "/tmp/shared",
@@ -187,14 +233,14 @@ func TestAccContainer_removeDevice(t *testing.T) {
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("lxd_container.container1", "name", containerName),
 					testAccContainerRunning(t, "lxd_container.container1", &container),
-					testAccContainerNoDevice(&container, "shared", device),
+					testAccContainerNoDevice(&container, "shared"),
 				),
 			},
 		},
 	})
 }
 
-func testAccContainerRunning(t *testing.T, n string, container *shared.ContainerInfo) resource.TestCheckFunc {
+func testAccContainerRunning(t *testing.T, n string, container *api.Container) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		rs, ok := s.RootModule().Resources[n]
 		if !ok {
@@ -220,7 +266,7 @@ func testAccContainerRunning(t *testing.T, n string, container *shared.Container
 	}
 }
 
-func testAccContainerConfig(container *shared.ContainerInfo, k, v string) resource.TestCheckFunc {
+func testAccContainerConfig(container *api.Container, k, v string) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		if container.Config == nil {
 			return fmt.Errorf("No config")
@@ -242,7 +288,7 @@ func testAccContainerConfig(container *shared.ContainerInfo, k, v string) resour
 	}
 }
 
-func testAccContainerExpandedConfig(container *shared.ContainerInfo, k, v string) resource.TestCheckFunc {
+func testAccContainerExpandedConfig(container *api.Container, k, v string) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		if container.ExpandedConfig == nil {
 			return fmt.Errorf("No expanded config")
@@ -264,7 +310,7 @@ func testAccContainerExpandedConfig(container *shared.ContainerInfo, k, v string
 	}
 }
 
-func testAccContainerProfile(container *shared.ContainerInfo, profile string) resource.TestCheckFunc {
+func testAccContainerProfile(container *api.Container, profile string) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		if container.Profiles == nil {
 			return fmt.Errorf("No profiles")
@@ -280,41 +326,61 @@ func testAccContainerProfile(container *shared.ContainerInfo, profile string) re
 	}
 }
 
-func testAccContainerDevice(container *shared.ContainerInfo, deviceName string, device shared.Device) resource.TestCheckFunc {
+func testAccContainerNoProfile(container *api.Container, profileName string) resource.TestCheckFunc {
+	return func(s *terraform.State) error {
+		if container.Profiles == nil {
+			return fmt.Errorf("No profiles")
+		}
+
+		for _, v := range container.Profiles {
+			if v == profileName {
+				return fmt.Errorf("Profile still attached to container: %s", profileName)
+			}
+		}
+
+		return nil
+	}
+}
+
+func testAccContainerDevice(container *api.Container, deviceName string, device map[string]string) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		if container.Devices == nil {
 			return fmt.Errorf("No devices")
 		}
 
-		if container.Devices.Contains(deviceName, device) {
-			return nil
+		if v, ok := container.Devices[deviceName]; ok {
+			if reflect.DeepEqual(v, device) {
+				return nil
+			}
 		}
 
 		return fmt.Errorf("Device not found: %s", deviceName)
 	}
 }
 
-func testAccContainerExpandedDevice(container *shared.ContainerInfo, deviceName string, device shared.Device) resource.TestCheckFunc {
+func testAccContainerExpandedDevice(container *api.Container, deviceName string, device map[string]string) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		if container.ExpandedDevices == nil {
 			return fmt.Errorf("No expanded devices")
 		}
 
-		if container.ExpandedDevices.Contains(deviceName, device) {
-			return nil
+		if v, ok := container.ExpandedDevices[deviceName]; ok {
+			if reflect.DeepEqual(v, device) {
+				return nil
+			}
 		}
 
 		return fmt.Errorf("Expanded Device not found: %s", deviceName)
 	}
 }
 
-func testAccContainerNoDevice(container *shared.ContainerInfo, deviceName string, device shared.Device) resource.TestCheckFunc {
+func testAccContainerNoDevice(container *api.Container, deviceName string) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		if container.Devices == nil {
 			return nil
 		}
 
-		if container.Devices.Contains(deviceName, device) {
+		if _, ok := container.Devices[deviceName]; ok {
 			return fmt.Errorf("Device still exists: %s", deviceName)
 		}
 
@@ -323,120 +389,176 @@ func testAccContainerNoDevice(container *shared.ContainerInfo, deviceName string
 }
 
 func testAccContainer_basic(name string) string {
-	return fmt.Sprintf(`resource "lxd_container" "container1" {
+	return fmt.Sprintf(`
+resource "lxd_container" "container1" {
   name = "%s"
   image = "ubuntu"
   profiles = ["default"]
-}`, name)
+}
+	`, name)
 }
 
 func testAccContainer_config(name string) string {
-	return fmt.Sprintf(`resource "lxd_container" "container1" {
+	return fmt.Sprintf(`
+resource "lxd_container" "container1" {
   name = "%s"
   image = "ubuntu"
   profiles = ["default"]
   config {
     limits.cpu = 2
   }
-}`, name)
+}
+	`, name)
 }
 
-func testAccContainer_profile_1(name string) string {
-	return fmt.Sprintf(`resource "lxd_container" "container1" {
-	name = "%s"
-	image = "ubuntu"
-	profiles = ["default"]
-}`, name)
+func testAccContainer_addProfile_1(profileName, containerName string) string {
+	return fmt.Sprintf(`
+resource "lxd_profile" "profile1" {
+  name = "%s"
 }
 
-func testAccContainer_profile_2(name string) string {
-	return fmt.Sprintf(`resource "lxd_container" "container1" {
-	name = "%s"
-	image = "ubuntu"
-	profiles = ["default", "docker"]
-}`, name)
+resource "lxd_container" "container1" {
+  name = "%s"
+  image = "ubuntu"
+  profiles = ["default", "docker"]
+}
+	`, profileName, containerName)
+}
+
+func testAccContainer_addProfile_2(profileName, containerName string) string {
+	return fmt.Sprintf(`
+resource "lxd_profile" "profile1" {
+  name = "%s"
+}
+
+resource "lxd_container" "container1" {
+  name = "%s"
+  image = "ubuntu"
+  profiles = ["default", "docker", "${lxd_profile.profile1.name}"]
+}
+	`, profileName, containerName)
+}
+
+func testAccContainer_removeProfile_1(profileName, containerName string) string {
+	return fmt.Sprintf(`
+resource "lxd_profile" "profile1" {
+  name = "%s"
+}
+
+resource "lxd_container" "container1" {
+  name = "%s"
+  image = "ubuntu"
+  profiles = ["default", "docker", "${lxd_profile.profile1.name}"]
+}
+	`, profileName, containerName)
+}
+
+func testAccContainer_removeProfile_2(profileName, containerName string) string {
+	return fmt.Sprintf(`
+resource "lxd_profile" "profile1" {
+  name = "%s"
+}
+
+resource "lxd_container" "container1" {
+  name = "%s"
+  image = "ubuntu"
+  profiles = ["default", "docker"]
+}
+	`, profileName, containerName)
 }
 
 func testAccContainer_device_1(name string) string {
-	return fmt.Sprintf(`resource "lxd_container" "container1" {
-	name = "%s"
-	image = "ubuntu"
-	profiles = ["default"]
+	return fmt.Sprintf(`
+resource "lxd_container" "container1" {
+  name = "%s"
+  image = "ubuntu"
+  profiles = ["default"]
 
-	device {
-		name = "shared"
-		type = "disk"
-		properties {
-			source = "/tmp"
-			path = "/tmp/shared"
-		}
-	}
-}`, name)
+  device {
+    name = "shared"
+    type = "disk"
+    properties {
+      source = "/tmp"
+      path = "/tmp/shared"
+    }
+  }
+}
+	`, name)
 }
 
 func testAccContainer_device_2(name string) string {
-	return fmt.Sprintf(`resource "lxd_container" "container1" {
-	name = "%s"
-	image = "ubuntu"
-	profiles = ["default"]
+	return fmt.Sprintf(`
+resource "lxd_container" "container1" {
+  name = "%s"
+  image = "ubuntu"
+  profiles = ["default"]
 
-	device {
-		name = "shared"
-		type = "disk"
-		properties {
-			source = "/tmp"
-			path = "/tmp/shared2"
-		}
-	}
-}`, name)
+  device {
+    name = "shared"
+    type = "disk"
+    properties {
+      source = "/tmp"
+      path = "/tmp/shared2"
+    }
+  }
+}
+	`, name)
 }
 
 func testAccContainer_addDevice_1(name string) string {
-	return fmt.Sprintf(`resource "lxd_container" "container1" {
-	name = "%s"
-	image = "ubuntu"
-	profiles = ["default"]
-}`, name)
+	return fmt.Sprintf(`
+resource "lxd_container" "container1" {
+  name = "%s"
+  image = "ubuntu"
+  profiles = ["default"]
+}
+	`, name)
 }
 
 func testAccContainer_addDevice_2(name string) string {
-	return fmt.Sprintf(`resource "lxd_container" "container1" {
-	name = "%s"
-	image = "ubuntu"
-	profiles = ["default"]
+	return fmt.Sprintf(`
+resource "lxd_container" "container1" {
+  name = "%s"
+  image = "ubuntu"
+  profiles = ["default"]
 
-	device {
-		name = "shared"
-		type = "disk"
-		properties {
-			source = "/tmp"
-			path = "/tmp/shared"
-		}
-	}
-}`, name)
+  device {
+    name = "shared"
+    type = "disk"
+    properties {
+      source = "/tmp"
+      path = "/tmp/shared"
+    }
+  }
+}
+	`, name)
 }
 
 func testAccContainer_removeDevice_1(name string) string {
-	return fmt.Sprintf(`resource "lxd_container" "container1" {
-	name = "%s"
-	image = "ubuntu"
-	profiles = ["default"]
+	return fmt.Sprintf(`
+resource "lxd_container" "container1" {
+  name = "%s"
+  image = "ubuntu"
+  profiles = ["default"]
 
-	device {
-		name = "shared"
-		type = "disk"
-		properties {
-			source = "/tmp"
-			path = "/tmp/shared"
-		}
-	}
-}`, name)
+  device {
+    name = "shared"
+    type = "disk"
+    properties {
+      source = "/tmp"
+      path = "/tmp/shared"
+    }
+  }
+}
+	`, name)
 }
 
 func testAccContainer_removeDevice_2(name string) string {
-	return fmt.Sprintf(`resource "lxd_container" "container1" {
-	name = "%s"
-	image = "ubuntu"
-	profiles = ["default"]
-}`, name)
+	return fmt.Sprintf(`
+resource "lxd_container" "container1" {
+  name = "%s"
+  image = "ubuntu"
+  profiles = ["default"]
+}
+	`, name)
 }

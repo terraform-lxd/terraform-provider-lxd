@@ -10,6 +10,7 @@ import (
 
 	"github.com/lxc/lxd"
 	"github.com/lxc/lxd/shared"
+	"github.com/lxc/lxd/shared/api"
 )
 
 func resourceLxdContainer() *schema.Resource {
@@ -114,10 +115,6 @@ func resourceLxdContainerCreate(d *schema.ResourceData, meta interface{}) error 
 	config := resourceLxdConfigMap(d.Get("config"))
 	devices := resourceLxdDevices(d.Get("device"))
 
-	/*
-	 * requested_empty_profiles means user requested empty
-	 * !requested_empty_profiles but len(profArgs) == 0 means use profile default
-	 */
 	profiles := []string{}
 	if v, ok := d.GetOk("profiles"); ok {
 		for _, v := range v.([]interface{}) {
@@ -126,7 +123,7 @@ func resourceLxdContainerCreate(d *schema.ResourceData, meta interface{}) error 
 	}
 
 	// client.Init = (name string, imgremote string, image string, profiles *[]string, config map[string]string, devices shared.Devices, ephem bool)
-	var resp *lxd.Response
+	var resp *api.Response
 	if resp, err = client.Init(name, remote, image, &profiles, config, devices, ephem); err != nil {
 		return err
 	}
@@ -204,15 +201,23 @@ func resourceLxdContainerUpdate(d *schema.ResourceData, meta interface{}) error 
 	client := meta.(*LxdProvider).Client
 	name := d.Id()
 
-	// st will hold the updated container information.
-	var st shared.BriefContainerInfo
+	// changed determines if an update call needs made.
 	var changed bool
 
 	ct, err := client.ContainerInfo(name)
 	if err != nil {
 		return err
 	}
-	st.Devices = ct.Devices
+
+	// Copy the current container configuration to the updatable container struct.
+	newContainer := api.ContainerPut{
+		Architecture: ct.Architecture,
+		Config:       ct.Config,
+		Devices:      ct.Devices,
+		Ephemeral:    ct.Ephemeral,
+		Profiles:     ct.Profiles,
+		Restore:      ct.Restore,
+	}
 
 	if d.HasChange("profiles") {
 		_, newProfiles := d.GetChange("profiles")
@@ -223,9 +228,9 @@ func resourceLxdContainerUpdate(d *schema.ResourceData, meta interface{}) error 
 				profiles = append(profiles, p.(string))
 			}
 
-			st.Profiles = profiles
+			newContainer.Profiles = profiles
 
-			log.Printf("[DEBUG] Updated profiles: %#v", st.Profiles)
+			log.Printf("[DEBUG] Updated profiles: %#v", newContainer.Profiles)
 		}
 	}
 
@@ -236,20 +241,21 @@ func resourceLxdContainerUpdate(d *schema.ResourceData, meta interface{}) error 
 		newDevices := resourceLxdDevices(new)
 
 		for n, _ := range oldDevices {
-			delete(st.Devices, n)
+			delete(newContainer.Devices, n)
 		}
 
 		for n, d := range newDevices {
 			if n != "" {
-				st.Devices[n] = d
+				newContainer.Devices[n] = d
 			}
 		}
 
-		log.Printf("[DEBUG] Updated device list: %#v", st.Devices)
+		log.Printf("[DEBUG] Updated device list: %#v", newContainer.Devices)
 	}
 
 	if changed {
-		err := client.UpdateContainerConfig(name, st)
+		log.Printf("[DEBUG] Updating container %s: %#v", name, newContainer)
+		err := client.UpdateContainerConfig(name, newContainer)
 		if err != nil {
 			return err
 		}

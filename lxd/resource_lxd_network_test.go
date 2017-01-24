@@ -10,11 +10,11 @@ import (
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
 
-	"github.com/lxc/lxd/shared"
+	"github.com/lxc/lxd/shared/api"
 )
 
 func TestAccNetwork_basic(t *testing.T) {
-	var network shared.NetworkConfig
+	var network api.Network
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:  func() { testAccPreCheck(t) },
@@ -33,13 +33,13 @@ func TestAccNetwork_basic(t *testing.T) {
 }
 
 func TestAccNetwork_attach(t *testing.T) {
-	var network shared.NetworkConfig
-	var profile shared.ProfileConfig
-	var container shared.ContainerInfo
+	var network api.Network
+	var profile api.Profile
+	var container api.Container
 	profileName := strings.ToLower(petname.Generate(2, "-"))
 	containerName := strings.ToLower(petname.Generate(2, "-"))
 
-	device := shared.Device{
+	device := map[string]string{
 		"type":    "nic",
 		"nictype": "bridged",
 		"parent":  "eth1",
@@ -64,7 +64,7 @@ func TestAccNetwork_attach(t *testing.T) {
 	})
 }
 
-func testAccNetworkExists(t *testing.T, n string, network *shared.NetworkConfig) resource.TestCheckFunc {
+func testAccNetworkExists(t *testing.T, n string, network *api.Network) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		rs, ok := s.RootModule().Resources[n]
 		if !ok {
@@ -87,7 +87,7 @@ func testAccNetworkExists(t *testing.T, n string, network *shared.NetworkConfig)
 	}
 }
 
-func testAccNetworkConfig(network *shared.NetworkConfig, k, v string) resource.TestCheckFunc {
+func testAccNetworkConfig(network *api.Network, k, v string) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		if network.Config == nil {
 			return fmt.Errorf("No config")
@@ -110,46 +110,50 @@ func testAccNetworkConfig(network *shared.NetworkConfig, k, v string) resource.T
 }
 
 func testAccNetwork_basic() string {
-	return fmt.Sprintf(`resource "lxd_network" "eth1" {
+	return fmt.Sprintf(`
+resource "lxd_network" "eth1" {
   name = "eth1"
 
-	config {
-		ipv4.address = "10.150.19.1/24"
-		ipv4.nat = "true"
-		ipv6.address = "fd42:474b:622d:259d::1/64"
-		ipv6.nat = "true"
-	}
-}`)
+  config {
+    ipv4.address = "10.150.19.1/24"
+    ipv4.nat = "true"
+    ipv6.address = "fd42:474b:622d:259d::1/64"
+    ipv6.nat = "true"
+  }
+}
+`)
 }
 
 func testAccNetwork_attach(profileName, containerName string) string {
-	return fmt.Sprintf(`resource "lxd_network" "eth1" {
+	return fmt.Sprintf(`
+resource "lxd_network" "eth1" {
   name = "eth1"
 
-	config {
-		ipv4.address = "10.150.19.1/24"
-		ipv4.nat = "true"
-		ipv6.address = "fd42:474b:622d:259d::1/64"
-		ipv6.nat = "true"
-	}
+  config {
+    ipv4.address = "10.150.19.1/24"
+    ipv4.nat = "true"
+    ipv6.address = "fd42:474b:622d:259d::1/64"
+    ipv6.nat = "true"
+  }
 }
 
 resource "lxd_profile" "profile1" {
-	name = "%s"
+  name = "%s"
 
-	device {
-		name = "eth1"
-		type = "nic"
-		properties {
-			nictype = "bridged"
-			parent = "${lxd_network.eth1.name}"
-		}
-	}
+  device {
+    name = "eth1"
+    type = "nic"
+    properties {
+      nictype = "bridged"
+      parent = "${lxd_network.eth1.name}"
+    }
+  }
 }
 
 resource "lxd_container" "container1" {
-	name = "%s"
-	image = "ubuntu"
-	profiles = ["default", "${lxd_profile.profile1.name}"]
-}`, profileName, containerName)
+  name = "%s"
+  image = "ubuntu"
+  profiles = ["default", "${lxd_profile.profile1.name}"]
+}
+`, profileName, containerName)
 }
