@@ -309,6 +309,9 @@ func resourceLxdContainerExists(d *schema.ResourceData, meta interface{}) (exist
 	exists = false
 
 	ct, err := client.ContainerState(name)
+	if err != nil && err.Error() == "not found" {
+		err = nil
+	}
 	if err == nil && ct != nil {
 		exists = true
 	}
