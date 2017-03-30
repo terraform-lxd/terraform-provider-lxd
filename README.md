@@ -25,6 +25,7 @@ To generate these files and store them in the LXD daemon, follow these [steps](h
 provider "lxd" {
   scheme  = "https"
   address = "10.1.1.8"
+  remote  = "lxd-server"
 }
 ```
 
@@ -234,10 +235,12 @@ _note_: `local` and `remote` accept both IPv4 and IPv6 addresses.
   * `scheme`   - *Optional* - `https` or `unix`. Defaults to `unix`.
   * `port`     - *Optional* - `https` scheme only - The port on which the LXD daemon is listening. Defaults to 8443.
   * `remote`   - *Optional* - Name of the remote LXD as it exists in the local lxc config. Defaults to `local`.
+  * `remote_password` - *Optional* - Password of the remote LXD server.
+  * `config_dir` - *Optional* - Directory path to client LXD configuration and certs. Defaults to `$HOME/.config/lxc`.
 
 ### Resources
 
-The following resources currently exist:
+The following resources are currently available:
 
   * `lxd_container` - Creates and manages a Container
   * `lxd_network` - Creates and manages a Network
