@@ -1,8 +1,16 @@
 package lxd
 
 import (
+	"bytes"
+	"encoding/json"
 	"fmt"
 	"log"
+	"net/http"
+	"strings"
+
+	"github.com/lxc/lxd"
+	"github.com/lxc/lxd/shared/api"
+	"github.com/lxc/lxd/shared/version"
 )
 
 func resourceLxdConfigMap(c interface{}) map[string]string {
@@ -55,4 +63,62 @@ func resourceLxdValidateDeviceType(v interface{}, k string) (ws []string, errors
 	}
 
 	return
+}
+
+// The following re-implements private LXC client functions
+func clientURL(baseURL string, elem ...string) string {
+	// Normalize the URL
+	path := strings.Join(elem, "/")
+	entries := []string{}
+	fields := strings.Split(path, "/")
+	for i, entry := range fields {
+		if entry == "" && i+1 < len(fields) {
+			continue
+		}
+
+		entries = append(entries, entry)
+	}
+	path = strings.Join(entries, "/")
+
+	// Assemble the final URL
+	uri := baseURL + "/" + path
+
+	// Aliases may contain a trailing slash
+	if strings.HasPrefix(path, "1.0/images/aliases") {
+		return uri
+	}
+
+	// File paths may contain a trailing slash
+	if strings.Contains(path, "?") {
+		return uri
+	}
+
+	// Nothing else should contain a trailing slash
+	return strings.TrimSuffix(uri, "/")
+}
+
+func clientDoUpdateMethod(client *lxd.Client, method string, base string, args interface{}, rtype api.ResponseType) (*api.Response, error) {
+	uri := clientURL(client.BaseURL, version.APIVersion, base)
+
+	buf := bytes.Buffer{}
+	err := json.NewEncoder(&buf).Encode(args)
+	if err != nil {
+		return nil, err
+	}
+
+	log.Printf("[DEBUG] %s %s to %s", method, buf.String(), uri)
+
+	req, err := http.NewRequest(method, uri, &buf)
+	if err != nil {
+		return nil, err
+	}
+	req.Header.Set("User-Agent", version.UserAgent)
+	req.Header.Set("Content-Type", "application/json")
+
+	resp, err := client.Http.Do(req)
+	if err != nil {
+		return nil, err
+	}
+
+	return lxd.HoistResponse(resp, rtype)
 }
