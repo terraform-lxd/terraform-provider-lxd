@@ -3,6 +3,11 @@ package lxd
 import (
 	"fmt"
 	"log"
+	"os"
+	"path"
+	"path/filepath"
+	"strconv"
+	"strings"
 	"time"
 
 	"github.com/hashicorp/terraform/helper/resource"
@@ -85,6 +90,44 @@ func resourceLxdContainer() *schema.Resource {
 				ForceNew: false,
 			},
 
+			"file": &schema.Schema{
+				Type:     schema.TypeList,
+				Optional: true,
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"content": &schema.Schema{
+							Type:     schema.TypeString,
+							Required: true,
+						},
+
+						"target_file": &schema.Schema{
+							Type:     schema.TypeString,
+							Required: true,
+						},
+
+						"uid": &schema.Schema{
+							Type:     schema.TypeInt,
+							Optional: true,
+						},
+
+						"gid": &schema.Schema{
+							Type:     schema.TypeInt,
+							Optional: true,
+						},
+
+						"mode": &schema.Schema{
+							Type:     schema.TypeString,
+							Optional: true,
+						},
+
+						"create_directories": &schema.Schema{
+							Type:     schema.TypeBool,
+							Optional: true,
+						},
+					},
+				},
+			},
+
 			"ip_address": &schema.Schema{
 				Type:     schema.TypeString,
 				Computed: true,
@@ -155,6 +198,16 @@ func resourceLxdContainerCreate(d *schema.ResourceData, meta interface{}) error 
 	}
 
 	d.SetId(name)
+
+	// Upload any files, if specified
+	if v, ok := d.GetOk("file"); ok {
+		for _, v := range v.([]interface{}) {
+			if err := resourceLxdContainerUploadFile(client, name, v); err != nil {
+				return err
+			}
+		}
+	}
+
 	return resourceLxdContainerRead(d, meta)
 }
 
@@ -261,6 +314,21 @@ func resourceLxdContainerUpdate(d *schema.ResourceData, meta interface{}) error 
 		}
 	}
 
+	if d.HasChange("file") {
+		oldFiles, newFiles := d.GetChange("file")
+		for _, v := range oldFiles.([]interface{}) {
+			if err := resourceLxdContainerDeleteFile(client, name, v); err != nil {
+				return err
+			}
+		}
+
+		for _, v := range newFiles.([]interface{}) {
+			if err := resourceLxdContainerUploadFile(client, name, v); err != nil {
+				return err
+			}
+		}
+	}
+
 	return nil
 }
 
@@ -328,4 +396,92 @@ func resourceLxdContainerRefresh(client *lxd.Client, name string) resource.State
 
 		return ct, ct.Status, nil
 	}
+}
+
+func resourceLxdContainerUploadFile(client *lxd.Client, container string, file interface{}) error {
+	var uid, gid int
+	var createDirectories bool
+	fileInfo := file.(map[string]interface{})
+
+	fileContent := fileInfo["content"].(string)
+	fileTarget := fileInfo["target_file"].(string)
+
+	if v, ok := fileInfo["uid"]; ok {
+		uid = v.(int)
+	}
+
+	if v, ok := fileInfo["gid"]; ok {
+		gid = v.(int)
+	}
+
+	if v, ok := fileInfo["create_directories"]; ok {
+		createDirectories = v.(bool)
+	}
+
+	fileTarget, err := filepath.Abs(fileTarget)
+	if err != nil {
+		return fmt.Errorf("Could not santize destination target %s", fileTarget)
+	}
+
+	targetIsDir := strings.HasSuffix(fileTarget, "/")
+	if targetIsDir {
+		return fmt.Errorf("Target must be an absolute path with filename")
+	}
+
+	mode := os.FileMode(0755)
+	if v, ok := fileInfo["mode"].(string); ok && v != "" {
+		if len(v) != 3 {
+			v = "0" + v
+		}
+
+		m, err := strconv.ParseInt(v, 0, 0)
+		if err != nil {
+			return fmt.Errorf("Could not determine file mode %s", v)
+		}
+
+		mode = os.FileMode(m)
+	}
+
+	log.Printf("[DEBUG] Attempting to upload file to %s with uid %d, gid %d, and mode %s",
+		fileTarget, uid, gid, fmt.Sprintf("%04o", mode.Perm()))
+
+	if createDirectories {
+		if err := client.MkdirP(container, path.Dir(fileTarget), mode, uid, gid); err != nil {
+			return fmt.Errorf("Could not create path %s", path.Dir(fileTarget))
+		}
+	}
+
+	f := strings.NewReader(fileContent)
+	if err := client.PushFile(
+		container, fileTarget, gid, uid, fmt.Sprintf("%04o", mode.Perm()), f); err != nil {
+		return fmt.Errorf("Could not upload file %s: %s", fileTarget, err)
+	}
+
+	log.Printf("[DEBUG] Successfully uploaded file %s", fileTarget)
+
+	return nil
+}
+
+func resourceLxdContainerDeleteFile(client *lxd.Client, container string, file interface{}) error {
+	fileInfo := file.(map[string]interface{})
+	fileTarget := fileInfo["target_file"].(string)
+	fileTarget, err := filepath.Abs(fileTarget)
+	if err != nil {
+		return fmt.Errorf("Could not santize destination target %s", fileTarget)
+	}
+
+	targetIsDir := strings.HasSuffix(fileTarget, "/")
+	if targetIsDir {
+		return fmt.Errorf("Target must be an absolute path with filename")
+	}
+
+	log.Printf("[DEBUG] Attempting to delete file %s", fileTarget)
+
+	if err := client.DeleteFile(container, fileTarget); err != nil {
+		return fmt.Errorf("Could not delete file %s: %s", fileTarget, err)
+	}
+
+	log.Printf("[DEBUG] Successfully deleted file %s", fileTarget)
+
+	return nil
 }

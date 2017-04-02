@@ -247,26 +247,36 @@ The following resources currently exist:
 
 ##### Parameters
 
-  * `name`      - *Required* -Name of the container.
-  * `image`     - *Required* -Base image from which the container will be created.
-  * `profiles`  - *Optional* -Array of LXD config profiles to apply to the new container.
-  * `ephemeral` - *Optional* -Boolean indicating if this container is ephemeral. Default = false.
-  * `privileged`- *Optional* -Boolean indicating if this container will run in privileged mode. Default = false.
-  * `config`    - *Optional* -Map of key/value pairs of [container config settings](https://github.com/lxc/lxd/blob/master/doc/configuration.md#container-configuration).
-  * `device`    - *Optional* -Device definition. See reference below.
+  * `name`      - *Required* - Name of the container.
+  * `image`     - *Required* - Base image from which the container will be created.
+  * `profiles`  - *Optional* - Array of LXD config profiles to apply to the new container.
+  * `ephemeral` - *Optional* - Boolean indicating if this container is ephemeral. Default = false.
+  * `privileged`- *Optional* - Boolean indicating if this container will run in privileged mode. Default = false.
+  * `config`    - *Optional* - Map of key/value pairs of [container config settings](https://github.com/lxc/lxd/blob/master/doc/configuration.md#container-configuration).
+  * `device`    - *Optional* - Device definition. See reference below.
+  * `file`      - *Optional* - File to upload to the container. See reference below.
 
 ##### Device Block
 
-  * `name`      - *Required* -Name of the device.
-  * `type`      - *Required* -Type of the device Must be one of none, disk, nic, unix-char, unix-block, usb, gpu.
-  * `properties`- *Required* -Map of key/value pairs of [device properties](https://github.com/lxc/lxd/blob/master/doc/configuration.md#devices-configuration).
+  * `name`      - *Required* - Name of the device.
+  * `type`      - *Required* - Type of the device Must be one of none, disk, nic, unix-char, unix-block, usb, gpu.
+  * `properties`- *Required* - Map of key/value pairs of [device properties](https://github.com/lxc/lxd/blob/master/doc/configuration.md#devices-configuration).
+
+##### File Block
+
+  * `content` - *Required* - The _contents_ of the file. Use the `file()` function to read in the content of a file from disk.
+  * `target_file` - *Required* - The absolute path of the file on the container, including the filename.
+  * `uid` - *Optional* - The UID of the file. Must be an unquoted integer.
+  * `gid` - *Optional* - The GID of the file. Must be an unquoted integer.
+  * `mode` - *Optional* - The octal permissions of the file, must be quoted.
+  * `create_directories` - *Optional* - Whether to create the directories leading to the target if they do not exist.
 
 #### lxd_network
 
 ##### Parameters
 
-  * `name`      - *Required* -Name of the network. This is usually the device the network will appear as to containers.
-  * `config`    - *Optional* -Map of key/value pairs of [network config settings](https://github.com/lxc/lxd/blob/master/doc/configuration.md#network-configuration).
+  * `name`      - *Required* - Name of the network. This is usually the device the network will appear as to containers.
+  * `config`    - *Optional* - Map of key/value pairs of [network config settings](https://github.com/lxc/lxd/blob/master/doc/configuration.md#network-configuration).
 
 ##### Exported Attributes
 
@@ -277,15 +287,15 @@ The following resources currently exist:
 
 ##### Parameters
 
-  * `name`      - *Required* -Name of the container.
-  * `config`    - *Optional* -Map of key/value pairs of [container config settings](https://github.com/lxc/lxd/blob/master/doc/configuration.md#container-configuration).
-  * `device`    - *Optional* -Device definition. See reference below.
+  * `name`      - *Required* - Name of the container.
+  * `config`    - *Optional* - Map of key/value pairs of [container config settings](https://github.com/lxc/lxd/blob/master/doc/configuration.md#container-configuration).
+  * `device`    - *Optional* - Device definition. See reference below.
 
 ##### Device Block
 
-  * `name`      - *Required* -Name of the device.
-  * `type`      - *Required* -Type of the device Must be one of none, disk, nic, unix-char, unix-block, usb, gpu.
-  * `properties`- *Required* -Map of key/value pairs of [device properties](https://github.com/lxc/lxd/blob/master/doc/configuration.md#devices-configuration).
+  * `name`      - *Required* - Name of the device.
+  * `type`      - *Required* - Type of the device Must be one of none, disk, nic, unix-char, unix-block, usb, gpu.
+  * `properties`- *Required* - Map of key/value pairs of [device properties](https://github.com/lxc/lxd/blob/master/doc/configuration.md#devices-configuration).
 
 ## Known Limitations
 
