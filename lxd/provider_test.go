@@ -1,10 +1,10 @@
 package lxd
 
 import (
-	"testing"
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/hashicorp/terraform/terraform"
 	"os/exec"
+	"testing"
 )
 
 var testAccProviders map[string]terraform.ResourceProvider

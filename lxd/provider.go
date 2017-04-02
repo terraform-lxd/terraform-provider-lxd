@@ -7,6 +7,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"time"
 
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/hashicorp/terraform/terraform"
@@ -16,8 +17,9 @@ import (
 )
 
 type LxdProvider struct {
-	Remote string
-	Client *lxd.Client
+	Remote          string
+	Client          *lxd.Client
+	RefreshInterval time.Duration
 }
 
 // Provider returns a terraform.ResourceProvider.
@@ -85,6 +87,13 @@ func Provider() terraform.ResourceProvider {
 				Description: descriptions["lxd_accept_remote_certificate"],
 				DefaultFunc: schema.EnvDefaultFunc("LXD_ACCEPT_SERVER_CERTIFICATE", ""),
 			},
+
+			"refresh_interval": &schema.Schema{
+				Type:        schema.TypeString,
+				Optional:    true,
+				Description: descriptions["lxd_refresh_interval"],
+				Default:     "10s",
+			},
 		},
 
 		ResourcesMap: map[string]*schema.Resource{
@@ -113,6 +122,7 @@ func init() {
 		"lxd_config_dir":                   "The directory to look for existing LXD configuration (default = $HOME/.config/lxc).",
 		"lxd_generate_client_certificates": "Automatically generate the LXD client certificates if they don't exist.",
 		"lxd_accept_remote_certificate":    "Accept the server certificate",
+		"lxd_refresh_interval":             "How often to poll during state changes (default 10s)",
 	}
 }
 
@@ -194,9 +204,19 @@ func providerConfigure(d *schema.ResourceData) (interface{}, error) {
 		return nil, err
 	}
 
+	refresh_interval := d.Get("refresh_interval").(string)
+	if refresh_interval == "" {
+		refresh_interval = "10s"
+	}
+	refresh_interval_parsed, err := time.ParseDuration(refresh_interval)
+	if err != nil {
+		return nil, err
+	}
+
 	lxdProv := LxdProvider{
-		Remote: remote,
-		Client: client,
+		Remote:          remote,
+		Client:          client,
+		RefreshInterval: refresh_interval_parsed,
 	}
 
 	return &lxdProv, nil

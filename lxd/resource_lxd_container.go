@@ -151,6 +151,7 @@ func resourceLxdContainerCreate(d *schema.ResourceData, meta interface{}) error 
 	var err error
 	client := meta.(*LxdProvider).Client
 	remote := meta.(*LxdProvider).Remote
+	refresh_interval := meta.(*LxdProvider).RefreshInterval
 
 	name := d.Get("name").(string)
 	ephem := d.Get("ephemeral").(bool)
@@ -193,7 +194,7 @@ func resourceLxdContainerCreate(d *schema.ResourceData, meta interface{}) error 
 		Target:     []string{"Running"},
 		Refresh:    resourceLxdContainerRefresh(client, name),
 		Timeout:    3 * time.Minute,
-		Delay:      10 * time.Second,
+		Delay:      refresh_interval,
 		MinTimeout: 3 * time.Second,
 	}
 
@@ -338,6 +339,7 @@ func resourceLxdContainerUpdate(d *schema.ResourceData, meta interface{}) error 
 
 func resourceLxdContainerDelete(d *schema.ResourceData, meta interface{}) (err error) {
 	client := meta.(*LxdProvider).Client
+	refresh_interval := meta.(*LxdProvider).RefreshInterval
 	name := d.Id()
 
 	ct, _ := client.ContainerState(name)
@@ -351,7 +353,7 @@ func resourceLxdContainerDelete(d *schema.ResourceData, meta interface{}) (err e
 			Target:     []string{"Stopped"},
 			Refresh:    resourceLxdContainerRefresh(client, name),
 			Timeout:    3 * time.Minute,
-			Delay:      10 * time.Second,
+			Delay:      refresh_interval,
 			MinTimeout: 3 * time.Second,
 		}
 
