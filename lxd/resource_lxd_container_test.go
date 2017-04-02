@@ -240,6 +240,30 @@ func TestAccContainer_removeDevice(t *testing.T) {
 	})
 }
 
+func TestAccContainer_fileUpload(t *testing.T) {
+	var container api.Container
+	containerName := strings.ToLower(petname.Generate(2, "-"))
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:  func() { testAccPreCheck(t) },
+		Providers: testAccProviders,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccContainer_fileUpload_1(containerName),
+				Check: resource.ComposeTestCheckFunc(
+					testAccContainerRunning(t, "lxd_container.container1", &container),
+				),
+			},
+			resource.TestStep{
+				Config: testAccContainer_fileUpload_2(containerName),
+				Check: resource.ComposeTestCheckFunc(
+					testAccContainerRunning(t, "lxd_container.container1", &container),
+				),
+			},
+		},
+	})
+}
+
 func testAccContainerRunning(t *testing.T, n string, container *api.Container) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		rs, ok := s.RootModule().Resources[n]
@@ -559,6 +583,40 @@ resource "lxd_container" "container1" {
   name = "%s"
   image = "ubuntu"
   profiles = ["default"]
+}
+	`, name)
+}
+
+func testAccContainer_fileUpload_1(name string) string {
+	return fmt.Sprintf(`
+resource "lxd_container" "container1" {
+  name = "%s"
+  image = "ubuntu"
+  profiles = ["default"]
+
+  file {
+    content = "Hello, World!\n"
+    target_file = "/tmp/foo/bar.txt"
+    mode = "0644"
+    create_directories = true
+  }
+}
+	`, name)
+}
+
+func testAccContainer_fileUpload_2(name string) string {
+	return fmt.Sprintf(`
+resource "lxd_container" "container1" {
+  name = "%s"
+  image = "ubuntu"
+  profiles = ["default"]
+
+  file {
+    content = "Goodbye, World!\n"
+    target_file = "/tmp/foo/bar.txt"
+    mode = "0644"
+    create_directories = true
+  }
 }
 	`, name)
 }
