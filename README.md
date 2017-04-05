@@ -297,9 +297,16 @@ A basic base image must be prepared in advance, that includes the SSH server.
 
 ## To Do
 
-- [ ] Support for using client cert / key from other paths
+- [x] Support for using client cert / key from other paths
 - [ ] Ability to update container config
 - [ ] Ability to exec commands via LXD WebSocket channel
 - [ ] Ability to upload files via LXD WebSocket channel
 - [ ] Volumes support
 - [ ] Add LXD `image` resource
+
+## Contributors
+
+Some recognition for great contributors to this project:
+
+  * [jtopjian](https://github.com/jtopjian)
+  * [yobert](https://github.com/yobert)
