@@ -310,9 +310,10 @@ A basic base image must be prepared in advance, that includes the SSH server.
 - [x] Support for using client cert / key from other paths
 - [ ] Ability to update container config
 - [ ] Ability to exec commands via LXD WebSocket channel
-- [ ] Ability to upload files via LXD WebSocket channel
-- [ ] Volumes support
+- [x] Ability to upload files
+- [x] Volumes support
 - [ ] Add LXD `image` resource
+- [ ] Remote image datasource
 
 ## Contributors
 
