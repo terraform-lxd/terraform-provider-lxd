@@ -33,6 +33,25 @@ func TestAccContainer_basic(t *testing.T) {
 	})
 }
 
+func TestAccContainer_remoteImage(t *testing.T) {
+	var container api.Container
+	containerName := strings.ToLower(petname.Generate(2, "-"))
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:  func() { testAccPreCheck(t) },
+		Providers: testAccProviders,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccContainer_remoteImage(containerName),
+				Check: resource.ComposeTestCheckFunc(
+					testAccContainerRunning(t, "lxd_container.container1", &container),
+					resource.TestCheckResourceAttr("lxd_container.container1", "name", containerName),
+				),
+			},
+		},
+	})
+}
+
 func TestAccContainer_config(t *testing.T) {
 	var container api.Container
 	containerName := strings.ToLower(petname.Generate(2, "-"))
@@ -617,6 +636,16 @@ resource "lxd_container" "container1" {
     mode = "0644"
     create_directories = true
   }
+}
+	`, name)
+}
+
+func testAccContainer_remoteImage(name string) string {
+	return fmt.Sprintf(`
+resource "lxd_container" "container1" {
+  name = "%s"
+  image = "images:ubuntu/xenial/amd64"
+  profiles = ["default"]
 }
 	`, name)
 }

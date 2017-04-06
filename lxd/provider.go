@@ -135,11 +135,17 @@ func providerConfigure(d *schema.ResourceData) (interface{}, error) {
 		}
 	}
 
+	// Load static Public remotes
+	for k, v := range lxd.DefaultRemotes {
+		config.Remotes[k] = v
+	}
+
 	client, err := lxd.NewClient(&config, remote)
 	if err != nil {
 		err := fmt.Errorf("Could not create LXD client: %s", err)
 		return nil, err
 	}
+
 	log.Printf("[DEBUG] LXD Client: %#v", client)
 
 	if err := validateClient(client); err != nil {

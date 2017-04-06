@@ -49,6 +49,17 @@ resource "lxd_container" "test1" {
 }
 ```
 
+You can also launch a container directly from a remote image, not locally cached, by referencing the remote image name using the format:
+ > `[remote:]image_alias|image_hash`
+
+```hcl
+resource "lxd_container" "test1" {
+  name      = "test1"
+  image     = "images:ubuntu/xenial/amd64"
+  ephemeral = false
+}
+```
+
 A container can also take a number of configuration and device options. A full reference can be found [here](https://github.com/lxc/lxd/blob/master/doc/configuration.md). For example, to create a container with 2 CPUs and to share the `/tmp` directory with the LXD host:
 
 ```hcl
