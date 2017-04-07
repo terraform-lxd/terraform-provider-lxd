@@ -60,7 +60,7 @@ resource "lxd_container" "test1" {
 ```
 
  > NOTE:
- > Currently the only supported remotes are:
+ > Currently only the following remotes are supported:
  > * remote named defined in LXD provider (same as omitting `<remote>:` prefix)
  > * `images`
  > * `ubuntu`
