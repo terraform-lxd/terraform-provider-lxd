@@ -155,6 +155,10 @@ func resourceLxdContainerCreate(d *schema.ResourceData, meta interface{}) error 
 	name := d.Get("name").(string)
 	ephem := d.Get("ephemeral").(bool)
 	image := d.Get("image").(string)
+	if imgParts := strings.SplitN(image, ":", 2); len(imgParts) == 2 {
+		remote = imgParts[0]
+		image = imgParts[1]
+	}
 	config := resourceLxdConfigMap(d.Get("config"))
 	devices := resourceLxdDevices(d.Get("device"))
 
