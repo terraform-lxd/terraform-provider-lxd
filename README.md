@@ -65,7 +65,7 @@ resource "lxd_container" "test1" {
  > * `images`
  > * `ubuntu`
  > * `ubuntu-daily`
- > See the LXD (https://linuxcontainers.org/lxd/getting-started-cli/#using-the-built-in-image-remotes)[documentation] for more info on default image remotes.
+ > See the LXD [documentation](https://linuxcontainers.org/lxd/getting-started-cli/#using-the-built-in-image-remotes) for more info on default image remotes.
 
 #### Container Configuration & Devices
 
