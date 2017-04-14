@@ -13,6 +13,7 @@ import (
 	"github.com/lxc/lxd/shared/api"
 )
 
+// LxdProvider is the LXD Terraform Provider configuration and client
 type LxdProvider struct {
 	Remote string
 	Client *lxd.Client
@@ -71,6 +72,10 @@ func Provider() terraform.ResourceProvider {
 			},
 		},
 
+		DataSourcesMap: map[string]*schema.Resource{
+			"lxd_image": dataSourceLxdImage(),
+		},
+
 		ResourcesMap: map[string]*schema.Resource{
 			"lxd_container": resourceLxdContainer(),
 			"lxd_network":   resourceLxdNetwork(),
@@ -98,12 +103,12 @@ func providerConfigure(d *schema.ResourceData) (interface{}, error) {
 	remote := d.Get("remote").(string)
 	scheme := d.Get("scheme").(string)
 
-	daemon_addr := ""
+	daemonAddr := ""
 	switch scheme {
 	case "unix":
-		daemon_addr = fmt.Sprintf("unix:%s", d.Get("address"))
+		daemonAddr = fmt.Sprintf("unix:%s", d.Get("address"))
 	case "https":
-		daemon_addr = fmt.Sprintf("https://%s:%s", d.Get("address"), d.Get("port"))
+		daemonAddr = fmt.Sprintf("https://%s:%s", d.Get("address"), d.Get("port"))
 	default:
 		err := fmt.Errorf("Invalid scheme: %s", scheme)
 		return nil, err
@@ -114,11 +119,11 @@ func providerConfigure(d *schema.ResourceData) (interface{}, error) {
 		ConfigDir: d.Get("config_dir").(string),
 		Remotes:   make(map[string]lxd.RemoteConfig),
 	}
-	config.Remotes[remote] = lxd.RemoteConfig{Addr: daemon_addr}
+	config.Remotes[remote] = lxd.RemoteConfig{Addr: daemonAddr}
 	log.Printf("[DEBUG] LXD Config: %#v", config)
 
 	if scheme == "https" {
-		// validate certifictes exist
+		// validate certificates exist
 		certf := config.ConfigPath("client.crt")
 		keyf := config.ConfigPath("client.key")
 		if !shared.PathExists(certf) || !shared.PathExists(keyf) {
