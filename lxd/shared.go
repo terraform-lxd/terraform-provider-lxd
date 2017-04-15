@@ -2,13 +2,17 @@ package lxd
 
 import (
 	"bytes"
+	"crypto/x509"
 	"encoding/json"
+	"encoding/pem"
 	"fmt"
 	"log"
 	"net/http"
+	"os"
 	"strings"
 
 	"github.com/lxc/lxd"
+	"github.com/lxc/lxd/shared"
 	"github.com/lxc/lxd/shared/api"
 	"github.com/lxc/lxd/shared/version"
 )
@@ -65,6 +69,46 @@ func resourceLxdValidateDeviceType(v interface{}, k string) (ws []string, errors
 	return
 }
 
+// addServer adds a remote server to the local LXD configuration.
+func addServer(client *lxd.Client, remote string) (*lxd.Client, error) {
+	addr := client.Config.Remotes[remote]
+
+	log.Printf("[DEBUG] Attempting to retrieve remote server certificate")
+	var certificate *x509.Certificate
+	var err error
+	certificate, err = getRemoteCertificate(addr.Addr)
+	if err != nil {
+		return nil, err
+	}
+
+	dnam := client.Config.ConfigPath("servercerts")
+	if err := os.MkdirAll(dnam, 0750); err != nil {
+		return nil, fmt.Errorf("Could not create server cert dir")
+	}
+
+	certf := fmt.Sprintf("%s/%s.crt", dnam, client.Name)
+	certOut, err := os.Create(certf)
+	if err != nil {
+		return nil, err
+	}
+
+	pem.Encode(certOut, &pem.Block{Type: "CERTIFICATE", Bytes: certificate.Raw})
+	certOut.Close()
+
+	// Setup a new connection, this time with the remote certificate
+	client, err = lxd.NewClient(&client.Config, remote)
+	if err != nil {
+		return nil, err
+	}
+
+	// Validate the client before returning
+	if _, err := client.GetServerConfig(); err != nil {
+		return nil, err
+	}
+
+	return client, nil
+}
+
 // The following re-implements private LXC client functions
 func clientURL(baseURL string, elem ...string) string {
 	// Normalize the URL
@@ -106,8 +150,6 @@ func clientDoUpdateMethod(client *lxd.Client, method string, base string, args i
 		return nil, err
 	}
 
-	log.Printf("[DEBUG] %s %s to %s", method, buf.String(), uri)
-
 	req, err := http.NewRequest(method, uri, &buf)
 	if err != nil {
 		return nil, err
@@ -121,4 +163,33 @@ func clientDoUpdateMethod(client *lxd.Client, method string, base string, args i
 	}
 
 	return lxd.HoistResponse(resp, rtype)
+}
+
+func getRemoteCertificate(address string) (*x509.Certificate, error) {
+	// Setup a permissive TLS config
+	tlsConfig, err := shared.GetTLSConfig("", "", "", nil)
+	if err != nil {
+		return nil, err
+	}
+
+	tlsConfig.InsecureSkipVerify = true
+	tr := &http.Transport{
+		TLSClientConfig: tlsConfig,
+		Dial:            shared.RFC3493Dialer,
+		Proxy:           shared.ProxyFromEnvironment,
+	}
+
+	// Connect
+	client := &http.Client{Transport: tr}
+	resp, err := client.Get(address)
+	if err != nil {
+		return nil, err
+	}
+
+	// Retrieve the certificate
+	if resp.TLS == nil || len(resp.TLS.PeerCertificates) == 0 {
+		return nil, fmt.Errorf("Unable to read remote TLS certificate")
+	}
+
+	return resp.TLS.PeerCertificates[0], nil
 }

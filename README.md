@@ -23,9 +23,12 @@ To generate these files and store them in the LXD daemon, follow these [steps](h
 
 ```hcl
 provider "lxd" {
-  scheme  = "https"
-  address = "10.1.1.8"
-  remote  = "lxd-server"
+  scheme                       = "https"
+  address                      = "10.1.1.8"
+  remote                       = "lxd-server"
+  remote_password              = "password"
+  generate_client_certificates = true
+  accept_server_certificate    = true
 }
 ```
 
@@ -257,6 +260,8 @@ _note_: `local` and `remote` accept both IPv4 and IPv6 addresses.
   * `remote`   - *Optional* - Name of the remote LXD as it exists in the local lxc config. Defaults to `local`.
   * `remote_password` - *Optional* - Password of the remote LXD server.
   * `config_dir` - *Optional* - Directory path to client LXD configuration and certs. Defaults to `$HOME/.config/lxc`.
+  * `generate_client_certificates` - *Optional* - Generate the LXC client's certificates if they don't exist. This can also be done out-of-band of Terraform with the lxc command-line client.
+  * `accept_remote_certificate` - *Optional* - Accept the remote LXD server certificate. This can also be done out-of-band of Terraform with the lxc command-line client.
 
 ### Resources
 
