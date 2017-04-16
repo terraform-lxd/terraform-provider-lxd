@@ -260,6 +260,28 @@ resource "lxd_storage_pool" "pool1" {
 }
 ```
 
+#### Volumes
+
+Volumes are storage devices allocated from a Storage Pool. The `lxd_volume` resource can
+create and manage storage volumes:
+
+```hcl
+resource "lxd_storage_pool" "pool1" {
+  name = "mypool"
+  driver = "dir"
+  config {
+    source = "/var/lib/lxd/storage-pools/mypool"
+  }
+}
+
+resource "lxd_volume" "volume1" {
+  name = "myvolume"
+  pool = "${lxd_storage_pool.pool1.name}"
+}
+```
+
+_note_: Technically, an LXD volume is simply a container or profile device of type "disk".
+
 ## Reference
 
 ### Provider
@@ -346,6 +368,15 @@ The following resources are currently available:
   * `name` - *Required* - Name of the storage pool.
   * `driver` - *Required* - Storage Pool driver. Must be one of `dir`, `lvm`, `btrfs`, or `zfs`.
   * `config`    - *Required* - Map of key/value pairs of [storage pool config settings](https://github.com/lxc/lxd/blob/master/doc/configuration.md#storage-pool-configuration). Config settings vary from driver to driver.
+
+#### lxd_volume
+
+##### Parameters
+
+  * `name` - *Required* - Name of the storage pool.
+  * `pool` - *Required* - The Storage Pool to host the volume.
+  * `type` - *Optional* - The "type" of volume. The default value is `custom`, which is the type to use for storage volumes attached to containers.
+  * `config`    - *Required* - Map of key/value pairs of [volume config settings](https://github.com/lxc/lxd/blob/master/doc/configuration.md#storage-volume-configuration). Config settings vary depending on the Storage Pool used.
 
 ## Known Limitations
 
