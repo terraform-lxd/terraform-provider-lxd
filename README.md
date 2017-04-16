@@ -246,6 +246,20 @@ With these resources in place, attach them to a profile in the exact same way de
 
 _note_: `local` and `remote` accept both IPv4 and IPv6 addresses.
 
+#### Storage Pools
+
+To create and manage Storage Pools, use the `lxd_storage_pool` resource:
+
+```hcl
+resource "lxd_storage_pool" "pool1" {
+  name = "mypool"
+  driver = "dir"
+  config {
+    source = "/var/lib/lxd/storage-pools/mypool"
+  }
+}
+```
+
 ## Reference
 
 ### Provider
@@ -324,6 +338,14 @@ The following resources are currently available:
   * `name`      - *Required* - Name of the device.
   * `type`      - *Required* - Type of the device Must be one of none, disk, nic, unix-char, unix-block, usb, gpu.
   * `properties`- *Required* - Map of key/value pairs of [device properties](https://github.com/lxc/lxd/blob/master/doc/configuration.md#devices-configuration).
+
+#### lxd_storage_pool
+
+##### Parameters
+
+  * `name` - *Required* - Name of the storage pool.
+  * `driver` - *Required* - Storage Pool driver. Must be one of `dir`, `lvm`, `btrfs`, or `zfs`.
+  * `config`    - *Required* - Map of key/value pairs of [storage pool config settings](https://github.com/lxc/lxd/blob/master/doc/configuration.md#storage-pool-configuration). Config settings vary from driver to driver.
 
 ## Known Limitations
 

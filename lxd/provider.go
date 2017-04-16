@@ -86,9 +86,10 @@ func Provider() terraform.ResourceProvider {
 		},
 
 		ResourcesMap: map[string]*schema.Resource{
-			"lxd_container": resourceLxdContainer(),
-			"lxd_network":   resourceLxdNetwork(),
-			"lxd_profile":   resourceLxdProfile(),
+			"lxd_container":    resourceLxdContainer(),
+			"lxd_network":      resourceLxdNetwork(),
+			"lxd_profile":      resourceLxdProfile(),
+			"lxd_storage_pool": resourceLxdStoragePool(),
 		},
 
 		ConfigureFunc: providerConfigure,
