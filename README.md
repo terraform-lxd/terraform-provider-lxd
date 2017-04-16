@@ -282,6 +282,17 @@ resource "lxd_volume" "volume1" {
 
 _note_: Technically, an LXD volume is simply a container or profile device of type "disk".
 
+#### Snapshots
+
+The `lxd_snapshot` resource can be used to create a point in time snapshot of a container.
+
+```hcl
+resource "lxd_snapshot" "snap1" {
+  container_name = "${lxd_container.container1.name}"
+  name = "snap1"
+}
+```
+
 ## Reference
 
 ### Provider
