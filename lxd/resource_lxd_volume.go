@@ -1,9 +1,7 @@
 package lxd
 
 import (
-	"fmt"
 	"log"
-	"strings"
 
 	"github.com/hashicorp/terraform/helper/schema"
 )
@@ -57,8 +55,8 @@ func resourceLxdVolumeCreate(d *schema.ResourceData, meta interface{}) error {
 		return err
 	}
 
-	volId := fmt.Sprintf("%s/%s/%s", name, pool, volType)
-	d.SetId(volId)
+	v := NewVolumeId(pool, name, volType)
+	d.SetId(v.String())
 
 	return resourceLxdVolumeRead(d, meta)
 }
@@ -66,17 +64,13 @@ func resourceLxdVolumeCreate(d *schema.ResourceData, meta interface{}) error {
 func resourceLxdVolumeRead(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*LxdProvider).Client
 
-	volName, volPool, volType, err := resourceLxdVolumeParseID(d.Id())
+	v := NewVolumeIdFromResourceId(d.Id())
+	volume, err := client.StoragePoolVolumeTypeGet(v.pool, v.name, v.volType)
 	if err != nil {
 		return err
 	}
 
-	volume, err := client.StoragePoolVolumeTypeGet(volPool, volName, volType)
-	if err != nil {
-		return err
-	}
-
-	log.Printf("[DEBUG] Retrieved volume %s: %#v", volName, volume)
+	log.Printf("[DEBUG] Retrieved volume %s: %#v", v.name, volume)
 
 	d.Set("config", volume.Config)
 
@@ -86,13 +80,9 @@ func resourceLxdVolumeRead(d *schema.ResourceData, meta interface{}) error {
 func resourceLxdVolumeUpdate(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*LxdProvider).Client
 
-	volName, volPool, volType, err := resourceLxdVolumeParseID(d.Id())
-	if err != nil {
-		return err
-	}
-
 	if d.HasChange("config") {
-		volume, err := client.StoragePoolVolumeTypeGet(volPool, volName, volType)
+		v := NewVolumeIdFromResourceId(d.Id())
+		volume, err := client.StoragePoolVolumeTypeGet(v.pool, v.name, v.volType)
 		if err != nil {
 			return err
 		}
@@ -102,7 +92,7 @@ func resourceLxdVolumeUpdate(d *schema.ResourceData, meta interface{}) error {
 
 		log.Printf("[DEBUG] Updated volume config: %#v", volume)
 
-		if err := client.StoragePoolVolumeTypePut(volPool, volName, volType, volume); err != nil {
+		if err := client.StoragePoolVolumeTypePut(v.pool, v.name, v.volType, volume); err != nil {
 			return err
 		}
 	}
@@ -112,12 +102,9 @@ func resourceLxdVolumeUpdate(d *schema.ResourceData, meta interface{}) error {
 
 func resourceLxdVolumeDelete(d *schema.ResourceData, meta interface{}) (err error) {
 	client := meta.(*LxdProvider).Client
-	volName, volPool, volType, err := resourceLxdVolumeParseID(d.Id())
-	if err != nil {
-		return err
-	}
+	v := NewVolumeIdFromResourceId(d.Id())
 
-	if err = client.StoragePoolVolumeTypeDelete(volPool, volName, volType); err != nil {
+	if err = client.StoragePoolVolumeTypeDelete(v.pool, v.name, v.volType); err != nil {
 		return err
 	}
 
@@ -128,24 +115,11 @@ func resourceLxdVolumeExists(d *schema.ResourceData, meta interface{}) (exists b
 	client := meta.(*LxdProvider).Client
 	exists = false
 
-	volName, volPool, volType, err := resourceLxdVolumeParseID(d.Id())
-	if err != nil {
-		return
-	}
-
-	_, err = client.StoragePoolVolumeTypeGet(volPool, volName, volType)
+	v := NewVolumeIdFromResourceId(d.Id())
+	_, err = client.StoragePoolVolumeTypeGet(v.pool, v.name, v.volType)
 	if err == nil {
 		exists = true
 	}
 
 	return
-}
-
-func resourceLxdVolumeParseID(id string) (string, string, string, error) {
-	parts := strings.Split(id, "/")
-	if len(parts) != 3 {
-		return "", "", "", fmt.Errorf("Unable to parse ID")
-	}
-
-	return parts[0], parts[1], parts[2], nil
 }

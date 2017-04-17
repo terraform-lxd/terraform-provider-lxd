@@ -17,6 +17,27 @@ import (
 	"github.com/lxc/lxd/shared/version"
 )
 
+// Complex resource ID types
+type volumeId struct {
+	pool    string
+	name    string
+	volType string
+}
+
+func (v volumeId) String() string {
+	return fmt.Sprintf("%s/%s/%s", v.pool, v.name, v.volType)
+}
+
+func NewVolumeId(pool, name, volType string) volumeId {
+	return volumeId{pool: pool, name: name, volType: volType}
+}
+
+func NewVolumeIdFromResourceId(id string) volumeId {
+	pieces := strings.SplitN(id, "/", 3)
+	return volumeId{pieces[0], pieces[1], pieces[2]}
+}
+
+// Helper functions
 func resourceLxdConfigMap(c interface{}) map[string]string {
 	config := make(map[string]string)
 	if v, ok := c.(map[string]interface{}); ok {
