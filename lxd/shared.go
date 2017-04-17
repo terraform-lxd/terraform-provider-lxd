@@ -37,6 +37,30 @@ func NewVolumeIdFromResourceId(id string) volumeId {
 	return volumeId{pieces[0], pieces[1], pieces[2]}
 }
 
+type volumeAttachmentId struct {
+	pool         string
+	volumeName   string
+	attachedName string
+}
+
+func (v volumeAttachmentId) String() string {
+	return fmt.Sprintf("%s/%s/%s", v.pool, v.volumeName, v.attachedName)
+}
+
+func NewVolumeAttachmentId(pool, volumeName, attachedName string) volumeAttachmentId {
+	return volumeAttachmentId{
+		pool:         pool,
+		volumeName:   volumeName,
+		attachedName: attachedName,
+	}
+}
+
+func NewVolumeAttachmentIdFromResourceId(id string) volumeAttachmentId {
+	pieces := strings.SplitN(id, "/", 3)
+	log.Printf("[DEBUG] pieces: %#v", pieces)
+	return volumeAttachmentId{pieces[0], pieces[1], pieces[2]}
+}
+
 // Helper functions
 func resourceLxdConfigMap(c interface{}) map[string]string {
 	config := make(map[string]string)
