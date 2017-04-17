@@ -282,6 +282,17 @@ resource "lxd_volume" "volume1" {
 
 _note_: Technically, an LXD volume is simply a container or profile device of type "disk".
 
+#### Snapshots
+
+The `lxd_snapshot` resource can be used to create a point in time snapshot of a container.
+
+```hcl
+resource "lxd_snapshot" "snap1" {
+  container_name = "${lxd_container.container1.name}"
+  name = "snap1"
+}
+```
+
 ## Reference
 
 ### Provider
@@ -377,6 +388,18 @@ The following resources are currently available:
   * `pool` - *Required* - The Storage Pool to host the volume.
   * `type` - *Optional* - The "type" of volume. The default value is `custom`, which is the type to use for storage volumes attached to containers.
   * `config`    - *Required* - Map of key/value pairs of [volume config settings](https://github.com/lxc/lxd/blob/master/doc/configuration.md#storage-volume-configuration). Config settings vary depending on the Storage Pool used.
+
+#### lxd_snapshot
+
+##### Parameters
+
+  * `name` - *Required* - Name of the snapshot.
+  * `container_name` - *Required* - The name of the container to snapshot.
+  * `stateful` - *Optional* - Set to `true` to create a stateful snapshot, `false` for stateless. Stateful snapshots include runtime state. Default = false
+
+##### Exported Parameters
+
+  * `creation_date` - The time LXD reported the snapshot was successfully created, in UTC.
 
 ## Known Limitations
 
