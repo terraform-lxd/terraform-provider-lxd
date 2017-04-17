@@ -7,7 +7,6 @@ import (
 
 	"time"
 
-	"github.com/davecgh/go-spew/spew"
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/lxc/lxd/shared/api"
 )
@@ -55,8 +54,8 @@ func resourceLxdSnapshotCreate(d *schema.ResourceData, meta interface{}) error {
 	snapName := d.Get("name").(string)
 	stateful := d.Get("stateful").(bool)
 
+	// stateful snapshots usually fail straight after container creation
 	// add a retry loop for creating snapshots
-	// sometimes a stateful snapshot creation will if attempting straight after container creation
 	var err error
 	var i int
 	for i = 0; i < 5; i++ {
@@ -66,7 +65,7 @@ func resourceLxdSnapshotCreate(d *schema.ResourceData, meta interface{}) error {
 			return err
 		}
 
-		// Wait for the LXC container to be created
+		// Wait for snapshot operation to complete
 		err = client.WaitForSuccess(resp.Operation)
 		if err != nil {
 			if stateful && strings.Contains(err.Error(), "Dumping FAILED") {
@@ -84,7 +83,6 @@ func resourceLxdSnapshotCreate(d *schema.ResourceData, meta interface{}) error {
 	}
 
 	snapId := NewSnapshotId(remote, ctrName, snapName)
-
 	d.SetId(snapId.String())
 
 	return resourceLxdSnapshotRead(d, meta)
@@ -102,8 +100,6 @@ func resourceLxdSnapshotRead(d *schema.ResourceData, meta interface{}) error {
 		}
 		return err
 	}
-	snapDump := spew.Sdump(snap)
-	log.Printf("[DEBUG] Snapshot Info: %s", snapDump)
 
 	d.Set("container_name", snapId.container)
 	d.Set("name", snapId.snapshot)
