@@ -282,6 +282,38 @@ resource "lxd_volume" "volume1" {
 
 _note_: Technically, an LXD volume is simply a container or profile device of type "disk".
 
+#### Attaching Volumes
+
+Volumes can be attached to containers by using the `lxd_volume_container_attach` resource:
+
+```hcl
+resource "lxd_storage_pool" "pool1" {
+  name = "mypool"
+  driver = "dir"
+  config {
+    source = "/var/lib/lxd/storage-pools/mypool"
+  }
+}
+
+resource "lxd_volume" "volume1" {
+  name = "myvolume"
+  pool = "${lxd_storage_pool.pool1.name}"
+}
+
+resource "lxd_container" "container1" {
+  name = "%s"
+  image = "ubuntu"
+  profiles = ["default"]
+}
+
+resource "lxd_volume_container_attach" "attach1" {
+  pool = "${lxd_storage_pool.pool1.name}"
+  volume_name = "${lxd_volume.volume1.name}"
+  container_name = "${lxd_container.container1.name}"
+  path = "/tmp"
+}
+```
+
 #### Snapshots
 
 The `lxd_snapshot` resource can be used to create a point in time snapshot of a container.
@@ -376,18 +408,28 @@ The following resources are currently available:
 
 ##### Parameters
 
-  * `name` - *Required* - Name of the storage pool.
+  * `name`   - *Required* - Name of the storage pool.
   * `driver` - *Required* - Storage Pool driver. Must be one of `dir`, `lvm`, `btrfs`, or `zfs`.
-  * `config`    - *Required* - Map of key/value pairs of [storage pool config settings](https://github.com/lxc/lxd/blob/master/doc/configuration.md#storage-pool-configuration). Config settings vary from driver to driver.
+  * `config` - *Required* - Map of key/value pairs of [storage pool config settings](https://github.com/lxc/lxd/blob/master/doc/configuration.md#storage-pool-configuration). Config settings vary from driver to driver.
 
 #### lxd_volume
 
 ##### Parameters
 
-  * `name` - *Required* - Name of the storage pool.
-  * `pool` - *Required* - The Storage Pool to host the volume.
-  * `type` - *Optional* - The "type" of volume. The default value is `custom`, which is the type to use for storage volumes attached to containers.
-  * `config`    - *Required* - Map of key/value pairs of [volume config settings](https://github.com/lxc/lxd/blob/master/doc/configuration.md#storage-volume-configuration). Config settings vary depending on the Storage Pool used.
+  * `name`   - *Required* - Name of the storage pool.
+  * `pool`   - *Required* - The Storage Pool to host the volume.
+  * `type`   - *Optional* - The "type" of volume. The default value is `custom`, which is the type to use for storage volumes attached to containers.
+  * `config` - *Required* - Map of key/value pairs of [volume config settings](https://github.com/lxc/lxd/blob/master/doc/configuration.md#storage-volume-configuration). Config settings vary depending on the Storage Pool used.
+
+#### lxd_volume_container_attach
+
+##### Parameters
+
+  * `pool`           - *Required* - Name of the volume's storage pool.
+  * `volume_name`    - *Required* - Name of the volume to attach.
+  * `container_name` - *Required* - Name of the container to attach the volume to.
+  * `path`           - *Required* - Mountpoint of the volume in the container.
+  * `device_name`    - *Optional* - The volume device name as seen by the container. By default, this will be the volume name.
 
 #### lxd_snapshot
 
