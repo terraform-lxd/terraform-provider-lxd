@@ -23,9 +23,12 @@ To generate these files and store them in the LXD daemon, follow these [steps](h
 
 ```hcl
 provider "lxd" {
-  scheme  = "https"
-  address = "10.1.1.8"
-  remote  = "lxd-server"
+  scheme                       = "https"
+  address                      = "10.1.1.8"
+  remote                       = "lxd-server"
+  remote_password              = "password"
+  generate_client_certificates = true
+  accept_server_certificate    = true
 }
 ```
 
@@ -65,7 +68,7 @@ resource "lxd_container" "test1" {
  > * `images`
  > * `ubuntu`
  > * `ubuntu-daily`
- > See the LXD (https://linuxcontainers.org/lxd/getting-started-cli/#using-the-built-in-image-remotes)[documentation] for more info on default image remotes.
+ > See the LXD [documentation](https://linuxcontainers.org/lxd/getting-started-cli/#using-the-built-in-image-remotes) for more info on default image remotes.
 
 #### Container Configuration & Devices
 
@@ -243,6 +246,53 @@ With these resources in place, attach them to a profile in the exact same way de
 
 _note_: `local` and `remote` accept both IPv4 and IPv6 addresses.
 
+#### Storage Pools
+
+To create and manage Storage Pools, use the `lxd_storage_pool` resource:
+
+```hcl
+resource "lxd_storage_pool" "pool1" {
+  name = "mypool"
+  driver = "dir"
+  config {
+    source = "/var/lib/lxd/storage-pools/mypool"
+  }
+}
+```
+
+#### Volumes
+
+Volumes are storage devices allocated from a Storage Pool. The `lxd_volume` resource can
+create and manage storage volumes:
+
+```hcl
+resource "lxd_storage_pool" "pool1" {
+  name = "mypool"
+  driver = "dir"
+  config {
+    source = "/var/lib/lxd/storage-pools/mypool"
+  }
+}
+
+resource "lxd_volume" "volume1" {
+  name = "myvolume"
+  pool = "${lxd_storage_pool.pool1.name}"
+}
+```
+
+_note_: Technically, an LXD volume is simply a container or profile device of type "disk".
+
+#### Snapshots
+
+The `lxd_snapshot` resource can be used to create a point in time snapshot of a container.
+
+```hcl
+resource "lxd_snapshot" "snap1" {
+  container_name = "${lxd_container.container1.name}"
+  name = "snap1"
+}
+```
+
 ## Reference
 
 ### Provider
@@ -257,6 +307,8 @@ _note_: `local` and `remote` accept both IPv4 and IPv6 addresses.
   * `remote`   - *Optional* - Name of the remote LXD as it exists in the local lxc config. Defaults to `local`.
   * `remote_password` - *Optional* - Password of the remote LXD server.
   * `config_dir` - *Optional* - Directory path to client LXD configuration and certs. Defaults to `$HOME/.config/lxc`.
+  * `generate_client_certificates` - *Optional* - Generate the LXC client's certificates if they don't exist. This can also be done out-of-band of Terraform with the lxc command-line client.
+  * `accept_remote_certificate` - *Optional* - Accept the remote LXD server certificate. This can also be done out-of-band of Terraform with the lxc command-line client.
 
 ### Resources
 
@@ -319,6 +371,35 @@ The following resources are currently available:
   * `name`      - *Required* - Name of the device.
   * `type`      - *Required* - Type of the device Must be one of none, disk, nic, unix-char, unix-block, usb, gpu.
   * `properties`- *Required* - Map of key/value pairs of [device properties](https://github.com/lxc/lxd/blob/master/doc/configuration.md#devices-configuration).
+
+#### lxd_storage_pool
+
+##### Parameters
+
+  * `name` - *Required* - Name of the storage pool.
+  * `driver` - *Required* - Storage Pool driver. Must be one of `dir`, `lvm`, `btrfs`, or `zfs`.
+  * `config`    - *Required* - Map of key/value pairs of [storage pool config settings](https://github.com/lxc/lxd/blob/master/doc/configuration.md#storage-pool-configuration). Config settings vary from driver to driver.
+
+#### lxd_volume
+
+##### Parameters
+
+  * `name` - *Required* - Name of the storage pool.
+  * `pool` - *Required* - The Storage Pool to host the volume.
+  * `type` - *Optional* - The "type" of volume. The default value is `custom`, which is the type to use for storage volumes attached to containers.
+  * `config`    - *Required* - Map of key/value pairs of [volume config settings](https://github.com/lxc/lxd/blob/master/doc/configuration.md#storage-volume-configuration). Config settings vary depending on the Storage Pool used.
+
+#### lxd_snapshot
+
+##### Parameters
+
+  * `name` - *Required* - Name of the snapshot.
+  * `container_name` - *Required* - The name of the container to snapshot.
+  * `stateful` - *Optional* - Set to `true` to create a stateful snapshot, `false` for stateless. Stateful snapshots include runtime state. Default = false
+
+##### Exported Parameters
+
+  * `creation_date` - The time LXD reported the snapshot was successfully created, in UTC.
 
 ## Known Limitations
 
