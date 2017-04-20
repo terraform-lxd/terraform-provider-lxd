@@ -3,6 +3,7 @@ package lxd
 import (
 	"fmt"
 	"log"
+	"strings"
 )
 
 // Complex resource ID types
