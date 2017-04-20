@@ -1,8 +1,11 @@
 package lxd
 
 import (
+	"crypto/x509"
+	"encoding/pem"
 	"fmt"
 	"log"
+	"net/http"
 	"os"
 
 	"github.com/hashicorp/terraform/helper/schema"
@@ -10,7 +13,6 @@ import (
 
 	"github.com/lxc/lxd"
 	"github.com/lxc/lxd/shared"
-	"github.com/lxc/lxd/shared/api"
 )
 
 type LxdProvider struct {
@@ -87,13 +89,14 @@ func Provider() terraform.ResourceProvider {
 		},
 
 		ResourcesMap: map[string]*schema.Resource{
-			"lxd_cached_image": resourceLxdCachedImage(),
-			"lxd_container":    resourceLxdContainer(),
-			"lxd_network":      resourceLxdNetwork(),
-			"lxd_profile":      resourceLxdProfile(),
-			"lxd_snapshot":     resourceLxdSnapshot(),
-			"lxd_storage_pool": resourceLxdStoragePool(),
-			"lxd_volume":       resourceLxdVolume(),
+			"lxd_cached_image":            resourceLxdCachedImage(),
+			"lxd_container":               resourceLxdContainer(),
+			"lxd_network":                 resourceLxdNetwork(),
+			"lxd_profile":                 resourceLxdProfile(),
+			"lxd_snapshot":                resourceLxdSnapshot(),
+			"lxd_storage_pool":            resourceLxdStoragePool(),
+			"lxd_volume":                  resourceLxdVolume(),
+			"lxd_volume_container_attach": resourceLxdVolumeContainerAttach(),
 		},
 
 		ConfigureFunc: providerConfigure,
@@ -136,50 +139,60 @@ func providerConfigure(d *schema.ResourceData) (interface{}, error) {
 		Remotes:   make(map[string]lxd.RemoteConfig),
 	}
 	config.Remotes[remote] = lxd.RemoteConfig{Addr: daemon_addr}
-	log.Printf("[DEBUG] LXD Config: %#v", config)
-
-	if scheme == "https" {
-		// Validate the client certificates or try to generate them.
-		certf := config.ConfigPath("client.crt")
-		keyf := config.ConfigPath("client.key")
-		if !shared.PathExists(certf) || !shared.PathExists(keyf) {
-			if v, ok := d.Get("generate_client_certificates").(bool); ok && v {
-				log.Printf("[DEBUG] Attempting to generate client certificates")
-				if err := shared.FindOrGenCert(certf, keyf, true); err != nil {
-					return nil, err
-				}
-			} else {
-				err := fmt.Errorf("Certificate or key not found:\n\t%s\n\t%s\n"+
-					"Either set generate_client_certs to true or generate the "+
-					"certificates out of band of Terraform and try again", certf, keyf)
-				return nil, err
-			}
-		}
-
-		// Validate the server certificate or try to add the remote server.
-		serverCertf := config.ServerCertPath(remote)
-		if !shared.PathExists(serverCertf) {
-			// If the server certificate was not found, try to add the remote.
-			err := addRemote(d, config)
-			if err != nil {
-				return nil, err
-			}
-		}
-	}
 
 	// Load static Public remotes
 	for k, v := range lxd.DefaultRemotes {
 		config.Remotes[k] = v
 	}
+	log.Printf("[DEBUG] LXD Config: %#v", config)
 
+	// Build a basic client
 	client, err := lxd.NewClient(config, remote)
 	if err != nil {
 		err := fmt.Errorf("Could not create LXD client: %s", err)
 		return nil, err
 	}
 
+	if scheme == "https" {
+		// Validate the client certificates or try to generate them.
+		if err := validateClientCerts(d, *config); err != nil {
+			return nil, err
+		}
+
+		// Validate the server certificate or try to add the remote server.
+		serverCertf := config.ServerCertPath(remote)
+		if !shared.PathExists(serverCertf) {
+
+			// Check if PKI is in use by validating a client
+			if err := validateClient(client); err != nil {
+				// PKI probably isn't in use. Try to add the remote certificate.
+				if v, ok := d.Get("accept_remote_certificate").(bool); ok && v {
+					if err := getRemoteCertificate(client, remote); err != nil {
+						return nil, fmt.Errorf("Could get remote certificate: %s", err)
+					}
+				} else {
+					return nil, fmt.Errorf("Unable to communicate with remote. Either set " +
+						"accept_remote_certificate to true or add the remote out of band " +
+						"of Terraform and try again.")
+				}
+			}
+		}
+
+		// Finally, make sure the client is authenticated.
+		// A new client must be created, or there will be a certificate error.
+		client, err = lxd.NewClient(config, remote)
+		if err != nil {
+			return nil, err
+		}
+		if err := checkClientAuth(d, client); err != nil {
+			return nil, err
+		}
+	}
+
+	// Final client configuration
 	log.Printf("[DEBUG] LXD Client: %#v", client)
 
+	// Make sure it's valid before proceeding
 	if err := validateClient(client); err != nil {
 		return nil, err
 	}
@@ -200,50 +213,85 @@ func validateClient(client *lxd.Client) error {
 	return nil
 }
 
-func addRemote(d *schema.ResourceData, config *lxd.Config) error {
-	// First, validate the client.
-	remote := d.Get("remote").(string)
-	client, err := lxd.NewClient(config, remote)
+func validateClientCerts(d *schema.ResourceData, config lxd.Config) error {
+	certf := config.ConfigPath("client.crt")
+	keyf := config.ConfigPath("client.key")
+	if !shared.PathExists(certf) || !shared.PathExists(keyf) {
+		if v, ok := d.Get("generate_client_certificates").(bool); ok && v {
+			log.Printf("[DEBUG] Attempting to generate client certificates")
+			if err := shared.FindOrGenCert(certf, keyf, true); err != nil {
+				return err
+			}
+		} else {
+			err := fmt.Errorf("Certificate or key not found:\n\t%s\n\t%s\n"+
+				"Either set generate_client_certs to true or generate the "+
+				"certificates out of band of Terraform and try again", certf, keyf)
+			return err
+		}
+	}
+	return nil
+}
+
+// getRemoteCertificate gets an LXD server's certificate
+func getRemoteCertificate(client *lxd.Client, remote string) error {
+	var certificate *x509.Certificate
+	addr := client.Config.Remotes[remote]
+
+	log.Printf("[DEBUG] Attempting to retrieve remote server certificate")
+	// Setup a permissive TLS config
+	tlsConfig, err := shared.GetTLSConfig("", "", "", nil)
 	if err != nil {
 		return err
 	}
 
-	// Check if the client is valid.
-	// If this passes, either the certificate was already accepted
-	// or the client is using PKI.
-	// If there is an error, attempt to accept the certificate.
-	if _, err = client.GetServerConfig(); err != nil {
-		if v, ok := d.Get("accept_remote_certificate").(bool); ok && v {
-			var err error
-			client, err = addServer(client, remote)
-			if err != nil {
-				return fmt.Errorf("Could not add the LXD server: %s", err)
-			}
-		} else {
-			return fmt.Errorf("Unable to communicate with remote. Either set " +
-				"accept_remote_certificate to true or add the remote out of band " +
-				"of Terraform and try again.")
-		}
+	tlsConfig.InsecureSkipVerify = true
+	tr := &http.Transport{
+		TLSClientConfig: tlsConfig,
+		Dial:            shared.RFC3493Dialer,
+		Proxy:           shared.ProxyFromEnvironment,
 	}
 
-	// If the config is valid, check and see if the client is already trusted
+	// Connect
+	httpClient := &http.Client{Transport: tr}
+	resp, err := httpClient.Get(addr.Addr)
+	if err != nil {
+		return err
+	}
+
+	// Retrieve the certificate
+	if resp.TLS == nil || len(resp.TLS.PeerCertificates) == 0 {
+		return fmt.Errorf("Unable to read remote TLS certificate")
+	}
+
+	certificate = resp.TLS.PeerCertificates[0]
+
+	dnam := client.Config.ConfigPath("servercerts")
+	if err := os.MkdirAll(dnam, 0750); err != nil {
+		return fmt.Errorf("Could not create server cert dir: %s", err)
+	}
+
+	certf := fmt.Sprintf("%s/%s.crt", dnam, client.Name)
+	certOut, err := os.Create(certf)
+	if err != nil {
+		return err
+	}
+
+	pem.Encode(certOut, &pem.Block{Type: "CERTIFICATE", Bytes: certificate.Raw})
+	certOut.Close()
+
+	return nil
+}
+
+func checkClientAuth(d *schema.ResourceData, client *lxd.Client) error {
+	remote := d.Get("remote").(string)
 	if client.AmTrusted() {
 		log.Printf("[DEBUG] LXC client is trusted with %s", remote)
 		return nil
 	}
 
-	// If not trusted, try to authenticate
-	body := shared.Jmap{
-		"type":     "client",
-		"password": d.Get("remote_password").(string),
-	}
-
-	log.Printf("[DEBUG] Attempting to authenticate with remote %s", remote)
-	_, err = clientDoUpdateMethod(client, "POST", "certificates", body, api.SyncResponse)
-
-	if err != nil {
-		log.Printf("[DEBUG] Failed to authenticate with remote %s", remote)
-		return err
+	remotePassword := d.Get("remote_password").(string)
+	if err := client.AddMyCertToServer(remotePassword); err != nil {
+		return fmt.Errorf("Unable to authenticate with remote server: %s", err)
 	}
 
 	log.Printf("[DEBUG] Successfully authenticated with remote %s", remote)
