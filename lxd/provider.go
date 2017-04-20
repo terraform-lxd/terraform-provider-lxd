@@ -16,6 +16,7 @@ import (
 type LxdProvider struct {
 	Remote string
 	Client *lxd.Client
+	Config *lxd.Config
 }
 
 // Provider returns a terraform.ResourceProvider.
@@ -86,6 +87,7 @@ func Provider() terraform.ResourceProvider {
 		},
 
 		ResourcesMap: map[string]*schema.Resource{
+			"lxd_cached_image": resourceLxdCachedImage(),
 			"lxd_container":    resourceLxdContainer(),
 			"lxd_network":      resourceLxdNetwork(),
 			"lxd_profile":      resourceLxdProfile(),
@@ -129,7 +131,7 @@ func providerConfigure(d *schema.ResourceData) (interface{}, error) {
 	}
 
 	// build LXD config
-	config := lxd.Config{
+	config := &lxd.Config{
 		ConfigDir: d.Get("config_dir").(string),
 		Remotes:   make(map[string]lxd.RemoteConfig),
 	}
@@ -158,7 +160,7 @@ func providerConfigure(d *schema.ResourceData) (interface{}, error) {
 		serverCertf := config.ServerCertPath(remote)
 		if !shared.PathExists(serverCertf) {
 			// If the server certificate was not found, try to add the remote.
-			err := addRemote(d, &config)
+			err := addRemote(d, config)
 			if err != nil {
 				return nil, err
 			}
@@ -170,7 +172,7 @@ func providerConfigure(d *schema.ResourceData) (interface{}, error) {
 		config.Remotes[k] = v
 	}
 
-	client, err := lxd.NewClient(&config, remote)
+	client, err := lxd.NewClient(config, remote)
 	if err != nil {
 		err := fmt.Errorf("Could not create LXD client: %s", err)
 		return nil, err
@@ -185,6 +187,7 @@ func providerConfigure(d *schema.ResourceData) (interface{}, error) {
 	lxdProv := LxdProvider{
 		Remote: remote,
 		Client: client,
+		Config: config,
 	}
 
 	return &lxdProv, nil
