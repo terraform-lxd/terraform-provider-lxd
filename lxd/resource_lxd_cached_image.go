@@ -31,6 +31,7 @@ func resourceLxdCachedImage() *schema.Resource {
 				Type:     schema.TypeBool,
 				Default:  false,
 				Optional: true,
+				ForceNew: true,
 			},
 
 			"source_image": {
@@ -45,47 +46,7 @@ func resourceLxdCachedImage() *schema.Resource {
 				ForceNew: true,
 			},
 
-			// "remote": {
-			// 	Type:     schema.TypeList,
-			// 	Required: true,
-			// 	ForceNew: true,
-			// 	MaxItems: 1,
-			// 	Elem: &schema.Resource{
-			// 		Schema: map[string]*schema.Schema{
-
-			// 			"name": &schema.Schema{
-			// 				Type:     schema.TypeString,
-			// 				Required: true,
-			// 			},
-
-			// 			"url": &schema.Schema{
-			// 				Type:     schema.TypeString,
-			// 				Optional: true,
-			// 			},
-
-			// 			"remote_password": &schema.Schema{
-			// 				Type:      schema.TypeString,
-			// 				Sensitive: true,
-			// 				Optional:  true,
-			// 			},
-
-			// 			"config_dir": &schema.Schema{
-			// 				Type:     schema.TypeString,
-			// 				Optional: true,
-			// 			},
-
-			// 			"generate_client_certificates": &schema.Schema{
-			// 				Type:     schema.TypeBool,
-			// 				Optional: true,
-			// 			},
-
-			// 			"accept_remote_certificate": &schema.Schema{
-			// 				Type:     schema.TypeBool,
-			// 				Optional: true,
-			// 			},
-			// 		},
-			// 	},
-			// },
+			// Computed attributes
 
 			"architecture": {
 				Type:     schema.TypeString,
@@ -112,34 +73,15 @@ func resourceLxdCachedImage() *schema.Resource {
 }
 
 func resourceLxdCachedImageCreate(d *schema.ResourceData, meta interface{}) error {
-	var src *lxd.Client
 	tgt := meta.(*LxdProvider).Client
 	remote := meta.(*LxdProvider).Remote
 	config := meta.(*LxdProvider).Config
 
 	srcName := d.Get("source_remote").(string)
-	srcClient, err := lxd.NewClient(config, srcName)
+	src, err := lxd.NewClient(config, srcName)
 	if err != nil {
 		return err
 	}
-	src = srcClient
-
-	// if v, ok := d.GetOk("remote"); ok && len(v.([]interface{})) > 0 {
-	// 	srcMap := v.([]interface{})[0].(map[string]interface{})
-
-	// 	log.Println(spew.Sdump(srcMap))
-
-	// 	rName := srcMap["name"].(string)
-
-	// 	srcClient, err := lxd.NewClient(config, rName)
-	// 	if err != nil {
-	// 		return err
-	// 	}
-	// 	src = srcClient
-
-	// } else {
-	// 	return errors.New("Source remote not specified")
-	// }
 
 	image := d.Get("source_image").(string)
 	// has the user provided an image fingerprint or alias
@@ -148,6 +90,7 @@ func resourceLxdCachedImageCreate(d *schema.ResourceData, meta interface{}) erro
 		image = aliasTarget
 	}
 
+	// Get data about remote image
 	imgInfo, err := src.GetImageInfo(image)
 	if err != nil {
 		return err
@@ -162,14 +105,17 @@ func resourceLxdCachedImageCreate(d *schema.ResourceData, meta interface{}) erro
 		}
 	}
 
+	// Execute the copy
 	err = src.CopyImage(image, tgt, copyAliases, aliases, false, false, resourceLxdCachedImageCopyProgressHandler)
 	if err != nil {
 		return err
 	}
 
-	d.SetId(fmt.Sprintf("%s/%s", remote, imgInfo.Fingerprint))
+	// Image was successfully copied, set resource ID
+	id := newCachedImageId(remote, imgInfo.Fingerprint)
+	d.SetId(id.ResourceId())
 
-	// store remote aliases
+	// store remote aliases that we've copied, so we can filter them out later
 	copied := make([]string, 0)
 	if copyAliases {
 		for _, a := range imgInfo.Aliases {
