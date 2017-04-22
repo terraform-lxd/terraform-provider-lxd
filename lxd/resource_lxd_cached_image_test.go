@@ -37,8 +37,6 @@ func TestAccCachedImage_alias(t *testing.T) {
 	var img api.Image
 	alias1 := strings.ToLower(petname.Generate(2, "-"))
 	alias2 := strings.ToLower(petname.Generate(2, "-"))
-	alias3 := strings.ToLower(petname.Generate(2, "-"))
-	alias4 := strings.ToLower(petname.Generate(2, "-"))
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:  func() { testAccPreCheck(t) },
@@ -53,13 +51,26 @@ func TestAccCachedImage_alias(t *testing.T) {
 					testAccCachedImageContainsAlias(&img, alias2),
 				),
 			},
+		},
+	})
+}
+
+func TestAccCachedImage_copiedAlias(t *testing.T) {
+	var img api.Image
+	alias1 := strings.ToLower(petname.Generate(2, "-"))
+	alias2 := strings.ToLower(petname.Generate(2, "-"))
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:  func() { testAccPreCheck(t) },
+		Providers: testAccProviders,
+		Steps: []resource.TestStep{
 			resource.TestStep{
-				Config: testAccCachedImage_aliases2(alias3, alias4),
+				Config: testAccCachedImage_aliases2(alias1, alias2),
 				Check: resource.ComposeTestCheckFunc(
-					testAccCachedImageExists(t, "lxd_cached_image.img2", &img),
+					testAccCachedImageExists(t, "lxd_cached_image.img3", &img),
 					resourceAccCachedImageCheckAttributes("lxd_cached_image.img3", &img),
-					testAccCachedImageContainsAlias(&img, alias3),
-					testAccCachedImageContainsAlias(&img, alias4),
+					testAccCachedImageContainsAlias(&img, alias1),
+					testAccCachedImageContainsAlias(&img, alias2),
 					testAccCachedImageContainsAlias(&img, "alpine/3.5"),
 				),
 			},
@@ -79,7 +90,7 @@ func TestAccCachedImage_aliasCollision(t *testing.T) {
 				Check: resource.ComposeTestCheckFunc(
 					testAccCachedImageExists(t, "lxd_cached_image.img4", &img),
 					resourceAccCachedImageCheckAttributes("lxd_cached_image.img4", &img),
-					testAccCachedImageContainsAlias(&img, "x/amd64"),
+					testAccCachedImageContainsAlias(&img, "alpine/3.5/amd64"),
 				),
 			},
 		},
@@ -160,8 +171,8 @@ func resourceAccCachedImageCheckAttributes(n string, img *api.Image) resource.Te
 func testAccCachedImage_basic() string {
 	return fmt.Sprintf(`
 resource "lxd_cached_image" "img1" {
-  source_remote = "ubuntu"
-  source_image = "t/amd64"
+  source_remote = "images"
+  source_image = "alpine/3.5"
 
   copy_aliases = true
 }
@@ -171,8 +182,8 @@ resource "lxd_cached_image" "img1" {
 func testAccCachedImage_aliases(aliases ...string) string {
 	return fmt.Sprintf(`
 resource "lxd_cached_image" "img2" {
-  source_remote = "ubuntu"
-  source_image = "x/i386"
+  source_remote = "images"
+  source_image = "alpine/3.5/i386"
 
   aliases = ["%s"]
   copy_aliases = false
@@ -186,7 +197,7 @@ resource "lxd_cached_image" "img3" {
   source_remote = "images"
   source_image = "alpine/3.5"
 
-  aliases = ["alpine/3.5"%s"]
+  aliases = ["alpine/3.5","%s"]
   copy_aliases = true
 }
 	`, strings.Join(aliases, `","`))
@@ -195,10 +206,10 @@ resource "lxd_cached_image" "img3" {
 func testAccCachedImage_aliasCollision() string {
 	return fmt.Sprintf(`
 resource "lxd_cached_image" "img4" {
-  source_remote = "ubuntu"
-  source_image = "x/amd64"
+  source_remote = "images"
+  source_image = "alpine/3.5/amd64"
 
-  aliases = ["x/amd64"]
+  aliases = ["alpine/3.5/amd64"]
   copy_aliases = true
 }
 	`)
