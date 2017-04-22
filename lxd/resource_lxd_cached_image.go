@@ -20,7 +20,7 @@ func resourceLxdCachedImage() *schema.Resource {
 
 		Schema: map[string]*schema.Schema{
 
-			"alias": {
+			"aliases": {
 				Type:     schema.TypeList,
 				ForceNew: false,
 				Optional: true,
@@ -99,7 +99,7 @@ func resourceLxdCachedImageCreate(d *schema.ResourceData, meta interface{}) erro
 	copyAliases := d.Get("copy_aliases").(bool)
 
 	aliases := make([]string, 0)
-	if v, ok := d.GetOk("alias"); ok {
+	if v, ok := d.GetOk("aliases"); ok {
 		for _, alias := range v.([]interface{}) {
 			aliases = append(aliases, alias.(string))
 		}
@@ -113,7 +113,7 @@ func resourceLxdCachedImageCreate(d *schema.ResourceData, meta interface{}) erro
 
 	// Image was successfully copied, set resource ID
 	id := newCachedImageId(remote, imgInfo.Fingerprint)
-	d.SetId(id.ResourceId())
+	d.SetId(id.resourceId())
 
 	// store remote aliases that we've copied, so we can filter them out later
 	copied := make([]string, 0)
@@ -137,14 +137,8 @@ func resourceLxdCachedImageUpdate(d *schema.ResourceData, meta interface{}) erro
 
 	if d.HasChange("alias") {
 		old, new := d.GetChange("alias")
-		oldSet := make(map[string]bool)
-		for _, v := range old.([]interface{}) {
-			oldSet[v.(string)] = true
-		}
-		newSet := make(map[string]bool)
-		for _, v := range new.([]interface{}) {
-			newSet[v.(string)] = true
-		}
+		oldSet := buildSet(old.([]interface{}))
+		newSet := buildSet(new.([]interface{}))
 
 		// Delete removed
 		for _, a := range old.([]interface{}) {
@@ -160,7 +154,6 @@ func resourceLxdCachedImageUpdate(d *schema.ResourceData, meta interface{}) erro
 				client.PostAlias(alias, "", id.fingerprint)
 			}
 		}
-
 	}
 
 	return nil
@@ -181,6 +174,9 @@ func resourceLxdCachedImageExists(d *schema.ResourceData, meta interface{}) (boo
 
 	_, err := client.GetImageInfo(id.fingerprint)
 	if err != nil {
+		if err.Error() == "not found" {
+			return false, nil
+		}
 		return false, err
 	}
 
@@ -193,6 +189,10 @@ func resourceLxdCachedImageRead(d *schema.ResourceData, meta interface{}) error 
 
 	img, err := client.GetImageInfo(id.fingerprint)
 	if err != nil {
+		if err.Error() == "not found" {
+			d.SetId("")
+			return nil
+		}
 		return err
 	}
 
@@ -202,19 +202,26 @@ func resourceLxdCachedImageRead(d *schema.ResourceData, meta interface{}) error 
 	d.Set("architecture", img.Architecture)
 	d.Set("created_at", img.CreatedAt.Unix())
 
+	// Read aliases from img and set in resource data
+	// If the user has set 'copy_aliases' to true, then the
+	// locally cached image will have aliases set that aren't
+	// in the Terraform config.
+	// These need to be filtered out here so not to cause a diff.
 	var aliases []string
-	copiedAliases := d.Get("copied_aliases").([]interface{})
-	copiedSet := make(map[string]bool)
-	for _, v := range copiedAliases {
-		copiedSet[v.(string)] = true
-	}
+	copiedSet := buildSet(d.Get("copied_aliases").([]interface{}))
+	configSet := buildSet(d.Get("aliases").([]interface{}))
+
 	for _, a := range img.Aliases {
-		_, ok := copiedSet[a.Name]
-		if !ok {
+		_, inConfigSet := configSet[a.Name]
+		_, inCopySet := copiedSet[a.Name]
+
+		if inConfigSet || !inCopySet {
 			aliases = append(aliases, a.Name)
+		} else {
+			log.Println("[DEBUG] filtered alias ", a)
 		}
 	}
-	d.Set("alias", aliases)
+	d.Set("aliases", aliases)
 
 	return nil
 }
@@ -239,6 +246,16 @@ func newCachedImageIdFromResourceId(id string) cachedImageId {
 	}
 }
 
-func (id cachedImageId) ResourceId() string {
+func (id cachedImageId) resourceId() string {
 	return fmt.Sprintf("%s/%s", id.remote, id.fingerprint)
+}
+
+// buildSet creates a map[string]bool from the give slice
+// the input slice is typed as []interface{} but a slice of strings is expected
+func buildSet(slice []interface{}) map[string]bool {
+	set := make(map[string]bool)
+	for _, v := range slice {
+		set[v.(string)] = true
+	}
+	return set
 }
