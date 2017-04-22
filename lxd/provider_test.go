@@ -1,10 +1,10 @@
 package lxd
 
 import (
-	"testing"
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/hashicorp/terraform/terraform"
 	"os/exec"
+	"testing"
 )
 
 var testAccProviders map[string]terraform.ResourceProvider
@@ -15,12 +15,19 @@ func init() {
 	testAccProviders = map[string]terraform.ResourceProvider{
 		"lxd": testAccProvider,
 	}
+
+	testAccProvider.ConfigureFunc = testProviderConfigureWrapper
 }
 
 func TestProvider(t *testing.T) {
 	if err := Provider().(*schema.Provider).InternalValidate(); err != nil {
 		t.Fatalf("err: %s", err)
 	}
+}
+
+func testProviderConfigureWrapper(d *schema.ResourceData) (interface{}, error) {
+	d.Set("refresh_interval", "5s")
+	return providerConfigure(d)
 }
 
 func TestProvider_impl(t *testing.T) {

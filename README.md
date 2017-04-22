@@ -341,6 +341,7 @@ resource "lxd_snapshot" "snap1" {
   * `config_dir` - *Optional* - Directory path to client LXD configuration and certs. Defaults to `$HOME/.config/lxc`.
   * `generate_client_certificates` - *Optional* - Generate the LXC client's certificates if they don't exist. This can also be done out-of-band of Terraform with the lxc command-line client.
   * `accept_remote_certificate` - *Optional* - Accept the remote LXD server certificate. This can also be done out-of-band of Terraform with the lxc command-line client.
+  * `refresh_interval` - *Optional* - How often to poll during state changes. Defaults to `10s`.
 
 ### Resources
 
