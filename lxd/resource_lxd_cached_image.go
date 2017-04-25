@@ -143,22 +143,20 @@ func resourceLxdCachedImageUpdate(d *schema.ResourceData, meta interface{}) erro
 
 	if d.HasChange("aliases") {
 		old, new := d.GetChange("aliases")
-		oldSet := buildSet(old.([]interface{}))
-		newSet := buildSet(new.([]interface{}))
+		oldSet := schema.NewSet(schema.HashString, old.([]interface{}))
+		newSet := schema.NewSet(schema.HashString, new.([]interface{}))
+		aliasesToRemove := oldSet.Difference(newSet)
+		aliasesToAdd := newSet.Difference(oldSet)
 
 		// Delete removed
-		for _, a := range old.([]interface{}) {
+		for _, a := range aliasesToRemove.List() {
 			alias := a.(string)
-			if _, ok := newSet[alias]; !ok {
-				client.DeleteAlias(alias)
-			}
+			client.DeleteAlias(alias)
 		}
 		// Add new
-		for _, a := range new.([]interface{}) {
+		for _, a := range aliasesToAdd.List() {
 			alias := a.(string)
-			if _, ok := oldSet[alias]; !ok {
-				client.PostAlias(alias, "", id.fingerprint)
-			}
+			client.PostAlias(alias, "", id.fingerprint)
 		}
 	}
 
@@ -214,14 +212,13 @@ func resourceLxdCachedImageRead(d *schema.ResourceData, meta interface{}) error 
 	// in the Terraform config.
 	// These need to be filtered out here so not to cause a diff.
 	var aliases []string
-	copiedSet := buildSet(d.Get("copied_aliases").([]interface{}))
-	configSet := buildSet(d.Get("aliases").([]interface{}))
+	copiedAliases := d.Get("copied_aliases").([]interface{})
+	configAliases := d.Get("aliases").([]interface{})
+	copiedSet := schema.NewSet(schema.HashString, copiedAliases)
+	configSet := schema.NewSet(schema.HashString, configAliases)
 
 	for _, a := range img.Aliases {
-		_, inConfigSet := configSet[a.Name]
-		_, inCopySet := copiedSet[a.Name]
-
-		if inConfigSet || !inCopySet {
+		if configSet.Contains(a.Name) || !copiedSet.Contains(a.Name) {
 			aliases = append(aliases, a.Name)
 		} else {
 			log.Println("[DEBUG] filtered alias ", a)
@@ -254,17 +251,4 @@ func newCachedImageIdFromResourceId(id string) cachedImageId {
 
 func (id cachedImageId) resourceId() string {
 	return fmt.Sprintf("%s/%s", id.remote, id.fingerprint)
-}
-
-// buildSet creates a map[string]bool from the give slice
-// the input slice is typed as []interface{} but a slice of strings is expected
-// any slice elements that are not a string will be silently dropped
-func buildSet(slice []interface{}) map[string]bool {
-	set := make(map[string]bool)
-	for _, v := range slice {
-		if s, ok := v.(string); ok {
-			set[s] = true
-		}
-	}
-	return set
 }
