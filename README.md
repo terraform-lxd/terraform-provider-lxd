@@ -469,18 +469,8 @@ The following resources are currently available:
 
 ## Known Limitations
 
-All the base LXD images do not include an SSH server, therefore terraform will be unable to execute any `provisioners`.
-A basic base image must be prepared in advance, that includes the SSH server.
-
-## To Do
-
-- [x] Support for using client cert / key from other paths
-- [ ] Ability to update container config
-- [ ] Ability to exec commands via LXD WebSocket channel
-- [x] Ability to upload files
-- [x] Volumes support
-- [ ] Add LXD `image` resource
-- [ ] Remote image datasource
+Many of the base LXD images don't include an SSH server, therefore terraform will be unable to execute any `provisioners`.
+Either use the base ubuntu images from the `ubuntu` or `ubuntu-daily` or manually prepare a base image that includes SSH.
 
 ## Contributors
 
