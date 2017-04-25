@@ -13,9 +13,10 @@ LXD Resource provider for Terraform
 
 This provider connects to the LXD daemon over local Unix socket or HTTPS.
 
-It makes use of the [LXD client library](http://github.com/lxc/lxd), which currently looks in `~/.config/lxc/` for `client.crt` and `client.key` files that must exist to be able to communicate with the LXD daemon.
+It makes use of the [LXD client library](http://github.com/lxc/lxd), which currently looks in `~/.config/lxc/` for `client.crt` and `client.key` files to authenticate against the LXD daemon.
 
-To generate these files and store them in the LXD daemon, follow these [steps](https://linuxcontainers.org/lxd/getting-started-cli/#multiple-hosts).
+To generate these files and store them in the LXD client config, follow these [steps](https://linuxcontainers.org/lxd/getting-started-cli/#multiple-hosts).
+Alternatively, the LXD Terraform provider can generate them on demand if `generate_client_certificates` is set to true.
 
 ### Example Configurations
 
@@ -36,38 +37,39 @@ provider "lxd" {
 
 This assumes the LXD server has been configured per the LXD documentation, including running `lxd init` to create a default network configuration.
 
-This example also assumes an image called `ubuntu` has been cached locally on the LXD server. This can be done by running:
-
-```shell
-$ lxc image copy images:ubuntu/xenial/amd64 local: --alias=ubuntu
-```
-
-With those pieces in place, you can launch a basic container with:
+With the LXD daemon installed and initialized, you can launch a basic container from a remote image with:
 
 ```hcl
 resource "lxd_container" "test1" {
   name      = "test1"
-  image     = "ubuntu"
+  image     = "ubuntu:x"
   ephemeral = false
 }
 ```
 
-You can also launch a container directly from a remote image, not locally cached, by referencing the remote image name using the format `[remote:]<image_alias|image_hash>`
+To cache an image locally before launching a container use the `lxd_cached_image` resource.
+This ensures the same identical image is available when launching multiple containers.
 
 ```hcl
+resource "lxd_cached_image" "xenial" {
+  source_remote = "ubuntu"
+  source_image  = "x"
+}
+
 resource "lxd_container" "test1" {
   name      = "test1"
-  image     = "images:ubuntu/xenial/amd64"
+  image     = "${lxd_cached_image.xenial.fingerprint}"
   ephemeral = false
 }
 ```
 
  > NOTE:
- > Currently only the following remotes are supported:
- > * remote named defined in LXD provider (same as omitting `<remote>:` prefix)
+ > Currently only the following remotes are supported for pulling images:
  > * `images`
  > * `ubuntu`
  > * `ubuntu-daily`
+ > * remote named defined in LXD provider (same as omitting `<remote>:` prefix from `lxd_container` image attribute)
+ > 
  > See the LXD [documentation](https://linuxcontainers.org/lxd/getting-started-cli/#using-the-built-in-image-remotes) for more info on default image remotes.
 
 #### Container Configuration & Devices
@@ -347,9 +349,30 @@ resource "lxd_snapshot" "snap1" {
 
 The following resources are currently available:
 
+  * `lxd_cached_image` - Create and manage a copy of a remote image
   * `lxd_container` - Creates and manages a Container
   * `lxd_network` - Creates and manages a Network
   * `lxd_profile` - Creates and manages a Profile
+  * `lxd_snapshot` - Create and manage point in time snapshots of containers and optionally their runtime state
+  * `lxd_storage_pool` - Create and manage storage pools
+  * `lxd_volume` - Create and manage storage volumes
+  * `lxd_volume_container_attach` - Manage attaching `lxd_volume` to `lxd_container`
+
+#### lxd_cached_image
+
+##### Parameters
+
+  * `source_remote` - *Required* - Name of the LXD remote from where image will be pulled.
+  * `source_image`  - *Required* - Fingerprint or alias of image to pull.
+  * `aliases`       - *Optional* - A list of aliases to assign to the image after pulling.
+  * `copy_aliases`  - *Optional* - True to copy the aliases of the image from the remote. Default = false.
+
+##### Exported Parameters
+
+  * `architecture` - The image architecture (e.g. amd64, i386).
+  * `created_at`   - The datetime of image creation, in Unix time.
+  * `fingerprint`  - The unique hash fingperint of the image.
+  * `copied_aliases` - The list of aliases that were copied from the `source_image`.
 
 #### lxd_container
 

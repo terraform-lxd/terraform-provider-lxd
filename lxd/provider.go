@@ -19,6 +19,7 @@ import (
 type LxdProvider struct {
 	Remote          string
 	Client          *lxd.Client
+	Config          *lxd.Config
 	RefreshInterval time.Duration
 }
 
@@ -97,6 +98,7 @@ func Provider() terraform.ResourceProvider {
 		},
 
 		ResourcesMap: map[string]*schema.Resource{
+			"lxd_cached_image":            resourceLxdCachedImage(),
 			"lxd_container":               resourceLxdContainer(),
 			"lxd_network":                 resourceLxdNetwork(),
 			"lxd_profile":                 resourceLxdProfile(),
@@ -142,7 +144,7 @@ func providerConfigure(d *schema.ResourceData) (interface{}, error) {
 	}
 
 	// build LXD config
-	config := lxd.Config{
+	config := &lxd.Config{
 		ConfigDir: d.Get("config_dir").(string),
 		Remotes:   make(map[string]lxd.RemoteConfig),
 	}
@@ -155,7 +157,7 @@ func providerConfigure(d *schema.ResourceData) (interface{}, error) {
 	log.Printf("[DEBUG] LXD Config: %#v", config)
 
 	// Build a basic client
-	client, err := lxd.NewClient(&config, remote)
+	client, err := lxd.NewClient(config, remote)
 	if err != nil {
 		err := fmt.Errorf("Could not create LXD client: %s", err)
 		return nil, err
@@ -163,7 +165,7 @@ func providerConfigure(d *schema.ResourceData) (interface{}, error) {
 
 	if scheme == "https" {
 		// Validate the client certificates or try to generate them.
-		if err := validateClientCerts(d, config); err != nil {
+		if err := validateClientCerts(d, *config); err != nil {
 			return nil, err
 		}
 
@@ -187,7 +189,7 @@ func providerConfigure(d *schema.ResourceData) (interface{}, error) {
 
 		// Finally, make sure the client is authenticated.
 		// A new client must be created, or there will be a certificate error.
-		client, err = lxd.NewClient(&config, remote)
+		client, err = lxd.NewClient(config, remote)
 		if err != nil {
 			return nil, err
 		}
@@ -216,6 +218,7 @@ func providerConfigure(d *schema.ResourceData) (interface{}, error) {
 	lxdProv := LxdProvider{
 		Remote:          remote,
 		Client:          client,
+		Config:          config,
 		RefreshInterval: refresh_interval_parsed,
 	}
 
