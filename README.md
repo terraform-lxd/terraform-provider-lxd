@@ -29,7 +29,7 @@ provider "lxd" {
   remote                       = "lxd-server"
   remote_password              = "password"
   generate_client_certificates = true
-  accept_server_certificate    = true
+  accept_remote_certificate    = true
 }
 ```
 
