@@ -57,12 +57,23 @@ func resourceLxdProfile() *schema.Resource {
 				Optional: true,
 				ForceNew: true,
 			},
+
+			"remote": &schema.Schema{
+				Type:     schema.TypeString,
+				ForceNew: true,
+				Optional: true,
+				Default:  "",
+			},
 		},
 	}
 }
 
 func resourceLxdProfileCreate(d *schema.ResourceData, meta interface{}) error {
-	client := meta.(*LxdProvider).Client
+	p := meta.(*LxdProvider)
+	client, err := p.GetClient(p.selectRemote(d))
+	if err != nil {
+		return err
+	}
 
 	name := d.Get("name").(string)
 	description := d.Get("description").(string)
@@ -89,7 +100,12 @@ func resourceLxdProfileCreate(d *schema.ResourceData, meta interface{}) error {
 }
 
 func resourceLxdProfileRead(d *schema.ResourceData, meta interface{}) error {
-	client := meta.(*LxdProvider).Client
+	p := meta.(*LxdProvider)
+	client, err := p.GetClient(p.selectRemote(d))
+	if err != nil {
+		return err
+	}
+
 	name := d.Id()
 
 	profile, err := client.ProfileConfig(name)
@@ -107,7 +123,12 @@ func resourceLxdProfileRead(d *schema.ResourceData, meta interface{}) error {
 }
 
 func resourceLxdProfileUpdate(d *schema.ResourceData, meta interface{}) error {
-	client := meta.(*LxdProvider).Client
+	p := meta.(*LxdProvider)
+	client, err := p.GetClient(p.selectRemote(d))
+	if err != nil {
+		return err
+	}
+
 	name := d.Id()
 
 	var changed bool
@@ -160,7 +181,12 @@ func resourceLxdProfileUpdate(d *schema.ResourceData, meta interface{}) error {
 }
 
 func resourceLxdProfileDelete(d *schema.ResourceData, meta interface{}) (err error) {
-	client := meta.(*LxdProvider).Client
+	p := meta.(*LxdProvider)
+	client, err := p.GetClient(p.selectRemote(d))
+	if err != nil {
+		return err
+	}
+
 	name := d.Id()
 
 	if err = client.ProfileDelete(name); err != nil {
@@ -171,7 +197,12 @@ func resourceLxdProfileDelete(d *schema.ResourceData, meta interface{}) (err err
 }
 
 func resourceLxdProfileExists(d *schema.ResourceData, meta interface{}) (exists bool, err error) {
-	client := meta.(*LxdProvider).Client
+	p := meta.(*LxdProvider)
+	client, err := p.GetClient(p.selectRemote(d))
+	if err != nil {
+		return false, err
+	}
+
 	name := d.Id()
 
 	exists = false

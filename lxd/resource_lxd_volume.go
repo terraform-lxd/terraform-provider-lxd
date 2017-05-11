@@ -39,12 +39,24 @@ func resourceLxdVolume() *schema.Resource {
 				Optional: true,
 				ForceNew: false,
 			},
+
+			"remote": &schema.Schema{
+				Type:     schema.TypeString,
+				ForceNew: true,
+				Optional: true,
+				Default:  "",
+			},
 		},
 	}
 }
 
 func resourceLxdVolumeCreate(d *schema.ResourceData, meta interface{}) error {
-	client := meta.(*LxdProvider).Client
+	p := meta.(*LxdProvider)
+	client, err := p.GetClient(p.selectRemote(d))
+	if err != nil {
+		return err
+	}
+
 	name := d.Get("name").(string)
 	pool := d.Get("pool").(string)
 	volType := d.Get("type").(string)
@@ -62,7 +74,11 @@ func resourceLxdVolumeCreate(d *schema.ResourceData, meta interface{}) error {
 }
 
 func resourceLxdVolumeRead(d *schema.ResourceData, meta interface{}) error {
-	client := meta.(*LxdProvider).Client
+	p := meta.(*LxdProvider)
+	client, err := p.GetClient(p.selectRemote(d))
+	if err != nil {
+		return err
+	}
 
 	v := NewVolumeIdFromResourceId(d.Id())
 	volume, err := client.StoragePoolVolumeTypeGet(v.pool, v.name, v.volType)
@@ -78,7 +94,11 @@ func resourceLxdVolumeRead(d *schema.ResourceData, meta interface{}) error {
 }
 
 func resourceLxdVolumeUpdate(d *schema.ResourceData, meta interface{}) error {
-	client := meta.(*LxdProvider).Client
+	p := meta.(*LxdProvider)
+	client, err := p.GetClient(p.selectRemote(d))
+	if err != nil {
+		return err
+	}
 
 	if d.HasChange("config") {
 		v := NewVolumeIdFromResourceId(d.Id())
@@ -101,7 +121,12 @@ func resourceLxdVolumeUpdate(d *schema.ResourceData, meta interface{}) error {
 }
 
 func resourceLxdVolumeDelete(d *schema.ResourceData, meta interface{}) (err error) {
-	client := meta.(*LxdProvider).Client
+	p := meta.(*LxdProvider)
+	client, err := p.GetClient(p.selectRemote(d))
+	if err != nil {
+		return err
+	}
+
 	v := NewVolumeIdFromResourceId(d.Id())
 
 	if err = client.StoragePoolVolumeTypeDelete(v.pool, v.name, v.volType); err != nil {
@@ -112,7 +137,12 @@ func resourceLxdVolumeDelete(d *schema.ResourceData, meta interface{}) (err erro
 }
 
 func resourceLxdVolumeExists(d *schema.ResourceData, meta interface{}) (exists bool, err error) {
-	client := meta.(*LxdProvider).Client
+	p := meta.(*LxdProvider)
+	client, err := p.GetClient(p.selectRemote(d))
+	if err != nil {
+		return false, err
+	}
+
 	exists = false
 
 	v := NewVolumeIdFromResourceId(d.Id())

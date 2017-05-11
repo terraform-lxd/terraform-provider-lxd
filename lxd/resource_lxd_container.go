@@ -33,6 +33,13 @@ func resourceLxdContainer() *schema.Resource {
 				Required: true,
 			},
 
+			"remote": &schema.Schema{
+				Type:     schema.TypeString,
+				ForceNew: true,
+				Optional: true,
+				Default:  "",
+			},
+
 			"image": &schema.Schema{
 				Type:     schema.TypeString,
 				ForceNew: true,
@@ -149,9 +156,15 @@ func resourceLxdContainer() *schema.Resource {
 
 func resourceLxdContainerCreate(d *schema.ResourceData, meta interface{}) error {
 	var err error
-	client := meta.(*LxdProvider).Client
-	remote := meta.(*LxdProvider).Remote
-	refresh_interval := meta.(*LxdProvider).RefreshInterval
+
+	p := meta.(*LxdProvider)
+	remote := p.selectRemote(d)
+	client, err := p.GetClient(remote)
+	if err != nil {
+		return err
+	}
+
+	refreshInterval := meta.(*LxdProvider).RefreshInterval
 
 	name := d.Get("name").(string)
 	ephem := d.Get("ephemeral").(bool)
@@ -194,7 +207,7 @@ func resourceLxdContainerCreate(d *schema.ResourceData, meta interface{}) error 
 		Target:     []string{"Running"},
 		Refresh:    resourceLxdContainerRefresh(client, name),
 		Timeout:    3 * time.Minute,
-		Delay:      refresh_interval,
+		Delay:      refreshInterval,
 		MinTimeout: 3 * time.Second,
 	}
 
@@ -217,7 +230,13 @@ func resourceLxdContainerCreate(d *schema.ResourceData, meta interface{}) error 
 }
 
 func resourceLxdContainerRead(d *schema.ResourceData, meta interface{}) error {
-	client := meta.(*LxdProvider).Client
+	p := meta.(*LxdProvider)
+	remote := p.selectRemote(d)
+	client, err := p.GetClient(remote)
+	if err != nil {
+		return err
+	}
+
 	name := d.Id()
 
 	container, err := client.ContainerInfo(name)
@@ -256,7 +275,13 @@ func resourceLxdContainerRead(d *schema.ResourceData, meta interface{}) error {
 }
 
 func resourceLxdContainerUpdate(d *schema.ResourceData, meta interface{}) error {
-	client := meta.(*LxdProvider).Client
+	p := meta.(*LxdProvider)
+	remote := p.selectRemote(d)
+	client, err := p.GetClient(remote)
+	if err != nil {
+		return err
+	}
+
 	name := d.Id()
 
 	// changed determines if an update call needs made.
@@ -338,8 +363,14 @@ func resourceLxdContainerUpdate(d *schema.ResourceData, meta interface{}) error 
 }
 
 func resourceLxdContainerDelete(d *schema.ResourceData, meta interface{}) (err error) {
-	client := meta.(*LxdProvider).Client
-	refresh_interval := meta.(*LxdProvider).RefreshInterval
+	p := meta.(*LxdProvider)
+	remote := p.selectRemote(d)
+	client, err := p.GetClient(remote)
+	if err != nil {
+		return err
+	}
+
+	refreshInterval := p.RefreshInterval
 	name := d.Id()
 
 	ct, _ := client.ContainerState(name)
@@ -353,7 +384,7 @@ func resourceLxdContainerDelete(d *schema.ResourceData, meta interface{}) (err e
 			Target:     []string{"Stopped"},
 			Refresh:    resourceLxdContainerRefresh(client, name),
 			Timeout:    3 * time.Minute,
-			Delay:      refresh_interval,
+			Delay:      refreshInterval,
 			MinTimeout: 3 * time.Second,
 		}
 
@@ -377,7 +408,13 @@ func resourceLxdContainerDelete(d *schema.ResourceData, meta interface{}) (err e
 }
 
 func resourceLxdContainerExists(d *schema.ResourceData, meta interface{}) (exists bool, err error) {
-	client := meta.(*LxdProvider).Client
+	p := meta.(*LxdProvider)
+	remote := p.selectRemote(d)
+	client, err := p.GetClient(remote)
+	if err != nil {
+		return false, err
+	}
+
 	name := d.Id()
 
 	exists = false

@@ -47,12 +47,24 @@ func resourceLxdVolumeContainerAttach() *schema.Resource {
 				Optional: true,
 				Computed: true,
 			},
+
+			"remote": &schema.Schema{
+				Type:     schema.TypeString,
+				ForceNew: true,
+				Optional: true,
+				Default:  "",
+			},
 		},
 	}
 }
 
 func resourceLxdVolumeContainerAttachCreate(d *schema.ResourceData, meta interface{}) error {
-	client := meta.(*LxdProvider).Client
+	p := meta.(*LxdProvider)
+	client, err := p.GetClient(p.selectRemote(d))
+	if err != nil {
+		return err
+	}
+
 	pool := d.Get("pool").(string)
 	volumeName := d.Get("volume_name").(string)
 	containerName := d.Get("container_name").(string)
@@ -97,7 +109,12 @@ func resourceLxdVolumeContainerAttachCreate(d *schema.ResourceData, meta interfa
 }
 
 func resourceLxdVolumeContainerAttachRead(d *schema.ResourceData, meta interface{}) error {
-	client := meta.(*LxdProvider).Client
+	p := meta.(*LxdProvider)
+	client, err := p.GetClient(p.selectRemote(d))
+	if err != nil {
+		return err
+	}
+
 	v := NewVolumeAttachmentIdFromResourceId(d.Id())
 
 	deviceName, deviceInfo, err := resourceLxdVolumeContainerAttachedVolume(client, v)
@@ -115,7 +132,12 @@ func resourceLxdVolumeContainerAttachRead(d *schema.ResourceData, meta interface
 }
 
 func resourceLxdVolumeContainerAttachDelete(d *schema.ResourceData, meta interface{}) (err error) {
-	client := meta.(*LxdProvider).Client
+	p := meta.(*LxdProvider)
+	client, err := p.GetClient(p.selectRemote(d))
+	if err != nil {
+		return err
+	}
+
 	v := NewVolumeAttachmentIdFromResourceId(d.Id())
 	deviceName := d.Get("device_name").(string)
 
@@ -141,7 +163,12 @@ func resourceLxdVolumeContainerAttachDelete(d *schema.ResourceData, meta interfa
 }
 
 func resourceLxdVolumeContainerAttachExists(d *schema.ResourceData, meta interface{}) (exists bool, err error) {
-	client := meta.(*LxdProvider).Client
+	p := meta.(*LxdProvider)
+	client, err := p.GetClient(p.selectRemote(d))
+	if err != nil {
+		return false, err
+	}
+
 	v := NewVolumeAttachmentIdFromResourceId(d.Id())
 	exists = false
 

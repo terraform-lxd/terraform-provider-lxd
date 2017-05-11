@@ -41,12 +41,24 @@ func resourceLxdStoragePool() *schema.Resource {
 				Required: true,
 				ForceNew: false,
 			},
+
+			"remote": &schema.Schema{
+				Type:     schema.TypeString,
+				ForceNew: true,
+				Optional: true,
+				Default:  "",
+			},
 		},
 	}
 }
 
 func resourceLxdStoragePoolCreate(d *schema.ResourceData, meta interface{}) error {
-	client := meta.(*LxdProvider).Client
+	p := meta.(*LxdProvider)
+	client, err := p.GetClient(p.selectRemote(d))
+	if err != nil {
+		return err
+	}
+
 	name := d.Get("name").(string)
 	driver := d.Get("driver").(string)
 	config := resourceLxdConfigMap(d.Get("config"))
@@ -62,7 +74,12 @@ func resourceLxdStoragePoolCreate(d *schema.ResourceData, meta interface{}) erro
 }
 
 func resourceLxdStoragePoolRead(d *schema.ResourceData, meta interface{}) error {
-	client := meta.(*LxdProvider).Client
+	p := meta.(*LxdProvider)
+	client, err := p.GetClient(p.selectRemote(d))
+	if err != nil {
+		return err
+	}
+
 	name := d.Id()
 
 	pool, err := client.StoragePoolGet(name)
@@ -78,7 +95,12 @@ func resourceLxdStoragePoolRead(d *schema.ResourceData, meta interface{}) error 
 }
 
 func resourceLxdStoragePoolUpdate(d *schema.ResourceData, meta interface{}) error {
-	client := meta.(*LxdProvider).Client
+	p := meta.(*LxdProvider)
+	client, err := p.GetClient(p.selectRemote(d))
+	if err != nil {
+		return err
+	}
+
 	name := d.Id()
 
 	if d.HasChange("config") {
@@ -101,7 +123,12 @@ func resourceLxdStoragePoolUpdate(d *schema.ResourceData, meta interface{}) erro
 }
 
 func resourceLxdStoragePoolDelete(d *schema.ResourceData, meta interface{}) (err error) {
-	client := meta.(*LxdProvider).Client
+	p := meta.(*LxdProvider)
+	client, err := p.GetClient(p.selectRemote(d))
+	if err != nil {
+		return err
+	}
+
 	name := d.Id()
 
 	if err = client.StoragePoolDelete(name); err != nil {
@@ -112,7 +139,12 @@ func resourceLxdStoragePoolDelete(d *schema.ResourceData, meta interface{}) (err
 }
 
 func resourceLxdStoragePoolExists(d *schema.ResourceData, meta interface{}) (exists bool, err error) {
-	client := meta.(*LxdProvider).Client
+	p := meta.(*LxdProvider)
+	client, err := p.GetClient(p.selectRemote(d))
+	if err != nil {
+		return false, err
+	}
+
 	name := d.Id()
 	exists = false
 
