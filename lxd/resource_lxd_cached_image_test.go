@@ -177,7 +177,10 @@ func testAccCachedImageExists(t *testing.T, n string, image *api.Image) resource
 		}
 
 		id := newCachedImageIdFromResourceId(rs.Primary.ID)
-		client := testAccProvider.Meta().(*LxdProvider).Client
+		client, err := testAccProvider.Meta().(*LxdProvider).GetClient("")
+		if err != nil {
+			return err
+		}
 		img, err := client.GetImageInfo(id.fingerprint)
 		if err != nil {
 			return err

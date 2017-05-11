@@ -10,6 +10,9 @@ before_install:
 - sudo apt-get -qq update
 - sudo apt-get install -y lxd
 - sudo lxd init --auto
+- sudo lxc config set core.https_address "[::]"
+- sudo lxc config set core.trust_password $LXD_PASSWORD
+- sudo chmod -R 777 /home/travis/.config/lxc
 - sudo chmod 777 /var/lib/lxd/unix.socket
 - 'lxc image copy ubuntu:t local: --alias=ubuntu'
 - lxc image list

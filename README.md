@@ -20,18 +20,40 @@ Alternatively, the LXD Terraform provider can generate them on demand if `genera
 
 ### Example Configurations
 
-#### Provider (HTTPS)
+#### Provider (Use LXC Config)
+
+This is all that is needed if the LXD remotes have been defined out of band via the `lxc` client.
 
 ```hcl
 provider "lxd" {
-  scheme                       = "https"
-  address                      = "10.1.1.8"
-  remote                       = "lxd-server"
-  remote_password              = "password"
-  generate_client_certificates = true
-  accept_remote_certificate    = true
 }
 ```
+
+#### Provider (Custom Remotes)
+
+If you're running `terraform` from a system where lxc is not installed then you can define all the remotes in the Provider config:
+
+```hcl
+provider "lxd" {
+  generate_client_certificates = true
+  accept_remote_certificate    = true
+
+  lxd_remote {
+    name     = "lxd-server-1"
+    scheme   = "https"
+    address  = "10.1.1.8"
+    password = "password"
+  }
+
+  lxd_remote {
+    name     = "lxd-server-2"
+    scheme   = "https"
+    address  = "10.1.2.8"
+    password = "password"
+  }
+}
+```
+
 
 #### Basic Example
 
@@ -335,15 +357,20 @@ resource "lxd_snapshot" "snap1" {
 
 ##### Parameters
 
-  * `address`  - *Optional* - Unix socket file path or IP / FQDN where LXD daemon can be reached. Defaults to `/var/lib/lxd/unix.socket`
-  * `scheme`   - *Optional* - `https` or `unix`. Defaults to `unix`.
-  * `port`     - *Optional* - `https` scheme only - The port on which the LXD daemon is listening. Defaults to 8443.
-  * `remote`   - *Optional* - Name of the remote LXD as it exists in the local lxc config. Defaults to `local`.
-  * `remote_password` - *Optional* - Password of the remote LXD server.
   * `config_dir` - *Optional* - Directory path to client LXD configuration and certs. Defaults to `$HOME/.config/lxc`.
   * `generate_client_certificates` - *Optional* - Generate the LXC client's certificates if they don't exist. This can also be done out-of-band of Terraform with the lxc command-line client.
   * `accept_remote_certificate` - *Optional* - Accept the remote LXD server certificate. This can also be done out-of-band of Terraform with the lxc command-line client.
   * `refresh_interval` - *Optional* - How often to poll during state changes. Defaults to `10s`.
+
+
+The `lxd_remote` block supports:
+
+  * `address` - The IP address or hostname of the remote.
+  * `default` - `true` if this is this the default remote.
+  * `name` - The name of the LXD remote, that can be referenced in resource `remote` attributes.
+  * `port` - The port on which the LXD daemon is listening.
+  * `password` - The trust password configured on the LXD server.
+  * `scheme` - `https` or `unix`
 
 ### Resources
 
@@ -366,12 +393,14 @@ The following resources are currently available:
   * `source_image`  - *Required* - Fingerprint or alias of image to pull.
   * `aliases`       - *Optional* - A list of aliases to assign to the image after pulling.
   * `copy_aliases`  - *Optional* - True to copy the aliases of the image from the remote. Default = false.
+  * `remote`        - *Optional* - The remote in which the resource will be created. If it
+                                   is not provided, the default provider remote is used.
 
 ##### Exported Parameters
 
-  * `architecture` - The image architecture (e.g. amd64, i386).
-  * `created_at`   - The datetime of image creation, in Unix time.
-  * `fingerprint`  - The unique hash fingperint of the image.
+  * `architecture`   - The image architecture (e.g. amd64, i386).
+  * `created_at`     - The datetime of image creation, in Unix time.
+  * `fingerprint`    - The unique hash fingperint of the image.
   * `copied_aliases` - The list of aliases that were copied from the `source_image`.
 
 #### lxd_container
@@ -386,6 +415,8 @@ The following resources are currently available:
   * `config`    - *Optional* - Map of key/value pairs of [container config settings](https://github.com/lxc/lxd/blob/master/doc/configuration.md#container-configuration).
   * `device`    - *Optional* - Device definition. See reference below.
   * `file`      - *Optional* - File to upload to the container. See reference below.
+  * `remote`    - *Optional* - The remote in which the resource will be created. If it
+                               is not provided, the default provider remote is used.
 
 ##### Device Block
 
@@ -408,6 +439,8 @@ The following resources are currently available:
 
   * `name`      - *Required* - Name of the network. This is usually the device the network will appear as to containers.
   * `config`    - *Optional* - Map of key/value pairs of [network config settings](https://github.com/lxc/lxd/blob/master/doc/configuration.md#network-configuration).
+  * `remote`    - *Optional* - The remote in which the resource will be created. If it
+                               is not provided, the default provider remote is used.
 
 ##### Exported Attributes
 
@@ -421,6 +454,8 @@ The following resources are currently available:
   * `name`      - *Required* - Name of the container.
   * `config`    - *Optional* - Map of key/value pairs of [container config settings](https://github.com/lxc/lxd/blob/master/doc/configuration.md#container-configuration).
   * `device`    - *Optional* - Device definition. See reference below.
+  * `remote`    - *Optional* - The remote in which the resource will be created. If it
+                               is not provided, the default provider remote is used.
 
 ##### Device Block
 
@@ -435,6 +470,8 @@ The following resources are currently available:
   * `name`   - *Required* - Name of the storage pool.
   * `driver` - *Required* - Storage Pool driver. Must be one of `dir`, `lvm`, `btrfs`, or `zfs`.
   * `config` - *Required* - Map of key/value pairs of [storage pool config settings](https://github.com/lxc/lxd/blob/master/doc/configuration.md#storage-pool-configuration). Config settings vary from driver to driver.
+  * `remote` - *Optional* - The remote in which the resource will be created. If it
+                            is not provided, the default provider remote is used.
 
 #### lxd_volume
 
@@ -444,6 +481,8 @@ The following resources are currently available:
   * `pool`   - *Required* - The Storage Pool to host the volume.
   * `type`   - *Optional* - The "type" of volume. The default value is `custom`, which is the type to use for storage volumes attached to containers.
   * `config` - *Required* - Map of key/value pairs of [volume config settings](https://github.com/lxc/lxd/blob/master/doc/configuration.md#storage-volume-configuration). Config settings vary depending on the Storage Pool used.
+  * `remote` - *Optional* - The remote in which the resource will be created. If it
+                            is not provided, the default provider remote is used.
 
 #### lxd_volume_container_attach
 
@@ -454,6 +493,8 @@ The following resources are currently available:
   * `container_name` - *Required* - Name of the container to attach the volume to.
   * `path`           - *Required* - Mountpoint of the volume in the container.
   * `device_name`    - *Optional* - The volume device name as seen by the container. By default, this will be the volume name.
+  * `remote`         - *Optional* - The remote in which the resource will be created. If it
+                                    is not provided, the default provider remote is used.
 
 #### lxd_snapshot
 
@@ -462,6 +503,8 @@ The following resources are currently available:
   * `name` - *Required* - Name of the snapshot.
   * `container_name` - *Required* - The name of the container to snapshot.
   * `stateful` - *Optional* - Set to `true` to create a stateful snapshot, `false` for stateless. Stateful snapshots include runtime state. Default = false
+  * `remote`   - *Optional* - The remote in which the resource will be created. If it
+                              is not provided, the default provider remote is used.
 
 ##### Exported Parameters
 

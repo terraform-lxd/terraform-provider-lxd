@@ -42,13 +42,25 @@ func resourceLxdSnapshot() *schema.Resource {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
+
+			"remote": &schema.Schema{
+				Type:     schema.TypeString,
+				ForceNew: true,
+				Optional: true,
+				Default:  "",
+			},
 		},
 	}
 }
 
 func resourceLxdSnapshotCreate(d *schema.ResourceData, meta interface{}) error {
-	client := meta.(*LxdProvider).Client
-	remote := meta.(*LxdProvider).Remote
+	p := meta.(*LxdProvider)
+
+	remote := p.selectRemote(d)
+	client, err := p.GetClient(remote)
+	if err != nil {
+		return err
+	}
 
 	ctrName := d.Get("container_name").(string)
 	snapName := d.Get("name").(string)
@@ -56,7 +68,6 @@ func resourceLxdSnapshotCreate(d *schema.ResourceData, meta interface{}) error {
 
 	// stateful snapshots usually fail straight after container creation
 	// add a retry loop for creating snapshots
-	var err error
 	var i int
 	for i = 0; i < 5; i++ {
 		var resp *api.Response
@@ -89,7 +100,12 @@ func resourceLxdSnapshotCreate(d *schema.ResourceData, meta interface{}) error {
 }
 
 func resourceLxdSnapshotRead(d *schema.ResourceData, meta interface{}) error {
-	client := meta.(*LxdProvider).Client
+	p := meta.(*LxdProvider)
+	client, err := p.GetClient(p.selectRemote(d))
+	if err != nil {
+		return err
+	}
+
 	snapId := NewSnapshotIdFromResourceId(d.Id())
 
 	snap, err := client.SnapshotInfo(snapId.LxdId())
@@ -110,7 +126,11 @@ func resourceLxdSnapshotRead(d *schema.ResourceData, meta interface{}) error {
 }
 
 func resourceLxdSnapshotDelete(d *schema.ResourceData, meta interface{}) error {
-	client := meta.(*LxdProvider).Client
+	p := meta.(*LxdProvider)
+	client, err := p.GetClient(p.selectRemote(d))
+	if err != nil {
+		return err
+	}
 	name := d.Id()
 
 	client.Delete(name)
@@ -119,7 +139,11 @@ func resourceLxdSnapshotDelete(d *schema.ResourceData, meta interface{}) error {
 }
 
 func resourceLxdSnapshotExists(d *schema.ResourceData, meta interface{}) (bool, error) {
-	client := meta.(*LxdProvider).Client
+	p := meta.(*LxdProvider)
+	client, err := p.GetClient(p.selectRemote(d))
+	if err != nil {
+		return false, err
+	}
 	snapId := NewSnapshotIdFromResourceId(d.Id())
 
 	snap, err := client.SnapshotInfo(snapId.LxdId())

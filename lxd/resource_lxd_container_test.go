@@ -294,7 +294,10 @@ func testAccContainerRunning(t *testing.T, n string, container *api.Container) r
 			return fmt.Errorf("No ID is set")
 		}
 
-		client := testAccProvider.Meta().(*LxdProvider).Client
+		client, err := testAccProvider.Meta().(*LxdProvider).GetClient("")
+		if err != nil {
+			return err
+		}
 		ct, err := client.ContainerInfo(rs.Primary.ID)
 		if err != nil {
 			return err

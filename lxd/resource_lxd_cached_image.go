@@ -7,7 +7,6 @@ import (
 	"strings"
 
 	"github.com/hashicorp/terraform/helper/schema"
-	"github.com/lxc/lxd"
 )
 
 func resourceLxdCachedImage() *schema.Resource {
@@ -46,6 +45,13 @@ func resourceLxdCachedImage() *schema.Resource {
 				ForceNew: true,
 			},
 
+			"remote": &schema.Schema{
+				Type:     schema.TypeString,
+				ForceNew: true,
+				Optional: true,
+				Default:  "",
+			},
+
 			// Computed attributes
 
 			"architecture": {
@@ -73,19 +79,23 @@ func resourceLxdCachedImage() *schema.Resource {
 }
 
 func resourceLxdCachedImageCreate(d *schema.ResourceData, meta interface{}) error {
-	dst := meta.(*LxdProvider).Client
-	remote := meta.(*LxdProvider).Remote
-	config := meta.(*LxdProvider).Config
+	p := meta.(*LxdProvider)
+
+	dstName := p.selectRemote(d)
+	dstClient, err := p.GetClient(dstName)
+	if err != nil {
+		return err
+	}
 
 	srcName := d.Get("source_remote").(string)
-	src, err := lxd.NewClient(config, srcName)
+	srcClient, err := p.GetClient(srcName)
 	if err != nil {
 		return err
 	}
 
 	image := d.Get("source_image").(string)
 	// has the user provided an fingerprint or alias?
-	aliasTarget := src.GetAlias(image)
+	aliasTarget := srcClient.GetAlias(image)
 	if aliasTarget != "" {
 		image = aliasTarget
 	}
@@ -94,7 +104,7 @@ func resourceLxdCachedImageCreate(d *schema.ResourceData, meta interface{}) erro
 	if v, ok := d.GetOk("aliases"); ok {
 		for _, alias := range v.([]interface{}) {
 			// Check image alias doesn't already exist on destination
-			dstAliasTarget := dst.GetAlias(alias.(string))
+			dstAliasTarget := dstClient.GetAlias(alias.(string))
 			if dstAliasTarget != "" {
 				return fmt.Errorf("Image alias already exists on destination: %s", alias.(string))
 			}
@@ -104,7 +114,7 @@ func resourceLxdCachedImageCreate(d *schema.ResourceData, meta interface{}) erro
 	}
 
 	// Get data about remote image, also checks it exists
-	imgInfo, err := src.GetImageInfo(image)
+	imgInfo, err := srcClient.GetImageInfo(image)
 	if err != nil {
 		return err
 	}
@@ -112,13 +122,13 @@ func resourceLxdCachedImageCreate(d *schema.ResourceData, meta interface{}) erro
 	copyAliases := d.Get("copy_aliases").(bool)
 
 	// Execute the copy
-	err = src.CopyImage(image, dst, copyAliases, aliases, false, false, resourceLxdCachedImageCopyProgressHandler)
+	err = srcClient.CopyImage(image, dstClient, copyAliases, aliases, false, false, resourceLxdCachedImageCopyProgressHandler)
 	if err != nil {
 		return err
 	}
 
 	// Image was successfully copied, set resource ID
-	id := newCachedImageId(remote, imgInfo.Fingerprint)
+	id := newCachedImageId(dstName, imgInfo.Fingerprint)
 	d.SetId(id.resourceId())
 
 	// store remote aliases that we've copied, so we can filter them out later
@@ -138,7 +148,12 @@ func resourceLxdCachedImageCopyProgressHandler(prog string) {
 }
 
 func resourceLxdCachedImageUpdate(d *schema.ResourceData, meta interface{}) error {
-	client := meta.(*LxdProvider).Client
+	p := meta.(*LxdProvider)
+	remote := p.selectRemote(d)
+	client, err := p.GetClient(remote)
+	if err != nil {
+		return err
+	}
 	id := newCachedImageIdFromResourceId(d.Id())
 
 	if d.HasChange("aliases") {
@@ -164,19 +179,29 @@ func resourceLxdCachedImageUpdate(d *schema.ResourceData, meta interface{}) erro
 }
 
 func resourceLxdCachedImageDelete(d *schema.ResourceData, meta interface{}) error {
-	client := meta.(*LxdProvider).Client
+	p := meta.(*LxdProvider)
+	remote := p.selectRemote(d)
+	client, err := p.GetClient(remote)
+	if err != nil {
+		return err
+	}
+
 	id := newCachedImageIdFromResourceId(d.Id())
 
-	err := client.DeleteImage(id.fingerprint)
-
-	return err
+	return client.DeleteImage(id.fingerprint)
 }
 
 func resourceLxdCachedImageExists(d *schema.ResourceData, meta interface{}) (bool, error) {
-	client := meta.(*LxdProvider).Client
+	p := meta.(*LxdProvider)
+	remote := p.selectRemote(d)
+	client, err := p.GetClient(remote)
+	if err != nil {
+		return false, err
+	}
+
 	id := newCachedImageIdFromResourceId(d.Id())
 
-	_, err := client.GetImageInfo(id.fingerprint)
+	_, err = client.GetImageInfo(id.fingerprint)
 	if err != nil {
 		if err.Error() == "not found" {
 			return false, nil
@@ -188,7 +213,13 @@ func resourceLxdCachedImageExists(d *schema.ResourceData, meta interface{}) (boo
 }
 
 func resourceLxdCachedImageRead(d *schema.ResourceData, meta interface{}) error {
-	client := meta.(*LxdProvider).Client
+	p := meta.(*LxdProvider)
+	remote := p.selectRemote(d)
+	client, err := p.GetClient(remote)
+	if err != nil {
+		return err
+	}
+
 	id := newCachedImageIdFromResourceId(d.Id())
 
 	img, err := client.GetImageInfo(id.fingerprint)
