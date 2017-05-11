@@ -36,7 +36,7 @@ If you're running `terraform` from a system where lxc is not installed then you 
 ```hcl
 provider "lxd" {
   generate_client_certificates = true
-  accept_server_certificate    = true
+  accept_remote_certificate    = true
 
   lxd_remote {
     name     = "lxd-server-1"
