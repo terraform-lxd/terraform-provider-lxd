@@ -64,6 +64,26 @@ func resourceLxdConfigMap(c interface{}) map[string]string {
 	return config
 }
 
+func resourceLxdConfigMapAppend(c interface{}, config map[string]string, namespace string) map[string]string {
+	if config == nil {
+		config = make(map[string]string)
+	}
+
+	if string(namespace[len(namespace)-1]) != "." {
+		namespace += "."
+	}
+
+	if v, ok := c.(map[string]interface{}); ok {
+		for key, val := range v {
+			config[namespace+key] = val.(string)
+		}
+	}
+
+	log.Printf("[DEBUG] LXD Configuration Map: %#v", config)
+
+	return config
+}
+
 func resourceLxdDevices(d interface{}) map[string]map[string]string {
 	devices := make(map[string]map[string]string)
 	for _, v := range d.([]interface{}) {
