@@ -150,6 +150,11 @@ func resourceLxdContainer() *schema.Resource {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
+
+			"network": &schema.Schema{
+				Type:     schema.TypeMap,
+				Computed: true,
+			},
 		},
 	}
 }
@@ -253,17 +258,44 @@ func resourceLxdContainerRead(d *schema.ResourceData, meta interface{}) error {
 	d.Set("status", ct.Status)
 
 	sshIP := ""
+	networks := make(map[string]string)
 	for iface, net := range ct.Network {
 		if iface != "lo" {
+			v4Addresses := []string{}
+			v6Addresses := []string{}
+
 			for _, ip := range net.Addresses {
+				switch ip.Family {
+				case "inet":
+					v4Addresses = append(v4Addresses, ip.Address)
+				case "inet6":
+					v6Addresses = append(v6Addresses, ip.Address)
+				}
+
 				if ip.Family == "inet" {
 					d.Set("ip_address", ip.Address)
 					sshIP = ip.Address
 					d.Set("mac_address", net.Hwaddr)
 				}
 			}
+
+			keyName := fmt.Sprintf("%s.mac_address", iface)
+			networks[keyName] = net.Hwaddr
+
+			for i, ip := range v4Addresses {
+				keyName := fmt.Sprintf("%s.addresses.ipv4.%d", iface, i)
+				networks[keyName] = ip
+			}
+
+			for i, ip := range v6Addresses {
+				keyName := fmt.Sprintf("%s.addresses.ipv6.%d", iface, i)
+				networks[keyName] = ip
+			}
 		}
 	}
+
+	log.Printf("[DEBUG] Container networks for %s: %#v", name, networks)
+	d.Set("network", networks)
 
 	// Initialize the connection info
 	d.SetConnInfo(map[string]string{
