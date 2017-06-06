@@ -91,7 +91,6 @@ func TestAccContainer_addProfile(t *testing.T) {
 					resource.TestCheckResourceAttr("lxd_profile.profile1", "name", profileName),
 					resource.TestCheckResourceAttr("lxd_container.container1", "name", containerName),
 					testAccContainerProfile(&container, "default"),
-					testAccContainerProfile(&container, "docker"),
 				),
 			},
 			resource.TestStep{
@@ -102,7 +101,6 @@ func TestAccContainer_addProfile(t *testing.T) {
 					resource.TestCheckResourceAttr("lxd_profile.profile1", "name", profileName),
 					resource.TestCheckResourceAttr("lxd_container.container1", "name", containerName),
 					testAccContainerProfile(&container, "default"),
-					testAccContainerProfile(&container, "docker"),
 					testAccContainerProfile(&container, profileName),
 				),
 			},
@@ -128,7 +126,6 @@ func TestAccContainer_removeProfile(t *testing.T) {
 					resource.TestCheckResourceAttr("lxd_profile.profile1", "name", profileName),
 					resource.TestCheckResourceAttr("lxd_container.container1", "name", containerName),
 					testAccContainerProfile(&container, "default"),
-					testAccContainerProfile(&container, "docker"),
 					testAccContainerProfile(&container, profileName),
 				),
 			},
@@ -140,7 +137,6 @@ func TestAccContainer_removeProfile(t *testing.T) {
 					resource.TestCheckResourceAttr("lxd_profile.profile1", "name", profileName),
 					resource.TestCheckResourceAttr("lxd_container.container1", "name", containerName),
 					testAccContainerProfile(&container, "default"),
-					testAccContainerProfile(&container, "docker"),
 					testAccContainerNoProfile(&container, profileName),
 				),
 			},
@@ -277,6 +273,32 @@ func TestAccContainer_fileUpload(t *testing.T) {
 				Config: testAccContainer_fileUpload_2(containerName),
 				Check: resource.ComposeTestCheckFunc(
 					testAccContainerRunning(t, "lxd_container.container1", &container),
+				),
+			},
+		},
+	})
+}
+
+func TestAccContainer_configLimits(t *testing.T) {
+	var container api.Container
+	containerName := strings.ToLower(petname.Generate(2, "-"))
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:  func() { testAccPreCheck(t) },
+		Providers: testAccProviders,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccContainer_configLimits_1(containerName),
+				Check: resource.ComposeTestCheckFunc(
+					testAccContainerRunning(t, "lxd_container.container1", &container),
+					resource.TestCheckResourceAttr("lxd_container.container1", "limits.cpu", "1"),
+				),
+			},
+			resource.TestStep{
+				Config: testAccContainer_configLimits_2(containerName),
+				Check: resource.ComposeTestCheckFunc(
+					testAccContainerRunning(t, "lxd_container.container1", &container),
+					resource.TestCheckResourceAttr("lxd_container.container1", "limits.cpu", "2"),
 				),
 			},
 		},
@@ -438,7 +460,7 @@ func testAccContainer_basic(name string) string {
 	return fmt.Sprintf(`
 resource "lxd_container" "container1" {
   name = "%s"
-  image = "ubuntu"
+  image = "images:alpine/3.5/amd64"
   profiles = ["default"]
 }
 	`, name)
@@ -448,7 +470,7 @@ func testAccContainer_config(name string) string {
 	return fmt.Sprintf(`
 resource "lxd_container" "container1" {
   name = "%s"
-  image = "ubuntu"
+  image = "images:alpine/3.5/amd64"
   profiles = ["default"]
   config {
     limits.cpu = 2
@@ -465,8 +487,8 @@ resource "lxd_profile" "profile1" {
 
 resource "lxd_container" "container1" {
   name = "%s"
-  image = "ubuntu"
-  profiles = ["default", "docker"]
+  image = "images:alpine/3.5/amd64"
+  profiles = ["default"]
 }
 	`, profileName, containerName)
 }
@@ -479,8 +501,8 @@ resource "lxd_profile" "profile1" {
 
 resource "lxd_container" "container1" {
   name = "%s"
-  image = "ubuntu"
-  profiles = ["default", "docker", "${lxd_profile.profile1.name}"]
+  image = "images:alpine/3.5/amd64"
+  profiles = ["default", "${lxd_profile.profile1.name}"]
 }
 	`, profileName, containerName)
 }
@@ -493,8 +515,8 @@ resource "lxd_profile" "profile1" {
 
 resource "lxd_container" "container1" {
   name = "%s"
-  image = "ubuntu"
-  profiles = ["default", "docker", "${lxd_profile.profile1.name}"]
+  image = "images:alpine/3.5/amd64"
+  profiles = ["default", "${lxd_profile.profile1.name}"]
 }
 	`, profileName, containerName)
 }
@@ -507,8 +529,8 @@ resource "lxd_profile" "profile1" {
 
 resource "lxd_container" "container1" {
   name = "%s"
-  image = "ubuntu"
-  profiles = ["default", "docker"]
+  image = "images:alpine/3.5/amd64"
+  profiles = ["default"]
 }
 	`, profileName, containerName)
 }
@@ -517,7 +539,7 @@ func testAccContainer_device_1(name string) string {
 	return fmt.Sprintf(`
 resource "lxd_container" "container1" {
   name = "%s"
-  image = "ubuntu"
+  image = "images:alpine/3.5/amd64"
   profiles = ["default"]
 
   device {
@@ -536,7 +558,7 @@ func testAccContainer_device_2(name string) string {
 	return fmt.Sprintf(`
 resource "lxd_container" "container1" {
   name = "%s"
-  image = "ubuntu"
+  image = "images:alpine/3.5/amd64"
   profiles = ["default"]
 
   device {
@@ -555,7 +577,7 @@ func testAccContainer_addDevice_1(name string) string {
 	return fmt.Sprintf(`
 resource "lxd_container" "container1" {
   name = "%s"
-  image = "ubuntu"
+  image = "images:alpine/3.5/amd64"
   profiles = ["default"]
 }
 	`, name)
@@ -565,7 +587,7 @@ func testAccContainer_addDevice_2(name string) string {
 	return fmt.Sprintf(`
 resource "lxd_container" "container1" {
   name = "%s"
-  image = "ubuntu"
+  image = "images:alpine/3.5/amd64"
   profiles = ["default"]
 
   device {
@@ -584,7 +606,7 @@ func testAccContainer_removeDevice_1(name string) string {
 	return fmt.Sprintf(`
 resource "lxd_container" "container1" {
   name = "%s"
-  image = "ubuntu"
+  image = "images:alpine/3.5/amd64"
   profiles = ["default"]
 
   device {
@@ -603,7 +625,7 @@ func testAccContainer_removeDevice_2(name string) string {
 	return fmt.Sprintf(`
 resource "lxd_container" "container1" {
   name = "%s"
-  image = "ubuntu"
+  image = "images:alpine/3.5/amd64"
   profiles = ["default"]
 }
 	`, name)
@@ -613,7 +635,7 @@ func testAccContainer_fileUpload_1(name string) string {
 	return fmt.Sprintf(`
 resource "lxd_container" "container1" {
   name = "%s"
-  image = "ubuntu"
+  image = "images:alpine/3.5/amd64"
   profiles = ["default"]
 
   file {
@@ -630,7 +652,7 @@ func testAccContainer_fileUpload_2(name string) string {
 	return fmt.Sprintf(`
 resource "lxd_container" "container1" {
   name = "%s"
-  image = "ubuntu"
+  image = "images:alpine/3.5/amd64"
   profiles = ["default"]
 
   file {
@@ -649,6 +671,34 @@ resource "lxd_container" "container1" {
   name = "%s"
   image = "images:ubuntu/xenial/amd64"
   profiles = ["default"]
+}
+	`, name)
+}
+
+func testAccContainer_configLimits_1(name string) string {
+	return fmt.Sprintf(`
+resource "lxd_container" "container1" {
+  name = "%s"
+  image = "images:alpine/3.5/amd64"
+  profiles = ["default"]
+
+  limits {
+	  "cpu" = "1"
+  }
+}
+	`, name)
+}
+
+func testAccContainer_configLimits_2(name string) string {
+	return fmt.Sprintf(`
+resource "lxd_container" "container1" {
+  name = "%s"
+  image = "images:alpine/3.5/amd64"
+  profiles = ["default"]
+
+  limits {
+	  "cpu" = "2"
+  }
 }
 	`, name)
 }
