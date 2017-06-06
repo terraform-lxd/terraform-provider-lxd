@@ -1,17 +1,16 @@
 package lxd
 
 import (
-	"crypto/x509"
-	"encoding/pem"
 	"fmt"
 	"log"
-	"net/http"
 	"os"
 	"path"
 	"time"
 
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/hashicorp/terraform/terraform"
+
+	"github.com/jtopjian/lxdhelpers"
 
 	"github.com/lxc/lxd"
 	"github.com/lxc/lxd/shared"
@@ -245,7 +244,8 @@ func providerConfigure(d *schema.ResourceData) (interface{}, error) {
 	}
 
 	// Validate the client certificates or try to generate them.
-	if err := validateClientCerts(d, *config); err != nil {
+	generateCertificates := d.Get("generate_client_certificates").(bool)
+	if err := lxdhelpers.ValidateClientCertificates(*config, generateCertificates); err != nil {
 		return nil, err
 	}
 
@@ -310,7 +310,7 @@ func (p *LxdProvider) providerConfigureClient(lxdRemote map[string]interface{}) 
 				if err := validateClient(rclient); err != nil {
 					// PKI probably isn't in use. Try to add the remote certificate.
 					if p.acceptRemoteCertificate {
-						if err := getRemoteCertificate(rclient, name); err != nil {
+						if _, err := lxdhelpers.GetRemoteCertificate(rclient, name); err != nil {
 							return fmt.Errorf("Could get remote certificate: %s", err)
 						}
 					} else {
@@ -328,14 +328,9 @@ func (p *LxdProvider) providerConfigureClient(lxdRemote map[string]interface{}) 
 			if err != nil {
 				return err
 			}
-			if err := checkClientAuth(name, password, rclient); err != nil {
+			if err := lxdhelpers.ValidateRemoteConnection(rclient, name, password); err != nil {
 				return err
 			}
-			// Make sure it's valid before proceeding
-			if err := validateClient(rclient); err != nil {
-				return err
-			}
-
 		}
 	}
 	return nil
@@ -346,94 +341,6 @@ func validateClient(client *lxd.Client) error {
 	if _, err := client.GetServerConfig(); err != nil {
 		return err
 	}
-	return nil
-}
-
-// validateClientCerts checks if LXD client certificate & key already exist on disk
-// if not and if 'generate_client_certificates' = true it will generate them
-func validateClientCerts(d *schema.ResourceData, config lxd.Config) error {
-	certf := config.ConfigPath("client.crt")
-	keyf := config.ConfigPath("client.key")
-	if !shared.PathExists(certf) || !shared.PathExists(keyf) {
-		if v, ok := d.Get("generate_client_certificates").(bool); ok && v {
-			log.Printf("[DEBUG] Attempting to generate client certificates")
-			if err := shared.FindOrGenCert(certf, keyf, true); err != nil {
-				return err
-			}
-		} else {
-			err := fmt.Errorf("Certificate or key not found:\n\t%s\n\t%s\n"+
-				"Either set generate_client_certificates to true or generate the "+
-				"certificates out of band of Terraform and try again", certf, keyf)
-			return err
-		}
-	}
-	return nil
-}
-
-// getRemoteCertificate gets an LXD server's certificate
-func getRemoteCertificate(client *lxd.Client, remote string) error {
-	var certificate *x509.Certificate
-	addr := client.Config.Remotes[remote]
-
-	log.Printf("[DEBUG] Attempting to retrieve remote server certificate")
-	// Setup a permissive TLS config
-	tlsConfig, err := shared.GetTLSConfig("", "", "", nil)
-	if err != nil {
-		return err
-	}
-
-	tlsConfig.InsecureSkipVerify = true
-	tr := &http.Transport{
-		TLSClientConfig: tlsConfig,
-		Dial:            shared.RFC3493Dialer,
-		Proxy:           shared.ProxyFromEnvironment,
-	}
-
-	// Connect
-	httpClient := &http.Client{Transport: tr}
-	resp, err := httpClient.Get(addr.Addr)
-	if err != nil {
-		return err
-	}
-
-	// Retrieve the certificate
-	if resp.TLS == nil || len(resp.TLS.PeerCertificates) == 0 {
-		return fmt.Errorf("Unable to read remote TLS certificate")
-	}
-
-	certificate = resp.TLS.PeerCertificates[0]
-
-	dnam := client.Config.ConfigPath("servercerts")
-	if err := os.MkdirAll(dnam, 0750); err != nil {
-		return fmt.Errorf("Could not create server cert dir: %s", err)
-	}
-
-	certf := fmt.Sprintf("%s/%s.crt", dnam, client.Name)
-	certOut, err := os.Create(certf)
-	if err != nil {
-		return err
-	}
-
-	pem.Encode(certOut, &pem.Block{Type: "CERTIFICATE", Bytes: certificate.Raw})
-	certOut.Close()
-
-	return nil
-}
-
-func checkClientAuth(remoteName, remotePassword string, client *lxd.Client) error {
-	log.Printf("[DEBUG] Checking client is authenticated for remote: %s", remoteName)
-
-	if client.AmTrusted() {
-		log.Printf("[DEBUG] LXC client is trusted with %s", remoteName)
-		return nil
-	}
-
-	if err := client.AddMyCertToServer(remotePassword); err != nil {
-		return fmt.Errorf("Unable to authenticate with remote server: %s", err)
-	}
-
-	log.Printf("[DEBUG] Successfully authenticated with remote %s", remoteName)
-
 	return nil
 }
 
