@@ -91,7 +91,6 @@ func TestAccContainer_addProfile(t *testing.T) {
 					resource.TestCheckResourceAttr("lxd_profile.profile1", "name", profileName),
 					resource.TestCheckResourceAttr("lxd_container.container1", "name", containerName),
 					testAccContainerProfile(&container, "default"),
-					testAccContainerProfile(&container, "docker"),
 				),
 			},
 			resource.TestStep{
@@ -102,7 +101,6 @@ func TestAccContainer_addProfile(t *testing.T) {
 					resource.TestCheckResourceAttr("lxd_profile.profile1", "name", profileName),
 					resource.TestCheckResourceAttr("lxd_container.container1", "name", containerName),
 					testAccContainerProfile(&container, "default"),
-					testAccContainerProfile(&container, "docker"),
 					testAccContainerProfile(&container, profileName),
 				),
 			},
@@ -128,7 +126,6 @@ func TestAccContainer_removeProfile(t *testing.T) {
 					resource.TestCheckResourceAttr("lxd_profile.profile1", "name", profileName),
 					resource.TestCheckResourceAttr("lxd_container.container1", "name", containerName),
 					testAccContainerProfile(&container, "default"),
-					testAccContainerProfile(&container, "docker"),
 					testAccContainerProfile(&container, profileName),
 				),
 			},
@@ -140,7 +137,6 @@ func TestAccContainer_removeProfile(t *testing.T) {
 					resource.TestCheckResourceAttr("lxd_profile.profile1", "name", profileName),
 					resource.TestCheckResourceAttr("lxd_container.container1", "name", containerName),
 					testAccContainerProfile(&container, "default"),
-					testAccContainerProfile(&container, "docker"),
 					testAccContainerNoProfile(&container, profileName),
 				),
 			},
@@ -466,7 +462,7 @@ resource "lxd_profile" "profile1" {
 resource "lxd_container" "container1" {
   name = "%s"
   image = "ubuntu"
-  profiles = ["default", "docker"]
+  profiles = ["default"]
 }
 	`, profileName, containerName)
 }
@@ -480,7 +476,7 @@ resource "lxd_profile" "profile1" {
 resource "lxd_container" "container1" {
   name = "%s"
   image = "ubuntu"
-  profiles = ["default", "docker", "${lxd_profile.profile1.name}"]
+  profiles = ["default", "${lxd_profile.profile1.name}"]
 }
 	`, profileName, containerName)
 }
@@ -494,7 +490,7 @@ resource "lxd_profile" "profile1" {
 resource "lxd_container" "container1" {
   name = "%s"
   image = "ubuntu"
-  profiles = ["default", "docker", "${lxd_profile.profile1.name}"]
+  profiles = ["default", "${lxd_profile.profile1.name}"]
 }
 	`, profileName, containerName)
 }
@@ -508,7 +504,7 @@ resource "lxd_profile" "profile1" {
 resource "lxd_container" "container1" {
   name = "%s"
   image = "ubuntu"
-  profiles = ["default", "docker"]
+  profiles = ["default"]
 }
 	`, profileName, containerName)
 }
