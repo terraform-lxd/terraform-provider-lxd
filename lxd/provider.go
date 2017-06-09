@@ -260,9 +260,11 @@ func providerConfigure(d *schema.ResourceData) (interface{}, error) {
 		"scheme":   os.Getenv("LXD_SCHEME"),
 		"default":  true,
 	}
-	err = lxdProv.providerConfigureClient(envRemote)
-	if err != nil {
-		return nil, fmt.Errorf("Unable to create client for remote [%s]: %s", envRemote["name"].(string), err)
+	if envRemote["name"] != "" {
+		err = lxdProv.providerConfigureClient(envRemote)
+		if err != nil {
+			return nil, fmt.Errorf("Unable to create client for remote [%s]: %s", envRemote["name"].(string), err)
+		}
 	}
 
 	// Loop over LXD Remotes defined in provider and initialise
