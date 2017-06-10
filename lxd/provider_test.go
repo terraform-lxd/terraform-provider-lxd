@@ -97,6 +97,10 @@ func TestAccLxdProvider_lxcConfigRemotes(t *testing.T) {
 	remotePort := os.Getenv("LXD_PORT")
 	remotePassword := os.Getenv("LXD_PASSWORD")
 
+	envName := os.Getenv("LXD_REMOTE")
+	os.Unsetenv("LXD_REMOTE")
+	defer os.Setenv("LXD_REMOTE", envName)
+
 	tmpDirName := petname.Generate(1, "")
 	tmpDir, err := ioutil.TempDir(os.TempDir(), tmpDirName)
 	if err != nil {
@@ -120,12 +124,21 @@ func TestAccLxdProvider_lxcConfigRemotes(t *testing.T) {
 				Config: testAccLxdProvider_lxcConfig1(tmpDir, remoteName, remoteAddr, remotePort, remotePassword),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("lxd_noop.noop1", "remote", remoteName),
+					resource.TestCheckResourceAttr("lxd_noop.noop1", "client_name", remoteName),
 				),
 			},
 			resource.TestStep{
 				Config: testAccLxdProvider_lxcConfig2(tmpDir, remoteName),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("lxd_noop.noop1", "remote", remoteName),
+					resource.TestCheckResourceAttr("lxd_noop.noop1", "client_name", remoteName),
+				),
+			},
+			resource.TestStep{
+				Config: testAccLxdProvider_lxcConfig3(tmpDir),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr("lxd_noop.noop2", "remote", ""),
+					resource.TestCheckResourceAttr("lxd_noop.noop2", "client_name", remoteName),
 				),
 			},
 		},
@@ -228,6 +241,21 @@ resource "lxd_noop" "noop1" {
 `, confDir, remote)
 }
 
+// Config that does not set remote name, forcing use of default
+func testAccLxdProvider_lxcConfig3(confDir string) string {
+	return fmt.Sprintf(`
+provider "lxd" {
+	config_dir = "%s"
+	accept_remote_certificate = true
+	generate_client_certificates = true
+}
+
+resource "lxd_noop" "noop2" {
+	name = "noop2"
+}
+`, confDir)
+}
+
 // this NoOp resources allows us to invoke the Terraform testing framework to test the Provider
 // without actually calling out to any LXD server's to create or destroy resources.
 func resourceLxdNoOp() *schema.Resource {
@@ -240,7 +268,8 @@ func resourceLxdNoOp() *schema.Resource {
 
 			d.SetId(d.Get("name").(string))
 			d.Set("name", d.Get("name"))
-			d.Set("remote", client.Name)
+			d.Set("client_name", client.Name)
+			d.Set("remote", d.Get("remote"))
 			return nil
 		},
 		Delete: func(d *schema.ResourceData, meta interface{}) error {
@@ -248,7 +277,14 @@ func resourceLxdNoOp() *schema.Resource {
 			return nil
 		},
 		Read: func(d *schema.ResourceData, meta interface{}) error {
+			client, err := meta.(*LxdProvider).GetClient(d.Get("remote").(string))
+			if err != nil {
+				return err
+			}
+
 			d.Set("name", d.Get("name"))
+			d.Set("remote", d.Get("remote"))
+			d.Set("client_name", client.Name)
 			return nil
 		},
 
@@ -263,6 +299,10 @@ func resourceLxdNoOp() *schema.Resource {
 				ForceNew: true,
 				Optional: true,
 				Default:  "",
+			},
+			"client_name": &schema.Schema{
+				Type:     schema.TypeString,
+				Computed: true,
 			},
 		},
 	}
