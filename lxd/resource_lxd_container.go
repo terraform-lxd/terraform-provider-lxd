@@ -1,6 +1,8 @@
 package lxd
 
 import (
+	"crypto/sha1"
+	"encoding/hex"
 	"fmt"
 	"log"
 	"os"
@@ -105,6 +107,15 @@ func resourceLxdContainer() *schema.Resource {
 						"content": &schema.Schema{
 							Type:     schema.TypeString,
 							Required: true,
+							StateFunc: func(v interface{}) string {
+								switch v.(type) {
+								case string:
+									hash := sha1.Sum([]byte(v.(string)))
+									return hex.EncodeToString(hash[:])
+								default:
+									return ""
+								}
+							},
 						},
 
 						"target_file": &schema.Schema{
