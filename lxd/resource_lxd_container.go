@@ -115,13 +115,8 @@ func resourceLxdContainer() *schema.Resource {
 							Type:     schema.TypeString,
 							Required: true,
 							StateFunc: func(v interface{}) string {
-								switch v.(type) {
-								case string:
-									hash := sha1.Sum([]byte(v.(string)))
-									return hex.EncodeToString(hash[:])
-								default:
-									return ""
-								}
+								hash := sha1.Sum([]byte(v.(string)))
+								return hex.EncodeToString(hash[:])
 							},
 						},
 
@@ -242,13 +237,19 @@ func resourceLxdContainerCreate(d *schema.ResourceData, meta interface{}) error 
 
 	d.SetId(name)
 
-	// Upload any files, if specified
-	if v, ok := d.GetOk("file"); ok {
-		for _, v := range v.([]interface{}) {
-			if err := resourceLxdContainerUploadFile(client, name, v); err != nil {
+	// Upload any files, if specified,
+	// and set the contents to a hash in the State
+	if files, ok := d.GetOk("file"); ok {
+		for _, v := range files.([]interface{}) {
+			file := v.(map[string]interface{})
+			if err := resourceLxdContainerUploadFile(client, name, file); err != nil {
 				return err
 			}
+			hash := sha1.Sum([]byte(file["content"].(string)))
+			file["content"] = hex.EncodeToString(hash[:])
 		}
+
+		d.Set("file", files)
 	}
 
 	return resourceLxdContainerRead(d, meta)
