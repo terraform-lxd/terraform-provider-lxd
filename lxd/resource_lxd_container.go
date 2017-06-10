@@ -48,9 +48,10 @@ func resourceLxdContainer() *schema.Resource {
 
 			"profiles": &schema.Schema{
 				Type:     schema.TypeList,
-				Optional: true,
 				Elem:     &schema.Schema{Type: schema.TypeString},
+				Optional: true,
 				ForceNew: false,
+				Computed: true,
 			},
 
 			"device": &schema.Schema{
@@ -183,6 +184,11 @@ func resourceLxdContainerCreate(d *schema.ResourceData, meta interface{}) error 
 		}
 	}
 
+	// If no profiles were set, use the default profile
+	if len(profiles) == 0 {
+		profiles = append(profiles, "default")
+	}
+
 	// client.Init = (name string, imgremote string, image string, profiles *[]string, config map[string]string, devices shared.Devices, ephem bool)
 	var resp *api.Response
 	if resp, err = client.Init(name, remote, image, &profiles, config, devices, ephem); err != nil {
@@ -270,6 +276,9 @@ func resourceLxdContainerRead(d *schema.ResourceData, meta interface{}) error {
 		"type": "ssh",
 		"host": sshIP,
 	})
+
+	// Set the profiles used by the container
+	d.Set("profiles", container.Profiles)
 
 	return nil
 }
