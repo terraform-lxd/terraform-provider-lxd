@@ -86,12 +86,6 @@ resource "lxd_container" "test1" {
 ```
 
  > NOTE:
- > Currently only the following remotes are supported for pulling images:
- > * `images`
- > * `ubuntu`
- > * `ubuntu-daily`
- > * remote named defined in LXD provider (same as omitting `<remote>:` prefix from `lxd_container` image attribute)
- > 
  > See the LXD [documentation](https://linuxcontainers.org/lxd/getting-started-cli/#using-the-built-in-image-remotes) for more info on default image remotes.
 
 #### Container Configuration & Devices
@@ -357,20 +351,36 @@ resource "lxd_snapshot" "snap1" {
 
 ##### Parameters
 
-  * `config_dir` - *Optional* - Directory path to client LXD configuration and certs. Defaults to `$HOME/.config/lxc`.
-  * `generate_client_certificates` - *Optional* - Generate the LXC client's certificates if they don't exist. This can also be done out-of-band of Terraform with the lxc command-line client.
-  * `accept_remote_certificate` - *Optional* - Accept the remote LXD server certificate. This can also be done out-of-band of Terraform with the lxc command-line client.
-  * `refresh_interval` - *Optional* - How often to poll during state changes. Defaults to `10s`.
-
+  * `config_dir`                   - *Optional* - Directory path to client LXD configuration and certs. Defaults to `$HOME/.config/lxc`.
+  * `generate_client_certificates` - *Optional* - Generate the LXC client's certificates if they don't exist. 
+                                     This can also be done out-of-band of Terraform with the lxc command-line client.
+  * `accept_remote_certificate`    - *Optional* - Accept the remote LXD server certificate. 
+                                     This can also be done out-of-band of Terraform with the lxc command-line client.
+  * `refresh_interval`             - *Optional* - How often to poll during state changes. Defaults to `10s`.
 
 The `lxd_remote` block supports:
 
-  * `address` - The IP address or hostname of the remote.
-  * `default` - `true` if this is this the default remote.
-  * `name` - The name of the LXD remote, that can be referenced in resource `remote` attributes.
-  * `port` - The port on which the LXD daemon is listening.
-  * `password` - The trust password configured on the LXD server.
-  * `scheme` - `https` or `unix`
+  * `address`  - *Required* - The IP address or hostname of the remote.
+  * `name`     - *Required* - The name of the LXD remote, that can be referenced in resource `remote` attributes.
+  * `default`  - *Optional* - `true` if this is this the default remote. Default = `false`.
+  * `port`     - *Optional* - The port on which the LXD daemon is listening. Default = `8443`.
+  * `password` - *Optional* - The trust password configured on the LXD server.
+  * `scheme`   - *Optional* - `https` or `unix`. Default = `https`.
+
+The LXD Provider can also be configured via environment variables.
+
+  * `LXD_REMOTE`   - Equivalent to `lxd_remote.name`
+  * `LXD_ADDR`     - Equivalent to `lxd_remote.address`
+  * `LXD_PORT`     - Equivalent to `lxd_remote.port`
+  * `LXD_PASSWORD` - Equivalent to `lxd_remote.password`
+  * `LXD_SCHEME`   - Equivalent to `lxd_remote.scheme`
+
+##### The Default remote
+
+> The provider uses the following order of preference to determine the *Default* LXD remote:
+>  1. the `lxd_remote` block with attribute `default` set to true
+>  2. the remote defined via environment variables (`LXD_REMOTE`, `LXD_ADDR` etc.)
+>  3. the remote set in `lxc` config file that is marked as default
 
 ### Resources
 

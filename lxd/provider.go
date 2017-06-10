@@ -219,7 +219,6 @@ func providerConfigure(d *schema.ResourceData) (interface{}, error) {
 	if conf, err := lxd.LoadConfig(configPath); err != nil {
 		return nil, fmt.Errorf("Could not read the lxc config: [%s]. Error: %s", configPath, err)
 	} else {
-		delete(conf.Remotes, "local")
 		config = conf
 	}
 
@@ -260,9 +259,12 @@ func providerConfigure(d *schema.ResourceData) (interface{}, error) {
 		"scheme":   os.Getenv("LXD_SCHEME"),
 		"default":  true,
 	}
-	err = lxdProv.providerConfigureClient(envRemote)
-	if err != nil {
-		return nil, fmt.Errorf("Unable to create client for remote [%s]: %s", envRemote["name"].(string), err)
+	// LXD_REMOTE must be set, or we ignore all the rest of the env vars
+	if envRemote["name"] != "" {
+		err = lxdProv.providerConfigureClient(envRemote)
+		if err != nil {
+			return nil, fmt.Errorf("Unable to create client for remote [%s]: %s", envRemote["name"].(string), err)
+		}
 	}
 
 	// Loop over LXD Remotes defined in provider and initialise
