@@ -279,6 +279,26 @@ func TestAccContainer_fileUpload(t *testing.T) {
 	})
 }
 
+func TestAccContainer_defaultProfile(t *testing.T) {
+	var container api.Container
+	containerName := strings.ToLower(petname.Generate(2, "-"))
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:  func() { testAccPreCheck(t) },
+		Providers: testAccProviders,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccContainer_defaultProfile(containerName),
+				Check: resource.ComposeTestCheckFunc(
+					testAccContainerRunning(t, "lxd_container.container1", &container),
+					resource.TestCheckResourceAttr("lxd_container.container1", "profiles.0", "default"),
+					testAccContainerProfile(&container, "default"),
+				),
+			},
+		},
+	})
+}
+
 func testAccContainerRunning(t *testing.T, n string, container *api.Container) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		rs, ok := s.RootModule().Resources[n]
@@ -645,6 +665,15 @@ resource "lxd_container" "container1" {
   name = "%s"
   image = "images:ubuntu/xenial/amd64"
   profiles = ["default"]
+}
+	`, name)
+}
+
+func testAccContainer_defaultProfile(name string) string {
+	return fmt.Sprintf(`
+resource "lxd_container" "container1" {
+  name = "%s"
+  image = "ubuntu"
 }
 	`, name)
 }
