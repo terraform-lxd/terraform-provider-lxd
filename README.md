@@ -96,7 +96,7 @@ resource "lxd_container" "test1" {
 
 #### Container Configuration & Devices
 
-A container can also take a number of configuration and device options. A full reference can be found [here](https://github.com/lxc/lxd/blob/master/doc/configuration.md). For example, to create a container with 2 CPUs and to share the `/tmp` directory with the LXD host:
+A container can also take a number of configuration and device options. A full reference can be found [here](https://github.com/lxc/lxd/blob/master/doc/configuration.md). For example, to create an autostart container with 2 CPUs and to share the `/tmp` directory with the LXD host:
 
 ```hcl
 resource "lxd_container" "test1" {
@@ -105,7 +105,11 @@ resource "lxd_container" "test1" {
   ephemeral = false
 
   config {
-    limits.cpu = 2
+    boot.autostart = true
+  }
+
+  limits {
+    cpu = 2
   }
 
   device {
@@ -119,6 +123,8 @@ resource "lxd_container" "test1" {
   }
 }
 ```
+
+Note, the `config` attributes cannot be changed without destroying and re-creating the container, however values in `limits` can be changed on the fly.
 
 #### Profiles
 
@@ -413,6 +419,7 @@ The following resources are currently available:
   * `ephemeral` - *Optional* - Boolean indicating if this container is ephemeral. Default = false.
   * `privileged`- *Optional* - Boolean indicating if this container will run in privileged mode. Default = false.
   * `config`    - *Optional* - Map of key/value pairs of [container config settings](https://github.com/lxc/lxd/blob/master/doc/configuration.md#container-configuration).
+  * `limits`    - *Optional* - Map of key/value pairs that define the [container resources limits](https://github.com/lxc/lxd/blob/master/doc/containers.md).
   * `device`    - *Optional* - Device definition. See reference below.
   * `file`      - *Optional* - File to upload to the container. See reference below.
   * `remote`    - *Optional* - The remote in which the resource will be created. If it
