@@ -86,6 +86,12 @@ func resourceLxdContainer() *schema.Resource {
 				ForceNew: true,
 			},
 
+			"limits": &schema.Schema{
+				Type:     schema.TypeMap,
+				Optional: true,
+				ForceNew: false,
+			},
+
 			"ephemeral": &schema.Schema{
 				Type:     schema.TypeBool,
 				Optional: true,
@@ -186,6 +192,8 @@ func resourceLxdContainerCreate(d *schema.ResourceData, meta interface{}) error 
 		image = imgParts[1]
 	}
 	config := resourceLxdConfigMap(d.Get("config"))
+	config = resourceLxdConfigMapAppend(d.Get("limits"), config, "limits.")
+
 	devices := resourceLxdDevices(d.Get("device"))
 
 	profiles := []string{}
@@ -265,6 +273,14 @@ func resourceLxdContainerRead(d *schema.ResourceData, meta interface{}) error {
 	ct, err := client.ContainerState(name)
 	if err != nil {
 		return err
+	}
+
+	log.Printf("[DEBUG] Retrieved container config %s:\n%#v", name, container.Config)
+	for k, v := range container.Config {
+		if strings.Contains(k, "limits.") {
+			log.Printf("[DEBUG] Setting limit %s: %s", k, v)
+			d.Set(k, v)
+		}
 	}
 
 	d.Set("status", ct.Status)
@@ -354,6 +370,19 @@ func resourceLxdContainerUpdate(d *schema.ResourceData, meta interface{}) error 
 		}
 
 		log.Printf("[DEBUG] Updated device list: %#v", newContainer.Devices)
+	}
+
+	if d.HasChange("limits") {
+		changed = true
+		oldLimits, newLimits := d.GetChange("limits")
+
+		for k, _ := range oldLimits.(map[string]interface{}) {
+			delete(newContainer.Config, k)
+		}
+
+		for k, v := range newLimits.(map[string]interface{}) {
+			newContainer.Config[fmt.Sprintf("limits.%s", k)] = v.(string)
+		}
 	}
 
 	if changed {
