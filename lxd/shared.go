@@ -64,6 +64,31 @@ func resourceLxdConfigMap(c interface{}) map[string]string {
 	return config
 }
 
+// resourceLxdConfigMapAppend appends a map of configuration values
+// to an existing map. All appended config values are prefixed
+// with the config namespace.
+func resourceLxdConfigMapAppend(config map[string]string, append interface{}, namespace string) map[string]string {
+	if config == nil {
+		panic("config is nil")
+	}
+
+	if string(namespace[len(namespace)-1]) != "." {
+		namespace += "."
+	}
+
+	if v, ok := append.(map[string]interface{}); ok {
+		for key, val := range v {
+			config[namespace+key] = val.(string)
+		}
+	} else {
+		panic("append map is not of type map[string]string")
+	}
+
+	log.Printf("[DEBUG] LXD Configuration Map: %#v", config)
+
+	return config
+}
+
 func resourceLxdDevices(d interface{}) map[string]map[string]string {
 	devices := make(map[string]map[string]string)
 	for _, v := range d.([]interface{}) {
