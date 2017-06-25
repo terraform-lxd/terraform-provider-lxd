@@ -192,7 +192,7 @@ func resourceLxdContainerCreate(d *schema.ResourceData, meta interface{}) error 
 		image = imgParts[1]
 	}
 	config := resourceLxdConfigMap(d.Get("config"))
-	config = resourceLxdConfigMapAppend(d.Get("limits"), config, "limits.")
+	config = resourceLxdConfigMapAppend(config, d.Get("limits"), "limits.")
 
 	devices := resourceLxdDevices(d.Get("device"))
 

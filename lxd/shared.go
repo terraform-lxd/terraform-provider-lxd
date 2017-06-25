@@ -64,19 +64,24 @@ func resourceLxdConfigMap(c interface{}) map[string]string {
 	return config
 }
 
-func resourceLxdConfigMapAppend(c interface{}, config map[string]string, namespace string) map[string]string {
+// resourceLxdConfigMapAppend appends a map of configuration values
+// to an existing map. All appended config values are prefixed
+// with the config namespace.
+func resourceLxdConfigMapAppend(config map[string]string, append interface{}, namespace string) map[string]string {
 	if config == nil {
-		config = make(map[string]string)
+		panic("config is nil")
 	}
 
 	if string(namespace[len(namespace)-1]) != "." {
 		namespace += "."
 	}
 
-	if v, ok := c.(map[string]interface{}); ok {
+	if v, ok := append.(map[string]interface{}); ok {
 		for key, val := range v {
 			config[namespace+key] = val.(string)
 		}
+	} else {
+		panic("append map is not of type map[string]string")
 	}
 
 	log.Printf("[DEBUG] LXD Configuration Map: %#v", config)
