@@ -220,6 +220,15 @@ func resourceLxdContainerCreate(d *schema.ResourceData, meta interface{}) error 
 		return err
 	}
 
+	// Upload any files, if specified
+	if v, ok := d.GetOk("file"); ok {
+		for _, v := range v.([]interface{}) {
+			if err := resourceLxdContainerUploadFile(client, name, v); err != nil {
+				return err
+			}
+		}
+	}
+
 	// Start container
 	_, err = client.Action(name, shared.Start, -1, false, false)
 	if err != nil {
@@ -241,15 +250,6 @@ func resourceLxdContainerCreate(d *schema.ResourceData, meta interface{}) error 
 	}
 
 	d.SetId(name)
-
-	// Upload any files, if specified
-	if v, ok := d.GetOk("file"); ok {
-		for _, v := range v.([]interface{}) {
-			if err := resourceLxdContainerUploadFile(client, name, v); err != nil {
-				return err
-			}
-		}
-	}
 
 	return resourceLxdContainerRead(d, meta)
 }
