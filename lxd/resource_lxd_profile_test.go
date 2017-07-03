@@ -238,13 +238,13 @@ func testAccProfileRunning(t *testing.T, n string, profile *api.Profile) resourc
 		if err != nil {
 			return err
 		}
-		p, err := client.ProfileConfig(rs.Primary.ID)
+		p, _, err := client.GetProfile(rs.Primary.ID)
 		if err != nil {
 			return err
 		}
 
 		if p != nil {
-			*profile = *p
+			profile = p
 			return nil
 		}
 

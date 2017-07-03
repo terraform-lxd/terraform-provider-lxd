@@ -4,6 +4,7 @@ import (
 	"log"
 
 	"github.com/hashicorp/terraform/helper/schema"
+	"github.com/lxc/lxd/shared/api"
 )
 
 func resourceLxdVolume() *schema.Resource {
@@ -63,7 +64,11 @@ func resourceLxdVolumeCreate(d *schema.ResourceData, meta interface{}) error {
 	config := resourceLxdConfigMap(d.Get("config"))
 
 	log.Printf("Attempting to create volume %s", name)
-	if err := client.StoragePoolVolumeTypeCreate(pool, name, volType, config); err != nil {
+	volume := api.StorageVolumesPost{}
+	volume.Name = name
+	volume.Type = volType
+	volume.Config = config
+	if err := client.CreateStoragePoolVolume(pool, volume); err != nil {
 		return err
 	}
 
@@ -81,7 +86,7 @@ func resourceLxdVolumeRead(d *schema.ResourceData, meta interface{}) error {
 	}
 
 	v := NewVolumeIdFromResourceId(d.Id())
-	volume, err := client.StoragePoolVolumeTypeGet(v.pool, v.name, v.volType)
+	volume, _, err := client.GetStoragePoolVolume(v.pool, v.volType, v.name)
 	if err != nil {
 		return err
 	}
@@ -102,7 +107,7 @@ func resourceLxdVolumeUpdate(d *schema.ResourceData, meta interface{}) error {
 
 	if d.HasChange("config") {
 		v := NewVolumeIdFromResourceId(d.Id())
-		volume, err := client.StoragePoolVolumeTypeGet(v.pool, v.name, v.volType)
+		volume, etag, err := client.GetStoragePoolVolume(v.pool, v.volType, v.name)
 		if err != nil {
 			return err
 		}
@@ -112,7 +117,9 @@ func resourceLxdVolumeUpdate(d *schema.ResourceData, meta interface{}) error {
 
 		log.Printf("[DEBUG] Updated volume config: %#v", volume)
 
-		if err := client.StoragePoolVolumeTypePut(v.pool, v.name, v.volType, volume); err != nil {
+		post := api.StorageVolumePut{}
+		post.Config = config
+		if err := client.UpdateStoragePoolVolume(v.pool, v.volType, v.name, post, etag); err != nil {
 			return err
 		}
 	}
@@ -129,7 +136,7 @@ func resourceLxdVolumeDelete(d *schema.ResourceData, meta interface{}) (err erro
 
 	v := NewVolumeIdFromResourceId(d.Id())
 
-	if err = client.StoragePoolVolumeTypeDelete(v.pool, v.name, v.volType); err != nil {
+	if err = client.DeleteStoragePoolVolume(v.pool, v.volType, v.name); err != nil {
 		return err
 	}
 
@@ -146,7 +153,7 @@ func resourceLxdVolumeExists(d *schema.ResourceData, meta interface{}) (exists b
 	exists = false
 
 	v := NewVolumeIdFromResourceId(d.Id())
-	_, err = client.StoragePoolVolumeTypeGet(v.pool, v.name, v.volType)
+	_, _, err = client.GetStoragePoolVolume(v.pool, v.volType, v.name)
 	if err == nil {
 		exists = true
 	}

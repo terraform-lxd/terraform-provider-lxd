@@ -90,7 +90,7 @@ func resourceLxdCachedImageCreate(d *schema.ResourceData, meta interface{}) erro
 	}
 
 	srcName := d.Get("source_remote").(string)
-	srcClient, err := p.GetClient(srcName)
+	srcClient, err := p.GetImageClient(srcName)
 	if err != nil {
 		return err
 	}
@@ -250,7 +250,7 @@ func resourceLxdCachedImageExists(d *schema.ResourceData, meta interface{}) (boo
 func resourceLxdCachedImageRead(d *schema.ResourceData, meta interface{}) error {
 	p := meta.(*LxdProvider)
 	remote := p.selectRemote(d)
-	client, err := p.GetClient(remote)
+	client, err := p.GetImageClient(remote)
 	if err != nil {
 		return err
 	}

@@ -49,12 +49,12 @@ func testAccStoragePoolExists(t *testing.T, n string, pool *api.StoragePool) res
 		if err != nil {
 			return err
 		}
-		v, err := client.StoragePoolGet(poolName)
+		v, _, err := client.GetStoragePool(poolName)
 		if err != nil {
 			return err
 		}
 
-		*pool = v
+		pool = v
 
 		return nil
 	}

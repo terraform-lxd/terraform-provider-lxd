@@ -181,7 +181,7 @@ func testAccCachedImageExists(t *testing.T, n string, image *api.Image) resource
 		if err != nil {
 			return err
 		}
-		img, err := client.GetImageInfo(id.fingerprint)
+		img, _, err := client.GetImage(id.fingerprint)
 		if err != nil {
 			return err
 		}
@@ -223,7 +223,7 @@ func resourceAccCachedImageCheckAttributes(n string, img *api.Image) resource.Te
 		}
 
 		if rs.Primary.Attributes["architecture"] != img.Architecture {
-			return fmt.Errorf("architecture doesn't match")
+			return fmt.Errorf("architecture doesn't match: %s / %s", rs.Primary.Attributes["architecture"], img.Architecture)
 		}
 
 		if rs.Primary.Attributes["fingerprint"] != img.Fingerprint {

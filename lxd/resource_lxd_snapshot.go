@@ -63,23 +63,25 @@ func resourceLxdSnapshotCreate(d *schema.ResourceData, meta interface{}) error {
 	}
 
 	ctrName := d.Get("container_name").(string)
-	snapName := d.Get("name").(string)
-	stateful := d.Get("stateful").(bool)
+
+	snapPost := api.ContainerSnapshotsPost{}
+	snapPost.Name = d.Get("name").(string)
+	snapPost.Stateful = d.Get("stateful").(bool)
 
 	// stateful snapshots usually fail straight after container creation
 	// add a retry loop for creating snapshots
 	var i int
 	for i = 0; i < 5; i++ {
-		var resp *api.Response
-		resp, err = client.Snapshot(ctrName, snapName, stateful)
+
+		op, err := client.CreateContainerSnapshot(ctrName, snapPost)
 		if err != nil {
 			return err
 		}
 
 		// Wait for snapshot operation to complete
-		err = client.WaitForSuccess(resp.Operation)
+		err = op.Wait()
 		if err != nil {
-			if stateful && strings.Contains(err.Error(), "Dumping FAILED") {
+			if snapPost.Stateful && strings.Contains(err.Error(), "Dumping FAILED") {
 				log.Printf("[DEBUG] error creating stateful snapshot [%d]: %v", i, err)
 				time.Sleep(3 * time.Second)
 			} else {
@@ -93,8 +95,8 @@ func resourceLxdSnapshotCreate(d *schema.ResourceData, meta interface{}) error {
 		return fmt.Errorf("Failed to create snapshot after %d attempts, last error: %v", i, err)
 	}
 
-	snapId := NewSnapshotId(remote, ctrName, snapName)
-	d.SetId(snapId.String())
+	snapID := NewSnapshotId(remote, ctrName, snapPost.Name)
+	d.SetId(snapID.String())
 
 	return resourceLxdSnapshotRead(d, meta)
 }
@@ -106,9 +108,9 @@ func resourceLxdSnapshotRead(d *schema.ResourceData, meta interface{}) error {
 		return err
 	}
 
-	snapId := NewSnapshotIdFromResourceId(d.Id())
+	snapID := NewSnapshotIdFromResourceId(d.Id())
 
-	snap, err := client.SnapshotInfo(snapId.LxdId())
+	snap, _, err := client.GetContainerSnapshot(snapID.container, snapID.snapshot)
 	if err != nil {
 		if err.Error() == "not found" {
 			d.SetId("")
@@ -117,8 +119,8 @@ func resourceLxdSnapshotRead(d *schema.ResourceData, meta interface{}) error {
 		return err
 	}
 
-	d.Set("container_name", snapId.container)
-	d.Set("name", snapId.snapshot)
+	d.Set("container_name", snapID.container)
+	d.Set("name", snapID.snapshot)
 	d.Set("stateful", snap.Stateful)
 	d.Set("creation_date", snap.CreationDate.String())
 
@@ -131,9 +133,9 @@ func resourceLxdSnapshotDelete(d *schema.ResourceData, meta interface{}) error {
 	if err != nil {
 		return err
 	}
-	name := d.Id()
+	snapID := NewSnapshotIdFromResourceId(d.Id())
 
-	client.Delete(name)
+	client.DeleteContainerSnapshot(snapID.container, snapID.snapshot)
 
 	return nil
 }
@@ -144,9 +146,9 @@ func resourceLxdSnapshotExists(d *schema.ResourceData, meta interface{}) (bool, 
 	if err != nil {
 		return false, err
 	}
-	snapId := NewSnapshotIdFromResourceId(d.Id())
+	snapID := NewSnapshotIdFromResourceId(d.Id())
 
-	snap, err := client.SnapshotInfo(snapId.LxdId())
+	snap, _, err := client.GetContainerSnapshot(snapID.container, snapID.snapshot)
 
 	if err != nil && err.Error() == "not found" {
 		err = nil

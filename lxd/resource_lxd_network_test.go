@@ -79,12 +79,12 @@ func testAccNetworkExists(t *testing.T, n string, network *api.Network) resource
 		if err != nil {
 			return err
 		}
-		n, err := client.NetworkGet(rs.Primary.ID)
+		n, _, err := client.GetNetwork(rs.Primary.ID)
 		if err != nil {
 			return err
 		}
 
-		*network = n
+		*network = *n
 
 		return nil
 	}

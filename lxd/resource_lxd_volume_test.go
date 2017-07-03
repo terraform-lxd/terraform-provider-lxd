@@ -49,12 +49,12 @@ func testAccVolumeExists(t *testing.T, n string, volume *api.StorageVolume) reso
 		if err != nil {
 			return err
 		}
-		vol, err := client.StoragePoolVolumeTypeGet(v.pool, v.name, v.volType)
+		vol, _, err := client.GetStoragePoolVolume(v.pool, v.volType, v.name)
 		if err != nil {
 			return err
 		}
 
-		*volume = vol
+		volume = vol
 
 		return nil
 	}

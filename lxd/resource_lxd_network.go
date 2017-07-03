@@ -4,6 +4,7 @@ import (
 	"log"
 
 	"github.com/hashicorp/terraform/helper/schema"
+	"github.com/lxc/lxd/shared/api"
 )
 
 func resourceLxdNetwork() *schema.Resource {
@@ -58,7 +59,9 @@ func resourceLxdNetworkCreate(d *schema.ResourceData, meta interface{}) error {
 	config := resourceLxdConfigMap(d.Get("config"))
 
 	log.Printf("[DEBUG] Creating network %s with config: %#v", name, config)
-	if err := client.NetworkCreate(name, config); err != nil {
+	req := api.NetworksPost{Name: name}
+	req.Config = config
+	if err := client.CreateNetwork(req); err != nil {
 		if err.Error() == "not implemented" {
 			err = ErrNetworksNotImplemented
 		}
@@ -79,7 +82,7 @@ func resourceLxdNetworkRead(d *schema.ResourceData, meta interface{}) error {
 	}
 	name := d.Id()
 
-	network, err := client.NetworkGet(name)
+	network, _, err := client.GetNetwork(name)
 	if err != nil {
 		return err
 	}
@@ -107,7 +110,7 @@ func resourceLxdNetworkDelete(d *schema.ResourceData, meta interface{}) (err err
 
 	name := d.Id()
 
-	if err = client.NetworkDelete(name); err != nil {
+	if err = client.DeleteNetwork(name); err != nil {
 		return err
 	}
 
@@ -125,7 +128,7 @@ func resourceLxdNetworkExists(d *schema.ResourceData, meta interface{}) (exists 
 
 	exists = false
 
-	if _, err := client.NetworkGet(name); err == nil {
+	if _, _, err := client.GetNetwork(name); err == nil {
 		exists = true
 	}
 

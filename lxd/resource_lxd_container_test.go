@@ -340,13 +340,13 @@ func testAccContainerRunning(t *testing.T, n string, container *api.Container) r
 		if err != nil {
 			return err
 		}
-		ct, err := client.ContainerInfo(rs.Primary.ID)
+		ct, _, err := client.GetContainer(rs.Primary.ID)
 		if err != nil {
 			return err
 		}
 
 		if ct != nil {
-			*container = *ct
+			container = ct
 			return nil
 		}
 

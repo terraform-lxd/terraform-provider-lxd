@@ -80,17 +80,12 @@ func resourceLxdProfileCreate(d *schema.ResourceData, meta interface{}) error {
 	config := resourceLxdConfigMap(d.Get("config"))
 	devices := resourceLxdDevices(d.Get("device"))
 
-	if err := client.ProfileCreate(name); err != nil {
-		return err
-	}
+	req := api.ProfilesPost{Name: name}
+	req.Config = config
+	req.Devices = devices
+	req.Description = description
 
-	profile := api.ProfilePut{
-		Config:      config,
-		Description: description,
-		Devices:     devices,
-	}
-
-	if err := client.PutProfile(name, profile); err != nil {
+	if err := client.CreateProfile(req); err != nil {
 		return err
 	}
 
@@ -108,7 +103,7 @@ func resourceLxdProfileRead(d *schema.ResourceData, meta interface{}) error {
 
 	name := d.Id()
 
-	profile, err := client.ProfileConfig(name)
+	profile, _, err := client.GetProfile(name)
 	if err != nil {
 		return err
 	}
@@ -133,7 +128,7 @@ func resourceLxdProfileUpdate(d *schema.ResourceData, meta interface{}) error {
 
 	var changed bool
 
-	profile, err := client.ProfileConfig(name)
+	profile, etag, err := client.GetProfile(name)
 	if err != nil {
 		return err
 	}
@@ -171,7 +166,7 @@ func resourceLxdProfileUpdate(d *schema.ResourceData, meta interface{}) error {
 	}
 
 	if changed {
-		err := client.PutProfile(name, newProfile)
+		err := client.UpdateProfile(name, newProfile, etag)
 		if err != nil {
 			return err
 		}
@@ -189,7 +184,7 @@ func resourceLxdProfileDelete(d *schema.ResourceData, meta interface{}) (err err
 
 	name := d.Id()
 
-	if err = client.ProfileDelete(name); err != nil {
+	if err = client.DeleteProfile(name); err != nil {
 		return err
 	}
 
@@ -207,7 +202,7 @@ func resourceLxdProfileExists(d *schema.ResourceData, meta interface{}) (exists 
 
 	exists = false
 
-	profile, err := client.ProfileConfig(name)
+	profile, _, err := client.GetProfile(name)
 	if err == nil && profile != nil {
 		exists = true
 	}
