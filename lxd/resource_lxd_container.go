@@ -5,6 +5,7 @@ import (
 	"encoding/hex"
 	"fmt"
 	"log"
+	"os"
 	"path"
 	"path/filepath"
 	"strconv"
@@ -15,7 +16,9 @@ import (
 	"github.com/hashicorp/terraform/helper/schema"
 
 	lxd "github.com/lxc/lxd/client"
+	"github.com/lxc/lxd/shared"
 	"github.com/lxc/lxd/shared/api"
+	"github.com/lxc/lxd/shared/i18n"
 )
 
 var UpdateTimeout int = int(time.Duration(time.Second * 30).Seconds())
@@ -177,15 +180,20 @@ func resourceLxdContainerCreate(d *schema.ResourceData, meta interface{}) error 
 		return err
 	}
 
-	refreshInterval := meta.(*LxdProvider).RefreshInterval
-
 	name := d.Get("name").(string)
 	ephem := d.Get("ephemeral").(bool)
 	image := d.Get("image").(string)
+	imgRemote := remote
 	if imgParts := strings.SplitN(image, ":", 2); len(imgParts) == 2 {
-		remote = imgParts[0]
+		imgRemote = imgParts[0]
 		image = imgParts[1]
 	}
+	imgServer, err := p.GetImageClient(imgRemote)
+	if err != nil {
+		return fmt.Errorf("could not create image server client: %v", err)
+	}
+
+	// Prepare container config
 	config := resourceLxdConfigMap(d.Get("config"))
 	config = resourceLxdConfigMapAppend(config, d.Get("limits"), "limits.")
 
@@ -203,59 +211,68 @@ func resourceLxdContainerCreate(d *schema.ResourceData, meta interface{}) error 
 		profiles = append(profiles, "default")
 	}
 
-	// client.Init = (name string, imgremote string, image string, profiles *[]string, config map[string]string, devices shared.Devices, ephem bool)
-	// var resp *api.Response
-	req := api.ContainersPost{}
-	req.Name = name
-	req.Source = api.ContainerSource{Alias: image, Server: remote}
-	req.Profiles = profiles
-	req.Config = config
-	req.Devices = devices
-	req.Ephemeral = ephem
+	// build API request
+	createReq := api.ContainersPost{}
+	createReq.Name = name
+	createReq.Profiles = profiles
+	createReq.Config = config
+	createReq.Devices = devices
+	createReq.Ephemeral = ephem
 
-	op, err := client.CreateContainer(req)
+	// Gather info about source image
+	//
+	// Optimisation for simplestreams
+	var imgInfo *api.Image
+	if conn, _ := imgServer.GetConnectionInfo(); conn.Protocol == "simplestreams" {
+		imgInfo = &api.Image{}
+		imgInfo.Fingerprint = image
+		imgInfo.Public = true
+		createReq.Source.Alias = image
+	} else {
+		// Attempt to resolve an image alias
+		alias, _, err := imgServer.GetImageAlias(image)
+		if err == nil {
+			createReq.Source.Alias = image
+			image = alias.Target
+		}
+
+		// Get the image info
+		imgInfo, _, err = imgServer.GetImage(image)
+		if err != nil {
+			return fmt.Errorf("could not get image info: %v", err)
+		}
+	}
+
+	// Create container. It will not be running after this operation
+	op1, err := client.CreateContainerFromImage(imgServer, *imgInfo, createReq)
 	if err != nil {
 		return err
 	}
 
-	// Wait for the LXC container to be created
-	err = op.Wait()
+	// Wait for the container to be created
+	err = op1.Wait()
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to create container (%s): %s", name, err)
 	}
 
 	// Container has been created, store ID
 	d.SetId(name)
 
-	// Get container
-	// _, etag, err := client.GetContainer(name)
-
 	// Start container
-	csp := api.ContainerStatePut{
+	startReq := api.ContainerStatePut{
 		Action:  "start",
 		Timeout: UpdateTimeout,
 		Force:   false,
 	}
-	op, err = client.UpdateContainerState(name, csp, "")
+	op2, err := client.UpdateContainerState(name, startReq, "")
 	if err != nil {
 		// Container has been created, but daemon rejected start request
-		return err
+		return fmt.Errorf("LXD server rejected request to start container (%s): %s", name, err)
 	}
 
-	// Wait until the container is in a Running state
-	stateConf := &resource.StateChangeConf{
-		Target:     []string{"Running"},
-		Refresh:    resourceLxdContainerRefresh(client, name),
-		Timeout:    3 * time.Minute,
-		Delay:      refreshInterval,
-		MinTimeout: 3 * time.Second,
+	if err = op2.Wait(); err != nil {
+		return fmt.Errorf("failed to start container (%s): %s", name, err)
 	}
-
-	if _, err = stateConf.WaitForState(); err != nil {
-		return fmt.Errorf("Error waiting for container (%s) to become active: %s", name, err)
-	}
-
-	d.SetId(name)
 
 	// Upload any files, if specified,
 	// and set the contents to a hash in the State
@@ -553,8 +570,8 @@ func resourceLxdContainerUploadFile(client lxd.ContainerServer, container string
 		return fmt.Errorf("Target must be an absolute path with filename")
 	}
 
-	// mode := os.FileMode(0755)
-	mode := 755
+	mode := os.FileMode(0755)
+	// mode := 755
 	if v, ok := fileInfo["mode"].(string); ok && v != "" {
 		if len(v) != 3 {
 			v = "0" + v
@@ -565,28 +582,30 @@ func resourceLxdContainerUploadFile(client lxd.ContainerServer, container string
 			return fmt.Errorf("Could not determine file mode %s", v)
 		}
 
-		mode = int(m)
-		// mode = os.FileMode(m)
+		// mode = int(m)
+		mode = os.FileMode(m)
 	}
 
 	log.Printf("[DEBUG] Attempting to upload file to %s with uid %d, gid %d, and mode %s",
 		fileTarget, uid, gid, fmt.Sprintf("%04o", mode))
 
 	if createDirectories {
-		args := lxd.ContainerFileArgs{
-			Mode: mode,
-			UID:  int64(uid),
-			GID:  int64(gid),
-			Type: "directory",
-		}
-		if err := client.CreateContainerFile(container, path.Dir(fileTarget), args); err != nil {
-			return fmt.Errorf("Could not create path %s", path.Dir(fileTarget))
-		}
+		// args := lxd.ContainerFileArgs{
+		// 	Mode: mode,
+		// 	UID:  int64(uid),
+		// 	GID:  int64(gid),
+		// 	Type: "directory",
+		// }
+		// if err := client.CreateContainerFile(container, path.Dir(fileTarget), args); err != nil {
+		// 	return fmt.Errorf("Could not create path %s", path.Dir(fileTarget))
+		// }
+		err := recursiveMkdir(client, container, path.Dir(fileTarget), mode, int64(uid), int64(gid))
+		return err
 	}
 
 	f := strings.NewReader(fileContent)
 	args := lxd.ContainerFileArgs{
-		Mode:    mode,
+		Mode:    int(mode.Perm()),
 		UID:     int64(uid),
 		GID:     int64(gid),
 		Type:    "file",
@@ -623,4 +642,102 @@ func resourceLxdContainerDeleteFile(client lxd.ContainerServer, container string
 	log.Printf("[DEBUG] Successfully deleted file %s", fileTarget)
 
 	return nil
+}
+
+func recursiveMkdir(d lxd.ContainerServer, container string, p string, mode os.FileMode, uid int64, gid int64) error {
+	/* special case, every container has a /, we don't need to do anything */
+	if p == "/" {
+		return nil
+	}
+
+	// Remove trailing "/" e.g. /A/B/C/. Otherwise we will end up with an
+	// empty array entry "" which will confuse the Mkdir() loop below.
+	pclean := filepath.Clean(p)
+	parts := strings.Split(pclean, "/")
+	i := len(parts)
+
+	for ; i >= 1; i-- {
+		cur := filepath.Join(parts[:i]...)
+		_, resp, err := d.GetContainerFile(container, cur)
+		if err != nil {
+			continue
+		}
+
+		if resp.Type != "directory" {
+			return fmt.Errorf(i18n.G("%s is not a directory"), cur)
+		}
+
+		i++
+		break
+	}
+
+	for ; i <= len(parts); i++ {
+		cur := filepath.Join(parts[:i]...)
+		if cur == "" {
+			continue
+		}
+
+		args := lxd.ContainerFileArgs{
+			UID:  uid,
+			GID:  gid,
+			Mode: int(mode.Perm()),
+			Type: "directory",
+		}
+
+		err := d.CreateContainerFile(container, cur, args)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func recursivePushFile(d lxd.ContainerServer, container string, source string, target string) error {
+	sourceDir, _ := filepath.Split(source)
+	sourceLen := len(sourceDir)
+
+	sendFile := func(p string, fInfo os.FileInfo, err error) error {
+		if err != nil {
+			return fmt.Errorf(i18n.G("Failed to walk path for %s: %s"), p, err)
+		}
+
+		// Detect symlinks
+		if !fInfo.Mode().IsRegular() && !fInfo.Mode().IsDir() {
+			return fmt.Errorf(i18n.G("'%s' isn't a regular file or directory."), p)
+		}
+
+		targetPath := path.Join(target, filepath.ToSlash(p[sourceLen:]))
+		if fInfo.IsDir() {
+			mode, uid, gid := shared.GetOwnerMode(fInfo)
+			args := lxd.ContainerFileArgs{
+				UID:  int64(uid),
+				GID:  int64(gid),
+				Mode: int(mode.Perm()),
+				Type: "directory",
+			}
+
+			return d.CreateContainerFile(container, targetPath, args)
+		}
+
+		f, err := os.Open(p)
+		if err != nil {
+			return err
+		}
+		defer f.Close()
+
+		mode, uid, gid := shared.GetOwnerMode(fInfo)
+
+		args := lxd.ContainerFileArgs{
+			Content: f,
+			UID:     int64(uid),
+			GID:     int64(gid),
+			Mode:    int(mode.Perm()),
+			Type:    "file",
+		}
+
+		return d.CreateContainerFile(container, targetPath, args)
+	}
+
+	return filepath.Walk(source, sendFile)
 }

@@ -346,7 +346,7 @@ func testAccContainerRunning(t *testing.T, n string, container *api.Container) r
 		}
 
 		if ct != nil {
-			container = ct
+			*container = *ct
 			return nil
 		}
 
