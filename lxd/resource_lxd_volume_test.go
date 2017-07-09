@@ -54,7 +54,7 @@ func testAccVolumeExists(t *testing.T, n string, volume *api.StorageVolume) reso
 			return err
 		}
 
-		volume = vol
+		*volume = *vol
 
 		return nil
 	}

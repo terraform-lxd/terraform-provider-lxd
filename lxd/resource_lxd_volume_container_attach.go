@@ -85,15 +85,11 @@ func resourceLxdVolumeContainerAttachCreate(d *schema.ResourceData, meta interfa
 
 	log.Printf("Attempting to attach volume %s to container %s", volumeName, containerName)
 
-	// props := []string{
-	// 	fmt.Sprintf("pool=%s", pool),
-	// 	fmt.Sprintf("path=%s", devPath),
-	// 	fmt.Sprintf("source=%s", volumeName),
-	// }
 	props := map[string]string{
 		"pool":   pool,
 		"path":   devPath,
 		"source": volumeName,
+		"type":   "disk",
 	}
 
 	container, etag, err := client.GetContainer(containerName)

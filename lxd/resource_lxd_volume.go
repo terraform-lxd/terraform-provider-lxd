@@ -2,6 +2,7 @@ package lxd
 
 import (
 	"log"
+	"strings"
 
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/lxc/lxd/shared/api"
@@ -39,6 +40,11 @@ func resourceLxdVolume() *schema.Resource {
 				Type:     schema.TypeMap,
 				Optional: true,
 				ForceNew: false,
+			},
+
+			"expanded_config": &schema.Schema{
+				Type:     schema.TypeMap,
+				Computed: true,
 			},
 
 			"remote": &schema.Schema{
@@ -93,7 +99,16 @@ func resourceLxdVolumeRead(d *schema.ResourceData, meta interface{}) error {
 
 	log.Printf("[DEBUG] Retrieved volume %s: %#v", v.name, volume)
 
-	d.Set("config", volume.Config)
+	// remove volatile entries from Config map
+	newConfig := map[string]string{}
+	for k, v := range volume.Config {
+		if !strings.Contains(k, "volatile") {
+			newConfig[k] = v
+		}
+	}
+
+	d.Set("config", newConfig)
+	d.Set("expanded_config", volume.Config)
 
 	return nil
 }

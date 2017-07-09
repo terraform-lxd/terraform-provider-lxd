@@ -16,12 +16,11 @@ import (
 	"github.com/hashicorp/terraform/helper/schema"
 
 	lxd "github.com/lxc/lxd/client"
-	"github.com/lxc/lxd/shared"
 	"github.com/lxc/lxd/shared/api"
 	"github.com/lxc/lxd/shared/i18n"
 )
 
-var UpdateTimeout int = int(time.Duration(time.Second * 30).Seconds())
+var UpdateTimeout int = int(time.Duration(time.Second * 60).Seconds())
 
 func resourceLxdContainer() *schema.Resource {
 	return &schema.Resource{
@@ -477,19 +476,6 @@ func resourceLxdContainerDelete(d *schema.ResourceData, meta interface{}) (err e
 		if err = op.Wait(); err != nil {
 			return fmt.Errorf("Error waiting for container (%s) to stop: %s", name, err)
 		}
-
-		// Wait until the container is in a Stopped state
-		// stateConf := &resource.StateChangeConf{
-		// 	Target:     []string{"Stopped"},
-		// 	Refresh:    resourceLxdContainerRefresh(client, name),
-		// 	Timeout:    3 * time.Minute,
-		// 	Delay:      refreshInterval,
-		// 	MinTimeout: 3 * time.Second,
-		// }
-
-		// if _, err = stateConf.WaitForState(); err != nil {
-		// 	return fmt.Errorf("Error waiting for container (%s) to stop: %s", name, err)
-		// }
 	}
 
 	op, err := client.DeleteContainer(name)
@@ -590,26 +576,20 @@ func resourceLxdContainerUploadFile(client lxd.ContainerServer, container string
 		fileTarget, uid, gid, fmt.Sprintf("%04o", mode))
 
 	if createDirectories {
-		// args := lxd.ContainerFileArgs{
-		// 	Mode: mode,
-		// 	UID:  int64(uid),
-		// 	GID:  int64(gid),
-		// 	Type: "directory",
-		// }
-		// if err := client.CreateContainerFile(container, path.Dir(fileTarget), args); err != nil {
-		// 	return fmt.Errorf("Could not create path %s", path.Dir(fileTarget))
-		// }
 		err := recursiveMkdir(client, container, path.Dir(fileTarget), mode, int64(uid), int64(gid))
-		return err
+		if err != nil {
+			return fmt.Errorf("Could not upload file %s: %s", fileTarget, err)
+		}
 	}
 
 	f := strings.NewReader(fileContent)
 	args := lxd.ContainerFileArgs{
-		Mode:    int(mode.Perm()),
-		UID:     int64(uid),
-		GID:     int64(gid),
-		Type:    "file",
-		Content: f,
+		Mode:      int(mode.Perm()),
+		UID:       int64(uid),
+		GID:       int64(gid),
+		Type:      "file",
+		Content:   f,
+		WriteMode: "overwrite",
 	}
 	if err := client.CreateContainerFile(container, fileTarget, args); err != nil {
 		return fmt.Errorf("Could not upload file %s: %s", fileTarget, err)
@@ -691,53 +671,4 @@ func recursiveMkdir(d lxd.ContainerServer, container string, p string, mode os.F
 	}
 
 	return nil
-}
-
-func recursivePushFile(d lxd.ContainerServer, container string, source string, target string) error {
-	sourceDir, _ := filepath.Split(source)
-	sourceLen := len(sourceDir)
-
-	sendFile := func(p string, fInfo os.FileInfo, err error) error {
-		if err != nil {
-			return fmt.Errorf(i18n.G("Failed to walk path for %s: %s"), p, err)
-		}
-
-		// Detect symlinks
-		if !fInfo.Mode().IsRegular() && !fInfo.Mode().IsDir() {
-			return fmt.Errorf(i18n.G("'%s' isn't a regular file or directory."), p)
-		}
-
-		targetPath := path.Join(target, filepath.ToSlash(p[sourceLen:]))
-		if fInfo.IsDir() {
-			mode, uid, gid := shared.GetOwnerMode(fInfo)
-			args := lxd.ContainerFileArgs{
-				UID:  int64(uid),
-				GID:  int64(gid),
-				Mode: int(mode.Perm()),
-				Type: "directory",
-			}
-
-			return d.CreateContainerFile(container, targetPath, args)
-		}
-
-		f, err := os.Open(p)
-		if err != nil {
-			return err
-		}
-		defer f.Close()
-
-		mode, uid, gid := shared.GetOwnerMode(fInfo)
-
-		args := lxd.ContainerFileArgs{
-			Content: f,
-			UID:     int64(uid),
-			GID:     int64(gid),
-			Mode:    int(mode.Perm()),
-			Type:    "file",
-		}
-
-		return d.CreateContainerFile(container, targetPath, args)
-	}
-
-	return filepath.Walk(source, sendFile)
 }

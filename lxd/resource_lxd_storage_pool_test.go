@@ -54,7 +54,7 @@ func testAccStoragePoolExists(t *testing.T, n string, pool *api.StoragePool) res
 			return err
 		}
 
-		pool = v
+		*pool = *v
 
 		return nil
 	}

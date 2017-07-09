@@ -84,6 +84,9 @@ func resourceLxdSnapshotCreate(d *schema.ResourceData, meta interface{}) error {
 			if snapPost.Stateful && strings.Contains(err.Error(), "Dumping FAILED") {
 				log.Printf("[DEBUG] error creating stateful snapshot [%d]: %v", i, err)
 				time.Sleep(3 * time.Second)
+			} else if strings.Contains(err.Error(), "file has vanished") {
+				// ignore, try again
+				time.Sleep(3 * time.Second)
 			} else {
 				return err
 			}

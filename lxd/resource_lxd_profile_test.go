@@ -244,7 +244,7 @@ func testAccProfileRunning(t *testing.T, n string, profile *api.Profile) resourc
 		}
 
 		if p != nil {
-			profile = p
+			*profile = *p
 			return nil
 		}
 
