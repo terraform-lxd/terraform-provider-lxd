@@ -50,7 +50,7 @@ resource "aws_spot_instance_request" "lxd_acc_tests" {
   security_groups = ["${aws_security_group.lxd_acc_tests.name}"]
 
   root_block_device {
-    volume_size = 40
+    volume_size = 20
     delete_on_termination = true
   }
 
@@ -58,9 +58,13 @@ resource "aws_spot_instance_request" "lxd_acc_tests" {
     Name = "LXD Acceptance Test Infra"
   }
 
+}
+
+resource "null_resource" "lxd_acc_tests" {
   connection {
     type = "ssh"
     user = "ubuntu"
+    host = "${aws_spot_instance_request.lxd_acc_tests.public_ip}"
     private_key = "${file(var.private_key)}"
   }
 

@@ -68,6 +68,11 @@ resource "openstack_networking_secgroup_rule_v2" "lxd_acc_tests_rule_5" {
   remote_ip_prefix = "0.0.0.0/0"
 }
 
+resource "openstack_blockstorage_volume_v2" "lxd_acc_tests" {
+  name = "lxd_acc_tests"
+  size = 10
+}
+
 resource "openstack_networking_secgroup_rule_v2" "lxd_acc_tests_rule_6" {
   security_group_id = "${openstack_networking_secgroup_v2.lxd_acc_tests.id}"
   direction = "ingress"
@@ -92,6 +97,11 @@ resource "openstack_compute_instance_v2" "lxd_acc_tests" {
 resource "openstack_compute_floatingip_associate_v2" "lxd_acc_tests" {
   instance_id = "${openstack_compute_instance_v2.lxd_acc_tests.id}"
   floating_ip = "${openstack_networking_floatingip_v2.lxd_acc_tests.address}"
+}
+
+resource "openstack_compute_volume_attach_v2" "lxd_acc_tests" {
+  instance_id = "${openstack_compute_instance_v2.lxd_acc_tests.id}"
+  volume_id = "${openstack_blockstorage_volume_v2.lxd_acc_tests.id}"
 }
 
 resource "null_resource" "lxd_acc_tests" {
