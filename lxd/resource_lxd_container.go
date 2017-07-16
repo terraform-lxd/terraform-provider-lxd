@@ -273,6 +273,21 @@ func resourceLxdContainerCreate(d *schema.ResourceData, meta interface{}) error 
 		return fmt.Errorf("failed to start container (%s): %s", name, err)
 	}
 
+	// Even though op.Wait has completed,
+	// wait until we can see the container is running via a new API call.
+	// At a minimum, this adds some padding between API calls.
+	stateConf := &resource.StateChangeConf{
+		Target:     []string{"Running"},
+		Refresh:    resourceLxdContainerRefresh(client, name),
+		Timeout:    3 * time.Minute,
+		Delay:      3 * time.Second,
+		MinTimeout: 3 * time.Second,
+	}
+
+	if _, err = stateConf.WaitForState(); err != nil {
+		return fmt.Errorf("Error waiting for container (%s) to become active: %s", name, err)
+	}
+
 	// Upload any files, if specified,
 	// and set the contents to a hash in the State
 	if files, ok := d.GetOk("file"); ok {
@@ -476,6 +491,22 @@ func resourceLxdContainerDelete(d *schema.ResourceData, meta interface{}) (err e
 		if err = op.Wait(); err != nil {
 			return fmt.Errorf("Error waiting for container (%s) to stop: %s", name, err)
 		}
+
+		// Even though op.Wait has completed,
+		// wait until we can see the container has stopped via a new API call.
+		// At a minimum, this adds some padding between API calls.
+		stateConf := &resource.StateChangeConf{
+			Target:     []string{"Stopped"},
+			Refresh:    resourceLxdContainerRefresh(client, name),
+			Timeout:    3 * time.Minute,
+			Delay:      3 * time.Second,
+			MinTimeout: 3 * time.Second,
+		}
+
+		if _, err = stateConf.WaitForState(); err != nil {
+			return fmt.Errorf("Error waiting for container (%s) to stop: %s", name, err)
+		}
+
 	}
 
 	op, err := client.DeleteContainer(name)
