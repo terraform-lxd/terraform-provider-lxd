@@ -273,6 +273,8 @@ func resourceLxdContainerCreate(d *schema.ResourceData, meta interface{}) error 
 		return fmt.Errorf("failed to start container (%s): %s", name, err)
 	}
 
+	time.Sleep(1 * time.Second)
+
 	// Upload any files, if specified,
 	// and set the contents to a hash in the State
 	if files, ok := d.GetOk("file"); ok {
@@ -431,6 +433,8 @@ func resourceLxdContainerUpdate(d *schema.ResourceData, meta interface{}) error 
 		if err = op.Wait(); err != nil {
 			return err
 		}
+
+		time.Sleep(1 * time.Second)
 	}
 
 	if d.HasChange("file") {
@@ -476,6 +480,8 @@ func resourceLxdContainerDelete(d *schema.ResourceData, meta interface{}) (err e
 		if err = op.Wait(); err != nil {
 			return fmt.Errorf("Error waiting for container (%s) to stop: %s", name, err)
 		}
+
+		time.Sleep(1 * time.Second)
 	}
 
 	op, err := client.DeleteContainer(name)
@@ -488,6 +494,8 @@ func resourceLxdContainerDelete(d *schema.ResourceData, meta interface{}) (err e
 	if err != nil {
 		return err
 	}
+
+	time.Sleep(1 * time.Second)
 
 	return nil
 }
