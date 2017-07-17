@@ -173,7 +173,7 @@ func resourceLxdContainerCreate(d *schema.ResourceData, meta interface{}) error 
 
 	p := meta.(*LxdProvider)
 	remote := p.selectRemote(d)
-	client, err := p.GetClient(remote)
+	server, err := p.GetContainerServer(remote)
 	if err != nil {
 		return err
 	}
@@ -187,7 +187,7 @@ func resourceLxdContainerCreate(d *schema.ResourceData, meta interface{}) error 
 		imgRemote = imgParts[0]
 		image = imgParts[1]
 	}
-	imgServer, err := p.GetImageClient(imgRemote)
+	imgServer, err := p.GetImageServer(imgRemote)
 	if err != nil {
 		return fmt.Errorf("could not create image server client: %v", err)
 	}
@@ -243,7 +243,7 @@ func resourceLxdContainerCreate(d *schema.ResourceData, meta interface{}) error 
 	}
 
 	// Create container. It will not be running after this operation
-	op1, err := client.CreateContainerFromImage(imgServer, *imgInfo, createReq)
+	op1, err := server.CreateContainerFromImage(imgServer, *imgInfo, createReq)
 	if err != nil {
 		return err
 	}
@@ -263,7 +263,7 @@ func resourceLxdContainerCreate(d *schema.ResourceData, meta interface{}) error 
 		Timeout: UpdateTimeout,
 		Force:   false,
 	}
-	op2, err := client.UpdateContainerState(name, startReq, "")
+	op2, err := server.UpdateContainerState(name, startReq, "")
 	if err != nil {
 		// Container has been created, but daemon rejected start request
 		return fmt.Errorf("LXD server rejected request to start container (%s): %s", name, err)
@@ -278,7 +278,7 @@ func resourceLxdContainerCreate(d *schema.ResourceData, meta interface{}) error 
 	// At a minimum, this adds some padding between API calls.
 	stateConf := &resource.StateChangeConf{
 		Target:     []string{"Running"},
-		Refresh:    resourceLxdContainerRefresh(client, name),
+		Refresh:    resourceLxdContainerRefresh(server, name),
 		Timeout:    3 * time.Minute,
 		Delay:      refreshInterval,
 		MinTimeout: 3 * time.Second,
@@ -293,7 +293,7 @@ func resourceLxdContainerCreate(d *schema.ResourceData, meta interface{}) error 
 	if files, ok := d.GetOk("file"); ok {
 		for _, v := range files.([]interface{}) {
 			file := v.(map[string]interface{})
-			if err := resourceLxdContainerUploadFile(client, name, file); err != nil {
+			if err := resourceLxdContainerUploadFile(server, name, file); err != nil {
 				return err
 			}
 			hash := sha1.Sum([]byte(file["content"].(string)))
@@ -309,20 +309,20 @@ func resourceLxdContainerCreate(d *schema.ResourceData, meta interface{}) error 
 func resourceLxdContainerRead(d *schema.ResourceData, meta interface{}) error {
 	p := meta.(*LxdProvider)
 	remote := p.selectRemote(d)
-	client, err := p.GetClient(remote)
+	server, err := p.GetContainerServer(remote)
 	if err != nil {
 		return err
 	}
 
 	name := d.Id()
 
-	container, _, err := client.GetContainer(name)
+	container, _, err := server.GetContainer(name)
 	if err != nil {
 		return err
 	}
 	log.Printf("[DEBUG] Retrieved container %s: %#v", name, container)
 
-	state, _, err := client.GetContainerState(name)
+	state, _, err := server.GetContainerState(name)
 	if err != nil {
 		return err
 	}
@@ -365,7 +365,7 @@ func resourceLxdContainerRead(d *schema.ResourceData, meta interface{}) error {
 func resourceLxdContainerUpdate(d *schema.ResourceData, meta interface{}) error {
 	p := meta.(*LxdProvider)
 	remote := p.selectRemote(d)
-	client, err := p.GetClient(remote)
+	server, err := p.GetContainerServer(remote)
 	if err != nil {
 		return err
 	}
@@ -375,7 +375,7 @@ func resourceLxdContainerUpdate(d *schema.ResourceData, meta interface{}) error 
 	// changed determines if an update call needs made.
 	var changed bool
 
-	ct, etag, err := client.GetContainer(name)
+	ct, etag, err := server.GetContainer(name)
 	if err != nil {
 		return err
 	}
@@ -439,7 +439,7 @@ func resourceLxdContainerUpdate(d *schema.ResourceData, meta interface{}) error 
 
 	if changed {
 		log.Printf("[DEBUG] Updating container %s: %#v", name, newContainer)
-		op, err := client.UpdateContainer(name, newContainer, etag)
+		op, err := server.UpdateContainer(name, newContainer, etag)
 		if err != nil {
 			return err
 		}
@@ -451,13 +451,13 @@ func resourceLxdContainerUpdate(d *schema.ResourceData, meta interface{}) error 
 	if d.HasChange("file") {
 		oldFiles, newFiles := d.GetChange("file")
 		for _, v := range oldFiles.([]interface{}) {
-			if err := resourceLxdContainerDeleteFile(client, name, v); err != nil {
+			if err := resourceLxdContainerDeleteFile(server, name, v); err != nil {
 				return err
 			}
 		}
 
 		for _, v := range newFiles.([]interface{}) {
-			if err := resourceLxdContainerUploadFile(client, name, v); err != nil {
+			if err := resourceLxdContainerUploadFile(server, name, v); err != nil {
 				return err
 			}
 		}
@@ -469,7 +469,7 @@ func resourceLxdContainerUpdate(d *schema.ResourceData, meta interface{}) error 
 func resourceLxdContainerDelete(d *schema.ResourceData, meta interface{}) (err error) {
 	p := meta.(*LxdProvider)
 	remote := p.selectRemote(d)
-	client, err := p.GetClient(remote)
+	server, err := p.GetContainerServer(remote)
 	if err != nil {
 		return err
 	}
@@ -477,14 +477,14 @@ func resourceLxdContainerDelete(d *schema.ResourceData, meta interface{}) (err e
 	refreshInterval := meta.(*LxdProvider).RefreshInterval
 	name := d.Id()
 
-	ct, etag, _ := client.GetContainerState(name)
+	ct, etag, _ := server.GetContainerState(name)
 	if ct.Status == "Running" {
 		stopReq := api.ContainerStatePut{
 			Action:  "stop",
 			Timeout: UpdateTimeout,
 		}
 
-		op, err := client.UpdateContainerState(name, stopReq, etag)
+		op, err := server.UpdateContainerState(name, stopReq, etag)
 		if err != nil {
 			return err
 		}
@@ -497,7 +497,7 @@ func resourceLxdContainerDelete(d *schema.ResourceData, meta interface{}) (err e
 		// At a minimum, this adds some padding between API calls.
 		stateConf := &resource.StateChangeConf{
 			Target:     []string{"Stopped"},
-			Refresh:    resourceLxdContainerRefresh(client, name),
+			Refresh:    resourceLxdContainerRefresh(server, name),
 			Timeout:    3 * time.Minute,
 			Delay:      refreshInterval,
 			MinTimeout: 3 * time.Second,
@@ -509,7 +509,7 @@ func resourceLxdContainerDelete(d *schema.ResourceData, meta interface{}) (err e
 
 	}
 
-	op, err := client.DeleteContainer(name)
+	op, err := server.DeleteContainer(name)
 	if err != nil {
 		return err
 	}
@@ -526,7 +526,7 @@ func resourceLxdContainerDelete(d *schema.ResourceData, meta interface{}) (err e
 func resourceLxdContainerExists(d *schema.ResourceData, meta interface{}) (exists bool, err error) {
 	p := meta.(*LxdProvider)
 	remote := p.selectRemote(d)
-	client, err := p.GetClient(remote)
+	server, err := p.GetContainerServer(remote)
 	if err != nil {
 		return false, err
 	}
@@ -535,7 +535,7 @@ func resourceLxdContainerExists(d *schema.ResourceData, meta interface{}) (exist
 
 	exists = false
 
-	ct, _, err := client.GetContainerState(name)
+	ct, _, err := server.GetContainerState(name)
 	if err != nil && err.Error() == "not found" {
 		err = nil
 	}
@@ -546,9 +546,9 @@ func resourceLxdContainerExists(d *schema.ResourceData, meta interface{}) (exist
 	return
 }
 
-func resourceLxdContainerRefresh(client lxd.ContainerServer, name string) resource.StateRefreshFunc {
+func resourceLxdContainerRefresh(server lxd.ContainerServer, name string) resource.StateRefreshFunc {
 	return func() (interface{}, string, error) {
-		st, _, err := client.GetContainerState(name)
+		st, _, err := server.GetContainerState(name)
 		if err != nil {
 			return st, "Error", err
 		}
@@ -557,7 +557,7 @@ func resourceLxdContainerRefresh(client lxd.ContainerServer, name string) resour
 	}
 }
 
-func resourceLxdContainerUploadFile(client lxd.ContainerServer, container string, file interface{}) error {
+func resourceLxdContainerUploadFile(server lxd.ContainerServer, container string, file interface{}) error {
 	var uid, gid int
 	var createDirectories bool
 	fileInfo := file.(map[string]interface{})
@@ -605,7 +605,7 @@ func resourceLxdContainerUploadFile(client lxd.ContainerServer, container string
 		fileTarget, uid, gid, fmt.Sprintf("%04o", mode))
 
 	if createDirectories {
-		err := recursiveMkdir(client, container, path.Dir(fileTarget), mode, int64(uid), int64(gid))
+		err := recursiveMkdir(server, container, path.Dir(fileTarget), mode, int64(uid), int64(gid))
 		if err != nil {
 			return fmt.Errorf("Could not upload file %s: %s", fileTarget, err)
 		}
@@ -620,7 +620,7 @@ func resourceLxdContainerUploadFile(client lxd.ContainerServer, container string
 		Content:   f,
 		WriteMode: "overwrite",
 	}
-	if err := client.CreateContainerFile(container, fileTarget, args); err != nil {
+	if err := server.CreateContainerFile(container, fileTarget, args); err != nil {
 		return fmt.Errorf("Could not upload file %s: %s", fileTarget, err)
 	}
 
@@ -629,7 +629,7 @@ func resourceLxdContainerUploadFile(client lxd.ContainerServer, container string
 	return nil
 }
 
-func resourceLxdContainerDeleteFile(client lxd.ContainerServer, container string, file interface{}) error {
+func resourceLxdContainerDeleteFile(server lxd.ContainerServer, container string, file interface{}) error {
 	fileInfo := file.(map[string]interface{})
 	fileTarget := fileInfo["target_file"].(string)
 	fileTarget, err := filepath.Abs(fileTarget)
@@ -644,7 +644,7 @@ func resourceLxdContainerDeleteFile(client lxd.ContainerServer, container string
 
 	log.Printf("[DEBUG] Attempting to delete file %s", fileTarget)
 
-	if err := client.DeleteContainerFile(container, fileTarget); err != nil {
+	if err := server.DeleteContainerFile(container, fileTarget); err != nil {
 		return fmt.Errorf("Could not delete file %s: %s", fileTarget, err)
 	}
 

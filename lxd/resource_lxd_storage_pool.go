@@ -55,7 +55,7 @@ func resourceLxdStoragePool() *schema.Resource {
 
 func resourceLxdStoragePoolCreate(d *schema.ResourceData, meta interface{}) error {
 	p := meta.(*LxdProvider)
-	client, err := p.GetClient(p.selectRemote(d))
+	server, err := p.GetContainerServer(p.selectRemote(d))
 	if err != nil {
 		return err
 	}
@@ -70,7 +70,7 @@ func resourceLxdStoragePoolCreate(d *schema.ResourceData, meta interface{}) erro
 	post.Driver = driver
 	post.Config = config
 
-	if err := client.CreateStoragePool(post); err != nil {
+	if err := server.CreateStoragePool(post); err != nil {
 		return err
 	}
 
@@ -81,14 +81,14 @@ func resourceLxdStoragePoolCreate(d *schema.ResourceData, meta interface{}) erro
 
 func resourceLxdStoragePoolRead(d *schema.ResourceData, meta interface{}) error {
 	p := meta.(*LxdProvider)
-	client, err := p.GetClient(p.selectRemote(d))
+	server, err := p.GetContainerServer(p.selectRemote(d))
 	if err != nil {
 		return err
 	}
 
 	name := d.Id()
 
-	pool, _, err := client.GetStoragePool(name)
+	pool, _, err := server.GetStoragePool(name)
 	if err != nil {
 		return err
 	}
@@ -102,7 +102,7 @@ func resourceLxdStoragePoolRead(d *schema.ResourceData, meta interface{}) error 
 
 func resourceLxdStoragePoolUpdate(d *schema.ResourceData, meta interface{}) error {
 	p := meta.(*LxdProvider)
-	client, err := p.GetClient(p.selectRemote(d))
+	server, err := p.GetContainerServer(p.selectRemote(d))
 	if err != nil {
 		return err
 	}
@@ -110,7 +110,7 @@ func resourceLxdStoragePoolUpdate(d *schema.ResourceData, meta interface{}) erro
 	name := d.Id()
 
 	if d.HasChange("config") {
-		pool, etag, err := client.GetStoragePool(name)
+		pool, etag, err := server.GetStoragePool(name)
 		if err != nil {
 			return err
 		}
@@ -122,7 +122,7 @@ func resourceLxdStoragePoolUpdate(d *schema.ResourceData, meta interface{}) erro
 
 		post := api.StoragePoolPut{}
 		post.Config = config
-		if err := client.UpdateStoragePool(name, post, etag); err != nil {
+		if err := server.UpdateStoragePool(name, post, etag); err != nil {
 			return err
 		}
 	}
@@ -132,14 +132,14 @@ func resourceLxdStoragePoolUpdate(d *schema.ResourceData, meta interface{}) erro
 
 func resourceLxdStoragePoolDelete(d *schema.ResourceData, meta interface{}) (err error) {
 	p := meta.(*LxdProvider)
-	client, err := p.GetClient(p.selectRemote(d))
+	server, err := p.GetContainerServer(p.selectRemote(d))
 	if err != nil {
 		return err
 	}
 
 	name := d.Id()
 
-	if err = client.DeleteStoragePool(name); err != nil {
+	if err = server.DeleteStoragePool(name); err != nil {
 		return err
 	}
 
@@ -148,7 +148,7 @@ func resourceLxdStoragePoolDelete(d *schema.ResourceData, meta interface{}) (err
 
 func resourceLxdStoragePoolExists(d *schema.ResourceData, meta interface{}) (exists bool, err error) {
 	p := meta.(*LxdProvider)
-	client, err := p.GetClient(p.selectRemote(d))
+	server, err := p.GetContainerServer(p.selectRemote(d))
 	if err != nil {
 		return false, err
 	}
@@ -156,7 +156,7 @@ func resourceLxdStoragePoolExists(d *schema.ResourceData, meta interface{}) (exi
 	name := d.Id()
 	exists = false
 
-	_, _, err = client.GetStoragePool(name)
+	_, _, err = server.GetStoragePool(name)
 	if err == nil {
 		exists = true
 	}

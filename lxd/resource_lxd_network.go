@@ -50,7 +50,7 @@ func resourceLxdNetwork() *schema.Resource {
 
 func resourceLxdNetworkCreate(d *schema.ResourceData, meta interface{}) error {
 	p := meta.(*LxdProvider)
-	client, err := p.GetClient(p.selectRemote(d))
+	server, err := p.GetContainerServer(p.selectRemote(d))
 	if err != nil {
 		return err
 	}
@@ -61,7 +61,7 @@ func resourceLxdNetworkCreate(d *schema.ResourceData, meta interface{}) error {
 	log.Printf("[DEBUG] Creating network %s with config: %#v", name, config)
 	req := api.NetworksPost{Name: name}
 	req.Config = config
-	if err := client.CreateNetwork(req); err != nil {
+	if err := server.CreateNetwork(req); err != nil {
 		if err.Error() == "not implemented" {
 			err = ErrNetworksNotImplemented
 		}
@@ -76,13 +76,13 @@ func resourceLxdNetworkCreate(d *schema.ResourceData, meta interface{}) error {
 
 func resourceLxdNetworkRead(d *schema.ResourceData, meta interface{}) error {
 	p := meta.(*LxdProvider)
-	client, err := p.GetClient(p.selectRemote(d))
+	server, err := p.GetContainerServer(p.selectRemote(d))
 	if err != nil {
 		return err
 	}
 	name := d.Id()
 
-	network, _, err := client.GetNetwork(name)
+	network, _, err := server.GetNetwork(name)
 	if err != nil {
 		return err
 	}
@@ -103,14 +103,14 @@ func resourceLxdNetworkUpdate(d *schema.ResourceData, meta interface{}) error {
 
 func resourceLxdNetworkDelete(d *schema.ResourceData, meta interface{}) (err error) {
 	p := meta.(*LxdProvider)
-	client, err := p.GetClient(p.selectRemote(d))
+	server, err := p.GetContainerServer(p.selectRemote(d))
 	if err != nil {
 		return err
 	}
 
 	name := d.Id()
 
-	if err = client.DeleteNetwork(name); err != nil {
+	if err = server.DeleteNetwork(name); err != nil {
 		return err
 	}
 
@@ -119,7 +119,7 @@ func resourceLxdNetworkDelete(d *schema.ResourceData, meta interface{}) (err err
 
 func resourceLxdNetworkExists(d *schema.ResourceData, meta interface{}) (exists bool, err error) {
 	p := meta.(*LxdProvider)
-	client, err := p.GetClient(p.selectRemote(d))
+	server, err := p.GetContainerServer(p.selectRemote(d))
 	if err != nil {
 		return false, err
 	}
@@ -128,7 +128,7 @@ func resourceLxdNetworkExists(d *schema.ResourceData, meta interface{}) (exists 
 
 	exists = false
 
-	if _, _, err := client.GetNetwork(name); err == nil {
+	if _, _, err := server.GetNetwork(name); err == nil {
 		exists = true
 	}
 

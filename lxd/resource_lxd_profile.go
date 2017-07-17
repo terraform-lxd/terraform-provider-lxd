@@ -70,7 +70,7 @@ func resourceLxdProfile() *schema.Resource {
 
 func resourceLxdProfileCreate(d *schema.ResourceData, meta interface{}) error {
 	p := meta.(*LxdProvider)
-	client, err := p.GetClient(p.selectRemote(d))
+	server, err := p.GetContainerServer(p.selectRemote(d))
 	if err != nil {
 		return err
 	}
@@ -85,7 +85,7 @@ func resourceLxdProfileCreate(d *schema.ResourceData, meta interface{}) error {
 	req.Devices = devices
 	req.Description = description
 
-	if err := client.CreateProfile(req); err != nil {
+	if err := server.CreateProfile(req); err != nil {
 		return err
 	}
 
@@ -96,14 +96,14 @@ func resourceLxdProfileCreate(d *schema.ResourceData, meta interface{}) error {
 
 func resourceLxdProfileRead(d *schema.ResourceData, meta interface{}) error {
 	p := meta.(*LxdProvider)
-	client, err := p.GetClient(p.selectRemote(d))
+	server, err := p.GetContainerServer(p.selectRemote(d))
 	if err != nil {
 		return err
 	}
 
 	name := d.Id()
 
-	profile, _, err := client.GetProfile(name)
+	profile, _, err := server.GetProfile(name)
 	if err != nil {
 		return err
 	}
@@ -119,7 +119,7 @@ func resourceLxdProfileRead(d *schema.ResourceData, meta interface{}) error {
 
 func resourceLxdProfileUpdate(d *schema.ResourceData, meta interface{}) error {
 	p := meta.(*LxdProvider)
-	client, err := p.GetClient(p.selectRemote(d))
+	server, err := p.GetContainerServer(p.selectRemote(d))
 	if err != nil {
 		return err
 	}
@@ -128,7 +128,7 @@ func resourceLxdProfileUpdate(d *schema.ResourceData, meta interface{}) error {
 
 	var changed bool
 
-	profile, etag, err := client.GetProfile(name)
+	profile, etag, err := server.GetProfile(name)
 	if err != nil {
 		return err
 	}
@@ -166,7 +166,7 @@ func resourceLxdProfileUpdate(d *schema.ResourceData, meta interface{}) error {
 	}
 
 	if changed {
-		err := client.UpdateProfile(name, newProfile, etag)
+		err := server.UpdateProfile(name, newProfile, etag)
 		if err != nil {
 			return err
 		}
@@ -177,14 +177,14 @@ func resourceLxdProfileUpdate(d *schema.ResourceData, meta interface{}) error {
 
 func resourceLxdProfileDelete(d *schema.ResourceData, meta interface{}) (err error) {
 	p := meta.(*LxdProvider)
-	client, err := p.GetClient(p.selectRemote(d))
+	server, err := p.GetContainerServer(p.selectRemote(d))
 	if err != nil {
 		return err
 	}
 
 	name := d.Id()
 
-	if err = client.DeleteProfile(name); err != nil {
+	if err = server.DeleteProfile(name); err != nil {
 		return err
 	}
 
@@ -193,7 +193,7 @@ func resourceLxdProfileDelete(d *schema.ResourceData, meta interface{}) (err err
 
 func resourceLxdProfileExists(d *schema.ResourceData, meta interface{}) (exists bool, err error) {
 	p := meta.(*LxdProvider)
-	client, err := p.GetClient(p.selectRemote(d))
+	server, err := p.GetContainerServer(p.selectRemote(d))
 	if err != nil {
 		return false, err
 	}
@@ -202,7 +202,7 @@ func resourceLxdProfileExists(d *schema.ResourceData, meta interface{}) (exists 
 
 	exists = false
 
-	profile, _, err := client.GetProfile(name)
+	profile, _, err := server.GetProfile(name)
 	if err == nil && profile != nil {
 		exists = true
 	}

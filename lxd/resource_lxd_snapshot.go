@@ -57,7 +57,7 @@ func resourceLxdSnapshotCreate(d *schema.ResourceData, meta interface{}) error {
 	p := meta.(*LxdProvider)
 
 	remote := p.selectRemote(d)
-	client, err := p.GetClient(remote)
+	server, err := p.GetContainerServer(remote)
 	if err != nil {
 		return err
 	}
@@ -73,7 +73,7 @@ func resourceLxdSnapshotCreate(d *schema.ResourceData, meta interface{}) error {
 	var i int
 	for i = 0; i < 5; i++ {
 
-		op, err := client.CreateContainerSnapshot(ctrName, snapPost)
+		op, err := server.CreateContainerSnapshot(ctrName, snapPost)
 		if err != nil {
 			return err
 		}
@@ -106,14 +106,14 @@ func resourceLxdSnapshotCreate(d *schema.ResourceData, meta interface{}) error {
 
 func resourceLxdSnapshotRead(d *schema.ResourceData, meta interface{}) error {
 	p := meta.(*LxdProvider)
-	client, err := p.GetClient(p.selectRemote(d))
+	server, err := p.GetContainerServer(p.selectRemote(d))
 	if err != nil {
 		return err
 	}
 
 	snapID := NewSnapshotIdFromResourceId(d.Id())
 
-	snap, _, err := client.GetContainerSnapshot(snapID.container, snapID.snapshot)
+	snap, _, err := server.GetContainerSnapshot(snapID.container, snapID.snapshot)
 	if err != nil {
 		if err.Error() == "not found" {
 			d.SetId("")
@@ -132,26 +132,26 @@ func resourceLxdSnapshotRead(d *schema.ResourceData, meta interface{}) error {
 
 func resourceLxdSnapshotDelete(d *schema.ResourceData, meta interface{}) error {
 	p := meta.(*LxdProvider)
-	client, err := p.GetClient(p.selectRemote(d))
+	server, err := p.GetContainerServer(p.selectRemote(d))
 	if err != nil {
 		return err
 	}
 	snapID := NewSnapshotIdFromResourceId(d.Id())
 
-	client.DeleteContainerSnapshot(snapID.container, snapID.snapshot)
+	server.DeleteContainerSnapshot(snapID.container, snapID.snapshot)
 
 	return nil
 }
 
 func resourceLxdSnapshotExists(d *schema.ResourceData, meta interface{}) (bool, error) {
 	p := meta.(*LxdProvider)
-	client, err := p.GetClient(p.selectRemote(d))
+	server, err := p.GetContainerServer(p.selectRemote(d))
 	if err != nil {
 		return false, err
 	}
 	snapID := NewSnapshotIdFromResourceId(d.Id())
 
-	snap, _, err := client.GetContainerSnapshot(snapID.container, snapID.snapshot)
+	snap, _, err := server.GetContainerSnapshot(snapID.container, snapID.snapshot)
 
 	if err != nil && err.Error() == "not found" {
 		err = nil

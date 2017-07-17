@@ -350,6 +350,7 @@ func validateLxdRemoteScheme(v interface{}, k string) ([]string, []error) {
 }
 
 // InitClient creates and returns an LXD client for the named remote
+// The created client is stored for later use
 func (p *LxdProvider) initClient(remote string) (lxd.Server, error) {
 	var client lxd.Server
 	var err error
@@ -371,9 +372,10 @@ func (p *LxdProvider) initClient(remote string) (lxd.Server, error) {
 	return client, nil
 }
 
-// GetClient returns an LXD client for the named remote
-func (p *LxdProvider) GetClient(remote string) (lxd.ContainerServer, error) {
-	s, err := p.GetServerClient(remote)
+// GetContainerServer returns a client for the named remote
+// It returns an error if the remote is not a ContainerServer
+func (p *LxdProvider) GetContainerServer(remote string) (lxd.ContainerServer, error) {
+	s, err := p.GetServer(remote)
 	if err != nil {
 		return nil, err
 	}
@@ -385,10 +387,10 @@ func (p *LxdProvider) GetClient(remote string) (lxd.ContainerServer, error) {
 	return nil, fmt.Errorf("remote (%s / %s) is not a ContainerServer", remote, ci.Protocol)
 }
 
-// GetImageClient returns an LXD client for the named image server
+// GetImageServer returns a client for the named image server
 // It returns an error if the named remote is not an ImageServer
-func (p *LxdProvider) GetImageClient(remote string) (lxd.ImageServer, error) {
-	s, err := p.GetServerClient(remote)
+func (p *LxdProvider) GetImageServer(remote string) (lxd.ImageServer, error) {
+	s, err := p.GetServer(remote)
 	if err != nil {
 		return nil, err
 	}
@@ -399,8 +401,9 @@ func (p *LxdProvider) GetImageClient(remote string) (lxd.ImageServer, error) {
 	return nil, fmt.Errorf("remote (%s / %s / %s) is not an ImageServer", remote, ci.Addresses[0], ci.Protocol)
 }
 
-// GetClient returns an LXD client for the named remote
-func (p *LxdProvider) GetServerClient(remote string) (lxd.Server, error) {
+// GetServer returns an client for the named remote
+// The returned client could be for an ImageServer or ContainerServer
+func (p *LxdProvider) GetServer(remote string) (lxd.Server, error) {
 	if remote == "" {
 		remote = p.Config.DefaultRemote
 	}
