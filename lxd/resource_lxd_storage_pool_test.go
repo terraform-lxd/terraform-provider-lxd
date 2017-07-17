@@ -45,16 +45,16 @@ func testAccStoragePoolExists(t *testing.T, n string, pool *api.StoragePool) res
 
 		poolName := rs.Primary.ID
 
-		client, err := testAccProvider.Meta().(*LxdProvider).GetClient("")
+		client, err := testAccProvider.Meta().(*LxdProvider).GetContainerServer("")
 		if err != nil {
 			return err
 		}
-		v, err := client.StoragePoolGet(poolName)
+		v, _, err := client.GetStoragePool(poolName)
 		if err != nil {
 			return err
 		}
 
-		*pool = v
+		*pool = *v
 
 		return nil
 	}

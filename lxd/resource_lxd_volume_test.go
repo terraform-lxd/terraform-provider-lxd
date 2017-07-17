@@ -45,16 +45,16 @@ func testAccVolumeExists(t *testing.T, n string, volume *api.StorageVolume) reso
 		}
 
 		v := NewVolumeIdFromResourceId(rs.Primary.ID)
-		client, err := testAccProvider.Meta().(*LxdProvider).GetClient("")
+		client, err := testAccProvider.Meta().(*LxdProvider).GetContainerServer("")
 		if err != nil {
 			return err
 		}
-		vol, err := client.StoragePoolVolumeTypeGet(v.pool, v.name, v.volType)
+		vol, _, err := client.GetStoragePoolVolume(v.pool, v.volType, v.name)
 		if err != nil {
 			return err
 		}
 
-		*volume = vol
+		*volume = *vol
 
 		return nil
 	}

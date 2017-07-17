@@ -6,7 +6,7 @@ import (
 
 	"github.com/hashicorp/terraform/helper/schema"
 
-	"github.com/lxc/lxd"
+	lxd "github.com/lxc/lxd/client"
 )
 
 func resourceLxdVolumeContainerAttach() *schema.Resource {
@@ -60,7 +60,7 @@ func resourceLxdVolumeContainerAttach() *schema.Resource {
 
 func resourceLxdVolumeContainerAttachCreate(d *schema.ResourceData, meta interface{}) error {
 	p := meta.(*LxdProvider)
-	client, err := p.GetClient(p.selectRemote(d))
+	server, err := p.GetContainerServer(p.selectRemote(d))
 	if err != nil {
 		return err
 	}
@@ -79,25 +79,32 @@ func resourceLxdVolumeContainerAttachCreate(d *schema.ResourceData, meta interfa
 	}
 
 	// Make sure the volume exists
-	if _, err := client.StoragePoolVolumeTypeGet(pool, volumeName, "custom"); err != nil {
+	if _, _, err := server.GetStoragePoolVolume(pool, "custom", volumeName); err != nil {
 		return fmt.Errorf("Volume does not exist or is not of type custom")
 	}
 
 	log.Printf("Attempting to attach volume %s to container %s", volumeName, containerName)
 
-	props := []string{
-		fmt.Sprintf("pool=%s", pool),
-		fmt.Sprintf("path=%s", devPath),
-		fmt.Sprintf("source=%s", volumeName),
+	props := map[string]string{
+		"pool":   pool,
+		"path":   devPath,
+		"source": volumeName,
+		"type":   "disk",
 	}
 
-	resp, err := client.ContainerDeviceAdd(containerName, devName, "disk", props)
+	container, etag, err := server.GetContainer(containerName)
+	if err != nil {
+		return err
+	}
+	container.Devices[devName] = props
+
+	op, err := server.UpdateContainer(containerName, container.Writable(), etag)
 	if err != nil {
 		return fmt.Errorf("Error attaching volume: %s", err)
 	}
 
 	// Wait for the volume to attach
-	if err := client.WaitForSuccess(resp.Operation); err != nil {
+	if err := op.Wait(); err != nil {
 		return err
 	}
 
@@ -110,14 +117,14 @@ func resourceLxdVolumeContainerAttachCreate(d *schema.ResourceData, meta interfa
 
 func resourceLxdVolumeContainerAttachRead(d *schema.ResourceData, meta interface{}) error {
 	p := meta.(*LxdProvider)
-	client, err := p.GetClient(p.selectRemote(d))
+	server, err := p.GetContainerServer(p.selectRemote(d))
 	if err != nil {
 		return err
 	}
 
 	v := NewVolumeAttachmentIdFromResourceId(d.Id())
 
-	deviceName, deviceInfo, err := resourceLxdVolumeContainerAttachedVolume(client, v)
+	deviceName, deviceInfo, err := resourceLxdVolumeContainerAttachedVolume(server, v)
 	if err != nil {
 		return err
 	}
@@ -133,12 +140,11 @@ func resourceLxdVolumeContainerAttachRead(d *schema.ResourceData, meta interface
 
 func resourceLxdVolumeContainerAttachDelete(d *schema.ResourceData, meta interface{}) (err error) {
 	p := meta.(*LxdProvider)
-	client, err := p.GetClient(p.selectRemote(d))
+	server, err := p.GetContainerServer(p.selectRemote(d))
 	if err != nil {
 		return err
 	}
 
-	v := NewVolumeAttachmentIdFromResourceId(d.Id())
 	deviceName := d.Get("device_name").(string)
 
 	exists, err := resourceLxdVolumeContainerAttachExists(d, meta)
@@ -150,12 +156,22 @@ func resourceLxdVolumeContainerAttachDelete(d *schema.ResourceData, meta interfa
 		return fmt.Errorf("The specified volume does not exist")
 	}
 
-	resp, err := client.ContainerDeviceDelete(v.attachedName, deviceName)
+	container, etag, err := server.GetContainer(d.Get("container_name").(string))
+	if err != nil {
+		return err
+	}
+	if _, ok := container.Devices[deviceName]; !ok {
+		// Device not attached to container
+		return nil
+	}
+	delete(container.Devices, deviceName)
+
+	op, err := server.UpdateContainer(container.Name, container.Writable(), etag)
 	if err != nil {
 		return fmt.Errorf("Unable to detach volume: %s", err)
 	}
 
-	if err := client.WaitForSuccess(resp.Operation); err != nil {
+	if err := op.Wait(); err != nil {
 		return err
 	}
 
@@ -164,7 +180,7 @@ func resourceLxdVolumeContainerAttachDelete(d *schema.ResourceData, meta interfa
 
 func resourceLxdVolumeContainerAttachExists(d *schema.ResourceData, meta interface{}) (exists bool, err error) {
 	p := meta.(*LxdProvider)
-	client, err := p.GetClient(p.selectRemote(d))
+	server, err := p.GetContainerServer(p.selectRemote(d))
 	if err != nil {
 		return false, err
 	}
@@ -172,7 +188,7 @@ func resourceLxdVolumeContainerAttachExists(d *schema.ResourceData, meta interfa
 	v := NewVolumeAttachmentIdFromResourceId(d.Id())
 	exists = false
 
-	_, _, err = resourceLxdVolumeContainerAttachedVolume(client, v)
+	_, _, err = resourceLxdVolumeContainerAttachedVolume(server, v)
 	if err != nil {
 		return
 	}
@@ -182,11 +198,11 @@ func resourceLxdVolumeContainerAttachExists(d *schema.ResourceData, meta interfa
 }
 
 func resourceLxdVolumeContainerAttachedVolume(
-	client *lxd.Client, v volumeAttachmentId) (string, map[string]string, error) {
+	server lxd.ContainerServer, v volumeAttachmentId) (string, map[string]string, error) {
 	var deviceName string
 	var deviceInfo map[string]string
 
-	container, err := client.ContainerInfo(v.attachedName)
+	container, _, err := server.GetContainer(v.attachedName)
 	if err != nil {
 		return deviceName, deviceInfo, err
 	}

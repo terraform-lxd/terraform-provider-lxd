@@ -1,6 +1,7 @@
 package lxd
 
 import (
+	"errors"
 	"fmt"
 	"log"
 	"os"
@@ -10,47 +11,20 @@ import (
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/hashicorp/terraform/terraform"
 
-	"github.com/jtopjian/lxdhelpers"
+	"github.com/sl1pm4t/lxdhelpers"
 
-	"github.com/lxc/lxd"
+	lxd "github.com/lxc/lxd/client"
+	lxd_config "github.com/lxc/lxd/lxc/config"
 	"github.com/lxc/lxd/shared"
 )
 
 // LxdProvider contains the Provider configuration and initialized remote clients
 type LxdProvider struct {
-	Config          *lxd.Config
+	Config          *lxd_config.Config
 	RefreshInterval time.Duration
 
 	acceptRemoteCertificate bool
-	clientMap               map[string]*lxd.Client
-}
-
-// InitClient creates and returns an LXD client for the named remote
-func (p *LxdProvider) initClient(remote string) (*lxd.Client, error) {
-	client, err := lxd.NewClient(p.Config, remote)
-	if err != nil {
-		return nil, err
-	}
-
-	if p.clientMap == nil {
-		p.clientMap = make(map[string]*lxd.Client)
-	}
-
-	p.clientMap[remote] = client
-	return client, nil
-}
-
-// GetClient returns an LXD client for the named remote
-func (p *LxdProvider) GetClient(remote string) (*lxd.Client, error) {
-	if remote == "" {
-		remote = p.Config.DefaultRemote
-	}
-
-	if client, ok := p.clientMap[remote]; ok {
-		return client, nil
-	}
-
-	return p.initClient(remote)
+	clientMap               map[string]lxd.Server
 }
 
 // Provider returns a terraform.ResourceProvider
@@ -206,7 +180,7 @@ func init() {
 }
 
 func providerConfigure(d *schema.ResourceData) (interface{}, error) {
-	var config *lxd.Config
+	var config *lxd_config.Config
 
 	// Load remotes from LXC config
 	//
@@ -216,7 +190,7 @@ func providerConfigure(d *schema.ResourceData) (interface{}, error) {
 	// unix socket remote.
 	configDir := d.Get("config_dir").(string)
 	configPath := os.ExpandEnv(path.Join(configDir, "config.yml"))
-	if conf, err := lxd.LoadConfig(configPath); err != nil {
+	if conf, err := lxd_config.LoadConfig(configPath); err != nil {
 		return nil, fmt.Errorf("Could not read the lxc config: [%s]. Error: %s", configPath, err)
 	} else {
 		config = conf
@@ -244,7 +218,7 @@ func providerConfigure(d *schema.ResourceData) (interface{}, error) {
 
 	// Validate the client certificates or try to generate them.
 	generateCertificates := d.Get("generate_client_certificates").(bool)
-	if err := lxdhelpers.ValidateClientCertificates(*config, generateCertificates); err != nil {
+	if err := lxdhelpers.ValidateClientCertificates(config, generateCertificates); err != nil {
 		return nil, err
 	}
 
@@ -283,8 +257,8 @@ func providerConfigure(d *schema.ResourceData) (interface{}, error) {
 
 func (p *LxdProvider) providerConfigureClient(lxdRemote map[string]interface{}) error {
 	name := lxdRemote["name"].(string)
-	scheme := lxdRemote["scheme"].(string)
 	port := lxdRemote["port"].(string)
+	scheme := lxdRemote["scheme"].(string)
 	password := lxdRemote["password"].(string)
 
 	if addr, ok := lxdRemote["address"]; ok {
@@ -296,14 +270,14 @@ func (p *LxdProvider) providerConfigureClient(lxdRemote map[string]interface{}) 
 			daemonAddr = fmt.Sprintf("https://%s:%s", addr, port)
 		}
 
-		p.Config.Remotes[name] = lxd.RemoteConfig{Addr: daemonAddr}
+		p.Config.Remotes[name] = lxd_config.Remote{Addr: daemonAddr}
 
 		if lxdRemote["default"].(bool) {
 			p.Config.DefaultRemote = lxdRemote["name"].(string)
 		}
 
 		if scheme == "https" {
-			rclient, err := lxd.NewClient(p.Config, name)
+			rclient, err := p.Config.GetContainerServer(name)
 
 			// Validate the server certificate or try to add the remote server.
 			serverCertf := p.Config.ServerCertPath(name)
@@ -312,7 +286,7 @@ func (p *LxdProvider) providerConfigureClient(lxdRemote map[string]interface{}) 
 				if err := validateClient(rclient); err != nil {
 					// PKI probably isn't in use. Try to add the remote certificate.
 					if p.acceptRemoteCertificate {
-						if _, err := lxdhelpers.GetRemoteCertificate(rclient, name); err != nil {
+						if _, err := lxdhelpers.GetRemoteCertificate(p.Config, name); err != nil {
 							return fmt.Errorf("Could get remote certificate: %s", err)
 						}
 					} else {
@@ -326,7 +300,11 @@ func (p *LxdProvider) providerConfigureClient(lxdRemote map[string]interface{}) 
 			// Finally, make sure the client is authenticated.
 			// A new client must be created, or there will be a certificate error.
 			// rclient, err = lxd.NewClient(p.Config, name)
-			rclient, err = p.initClient(name)
+			_, err = p.initClient(name)
+			if err != nil {
+				return err
+			}
+			rclient, err = p.GetContainerServer(name)
 			if err != nil {
 				return err
 			}
@@ -339,8 +317,11 @@ func (p *LxdProvider) providerConfigureClient(lxdRemote map[string]interface{}) 
 }
 
 // validateClient makes a simple GET request to the servers API
-func validateClient(client *lxd.Client) error {
-	if _, err := client.GetServerConfig(); err != nil {
+func validateClient(client lxd.ContainerServer) error {
+	if client == nil {
+		return errors.New("client is nil")
+	}
+	if _, _, err := client.GetServer(); err != nil {
 		return err
 	}
 	return nil
@@ -366,4 +347,70 @@ func validateLxdRemoteScheme(v interface{}, k string) ([]string, []error) {
 		return nil, []error{fmt.Errorf("Invalid LXD Remote scheme: %s", scheme)}
 	}
 	return nil, nil
+}
+
+// InitClient creates and returns an LXD client for the named remote
+// The created client is stored for later use
+func (p *LxdProvider) initClient(remote string) (lxd.Server, error) {
+	var client lxd.Server
+	var err error
+
+	if p.Config.Remotes[remote].Protocol == "simplestreams" {
+		client, err = p.Config.GetImageServer(remote)
+	} else {
+		client, err = p.Config.GetContainerServer(remote)
+	}
+	if err != nil {
+		return nil, err
+	}
+
+	if p.clientMap == nil {
+		p.clientMap = make(map[string]lxd.Server)
+	}
+
+	p.clientMap[remote] = client
+	return client, nil
+}
+
+// GetContainerServer returns a client for the named remote
+// It returns an error if the remote is not a ContainerServer
+func (p *LxdProvider) GetContainerServer(remote string) (lxd.ContainerServer, error) {
+	s, err := p.GetServer(remote)
+	if err != nil {
+		return nil, err
+	}
+	ci, err := s.GetConnectionInfo()
+	if ci.Protocol == "lxd" {
+		return s.(lxd.ContainerServer), nil
+	}
+
+	return nil, fmt.Errorf("remote (%s / %s) is not a ContainerServer", remote, ci.Protocol)
+}
+
+// GetImageServer returns a client for the named image server
+// It returns an error if the named remote is not an ImageServer
+func (p *LxdProvider) GetImageServer(remote string) (lxd.ImageServer, error) {
+	s, err := p.GetServer(remote)
+	if err != nil {
+		return nil, err
+	}
+	ci, err := s.GetConnectionInfo()
+	if ci.Protocol == "simplestreams" || ci.Protocol == "lxd" {
+		return s.(lxd.ImageServer), nil
+	}
+	return nil, fmt.Errorf("remote (%s / %s / %s) is not an ImageServer", remote, ci.Addresses[0], ci.Protocol)
+}
+
+// GetServer returns an client for the named remote
+// The returned client could be for an ImageServer or ContainerServer
+func (p *LxdProvider) GetServer(remote string) (lxd.Server, error) {
+	if remote == "" {
+		remote = p.Config.DefaultRemote
+	}
+
+	if client, ok := p.clientMap[remote]; ok {
+		return client, nil
+	}
+
+	return p.initClient(remote)
 }

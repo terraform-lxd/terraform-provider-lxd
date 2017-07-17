@@ -256,19 +256,23 @@ resource "lxd_noop" "noop2" {
 `, confDir)
 }
 
-// this NoOp resources allows us to invoke the Terraform testing framework to test the Provider
+// this NoOp resource allows us to invoke the Terraform testing framework to test the Provider
 // without actually calling out to any LXD server's to create or destroy resources.
 func resourceLxdNoOp() *schema.Resource {
 	return &schema.Resource{
 		Create: func(d *schema.ResourceData, meta interface{}) error {
-			client, err := meta.(*LxdProvider).GetClient(d.Get("remote").(string))
+			remote := d.Get("remote").(string)
+			if remote == "" {
+				remote = meta.(*LxdProvider).Config.DefaultRemote
+			}
+			_, err := meta.(*LxdProvider).GetServer(remote)
 			if err != nil {
 				return err
 			}
 
 			d.SetId(d.Get("name").(string))
 			d.Set("name", d.Get("name"))
-			d.Set("client_name", client.Name)
+			d.Set("client_name", remote)
 			d.Set("remote", d.Get("remote"))
 			return nil
 		},
@@ -277,14 +281,18 @@ func resourceLxdNoOp() *schema.Resource {
 			return nil
 		},
 		Read: func(d *schema.ResourceData, meta interface{}) error {
-			client, err := meta.(*LxdProvider).GetClient(d.Get("remote").(string))
+			remote := d.Get("remote").(string)
+			if remote == "" {
+				remote = meta.(*LxdProvider).Config.DefaultRemote
+			}
+			_, err := meta.(*LxdProvider).GetServer(remote)
 			if err != nil {
 				return err
 			}
 
 			d.Set("name", d.Get("name"))
 			d.Set("remote", d.Get("remote"))
-			d.Set("client_name", client.Name)
+			d.Set("client_name", remote)
 			return nil
 		},
 

@@ -75,16 +75,16 @@ func testAccNetworkExists(t *testing.T, n string, network *api.Network) resource
 			return fmt.Errorf("No ID is set")
 		}
 
-		client, err := testAccProvider.Meta().(*LxdProvider).GetClient("")
+		client, err := testAccProvider.Meta().(*LxdProvider).GetContainerServer("")
 		if err != nil {
 			return err
 		}
-		n, err := client.NetworkGet(rs.Primary.ID)
+		n, _, err := client.GetNetwork(rs.Primary.ID)
 		if err != nil {
 			return err
 		}
 
-		*network = n
+		*network = *n
 
 		return nil
 	}

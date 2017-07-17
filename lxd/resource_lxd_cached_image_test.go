@@ -177,11 +177,11 @@ func testAccCachedImageExists(t *testing.T, n string, image *api.Image) resource
 		}
 
 		id := newCachedImageIdFromResourceId(rs.Primary.ID)
-		client, err := testAccProvider.Meta().(*LxdProvider).GetClient("")
+		client, err := testAccProvider.Meta().(*LxdProvider).GetContainerServer("")
 		if err != nil {
 			return err
 		}
-		img, err := client.GetImageInfo(id.fingerprint)
+		img, _, err := client.GetImage(id.fingerprint)
 		if err != nil {
 			return err
 		}
@@ -223,7 +223,7 @@ func resourceAccCachedImageCheckAttributes(n string, img *api.Image) resource.Te
 		}
 
 		if rs.Primary.Attributes["architecture"] != img.Architecture {
-			return fmt.Errorf("architecture doesn't match")
+			return fmt.Errorf("architecture doesn't match: %s / %s", rs.Primary.Attributes["architecture"], img.Architecture)
 		}
 
 		if rs.Primary.Attributes["fingerprint"] != img.Fingerprint {

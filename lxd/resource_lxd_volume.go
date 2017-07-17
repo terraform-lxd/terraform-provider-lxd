@@ -2,8 +2,10 @@ package lxd
 
 import (
 	"log"
+	"strings"
 
 	"github.com/hashicorp/terraform/helper/schema"
+	"github.com/lxc/lxd/shared/api"
 )
 
 func resourceLxdVolume() *schema.Resource {
@@ -40,6 +42,11 @@ func resourceLxdVolume() *schema.Resource {
 				ForceNew: false,
 			},
 
+			"expanded_config": &schema.Schema{
+				Type:     schema.TypeMap,
+				Computed: true,
+			},
+
 			"remote": &schema.Schema{
 				Type:     schema.TypeString,
 				ForceNew: true,
@@ -52,7 +59,7 @@ func resourceLxdVolume() *schema.Resource {
 
 func resourceLxdVolumeCreate(d *schema.ResourceData, meta interface{}) error {
 	p := meta.(*LxdProvider)
-	client, err := p.GetClient(p.selectRemote(d))
+	server, err := p.GetContainerServer(p.selectRemote(d))
 	if err != nil {
 		return err
 	}
@@ -63,7 +70,11 @@ func resourceLxdVolumeCreate(d *schema.ResourceData, meta interface{}) error {
 	config := resourceLxdConfigMap(d.Get("config"))
 
 	log.Printf("Attempting to create volume %s", name)
-	if err := client.StoragePoolVolumeTypeCreate(pool, name, volType, config); err != nil {
+	volume := api.StorageVolumesPost{}
+	volume.Name = name
+	volume.Type = volType
+	volume.Config = config
+	if err := server.CreateStoragePoolVolume(pool, volume); err != nil {
 		return err
 	}
 
@@ -75,34 +86,43 @@ func resourceLxdVolumeCreate(d *schema.ResourceData, meta interface{}) error {
 
 func resourceLxdVolumeRead(d *schema.ResourceData, meta interface{}) error {
 	p := meta.(*LxdProvider)
-	client, err := p.GetClient(p.selectRemote(d))
+	server, err := p.GetContainerServer(p.selectRemote(d))
 	if err != nil {
 		return err
 	}
 
 	v := NewVolumeIdFromResourceId(d.Id())
-	volume, err := client.StoragePoolVolumeTypeGet(v.pool, v.name, v.volType)
+	volume, _, err := server.GetStoragePoolVolume(v.pool, v.volType, v.name)
 	if err != nil {
 		return err
 	}
 
 	log.Printf("[DEBUG] Retrieved volume %s: %#v", v.name, volume)
 
-	d.Set("config", volume.Config)
+	// remove volatile entries from Config map
+	newConfig := map[string]string{}
+	for k, v := range volume.Config {
+		if !strings.Contains(k, "volatile") {
+			newConfig[k] = v
+		}
+	}
+
+	d.Set("config", newConfig)
+	d.Set("expanded_config", volume.Config)
 
 	return nil
 }
 
 func resourceLxdVolumeUpdate(d *schema.ResourceData, meta interface{}) error {
 	p := meta.(*LxdProvider)
-	client, err := p.GetClient(p.selectRemote(d))
+	server, err := p.GetContainerServer(p.selectRemote(d))
 	if err != nil {
 		return err
 	}
 
 	if d.HasChange("config") {
 		v := NewVolumeIdFromResourceId(d.Id())
-		volume, err := client.StoragePoolVolumeTypeGet(v.pool, v.name, v.volType)
+		volume, etag, err := server.GetStoragePoolVolume(v.pool, v.volType, v.name)
 		if err != nil {
 			return err
 		}
@@ -112,7 +132,9 @@ func resourceLxdVolumeUpdate(d *schema.ResourceData, meta interface{}) error {
 
 		log.Printf("[DEBUG] Updated volume config: %#v", volume)
 
-		if err := client.StoragePoolVolumeTypePut(v.pool, v.name, v.volType, volume); err != nil {
+		post := api.StorageVolumePut{}
+		post.Config = config
+		if err := server.UpdateStoragePoolVolume(v.pool, v.volType, v.name, post, etag); err != nil {
 			return err
 		}
 	}
@@ -122,14 +144,14 @@ func resourceLxdVolumeUpdate(d *schema.ResourceData, meta interface{}) error {
 
 func resourceLxdVolumeDelete(d *schema.ResourceData, meta interface{}) (err error) {
 	p := meta.(*LxdProvider)
-	client, err := p.GetClient(p.selectRemote(d))
+	server, err := p.GetContainerServer(p.selectRemote(d))
 	if err != nil {
 		return err
 	}
 
 	v := NewVolumeIdFromResourceId(d.Id())
 
-	if err = client.StoragePoolVolumeTypeDelete(v.pool, v.name, v.volType); err != nil {
+	if err = server.DeleteStoragePoolVolume(v.pool, v.volType, v.name); err != nil {
 		return err
 	}
 
@@ -138,7 +160,7 @@ func resourceLxdVolumeDelete(d *schema.ResourceData, meta interface{}) (err erro
 
 func resourceLxdVolumeExists(d *schema.ResourceData, meta interface{}) (exists bool, err error) {
 	p := meta.(*LxdProvider)
-	client, err := p.GetClient(p.selectRemote(d))
+	server, err := p.GetContainerServer(p.selectRemote(d))
 	if err != nil {
 		return false, err
 	}
@@ -146,7 +168,7 @@ func resourceLxdVolumeExists(d *schema.ResourceData, meta interface{}) (exists b
 	exists = false
 
 	v := NewVolumeIdFromResourceId(d.Id())
-	_, err = client.StoragePoolVolumeTypeGet(v.pool, v.name, v.volType)
+	_, _, err = server.GetStoragePoolVolume(v.pool, v.volType, v.name)
 	if err == nil {
 		exists = true
 	}
