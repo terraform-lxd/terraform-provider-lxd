@@ -304,7 +304,7 @@ func (p *LxdProvider) providerConfigureClient(lxdRemote map[string]interface{}) 
 			if err != nil {
 				return err
 			}
-			rclient, err = p.GetClient(name)
+			rclient, err = p.GetContainerServer(name)
 			if err != nil {
 				return err
 			}

@@ -234,7 +234,7 @@ func testAccProfileRunning(t *testing.T, n string, profile *api.Profile) resourc
 			return fmt.Errorf("No ID is set")
 		}
 
-		client, err := testAccProvider.Meta().(*LxdProvider).GetClient("")
+		client, err := testAccProvider.Meta().(*LxdProvider).GetContainerServer("")
 		if err != nil {
 			return err
 		}

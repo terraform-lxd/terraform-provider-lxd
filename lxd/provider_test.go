@@ -265,7 +265,7 @@ func resourceLxdNoOp() *schema.Resource {
 			if remote == "" {
 				remote = meta.(*LxdProvider).Config.DefaultRemote
 			}
-			_, err := meta.(*LxdProvider).GetServerClient(remote)
+			_, err := meta.(*LxdProvider).GetServer(remote)
 			if err != nil {
 				return err
 			}
@@ -285,7 +285,7 @@ func resourceLxdNoOp() *schema.Resource {
 			if remote == "" {
 				remote = meta.(*LxdProvider).Config.DefaultRemote
 			}
-			_, err := meta.(*LxdProvider).GetServerClient(remote)
+			_, err := meta.(*LxdProvider).GetServer(remote)
 			if err != nil {
 				return err
 			}
