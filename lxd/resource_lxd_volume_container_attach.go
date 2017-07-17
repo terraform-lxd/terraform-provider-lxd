@@ -145,7 +145,6 @@ func resourceLxdVolumeContainerAttachDelete(d *schema.ResourceData, meta interfa
 		return err
 	}
 
-	// v := NewVolumeAttachmentIdFromResourceId(d.Id())
 	deviceName := d.Get("device_name").(string)
 
 	exists, err := resourceLxdVolumeContainerAttachExists(d, meta)

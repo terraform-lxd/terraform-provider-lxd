@@ -134,7 +134,7 @@ func resourceLxdCachedImageCreate(d *schema.ResourceData, meta interface{}) erro
 		Public:  false,
 	}
 
-	op, err := dstClient.CopyImage(srcClient, *imgInfo, &args) //dstClient, copyAliases, aliases, false, false, resourceLxdCachedImageCopyProgressHandler)
+	op, err := dstClient.CopyImage(srcClient, *imgInfo, &args)
 	if err != nil {
 		return err
 	}
@@ -192,8 +192,7 @@ func resourceLxdCachedImageUpdate(d *schema.ResourceData, meta interface{}) erro
 		// Add new
 		for _, a := range aliasesToAdd.List() {
 			alias := a.(string)
-			// client.PostAlias(alias, "", id.fingerprint)
-			// client.A
+
 			req := api.ImageAliasesPost{}
 			req.Name = alias
 			req.Target = id.fingerprint

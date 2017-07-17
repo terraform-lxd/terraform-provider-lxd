@@ -17,7 +17,6 @@ import (
 
 	lxd "github.com/lxc/lxd/client"
 	"github.com/lxc/lxd/shared/api"
-	"github.com/lxc/lxd/shared/i18n"
 )
 
 var UpdateTimeout int = int(time.Duration(time.Second * 300).Seconds())
@@ -178,6 +177,7 @@ func resourceLxdContainerCreate(d *schema.ResourceData, meta interface{}) error 
 	if err != nil {
 		return err
 	}
+	refreshInterval := meta.(*LxdProvider).RefreshInterval
 
 	name := d.Get("name").(string)
 	ephem := d.Get("ephemeral").(bool)
@@ -280,7 +280,7 @@ func resourceLxdContainerCreate(d *schema.ResourceData, meta interface{}) error 
 		Target:     []string{"Running"},
 		Refresh:    resourceLxdContainerRefresh(client, name),
 		Timeout:    3 * time.Minute,
-		Delay:      3 * time.Second,
+		Delay:      refreshInterval,
 		MinTimeout: 3 * time.Second,
 	}
 
@@ -474,7 +474,7 @@ func resourceLxdContainerDelete(d *schema.ResourceData, meta interface{}) (err e
 		return err
 	}
 
-	// refreshInterval := p.RefreshInterval
+	refreshInterval := meta.(*LxdProvider).RefreshInterval
 	name := d.Id()
 
 	ct, etag, _ := client.GetContainerState(name)
@@ -499,7 +499,7 @@ func resourceLxdContainerDelete(d *schema.ResourceData, meta interface{}) (err e
 			Target:     []string{"Stopped"},
 			Refresh:    resourceLxdContainerRefresh(client, name),
 			Timeout:    3 * time.Minute,
-			Delay:      3 * time.Second,
+			Delay:      refreshInterval,
 			MinTimeout: 3 * time.Second,
 		}
 
@@ -588,7 +588,6 @@ func resourceLxdContainerUploadFile(client lxd.ContainerServer, container string
 	}
 
 	mode := os.FileMode(0755)
-	// mode := 755
 	if v, ok := fileInfo["mode"].(string); ok && v != "" {
 		if len(v) != 3 {
 			v = "0" + v
@@ -599,7 +598,6 @@ func resourceLxdContainerUploadFile(client lxd.ContainerServer, container string
 			return fmt.Errorf("Could not determine file mode %s", v)
 		}
 
-		// mode = int(m)
 		mode = os.FileMode(m)
 	}
 
@@ -655,6 +653,7 @@ func resourceLxdContainerDeleteFile(client lxd.ContainerServer, container string
 	return nil
 }
 
+// recursiveMkdir was copied almost as-is from github.com/lxc/lxd/lxc/file.go
 func recursiveMkdir(d lxd.ContainerServer, container string, p string, mode os.FileMode, uid int64, gid int64) error {
 	/* special case, every container has a /, we don't need to do anything */
 	if p == "/" {
@@ -675,7 +674,7 @@ func recursiveMkdir(d lxd.ContainerServer, container string, p string, mode os.F
 		}
 
 		if resp.Type != "directory" {
-			return fmt.Errorf(i18n.G("%s is not a directory"), cur)
+			return fmt.Errorf("%s is not a directory", cur)
 		}
 
 		i++
