@@ -257,6 +257,21 @@ func resourceLxdContainerCreate(d *schema.ResourceData, meta interface{}) error 
 	// Container has been created, store ID
 	d.SetId(name)
 
+	// Upload any files, if specified,
+	// and set the contents to a hash in the State
+	if files, ok := d.GetOk("file"); ok {
+		for _, v := range files.([]interface{}) {
+			file := v.(map[string]interface{})
+			if err := resourceLxdContainerUploadFile(server, name, file); err != nil {
+				return err
+			}
+			hash := sha1.Sum([]byte(file["content"].(string)))
+			file["content"] = hex.EncodeToString(hash[:])
+		}
+
+		d.Set("file", files)
+	}
+
 	// Start container
 	startReq := api.ContainerStatePut{
 		Action:  "start",
@@ -286,21 +301,6 @@ func resourceLxdContainerCreate(d *schema.ResourceData, meta interface{}) error 
 
 	if _, err = stateConf.WaitForState(); err != nil {
 		return fmt.Errorf("Error waiting for container (%s) to become active: %s", name, err)
-	}
-
-	// Upload any files, if specified,
-	// and set the contents to a hash in the State
-	if files, ok := d.GetOk("file"); ok {
-		for _, v := range files.([]interface{}) {
-			file := v.(map[string]interface{})
-			if err := resourceLxdContainerUploadFile(server, name, file); err != nil {
-				return err
-			}
-			hash := sha1.Sum([]byte(file["content"].(string)))
-			file["content"] = hex.EncodeToString(hash[:])
-		}
-
-		d.Set("file", files)
 	}
 
 	return resourceLxdContainerRead(d, meta)

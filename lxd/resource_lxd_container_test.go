@@ -660,7 +660,7 @@ resource "lxd_container" "container1" {
 
   file {
     content = "Hello, World!\n"
-    target_file = "/tmp/foo/bar.txt"
+    target_file = "/foo/bar.txt"
     mode = "0644"
     create_directories = true
   }
@@ -677,7 +677,7 @@ resource "lxd_container" "container1" {
 
   file {
     content = "Goodbye, World!\n"
-    target_file = "/tmp/foo/bar.txt"
+    target_file = "/foo/bar.txt"
     mode = "0644"
     create_directories = true
   }
