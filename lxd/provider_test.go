@@ -165,6 +165,32 @@ func TestAccLxdProvider_providerRemote(t *testing.T) {
 	})
 }
 
+func TestAccLxdProvider_noConfigFile(t *testing.T) {
+	envName := strings.ToLower(petname.Generate(2, "-"))
+	envPort := os.Getenv("LXD_PORT")
+	envAddr := os.Getenv("LXD_ADDR")
+	envPassword := os.Getenv("LXD_PASSWORD")
+
+	tmpDirName := petname.Generate(1, "")
+	tmpDir, err := ioutil.TempDir(os.TempDir(), tmpDirName)
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer os.RemoveAll(tmpDir)
+
+	resource.Test(t, resource.TestCase{
+		Providers: testAccProviders,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccLxdProvider_configDir(envName, envAddr, envPort, envPassword, tmpDir),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr("lxd_noop.noop1", "remote", envName),
+				),
+			},
+		},
+	})
+}
+
 func testAccPreCheck(t *testing.T) {
 	cmd := exec.Command("lxc", "--version")
 	if err := cmd.Run(); err != nil {
@@ -254,6 +280,27 @@ resource "lxd_noop" "noop2" {
 	name = "noop2"
 }
 `, confDir)
+}
+
+func testAccLxdProvider_configDir(remote, addr, port, password, confDir string) string {
+	return fmt.Sprintf(`
+provider "lxd" {
+	accept_remote_certificate    = true
+	generate_client_certificates = true
+	config_dir                   = "%s"
+	lxd_remote {
+		name     = "%s"
+		address  = "%s"
+		port     = "%s"
+		password = "%s"
+	}
+}
+
+resource "lxd_noop" "noop1" {
+	name = "noop1"
+	remote = "%s"
+}
+`, confDir, remote, addr, port, password, remote)
 }
 
 // this NoOp resource allows us to invoke the Terraform testing framework to test the Provider
