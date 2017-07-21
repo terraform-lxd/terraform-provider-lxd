@@ -95,8 +95,6 @@ func resourceLxdStoragePoolRead(d *schema.ResourceData, meta interface{}) error 
 
 	log.Printf("[DEBUG] Retrieved storage pool %s: %#v", name, pool)
 
-	d.Set("config", pool.Config)
-
 	return nil
 }
 
