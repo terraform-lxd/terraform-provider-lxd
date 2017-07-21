@@ -191,7 +191,10 @@ func providerConfigure(d *schema.ResourceData) (interface{}, error) {
 	configDir := d.Get("config_dir").(string)
 	configPath := os.ExpandEnv(path.Join(configDir, "config.yml"))
 	if conf, err := lxd_config.LoadConfig(configPath); err != nil {
-		return nil, fmt.Errorf("Could not read the lxc config: [%s]. Error: %s", configPath, err)
+		config = &lxd_config.DefaultConfig
+		// set configDir, otherwise auto generate certs
+		// will end up in the current working directory
+		config.ConfigDir = configDir
 	} else {
 		config = conf
 	}
