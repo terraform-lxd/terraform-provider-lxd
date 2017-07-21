@@ -9,6 +9,32 @@ LXD Resource provider for Terraform
 * [Terraform](http://terraform.io)
 * [LXD](https://linuxcontainers.org/lxd)
 
+## Installation
+
+### Using pre-built binary
+
+1. Download the binary from the project [releases page](https://github.com/sl1pm4t/terraform-provider-lxd/releases)
+2. Extract provider binary from tar file.
+3. Copy to `$PATH` or the `~/.terraform` directory so Terraform can find it.
+
+**Example**
+```bash
+wget https://github.com/sl1pm4t/terraform-provider-lxd/releases/download/v0.10.0-beta2/terraform-provider-lxd_v0.10.0-beta2_linux_amd64.tar.gz
+
+tar -xzvf terraform-provider-lxd_*.tar.gz
+
+mkdir -p ~/.terraform/
+mv terraform-provider-lxd ~/.terraform/
+```
+
+### Building from source
+
+1. Follow these [instructions](https://golang.org/doc/install) to setup a Golang development environment.
+2. Use `go get` to pull down this repository and compile the binary:
+```
+go get -v -u github.com/sl1pm4t/terraform-provider-lxd
+```
+
 ## Usage
 
 This provider connects to the LXD daemon over local Unix socket or HTTPS.
