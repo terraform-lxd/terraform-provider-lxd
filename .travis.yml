@@ -18,7 +18,7 @@ before_install:
 - lxc image list
 
 go:
-- 1.8
+- 1.9
 
 matrix:
   fast_finish: true
