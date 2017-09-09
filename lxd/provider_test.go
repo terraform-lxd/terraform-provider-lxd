@@ -11,13 +11,11 @@ import (
 
 	"io/ioutil"
 
-	"path/filepath"
-
 	petname "github.com/dustinkirkland/golang-petname"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/hashicorp/terraform/terraform"
-	"github.com/lxc/lxd"
+	lxd_config "github.com/lxc/lxd/lxc/config"
 )
 
 var testAccProviders map[string]terraform.ResourceProvider
@@ -108,14 +106,14 @@ func TestAccLxdProvider_lxcConfigRemotes(t *testing.T) {
 	}
 	defer os.RemoveAll(tmpDir) // clean up
 
-	conf := &lxd.Config{}
-	conf.Remotes = map[string]lxd.RemoteConfig{
-		remoteName: {
-			Addr: fmt.Sprintf("%s://%s:%s", os.Getenv("LXD_SCHEME"), os.Getenv("LXD_ADDR"), os.Getenv("LXD_PORT")),
+	conf := lxd_config.Config{
+		Remotes: map[string]lxd_config.Remote{
+			remoteName: lxd_config.Remote{
+				Addr: fmt.Sprintf("%s://%s:%s", os.Getenv("LXD_SCHEME"), os.Getenv("LXD_ADDR"), os.Getenv("LXD_PORT")),
+			},
 		},
 	}
 	conf.DefaultRemote = remoteName
-	lxd.SaveConfig(conf, filepath.Join(tmpDir, "config.yml"))
 
 	resource.Test(t, resource.TestCase{
 		Providers: testAccProviders,
