@@ -136,7 +136,7 @@ func TestAccLxdProvider_lxcConfigRemotes(t *testing.T) {
 				Config: testAccLxdProvider_lxcConfig3(tmpDir),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("lxd_noop.noop2", "remote", ""),
-					resource.TestCheckResourceAttr("lxd_noop.noop2", "client_name", remoteName),
+					resource.TestCheckResourceAttr("lxd_noop.noop2", "client_name", "local"),
 				),
 			},
 		},
