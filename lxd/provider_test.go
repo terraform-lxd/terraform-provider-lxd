@@ -17,7 +17,7 @@ import (
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/hashicorp/terraform/terraform"
-	"github.com/lxc/lxd"
+	lxd "github.com/lxc/lxd/lxc/config"
 )
 
 var testAccProviders map[string]terraform.ResourceProvider
@@ -109,13 +109,13 @@ func TestAccLxdProvider_lxcConfigRemotes(t *testing.T) {
 	defer os.RemoveAll(tmpDir) // clean up
 
 	conf := &lxd.Config{}
-	conf.Remotes = map[string]lxd.RemoteConfig{
+	conf.Remotes = map[string]lxd.Remote{
 		remoteName: {
 			Addr: fmt.Sprintf("%s://%s:%s", os.Getenv("LXD_SCHEME"), os.Getenv("LXD_ADDR"), os.Getenv("LXD_PORT")),
 		},
 	}
 	conf.DefaultRemote = remoteName
-	lxd.SaveConfig(conf, filepath.Join(tmpDir, "config.yml"))
+	conf.SaveConfig(filepath.Join(tmpDir, "config.yml"))
 
 	resource.Test(t, resource.TestCase{
 		Providers: testAccProviders,
