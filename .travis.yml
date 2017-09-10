@@ -1,29 +1,34 @@
+---
 language: go
 sudo: true
 dist: trusty
 
 env:
-- TF_ACC=1
+  - TF_ACC=1 \
+   LXD_REMOTE=travis \
+   LXD_ADDR=localhost \
+   LXD_PORT=8443 \
+   LXD_GENERATE_CLIENT_CERTS=true \
+   LXD_ACCEPT_SERVER_CERTIFICATE=true \
+   LXD_SCHEME=https \
+   LXD_PASSWORD=the-password \
 
 before_install:
-- sudo add-apt-repository -y ppa:ubuntu-lxc/lxd-stable
-- sudo apt-get -qq update
-- sudo apt-get install -y lxd
-- sudo lxd init --auto
-- sudo lxc config set core.https_address "[::]"
-- sudo lxc config set core.trust_password $LXD_PASSWORD
-- sudo chmod -R 777 /home/travis/.config/lxc
-- sudo chmod 777 /var/lib/lxd/unix.socket
-- 'lxc image copy ubuntu:t local: --alias=ubuntu'
-- lxc image list
+  - sudo add-apt-repository -y ppa:ubuntu-lxc/lxd-stable
+  - sudo apt-get -qq update
+  - sudo apt-get install -y lxd
+  - sudo lxd init --auto --trust-password="${LXD_PASSWORD}" --network-port=8443 --network-address='[::]'
+  - sudo chmod 777 /var/lib/lxd/unix.socket
+  - 'lxc image copy ubuntu:t local: --alias=ubuntu'
+  - lxc image list
 
 go:
-- 1.9
+  - 1.9
 
 matrix:
   fast_finish: true
   allow_failures:
-  - go: tip
+    - go: tip
 
 before_deploy: make build
 
