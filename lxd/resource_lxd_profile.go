@@ -15,6 +15,9 @@ func resourceLxdProfile() *schema.Resource {
 		Delete: resourceLxdProfileDelete,
 		Exists: resourceLxdProfileExists,
 		Read:   resourceLxdProfileRead,
+		Importer: &schema.ResourceImporter{
+			State: resourceLxdProfileImport,
+		},
 
 		Schema: map[string]*schema.Schema{
 			"name": &schema.Schema{
@@ -55,7 +58,6 @@ func resourceLxdProfile() *schema.Resource {
 			"config": &schema.Schema{
 				Type:     schema.TypeMap,
 				Optional: true,
-				ForceNew: true,
 			},
 
 			"remote": &schema.Schema{
@@ -208,4 +210,24 @@ func resourceLxdProfileExists(d *schema.ResourceData, meta interface{}) (exists 
 	}
 
 	return
+}
+
+func resourceLxdProfileImport(d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
+	p := meta.(*LxdProvider)
+	server, err := p.GetContainerServer(p.selectRemote(d))
+	if err != nil {
+		return nil, err
+	}
+
+	name := d.Id()
+
+	profile, _, err := server.GetProfile(name)
+	if err != nil {
+		return nil, err
+	}
+
+	log.Printf("[DEBUG] Retrieved profile %s: %#v", name, profile)
+
+	d.Set("name", name)
+	return []*schema.ResourceData{d}, nil
 }
