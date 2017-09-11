@@ -114,8 +114,17 @@ func resourceLxdProfileRead(d *schema.ResourceData, meta interface{}) error {
 
 	d.Set("description", profile.Description)
 	d.Set("config", profile.Config)
-	d.Set("device", profile.Devices)
 
+	devices := make([]map[string]interface{}, 0)
+	for name, lxddevice := range profile.Devices {
+		device := make(map[string]interface{})
+		device["name"] = name
+		device["type"] = lxddevice["type"]
+		delete(lxddevice, "type")
+		device["properties"] = lxddevice
+		devices = append(devices, device)
+	}
+	d.Set("device", devices)
 	return nil
 }
 
