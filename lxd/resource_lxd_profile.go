@@ -2,6 +2,7 @@ package lxd
 
 import (
 	"log"
+	"strings"
 
 	"github.com/hashicorp/terraform/helper/schema"
 
@@ -223,19 +224,26 @@ func resourceLxdProfileExists(d *schema.ResourceData, meta interface{}) (exists 
 
 func resourceLxdProfileImport(d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
 	p := meta.(*LxdProvider)
+
+	ids := strings.SplitN(d.Id(), ":", 2)
+	name := ids[0]
+	d.SetId(name)
+
+	if len(ids) == 2 {
+		d.Set("remote", ids[1])
+	}
+
 	server, err := p.GetContainerServer(p.selectRemote(d))
 	if err != nil {
 		return nil, err
 	}
-
-	name := d.Id()
 
 	profile, _, err := server.GetProfile(name)
 	if err != nil {
 		return nil, err
 	}
 
-	log.Printf("[DEBUG] Retrieved profile %s: %#v", name, profile)
+	log.Printf("[DEBUG] Import Retrieved profile %s: %#v", name, profile)
 
 	d.Set("name", name)
 	return []*schema.ResourceData{d}, nil
