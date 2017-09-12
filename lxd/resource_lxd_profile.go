@@ -158,6 +158,12 @@ func resourceLxdProfileUpdate(d *schema.ResourceData, meta interface{}) error {
 		newProfile.Description = newDescription.(string)
 	}
 
+	if d.HasChange("config") {
+		changed = true
+		_, newConfig := d.GetChange("config")
+		newProfile.Config = resourceLxdConfigMap(newConfig)
+	}
+
 	if d.HasChange("device") {
 		changed = true
 		old, new := d.GetChange("device")
