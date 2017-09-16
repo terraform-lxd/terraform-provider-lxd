@@ -327,7 +327,8 @@ func TestAccContainer_configLimits(t *testing.T) {
 
 func TestAccContainer_accessInterface(t *testing.T) {
 	var container api.Container
-	networkName := strings.ToLower(petname.Generate(2, "-"))
+	networkName1 := strings.ToLower(petname.Generate(1, "-"))
+	networkName2 := strings.ToLower(petname.Generate(1, "-"))
 	containerName := strings.ToLower(petname.Generate(2, "-"))
 
 	resource.Test(t, resource.TestCase{
@@ -335,7 +336,7 @@ func TestAccContainer_accessInterface(t *testing.T) {
 		Providers: testAccProviders,
 		Steps: []resource.TestStep{
 			resource.TestStep{
-				Config: testAccContainer_accessInterface(networkName, containerName),
+				Config: testAccContainer_accessInterface(networkName1, networkName2, containerName),
 				Check: resource.ComposeTestCheckFunc(
 					testAccContainerRunning(t, "lxd_container.container1", &container),
 					resource.TestCheckResourceAttr("lxd_container.container1", "name", containerName),
@@ -753,15 +754,26 @@ resource "lxd_container" "container1" {
 	`, name)
 }
 
-func testAccContainer_accessInterface(networkName, containerName string) string {
+func testAccContainer_accessInterface(networkName1, networkName2, containerName string) string {
 	return fmt.Sprintf(`
-resource "lxd_network" "network" {
+resource "lxd_network" "network_1" {
   name = "%s"
 
   config {
     ipv4.address = "10.150.19.1/24"
     ipv4.nat = "true"
     ipv6.address = "fd42:474b:622d:259d::1/64"
+    ipv6.nat = "false"
+  }
+}
+
+resource "lxd_network" "network_2" {
+  name = "%s"
+
+  config {
+    ipv4.address = "10.150.18.1/24"
+    ipv4.nat = "true"
+    ipv6.address = "fd42:474b:622d:259c::1/64"
     ipv6.nat = "false"
   }
 }
@@ -781,7 +793,7 @@ resource "lxd_container" "container1" {
 
     properties {
       nictype = "bridged"
-      parent = "${lxd_network.network.name}"
+      parent = "${lxd_network.network_1.name}"
       ipv4.address = "10.150.19.200"
     }
   }
@@ -792,10 +804,11 @@ resource "lxd_container" "container1" {
 
     properties {
       nictype = "bridged"
-      parent = "lxdbr0"
+      parent = "${lxd_network.network_2.name}"
+      ipv4.address = "10.150.18.200"
     }
   }
 
 }
-	`, networkName, containerName)
+	`, networkName1, networkName2, containerName)
 }
