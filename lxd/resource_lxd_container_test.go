@@ -325,6 +325,27 @@ func TestAccContainer_configLimits(t *testing.T) {
 	})
 }
 
+func TestAccContainer_accessInterface(t *testing.T) {
+	var container api.Container
+	networkName := strings.ToLower(petname.Generate(2, "-"))
+	containerName := strings.ToLower(petname.Generate(2, "-"))
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:  func() { testAccPreCheck(t) },
+		Providers: testAccProviders,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccContainer_accessInterface(networkName, containerName),
+				Check: resource.ComposeTestCheckFunc(
+					testAccContainerRunning(t, "lxd_container.container1", &container),
+					resource.TestCheckResourceAttr("lxd_container.container1", "name", containerName),
+					resource.TestCheckResourceAttr("lxd_container.container1", "ip_address", "10.150.19.200"),
+				),
+			},
+		},
+	})
+}
+
 func testAccContainerRunning(t *testing.T, n string, container *api.Container) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		rs, ok := s.RootModule().Resources[n]
@@ -730,4 +751,51 @@ resource "lxd_container" "container1" {
   }
 }
 	`, name)
+}
+
+func testAccContainer_accessInterface(networkName, containerName string) string {
+	return fmt.Sprintf(`
+resource "lxd_network" "network" {
+  name = "%s"
+
+  config {
+    ipv4.address = "10.150.19.1/24"
+    ipv4.nat = "true"
+    ipv6.address = "fd42:474b:622d:259d::1/64"
+    ipv6.nat = "false"
+  }
+}
+
+resource "lxd_container" "container1" {
+  name = "%s"
+  image = "images:alpine/3.5/amd64"
+  profiles = ["default"]
+
+  config {
+    user.access_interface = "eth0"
+  }
+
+  device {
+    name = "eth0"
+    type = "nic"
+
+    properties {
+      nictype = "bridged"
+      parent = "${lxd_network.network.name}"
+      ipv4.address = "10.150.19.200"
+    }
+  }
+
+  device {
+    name = "eth1"
+    type = "nic"
+
+    properties {
+      nictype = "bridged"
+      parent = "lxdbr0"
+    }
+  }
+
+}
+	`, networkName, containerName)
 }
