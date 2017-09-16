@@ -342,8 +342,8 @@ func resourceLxdContainerRead(d *schema.ResourceData, meta interface{}) error {
 	if err != nil {
 		return err
 	}
+	log.Printf("[DEBUG] Retrieved container state %s:\n%#v", name, state)
 
-	log.Printf("[DEBUG] Retrieved container config %s:\n%#v", name, container.Config)
 	for k, v := range container.Config {
 		if strings.Contains(k, "limits.") {
 			log.Printf("[DEBUG] Setting limit %s: %s", k, v)
