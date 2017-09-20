@@ -27,9 +27,3 @@ func TestLXDProfile_importBasic(t *testing.T) {
 		},
 	})
 }
-
-const testLXDProfileDefault = `
-resource "lxd_profile" "default" {
-	name = "default"
-}
-`
