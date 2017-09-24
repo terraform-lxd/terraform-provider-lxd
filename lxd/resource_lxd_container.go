@@ -28,6 +28,9 @@ func resourceLxdContainer() *schema.Resource {
 		Delete: resourceLxdContainerDelete,
 		Exists: resourceLxdContainerExists,
 		Read:   resourceLxdContainerRead,
+		Importer: &schema.ResourceImporter{
+			State: resourceLxdContainerImport,
+		},
 
 		Schema: map[string]*schema.Schema{
 			"name": &schema.Schema{
@@ -342,7 +345,9 @@ func resourceLxdContainerRead(d *schema.ResourceData, meta interface{}) error {
 	if err != nil {
 		return err
 	}
-
+	d.Set("ephemeral", container.Ephemeral)
+	d.Set("privileged", false) // Create has no handling for it yet
+	//(string) (len=5) "image": (string) (len=23) "images:alpine/3.5/amd64",
 	log.Printf("[DEBUG] Retrieved container config %s:\n%#v", name, container.Config)
 	for k, v := range container.Config {
 		if strings.Contains(k, "limits.") {
@@ -560,6 +565,36 @@ func resourceLxdContainerExists(d *schema.ResourceData, meta interface{}) (exist
 	}
 
 	return
+}
+
+func resourceLxdContainerImport(d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
+	p := meta.(*LxdProvider)
+	log.Printf("[DEBUG] Starting import for %s", d.Id())
+	remote, name, err := p.Config.ParseRemote(d.Id())
+	if err != nil {
+		return nil, err
+	}
+
+	d.SetId(name)
+	if p.Config.DefaultRemote != remote {
+		d.Set("remote", remote)
+	}
+
+	server, err := p.GetContainerServer(p.selectRemote(d))
+	if err != nil {
+		return nil, err
+	}
+
+	ct, _, err := server.GetContainerState(name)
+	log.Printf("[DEBUG] Import container state %#v", ct)
+	log.Printf("[DEBUG] Import and the error %#v", err)
+	if err == nil && ct != nil {
+		d.SetId(name)
+		d.Set("name", name)
+	} else {
+		return nil, err
+	}
+	return []*schema.ResourceData{d}, err
 }
 
 func resourceLxdContainerRefresh(server lxd.ContainerServer, name string) resource.StateRefreshFunc {
