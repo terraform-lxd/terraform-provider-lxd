@@ -97,7 +97,7 @@ resource "lxd_volume" "volume1" {
 
 resource "lxd_container" "container1" {
   name = "%s"
-  image = "ubuntu"
+  image = "images:alpine/3.5"
   profiles = ["default"]
 }
 
@@ -127,7 +127,7 @@ resource "lxd_volume" "volume1" {
 
 resource "lxd_container" "container1" {
   name = "%s"
-  image = "ubuntu"
+  image = "images:alpine/3.5"
   profiles = ["default"]
 }
 
