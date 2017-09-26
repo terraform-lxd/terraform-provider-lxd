@@ -15,6 +15,9 @@ func resourceLxdProfile() *schema.Resource {
 		Delete: resourceLxdProfileDelete,
 		Exists: resourceLxdProfileExists,
 		Read:   resourceLxdProfileRead,
+		Importer: &schema.ResourceImporter{
+			State: resourceLxdProfileImport,
+		},
 
 		Schema: map[string]*schema.Schema{
 			"name": &schema.Schema{
@@ -55,7 +58,6 @@ func resourceLxdProfile() *schema.Resource {
 			"config": &schema.Schema{
 				Type:     schema.TypeMap,
 				Optional: true,
-				ForceNew: true,
 			},
 
 			"remote": &schema.Schema{
@@ -112,8 +114,17 @@ func resourceLxdProfileRead(d *schema.ResourceData, meta interface{}) error {
 
 	d.Set("description", profile.Description)
 	d.Set("config", profile.Config)
-	d.Set("device", profile.Devices)
 
+	devices := make([]map[string]interface{}, 0)
+	for name, lxddevice := range profile.Devices {
+		device := make(map[string]interface{})
+		device["name"] = name
+		device["type"] = lxddevice["type"]
+		delete(lxddevice, "type")
+		device["properties"] = lxddevice
+		devices = append(devices, device)
+	}
+	d.Set("device", devices)
 	return nil
 }
 
@@ -144,6 +155,12 @@ func resourceLxdProfileUpdate(d *schema.ResourceData, meta interface{}) error {
 		changed = true
 		_, newDescription := d.GetChange("description")
 		newProfile.Description = newDescription.(string)
+	}
+
+	if d.HasChange("config") {
+		changed = true
+		_, newConfig := d.GetChange("config")
+		newProfile.Config = resourceLxdConfigMap(newConfig)
 	}
 
 	if d.HasChange("device") {
@@ -208,4 +225,33 @@ func resourceLxdProfileExists(d *schema.ResourceData, meta interface{}) (exists 
 	}
 
 	return
+}
+
+func resourceLxdProfileImport(d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
+	p := meta.(*LxdProvider)
+	remote, name, err := p.Config.ParseRemote(d.Id())
+
+	if err != nil {
+		return nil, err
+	}
+
+	d.SetId(name)
+	if p.Config.DefaultRemote != remote {
+		d.Set("remote", remote)
+	}
+
+	server, err := p.GetContainerServer(p.selectRemote(d))
+	if err != nil {
+		return nil, err
+	}
+
+	profile, _, err := server.GetProfile(name)
+	if err != nil {
+		return nil, err
+	}
+
+	log.Printf("[DEBUG] Import Retrieved profile %s: %#v", name, profile)
+
+	d.Set("name", name)
+	return []*schema.ResourceData{d}, nil
 }
