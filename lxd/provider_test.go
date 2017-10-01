@@ -6,6 +6,7 @@ import (
 	"os/exec"
 	"strings"
 	"testing"
+	"time"
 
 	"fmt"
 
@@ -196,6 +197,8 @@ func testAccPreCheck(t *testing.T) {
 	if err := cmd.Run(); err != nil {
 		t.Fatalf("LXD client must be available: %s", err)
 	}
+
+	time.Sleep(time.Second * 60)
 }
 
 func testAccLxdProvider_basic(remote string) string {

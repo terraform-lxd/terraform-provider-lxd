@@ -1,7 +1,7 @@
 test:
 	go get ./...
 	go get github.com/dustinkirkland/golang-petname
-	go test -timeout 20m -v ./lxd
+	go test -timeout 120m -v ./lxd
 
 testacc:
 	TF_LOG=debug TF_ACC=1 go test ./lxd -v $(TESTARGS)
