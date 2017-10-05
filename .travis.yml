@@ -17,7 +17,7 @@ before_install:
   - sudo apt-get install -y snapd
   - sudo snap install lxd
   - export PATH=/snap/bin/:${PATH}
-  - sleep 10 # give lxd time to start
+  - sudo lxd waitready --timeout 60
   - sudo lxd init --auto --trust-password="${LXD_PASSWORD}" --network-port=8443 --network-address='[::]'
   - sudo chmod 777 /var/snap/lxd/common/lxd/unix.socket
   - 'lxc image copy ubuntu:t local: --alias=ubuntu'
