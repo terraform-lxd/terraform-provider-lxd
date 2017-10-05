@@ -47,9 +47,10 @@ func resourceLxdContainer() *schema.Resource {
 			},
 
 			"image": &schema.Schema{
-				Type:     schema.TypeString,
-				ForceNew: true,
-				Required: true,
+				Type:             schema.TypeString,
+				ForceNew:         true,
+				Required:         true,
+				DiffSuppressFunc: suppressImageDifferences,
 			},
 
 			"profiles": &schema.Schema{
@@ -752,4 +753,14 @@ func recursiveMkdir(d lxd.ContainerServer, container string, p string, mode os.F
 	}
 
 	return nil
+}
+
+// Suppress Diff on empty name
+func suppressImageDifferences(k, old, new string, d *schema.ResourceData) bool {
+	log.Printf("[DEBUG] comparing old %#v and new %#v :: id %s status %#v", old, new, d.Id(), d.Get("Status"))
+	if old == "" && d.Id() != "" {
+		// special case for imports, empty image string is the result of nt knowing which base image name/alias was used to create this host
+		return true
+	}
+	return false
 }

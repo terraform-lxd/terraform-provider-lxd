@@ -25,6 +25,9 @@ func TestAccLxdContainer_importBasic(t *testing.T) {
 				//				Config:            testAccContainer_basic(containerName),
 				ImportState:       true,
 				ImportStateVerify: true,
+				ImportStateVerifyIgnore: []string{
+					"image",
+				},
 			},
 		},
 	})
@@ -47,6 +50,9 @@ func TestAccLxdContainer_importConfig(t *testing.T) {
 				//				Config:            testAccContainer_config(containerName),
 				ImportState:       true,
 				ImportStateVerify: true,
+				ImportStateVerifyIgnore: []string{
+					"image",
+				},
 			},
 		},
 	})
