@@ -493,7 +493,7 @@ resource "lxd_container" "container1" {
   image = "images:alpine/3.5/amd64"
   profiles = ["default"]
   config {
-    limits.cpu = 2
+    boot.autostart = 1
   }
 }
 	`, name)
