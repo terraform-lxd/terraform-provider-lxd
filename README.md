@@ -384,9 +384,9 @@ resource "lxd_snapshot" "snap1" {
 ##### Parameters
 
   * `config_dir`                   - *Optional* - Directory path to client LXD configuration and certs. Defaults to `$HOME/.config/lxc`.
-  * `generate_client_certificates` - *Optional* - Generate the LXC client's certificates if they don't exist. 
+  * `generate_client_certificates` - *Optional* - Generate the LXC client's certificates if they don't exist.
                                      This can also be done out-of-band of Terraform with the lxc command-line client.
-  * `accept_remote_certificate`    - *Optional* - Accept the remote LXD server certificate. 
+  * `accept_remote_certificate`    - *Optional* - Accept the remote LXD server certificate.
                                      This can also be done out-of-band of Terraform with the lxc command-line client.
   * `refresh_interval`             - *Optional* - How often to poll during state changes. Defaults to `10s`.
 
@@ -460,6 +460,24 @@ The following resources are currently available:
   * `file`      - *Optional* - File to upload to the container. See reference below.
   * `remote`    - *Optional* - The remote in which the resource will be created. If it
                                is not provided, the default provider remote is used.
+
+##### Container Network Access
+
+If your container has multiple network interfaces, you can specify which
+one Terraform should report the IP address of. To specify the interface, do
+the following:
+
+```hcl
+resource "lxd_container" "container1" {
+  name = "container1"
+  image = "images:alpine/3.5/amd64"
+  profiles = ["default"]
+
+  config {
+    user.access_interface = "eth0"
+  }
+}
+```
 
 ##### Device Block
 
