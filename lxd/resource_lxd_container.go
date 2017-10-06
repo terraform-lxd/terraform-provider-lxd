@@ -348,12 +348,19 @@ func resourceLxdContainerRead(d *schema.ResourceData, meta interface{}) error {
 	}
 	d.Set("ephemeral", container.Ephemeral)
 	d.Set("privileged", false) // Create has no handling for it yet
-	//(string) (len=5) "image": (string) (len=23) "images:alpine/3.5/amd64",
+
 	log.Printf("[DEBUG] Retrieved container config %s:\n%#v", name, container.Config)
 	for k, v := range container.Config {
 		if strings.Contains(k, "limits.") {
 			log.Printf("[DEBUG] Setting limit %s: %s", k, v)
-			d.Set(k, v)
+			err := d.Set(k, v)
+			log.Printf("[DEBUG] set returned %#v", err)
+		} else if strings.HasPrefix(k, "volatile.") {
+			continue
+		} else {
+			log.Printf("[DEBUG] Settting config %s: %s", "config."+k, v)
+			err := d.Set("config."+k, v)
+			log.Printf("[DEBUG] set returned %#v", err)
 		}
 	}
 
