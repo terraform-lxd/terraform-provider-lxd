@@ -359,7 +359,6 @@ func resourceLxdContainerRead(d *schema.ResourceData, meta interface{}) error {
 	var aiFound bool
 	if ai, ok := container.Config["user.access_interface"]; ok {
 		net := state.Network[ai]
-		log.Printf("[DEBUG] FOO: %#v", net)
 		for _, ip := range net.Addresses {
 			if ip.Family == "inet" {
 				aiFound = true
