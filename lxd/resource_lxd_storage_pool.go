@@ -178,11 +178,11 @@ func resourceLxdStoragePoolExists(d *schema.ResourceData, meta interface{}) (exi
 func resourceLxdStoragePoolImport(d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
 	p := meta.(*LxdProvider)
 	remote, name, err := p.Config.ParseRemote(d.Id())
-	log.Printf("[DEBUG] Import storage pool from remote: %s name: %s", remote, name)
 
 	if err != nil {
 		return nil, err
 	}
+	log.Printf("[DEBUG] Import storage pool from remote: %s name: %s", remote, name)
 
 	d.SetId(name)
 	if p.Config.DefaultRemote != remote {
@@ -195,10 +195,10 @@ func resourceLxdStoragePoolImport(d *schema.ResourceData, meta interface{}) ([]*
 	}
 
 	pool, _, err := server.GetStoragePool(name)
-	log.Printf("[DEBUG] Import Retrieved storage pool %s: %#v", name, pool)
 	if err != nil {
 		return nil, err
 	}
+	log.Printf("[DEBUG] Import Retrieved storage pool %s: %#v", name, pool)
 
 	d.Set("name", name)
 	return []*schema.ResourceData{d}, nil
