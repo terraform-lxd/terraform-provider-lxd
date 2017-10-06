@@ -346,10 +346,11 @@ func resourceLxdContainerRead(d *schema.ResourceData, meta interface{}) error {
 	if err != nil {
 		return err
 	}
+	log.Printf("[DEBUG] Retrieved container state %s:\n%#v", name, state)
+
 	d.Set("ephemeral", container.Ephemeral)
 	d.Set("privileged", false) // Create has no handling for it yet
 
-	log.Printf("[DEBUG] Retrieved container config %s:\n%#v", name, container.Config)
 	for k, v := range container.Config {
 		if strings.Contains(k, "limits.") {
 			log.Printf("[DEBUG] Setting limit %s: %s", k, v)
@@ -367,13 +368,32 @@ func resourceLxdContainerRead(d *schema.ResourceData, meta interface{}) error {
 	d.Set("status", container.Status)
 
 	sshIP := ""
-	for iface, net := range state.Network {
-		if iface != "lo" {
-			for _, ip := range net.Addresses {
-				if ip.Family == "inet" {
-					d.Set("ip_address", ip.Address)
-					sshIP = ip.Address
-					d.Set("mac_address", net.Hwaddr)
+	// First see if there was an access_interface set.
+	// If there was, base ip_address and mac_address off of it.
+	var aiFound bool
+	if ai, ok := container.Config["user.access_interface"]; ok {
+		net := state.Network[ai]
+		for _, ip := range net.Addresses {
+			if ip.Family == "inet" {
+				aiFound = true
+				d.Set("ip_address", ip.Address)
+				sshIP = ip.Address
+				d.Set("mac_address", net.Hwaddr)
+			}
+		}
+	}
+
+	// If the above wasn't successful, try to automatically
+	// determine the ip_address and mac_address.
+	if !aiFound {
+		for iface, net := range state.Network {
+			if iface != "lo" {
+				for _, ip := range net.Addresses {
+					if ip.Family == "inet" {
+						d.Set("ip_address", ip.Address)
+						sshIP = ip.Address
+						d.Set("mac_address", net.Hwaddr)
+					}
 				}
 			}
 		}
