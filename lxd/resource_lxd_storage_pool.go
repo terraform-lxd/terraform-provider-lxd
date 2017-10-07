@@ -3,6 +3,7 @@ package lxd
 import (
 	"fmt"
 	"log"
+	"strings"
 
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/lxc/lxd/shared/api"
@@ -15,6 +16,9 @@ func resourceLxdStoragePool() *schema.Resource {
 		Delete: resourceLxdStoragePoolDelete,
 		Exists: resourceLxdStoragePoolExists,
 		Read:   resourceLxdStoragePoolRead,
+		Importer: &schema.ResourceImporter{
+			State: resourceLxdStoragePoolImport,
+		},
 
 		Schema: map[string]*schema.Schema{
 			"name": &schema.Schema{
@@ -92,6 +96,15 @@ func resourceLxdStoragePoolRead(d *schema.ResourceData, meta interface{}) error 
 	if err != nil {
 		return err
 	}
+	d.Set("driver", pool.Driver)
+	config := pool.Config
+	delete(config, "name")
+	for k, _ := range config {
+		if strings.HasPrefix(k, "volatile") {
+			delete(config, k)
+		}
+	}
+	d.Set("config", config)
 
 	log.Printf("[DEBUG] Retrieved storage pool %s: %#v", name, pool)
 
@@ -160,4 +173,33 @@ func resourceLxdStoragePoolExists(d *schema.ResourceData, meta interface{}) (exi
 	}
 
 	return
+}
+
+func resourceLxdStoragePoolImport(d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
+	p := meta.(*LxdProvider)
+	remote, name, err := p.Config.ParseRemote(d.Id())
+
+	if err != nil {
+		return nil, err
+	}
+	log.Printf("[DEBUG] Import storage pool from remote: %s name: %s", remote, name)
+
+	d.SetId(name)
+	if p.Config.DefaultRemote != remote {
+		d.Set("remote", remote)
+	}
+
+	server, err := p.GetContainerServer(p.selectRemote(d))
+	if err != nil {
+		return nil, err
+	}
+
+	pool, _, err := server.GetStoragePool(name)
+	if err != nil {
+		return nil, err
+	}
+	log.Printf("[DEBUG] Import Retrieved storage pool %s: %#v", name, pool)
+
+	d.Set("name", name)
+	return []*schema.ResourceData{d}, nil
 }

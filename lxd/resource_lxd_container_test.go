@@ -529,7 +529,7 @@ resource "lxd_profile" "profile1" {
 
 resource "lxd_container" "container1" {
   name = "%s"
-  image = "ubuntu"
+  image = "images:alpine/3.5"
   profiles = ["default"]
 }
 	`, profileName, containerName)
@@ -543,7 +543,7 @@ resource "lxd_profile" "profile1" {
 
 resource "lxd_container" "container1" {
   name = "%s"
-  image = "ubuntu"
+  image = "images:alpine/3.5"
   profiles = ["default", "${lxd_profile.profile1.name}"]
 }
 	`, profileName, containerName)
@@ -557,7 +557,7 @@ resource "lxd_profile" "profile1" {
 
 resource "lxd_container" "container1" {
   name = "%s"
-  image = "ubuntu"
+  image = "images:alpine/3.5"
   profiles = ["default", "${lxd_profile.profile1.name}"]
 }
 	`, profileName, containerName)
@@ -571,7 +571,7 @@ resource "lxd_profile" "profile1" {
 
 resource "lxd_container" "container1" {
   name = "%s"
-  image = "ubuntu"
+  image = "images:alpine/3.5"
   profiles = ["default"]
 }
 	`, profileName, containerName)
@@ -721,7 +721,7 @@ func testAccContainer_defaultProfile(name string) string {
 	return fmt.Sprintf(`
 resource "lxd_container" "container1" {
   name = "%s"
-  image = "ubuntu"
+  image = "images:alpine/3.5"
 }
 	`, name)
 }
