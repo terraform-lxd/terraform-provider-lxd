@@ -8,7 +8,7 @@ import (
 	"github.com/hashicorp/terraform/helper/resource"
 )
 
-func TestAccLxdContainer_importBasic(t *testing.T) {
+func TestAccContainer_importBasic(t *testing.T) {
 	containerName := strings.ToLower(petname.Generate(2, "-"))
 	resourceName := "lxd_container.container1"
 
@@ -31,7 +31,7 @@ func TestAccLxdContainer_importBasic(t *testing.T) {
 	})
 }
 
-func TestAccLxdContainer_importConfig(t *testing.T) {
+func TestAccContainer_importConfig(t *testing.T) {
 	containerName := strings.ToLower(petname.Generate(2, "-"))
 	resourceName := "lxd_container.container1"
 
