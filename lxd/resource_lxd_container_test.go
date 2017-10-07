@@ -64,9 +64,9 @@ func TestAccContainer_config(t *testing.T) {
 				Config: testAccContainer_config(containerName),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("lxd_container.container1", "name", containerName),
-					resource.TestCheckResourceAttr("lxd_container.container1", "config.limits.cpu", "2"),
+					resource.TestCheckResourceAttr("lxd_container.container1", "config.boot.autostart", "1"),
 					testAccContainerRunning(t, "lxd_container.container1", &container),
-					testAccContainerConfig(&container, "limits.cpu", "2"),
+					testAccContainerConfig(&container, "config.boot.autostart", "1"),
 				),
 			},
 		},
