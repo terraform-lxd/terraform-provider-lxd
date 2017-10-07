@@ -598,7 +598,9 @@ func resourceLxdContainerExists(d *schema.ResourceData, meta interface{}) (exist
 func resourceLxdContainerImport(d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
 	p := meta.(*LxdProvider)
 	log.Printf("[DEBUG] Starting import for %s", d.Id())
-	remote, name, err := p.Config.ParseRemote(d.Id())
+	parts := strings.SplitN(d.Id(), "/", 2)
+
+	remote, name, err := p.Config.ParseRemote(parts[0])
 	if err != nil {
 		return nil, err
 	}
@@ -622,6 +624,11 @@ func resourceLxdContainerImport(d *schema.ResourceData, meta interface{}) ([]*sc
 	} else {
 		return nil, err
 	}
+
+	if len(parts) == 2 {
+		d.Set("image", parts[1])
+	}
+
 	return []*schema.ResourceData{d}, err
 }
 

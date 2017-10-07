@@ -25,9 +25,7 @@ func TestAccLxdContainer_importBasic(t *testing.T) {
 				//				Config:            testAccContainer_basic(containerName),
 				ImportState:       true,
 				ImportStateVerify: true,
-				ImportStateVerifyIgnore: []string{
-					"image",
-				},
+				ImportStateId:     containerName + "/images:alpine/3.5/amd64",
 			},
 		},
 	})
@@ -46,8 +44,7 @@ func TestAccLxdContainer_importConfig(t *testing.T) {
 			},
 
 			resource.TestStep{
-				ResourceName: resourceName,
-				//				Config:            testAccContainer_config(containerName),
+				ResourceName:      resourceName,
 				ImportState:       true,
 				ImportStateVerify: true,
 				ImportStateVerifyIgnore: []string{
