@@ -711,7 +711,7 @@ func testAccContainer_remoteImage(name string) string {
 	return fmt.Sprintf(`
 resource "lxd_container" "container1" {
   name = "%s"
-  image = "images:ubuntu/xenial/amd64"
+  image = "images:alpine/3.5/amd64"
   profiles = ["default"]
 }
 	`, name)
