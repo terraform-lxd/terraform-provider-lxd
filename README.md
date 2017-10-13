@@ -143,6 +143,13 @@ resource "lxd_container" "test1" {
   }
 }
 ```
+Importing existing containers is possible with the following ID syntax
+terraform import lxd_container.container [remote:]name[/images:alpine/3.5].
+where:
+
+remote, optional, is the name of the remote in the provider config
+name, required, is the container name
+/images:alpine/3.5, optional, translates to image = images:alpine/3.5 in the resource configuration
 
 Note, the `config` attributes cannot be changed without destroying and re-creating the container, however values in `limits` can be changed on the fly.
 
