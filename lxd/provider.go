@@ -1,6 +1,7 @@
 package lxd
 
 import (
+	"encoding/pem"
 	"errors"
 	"fmt"
 	"log"
@@ -11,11 +12,10 @@ import (
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/hashicorp/terraform/terraform"
 
-	"github.com/sl1pm4t/lxdhelpers"
-
 	lxd "github.com/lxc/lxd/client"
 	lxd_config "github.com/lxc/lxd/lxc/config"
 	"github.com/lxc/lxd/shared"
+	lxd_api "github.com/lxc/lxd/shared/api"
 )
 
 // LxdProvider contains the Provider configuration and initialized remote clients
@@ -221,13 +221,23 @@ func providerConfigure(d *schema.ResourceData) (interface{}, error) {
 
 	// Validate the client certificates or try to generate them.
 	generateCertificates := d.Get("generate_client_certificates").(bool)
-	if err := lxdhelpers.ValidateClientCertificates(config, generateCertificates); err != nil {
-		return nil, err
+	if generateCertificates {
+		if err := config.GenerateClientCertificate(); err != nil {
+			return nil, err
+		}
 	}
 
 	log.Printf("[DEBUG] LXD Config: %#v", config)
 
-	// Create remote from Environment variables (if defined)
+	// Create remote from Environment variables (if defined).
+	// This emulates the following Terraform config,
+	// but with environment variables:
+	//
+	// lxd_remote {
+	//   name    = LXD_REMOTE
+	//   address = LXD_ADDR
+	//   ...
+	// }
 	envRemote := map[string]interface{}{
 		"name":     os.Getenv("LXD_REMOTE"),
 		"address":  os.Getenv("LXD_ADDR"),
@@ -236,20 +246,24 @@ func providerConfigure(d *schema.ResourceData) (interface{}, error) {
 		"scheme":   os.Getenv("LXD_SCHEME"),
 		"default":  true,
 	}
-	// LXD_REMOTE must be set, or we ignore all the rest of the env vars
+
+	// Build an LXD client from the environment-driven remote.
+	// LXD_REMOTE must be set, or we ignore all the rest of the env vars.
 	if envRemote["name"] != "" {
 		err = lxdProv.providerConfigureClient(envRemote)
 		if err != nil {
-			return nil, fmt.Errorf("Unable to create client for remote [%s]: %s", envRemote["name"].(string), err)
+			return nil, fmt.Errorf("Unable to create client for remote [%s]: %s",
+				envRemote["name"].(string), err)
 		}
 	}
 
-	// Loop over LXD Remotes defined in provider and initialise
+	// Loop over LXD Remotes defined in provider and initialise.
 	for _, rem := range d.Get("lxd_remote").([]interface{}) {
 		lxdRemote := rem.(map[string]interface{})
 		err := lxdProv.providerConfigureClient(lxdRemote)
 		if err != nil {
-			return nil, fmt.Errorf("Unable to create client for remote [%s]: %s", lxdRemote["name"].(string), err)
+			return nil, fmt.Errorf("Unable to create client for remote [%s]: %s",
+				lxdRemote["name"].(string), err)
 		}
 	}
 
@@ -258,6 +272,8 @@ func providerConfigure(d *schema.ResourceData) (interface{}, error) {
 	return &lxdProv, nil
 }
 
+// providerConfigureClient will create an LXD client for a given remote.
+// The client is then stored in the p.Config collection of clients.
 func (p *LxdProvider) providerConfigureClient(lxdRemote map[string]interface{}) error {
 	name := lxdRemote["name"].(string)
 	port := lxdRemote["port"].(string)
@@ -285,12 +301,12 @@ func (p *LxdProvider) providerConfigureClient(lxdRemote map[string]interface{}) 
 			// Validate the server certificate or try to add the remote server.
 			serverCertf := p.Config.ServerCertPath(name)
 			if !shared.PathExists(serverCertf) {
-				// Check if PKI is in use by validating a client
+				// Check if PKI is in use by validating the client.
 				if err := validateClient(rclient); err != nil {
 					// PKI probably isn't in use. Try to add the remote certificate.
 					if p.acceptRemoteCertificate {
-						if _, err := lxdhelpers.GetRemoteCertificate(p.Config, name); err != nil {
-							return fmt.Errorf("Could get remote certificate: %s", err)
+						if err := p.getRemoteCertificate(name); err != nil {
+							return fmt.Errorf("Could not get remote certificate: %s", err)
 						}
 					} else {
 						return fmt.Errorf("Unable to communicate with remote. Either set " +
@@ -302,7 +318,6 @@ func (p *LxdProvider) providerConfigureClient(lxdRemote map[string]interface{}) 
 
 			// Finally, make sure the client is authenticated.
 			// A new client must be created, or there will be a certificate error.
-			// rclient, err = lxd.NewClient(p.Config, name)
 			_, err = p.initClient(name)
 			if err != nil {
 				return err
@@ -311,7 +326,7 @@ func (p *LxdProvider) providerConfigureClient(lxdRemote map[string]interface{}) 
 			if err != nil {
 				return err
 			}
-			if err := lxdhelpers.ValidateRemoteConnection(rclient, name, password); err != nil {
+			if err := authenticateToLXDServer(rclient, name, password); err != nil {
 				return err
 			}
 		}
@@ -319,37 +334,30 @@ func (p *LxdProvider) providerConfigureClient(lxdRemote map[string]interface{}) 
 	return nil
 }
 
-// validateClient makes a simple GET request to the servers API
-func validateClient(client lxd.ContainerServer) error {
-	if client == nil {
-		return errors.New("client is nil")
-	}
-	if _, _, err := client.GetServer(); err != nil {
+// getRemoteCertificate will attempt to retrieve a remote LXD server's
+// certificate and save it to the servercerts path.
+func (p *LxdProvider) getRemoteCertificate(remote string) error {
+	addr := p.Config.Remotes[remote]
+	certificate, err := shared.GetRemoteCertificate(addr.Addr)
+	if err != nil {
 		return err
 	}
+
+	serverCertDir := p.Config.ConfigPath("servercerts")
+	if err := os.MkdirAll(serverCertDir, 0750); err != nil {
+		return fmt.Errorf("Could not create server cert dir: %s", err)
+	}
+
+	certf := fmt.Sprintf("%s/%s.crt", serverCertDir, remote)
+	certOut, err := os.Create(certf)
+	if err != nil {
+		return err
+	}
+
+	pem.Encode(certOut, &pem.Block{Type: "CERTIFICATE", Bytes: certificate.Raw})
+	certOut.Close()
+
 	return nil
-}
-
-// selectRemote is a convenience method that returns the 'remote' set
-// in the LXD resource or the default remote configured on the Provider
-func (p *LxdProvider) selectRemote(d *schema.ResourceData) string {
-	var remote string
-	if rem, ok := d.GetOk("remote"); ok && rem != "" {
-		remote = rem.(string)
-	} else {
-		remote = p.Config.DefaultRemote
-	}
-	return remote
-}
-
-// validateLxdRemoteScheme validates the `lxd_remote.scheme` configuration
-// value as parse time
-func validateLxdRemoteScheme(v interface{}, k string) ([]string, []error) {
-	scheme := v.(string)
-	if scheme != "https" && scheme != "unix" {
-		return nil, []error{fmt.Errorf("Invalid LXD Remote scheme: %s", scheme)}
-	}
-	return nil, nil
 }
 
 // InitClient creates and returns an LXD client for the named remote
@@ -416,4 +424,64 @@ func (p *LxdProvider) GetServer(remote string) (lxd.Server, error) {
 	}
 
 	return p.initClient(remote)
+}
+
+// selectRemote is a convenience method that returns the 'remote' set
+// in the LXD resource or the default remote configured on the Provider.
+func (p *LxdProvider) selectRemote(d *schema.ResourceData) string {
+	var remote string
+	if rem, ok := d.GetOk("remote"); ok && rem != "" {
+		remote = rem.(string)
+	} else {
+		remote = p.Config.DefaultRemote
+	}
+	return remote
+}
+
+// validateClient makes a simple GET request to the servers API
+func validateClient(client lxd.ContainerServer) error {
+	if client == nil {
+		return errors.New("client is nil")
+	}
+	if _, _, err := client.GetServer(); err != nil {
+		return err
+	}
+	return nil
+}
+
+// authenticateToLXDServer authenticates to a given remote LXD server.
+// If successful, the LXD server becomes trusted to the LXD client,
+// and vice-versa.
+func authenticateToLXDServer(client lxd.ContainerServer, remote, password string) error {
+	srv, _, err := client.GetServer()
+	if srv.Auth == "trusted" {
+		return nil
+	}
+
+	req := lxd_api.CertificatesPost{
+		Password: password,
+	}
+	req.Type = "client"
+
+	err = client.CreateCertificate(req)
+	if err != nil {
+		return fmt.Errorf("Unable to authenticate with remote server: %s", err)
+	}
+
+	srv, _, err = client.GetServer()
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// validateLxdRemoteScheme validates the `lxd_remote.scheme` configuration
+// value at parse time.
+func validateLxdRemoteScheme(v interface{}, k string) ([]string, []error) {
+	scheme := v.(string)
+	if scheme != "https" && scheme != "unix" {
+		return nil, []error{fmt.Errorf("Invalid LXD Remote scheme: %s", scheme)}
+	}
+	return nil, nil
 }
