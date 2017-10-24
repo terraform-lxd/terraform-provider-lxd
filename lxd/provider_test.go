@@ -3,7 +3,6 @@ package lxd
 import (
 	"log"
 	"os"
-	"os/exec"
 	"strings"
 	"testing"
 
@@ -192,10 +191,7 @@ func TestAccLxdProvider_noConfigFile(t *testing.T) {
 }
 
 func testAccPreCheck(t *testing.T) {
-	cmd := exec.Command("lxc", "--version")
-	if err := cmd.Run(); err != nil {
-		t.Fatalf("LXD client must be available: %s", err)
-	}
+	// NoOp
 }
 
 func testAccLxdProvider_basic(remote string) string {

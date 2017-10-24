@@ -5,8 +5,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/dustinkirkland/golang-petname"
-
+	petname "github.com/dustinkirkland/golang-petname"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
 
@@ -26,6 +25,24 @@ func TestAccNetwork_basic(t *testing.T) {
 					testAccNetworkExists(t, "lxd_network.eth1", &network),
 					testAccNetworkConfig(&network, "ipv4.address", "10.150.19.1/24"),
 					resource.TestCheckResourceAttr("lxd_network.eth1", "name", "eth1"),
+				),
+			},
+		},
+	})
+}
+
+func TestAccNetwork_description(t *testing.T) {
+	var network api.Network
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:  func() { testAccPreCheck(t) },
+		Providers: testAccProviders,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccNetwork_desc(),
+				Check: resource.ComposeTestCheckFunc(
+					testAccNetworkExists(t, "lxd_network.eth1", &network),
+					resource.TestCheckResourceAttr("lxd_network.eth1", "description", "descriptive"),
 				),
 			},
 		},
@@ -116,6 +133,22 @@ func testAccNetwork_basic() string {
 	return fmt.Sprintf(`
 resource "lxd_network" "eth1" {
   name = "eth1"
+
+  config {
+    ipv4.address = "10.150.19.1/24"
+    ipv4.nat = "true"
+    ipv6.address = "fd42:474b:622d:259d::1/64"
+    ipv6.nat = "true"
+  }
+}
+`)
+}
+
+func testAccNetwork_desc() string {
+	return fmt.Sprintf(`
+resource "lxd_network" "eth1" {
+	name        = "eth1"
+	description = "descriptive"
 
   config {
     ipv4.address = "10.150.19.1/24"

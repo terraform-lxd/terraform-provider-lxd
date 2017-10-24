@@ -22,6 +22,12 @@ func resourceLxdNetwork() *schema.Resource {
 				ForceNew: true,
 			},
 
+			"description": &schema.Schema{
+				Type:     schema.TypeString,
+				Optional: true,
+				ForceNew: true,
+			},
+
 			"config": &schema.Schema{
 				Type:     schema.TypeMap,
 				Required: true,
@@ -56,11 +62,13 @@ func resourceLxdNetworkCreate(d *schema.ResourceData, meta interface{}) error {
 	}
 
 	name := d.Get("name").(string)
+	desc := d.Get("description").(string)
 	config := resourceLxdConfigMap(d.Get("config"))
 
 	log.Printf("[DEBUG] Creating network %s with config: %#v", name, config)
 	req := api.NetworksPost{Name: name}
 	req.Config = config
+	req.Description = desc
 	if err := server.CreateNetwork(req); err != nil {
 		if err.Error() == "not implemented" {
 			err = ErrNetworksNotImplemented
@@ -90,6 +98,7 @@ func resourceLxdNetworkRead(d *schema.ResourceData, meta interface{}) error {
 	log.Printf("[DEBUG] Retrieved network %s: %#v", name, network)
 
 	d.Set("config", network.Config)
+	d.Set("description", network.Description)
 	d.Set("type", network.Type)
 	d.Set("managed", network.Managed)
 
