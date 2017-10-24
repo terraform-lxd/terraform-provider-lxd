@@ -143,13 +143,6 @@ resource "lxd_container" "test1" {
   }
 }
 ```
-Importing existing containers is possible with the following ID syntax
-terraform import lxd_container.container [remote:]name[/images:alpine/3.5].
-where:
-
-remote, optional, is the name of the remote in the provider config
-name, required, is the container name
-/images:alpine/3.5, optional, translates to image = images:alpine/3.5 in the resource configuration
 
 Note, the `config` attributes cannot be changed without destroying and re-creating the container, however values in `limits` can be changed on the fly.
 
@@ -467,6 +460,14 @@ The following resources are currently available:
   * `file`      - *Optional* - File to upload to the container. See reference below.
   * `remote`    - *Optional* - The remote in which the resource will be created. If it
                                is not provided, the default provider remote is used.
+
+##### Importing
+Importing existing containers is possible with the following ID syntax  
+`terraform import lxd_container.container [remote:]name[/images:alpine/3.5]`.  
+
+ * remote             - *Optional* - is the name of the remote in the provider config
+ * name               - *Required* - is the container name
+ * /images:alpine/3.5 - *Optional* - translates to image = images:alpine/3.5 in the resource configuration
 
 ##### Container Network Access
 
