@@ -622,14 +622,17 @@ func resourceLxdContainerImport(d *schema.ResourceData, meta interface{}) ([]*sc
 	}
 
 	ct, _, err := server.GetContainerState(name)
-	log.Printf("[DEBUG] Import container state %#v", ct)
-	log.Printf("[DEBUG] Import and the error %#v", err)
-	if err == nil && ct != nil {
-		d.SetId(name)
-		d.Set("name", name)
-	} else {
+	if err != nil {
 		return nil, err
 	}
+
+	if ct == nil {
+		return nil, fmt.Errorf("Unable to get container state")
+	}
+
+	log.Printf("[DEBUG] Import container state %#v", ct)
+	d.SetId(name)
+	d.Set("name", name)
 
 	if len(parts) == 2 {
 		d.Set("image", parts[1])
