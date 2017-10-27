@@ -13,6 +13,7 @@ func TestLXDProfile_importBasic(t *testing.T) {
 	resourceName := "lxd_profile.profile1"
 
 	resource.Test(t, resource.TestCase{
+		PreCheck:  func() { testAccPreCheck(t) },
 		Providers: testAccProviders,
 		Steps: []resource.TestStep{
 			resource.TestStep{

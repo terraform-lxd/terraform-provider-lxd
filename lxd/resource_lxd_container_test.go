@@ -64,9 +64,9 @@ func TestAccContainer_config(t *testing.T) {
 				Config: testAccContainer_config(containerName),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("lxd_container.container1", "name", containerName),
-					resource.TestCheckResourceAttr("lxd_container.container1", "config.limits.cpu", "2"),
+					resource.TestCheckResourceAttr("lxd_container.container1", "config.boot.autostart", "1"),
 					testAccContainerRunning(t, "lxd_container.container1", &container),
-					testAccContainerConfig(&container, "limits.cpu", "2"),
+					testAccContainerConfig(&container, "boot.autostart", "1"),
 				),
 			},
 		},
@@ -515,7 +515,7 @@ resource "lxd_container" "container1" {
   image = "images:alpine/3.5/amd64"
   profiles = ["default"]
   config {
-    limits.cpu = 2
+    boot.autostart = 1
   }
 }
 	`, name)
@@ -711,7 +711,7 @@ func testAccContainer_remoteImage(name string) string {
 	return fmt.Sprintf(`
 resource "lxd_container" "container1" {
   name = "%s"
-  image = "images:ubuntu/xenial/amd64"
+  image = "images:alpine/3.5/amd64"
   profiles = ["default"]
 }
 	`, name)

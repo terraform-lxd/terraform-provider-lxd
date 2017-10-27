@@ -28,6 +28,9 @@ func resourceLxdContainer() *schema.Resource {
 		Delete: resourceLxdContainerDelete,
 		Exists: resourceLxdContainerExists,
 		Read:   resourceLxdContainerRead,
+		Importer: &schema.ResourceImporter{
+			State: resourceLxdContainerImport,
+		},
 
 		Schema: map[string]*schema.Schema{
 			"name": &schema.Schema{
@@ -44,9 +47,10 @@ func resourceLxdContainer() *schema.Resource {
 			},
 
 			"image": &schema.Schema{
-				Type:     schema.TypeString,
-				ForceNew: true,
-				Required: true,
+				Type:             schema.TypeString,
+				ForceNew:         true,
+				Required:         true,
+				DiffSuppressFunc: suppressImageDifferences,
 			},
 
 			"profiles": &schema.Schema{
@@ -344,12 +348,28 @@ func resourceLxdContainerRead(d *schema.ResourceData, meta interface{}) error {
 	}
 	log.Printf("[DEBUG] Retrieved container state %s:\n%#v", name, state)
 
+	d.Set("ephemeral", container.Ephemeral)
+	d.Set("privileged", false) // Create has no handling for it yet
+
+	config := make(map[string]string)
+	limits := make(map[string]string)
 	for k, v := range container.Config {
 		if strings.Contains(k, "limits.") {
-			log.Printf("[DEBUG] Setting limit %s: %s", k, v)
-			d.Set(k, v)
+			limits[strings.TrimPrefix(k, "limits.")] = v
+		} else if strings.HasPrefix(k, "boot.") {
+			config[k] = v
+		} else if strings.HasPrefix(k, "environment.") {
+			config[k] = v
+		} else if strings.HasPrefix(k, "raw.") {
+			config[k] = v
+		} else if strings.HasPrefix(k, "security.") {
+			config[k] = v
+		} else if strings.HasPrefix(k, "user.") {
+			config[k] = v
 		}
 	}
+	d.Set("config", config)
+	d.Set("limits", limits)
 
 	d.Set("status", container.Status)
 
@@ -581,6 +601,46 @@ func resourceLxdContainerExists(d *schema.ResourceData, meta interface{}) (exist
 	return
 }
 
+func resourceLxdContainerImport(d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
+	p := meta.(*LxdProvider)
+	log.Printf("[DEBUG] Starting import for %s", d.Id())
+	parts := strings.SplitN(d.Id(), "/", 2)
+
+	remote, name, err := p.Config.ParseRemote(parts[0])
+	if err != nil {
+		return nil, err
+	}
+
+	d.SetId(name)
+	if p.Config.DefaultRemote != remote {
+		d.Set("remote", remote)
+	}
+
+	server, err := p.GetContainerServer(p.selectRemote(d))
+	if err != nil {
+		return nil, err
+	}
+
+	ct, _, err := server.GetContainerState(name)
+	if err != nil {
+		return nil, err
+	}
+
+	if ct == nil {
+		return nil, fmt.Errorf("Unable to get container state")
+	}
+
+	log.Printf("[DEBUG] Import container state %#v", ct)
+	d.SetId(name)
+	d.Set("name", name)
+
+	if len(parts) == 2 {
+		d.Set("image", parts[1])
+	}
+
+	return []*schema.ResourceData{d}, err
+}
+
 func resourceLxdContainerRefresh(server lxd.ContainerServer, name string) resource.StateRefreshFunc {
 	return func() (interface{}, string, error) {
 		st, _, err := server.GetContainerState(name)
@@ -736,4 +796,14 @@ func recursiveMkdir(d lxd.ContainerServer, container string, p string, mode os.F
 	}
 
 	return nil
+}
+
+// Suppress Diff on empty name
+func suppressImageDifferences(k, old, new string, d *schema.ResourceData) bool {
+	log.Printf("[DEBUG] comparing old %#v and new %#v :: id %s status %#v", old, new, d.Id(), d.Get("Status"))
+	if old == "" && d.Id() != "" {
+		// special case for imports, empty image string is the result of nt knowing which base image name/alias was used to create this host
+		return true
+	}
+	return false
 }
