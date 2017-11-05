@@ -172,7 +172,7 @@ func resourceLxdCachedImageUpdate(d *schema.ResourceData, meta interface{}) erro
 	if err != nil {
 		return err
 	}
-	id := newCachedImageIdFromResourceId(d.Id())
+	id := newCachedImageIDFromResourceID(d.Id())
 
 	if d.HasChange("aliases") {
 		old, new := d.GetChange("aliases")
@@ -215,7 +215,7 @@ func resourceLxdCachedImageDelete(d *schema.ResourceData, meta interface{}) erro
 		return err
 	}
 
-	id := newCachedImageIdFromResourceId(d.Id())
+	id := newCachedImageIDFromResourceID(d.Id())
 
 	op, err := server.DeleteImage(id.fingerprint)
 	if err != nil {
@@ -233,7 +233,7 @@ func resourceLxdCachedImageExists(d *schema.ResourceData, meta interface{}) (boo
 		return false, err
 	}
 
-	id := newCachedImageIdFromResourceId(d.Id())
+	id := newCachedImageIDFromResourceID(d.Id())
 
 	_, _, err = server.GetImage(id.fingerprint)
 	if err != nil {
@@ -254,7 +254,7 @@ func resourceLxdCachedImageRead(d *schema.ResourceData, meta interface{}) error 
 		return err
 	}
 
-	id := newCachedImageIdFromResourceId(d.Id())
+	id := newCachedImageIDFromResourceID(d.Id())
 
 	img, _, err := server.GetImage(id.fingerprint)
 	if err != nil {
@@ -306,7 +306,7 @@ func newCachedImageID(remote, fingerprint string) cachedImageID {
 	}
 }
 
-func newCachedImageIdFromResourceId(id string) cachedImageID {
+func newCachedImageIDFromResourceID(id string) cachedImageID {
 	parts := strings.SplitN(id, "/", 2)
 	return cachedImageID{
 		remote:      parts[0],
