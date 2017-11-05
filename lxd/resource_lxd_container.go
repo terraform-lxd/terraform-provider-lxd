@@ -466,7 +466,7 @@ func resourceLxdContainerUpdate(d *schema.ResourceData, meta interface{}) error 
 		oldDevices := resourceLxdDevices(old)
 		newDevices := resourceLxdDevices(new)
 
-		for n, _ := range oldDevices {
+		for n := range oldDevices {
 			delete(newContainer.Devices, n)
 		}
 
@@ -483,7 +483,7 @@ func resourceLxdContainerUpdate(d *schema.ResourceData, meta interface{}) error 
 		changed = true
 		oldLimits, newLimits := d.GetChange("limits")
 
-		for k, _ := range oldLimits.(map[string]interface{}) {
+		for k := range oldLimits.(map[string]interface{}) {
 			delete(newContainer.Config, k)
 		}
 
