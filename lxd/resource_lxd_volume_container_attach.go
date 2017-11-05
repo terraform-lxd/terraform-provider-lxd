@@ -198,7 +198,7 @@ func resourceLxdVolumeContainerAttachExists(d *schema.ResourceData, meta interfa
 }
 
 func resourceLxdVolumeContainerAttachedVolume(
-	server lxd.ContainerServer, v volumeAttachmentId) (string, map[string]string, error) {
+	server lxd.ContainerServer, v volumeAttachmentID) (string, map[string]string, error) {
 	var deviceName string
 	var deviceInfo map[string]string
 
