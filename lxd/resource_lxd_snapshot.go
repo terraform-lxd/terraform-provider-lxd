@@ -111,7 +111,7 @@ func resourceLxdSnapshotRead(d *schema.ResourceData, meta interface{}) error {
 		return err
 	}
 
-	snapID := NewSnapshotIDFromResourceID(d.Id())
+	snapID := newSnapshotIDFromResourceID(d.Id())
 
 	snap, _, err := server.GetContainerSnapshot(snapID.container, snapID.snapshot)
 	if err != nil {
@@ -136,7 +136,7 @@ func resourceLxdSnapshotDelete(d *schema.ResourceData, meta interface{}) error {
 	if err != nil {
 		return err
 	}
-	snapID := NewSnapshotIDFromResourceID(d.Id())
+	snapID := newSnapshotIDFromResourceID(d.Id())
 
 	server.DeleteContainerSnapshot(snapID.container, snapID.snapshot)
 
@@ -149,7 +149,7 @@ func resourceLxdSnapshotExists(d *schema.ResourceData, meta interface{}) (bool, 
 	if err != nil {
 		return false, err
 	}
-	snapID := NewSnapshotIDFromResourceID(d.Id())
+	snapID := newSnapshotIDFromResourceID(d.Id())
 
 	snap, _, err := server.GetContainerSnapshot(snapID.container, snapID.snapshot)
 
@@ -173,7 +173,7 @@ func newSnapshotID(remote, container, snapshot string) snapshotID {
 	return snapshotID{remote, container, snapshot}
 }
 
-func NewSnapshotIDFromResourceID(id string) snapshotID {
+func newSnapshotIDFromResourceID(id string) snapshotID {
 	pieces := strings.SplitN(id, "/", 3)
 	return snapshotID{pieces[0], pieces[1], pieces[2]}
 }
