@@ -26,28 +26,28 @@ func NewVolumeIDFromResourceID(id string) volumeID {
 	return volumeID{pieces[0], pieces[1], pieces[2]}
 }
 
-type volumeAttachmentId struct {
+type volumeAttachmentID struct {
 	pool         string
 	volumeName   string
 	attachedName string
 }
 
-func (v volumeAttachmentId) String() string {
+func (v volumeAttachmentID) String() string {
 	return fmt.Sprintf("%s/%s/%s", v.pool, v.volumeName, v.attachedName)
 }
 
-func NewVolumeAttachmentId(pool, volumeName, attachedName string) volumeAttachmentId {
-	return volumeAttachmentId{
+func NewVolumeAttachmentId(pool, volumeName, attachedName string) volumeAttachmentID {
+	return volumeAttachmentID{
 		pool:         pool,
 		volumeName:   volumeName,
 		attachedName: attachedName,
 	}
 }
 
-func NewVolumeAttachmentIdFromResourceId(id string) volumeAttachmentId {
+func NewVolumeAttachmentIdFromResourceId(id string) volumeAttachmentID {
 	pieces := strings.SplitN(id, "/", 3)
 	log.Printf("[DEBUG] pieces: %#v", pieces)
-	return volumeAttachmentId{pieces[0], pieces[1], pieces[2]}
+	return volumeAttachmentID{pieces[0], pieces[1], pieces[2]}
 }
 
 // Helper functions
