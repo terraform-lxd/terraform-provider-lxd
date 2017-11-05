@@ -178,13 +178,13 @@ func resourceLxdContainerCreate(d *schema.ResourceData, meta interface{}) error 
 	// Using Partial to resume uploading files if there was a previous error.
 	d.Partial(true)
 
-	p := meta.(*LxdProvider)
+	p := meta.(*lxdProvider)
 	remote := p.selectRemote(d)
 	server, err := p.GetContainerServer(remote)
 	if err != nil {
 		return err
 	}
-	refreshInterval := meta.(*LxdProvider).RefreshInterval
+	refreshInterval := meta.(*lxdProvider).RefreshInterval
 
 	name := d.Get("name").(string)
 	ephem := d.Get("ephemeral").(bool)
@@ -327,7 +327,7 @@ func resourceLxdContainerCreate(d *schema.ResourceData, meta interface{}) error 
 }
 
 func resourceLxdContainerRead(d *schema.ResourceData, meta interface{}) error {
-	p := meta.(*LxdProvider)
+	p := meta.(*lxdProvider)
 	remote := p.selectRemote(d)
 	server, err := p.GetContainerServer(remote)
 	if err != nil {
@@ -418,7 +418,7 @@ func resourceLxdContainerRead(d *schema.ResourceData, meta interface{}) error {
 }
 
 func resourceLxdContainerUpdate(d *schema.ResourceData, meta interface{}) error {
-	p := meta.(*LxdProvider)
+	p := meta.(*lxdProvider)
 	remote := p.selectRemote(d)
 	server, err := p.GetContainerServer(remote)
 	if err != nil {
@@ -522,14 +522,14 @@ func resourceLxdContainerUpdate(d *schema.ResourceData, meta interface{}) error 
 }
 
 func resourceLxdContainerDelete(d *schema.ResourceData, meta interface{}) (err error) {
-	p := meta.(*LxdProvider)
+	p := meta.(*lxdProvider)
 	remote := p.selectRemote(d)
 	server, err := p.GetContainerServer(remote)
 	if err != nil {
 		return err
 	}
 
-	refreshInterval := meta.(*LxdProvider).RefreshInterval
+	refreshInterval := meta.(*lxdProvider).RefreshInterval
 	name := d.Id()
 
 	ct, etag, _ := server.GetContainerState(name)
@@ -579,7 +579,7 @@ func resourceLxdContainerDelete(d *schema.ResourceData, meta interface{}) (err e
 }
 
 func resourceLxdContainerExists(d *schema.ResourceData, meta interface{}) (exists bool, err error) {
-	p := meta.(*LxdProvider)
+	p := meta.(*lxdProvider)
 	remote := p.selectRemote(d)
 	server, err := p.GetContainerServer(remote)
 	if err != nil {
@@ -602,7 +602,7 @@ func resourceLxdContainerExists(d *schema.ResourceData, meta interface{}) (exist
 }
 
 func resourceLxdContainerImport(d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
-	p := meta.(*LxdProvider)
+	p := meta.(*lxdProvider)
 	log.Printf("[DEBUG] Starting import for %s", d.Id())
 	parts := strings.SplitN(d.Id(), "/", 2)
 

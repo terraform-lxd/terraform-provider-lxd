@@ -306,9 +306,9 @@ func resourceLxdNoOp() *schema.Resource {
 		Create: func(d *schema.ResourceData, meta interface{}) error {
 			remote := d.Get("remote").(string)
 			if remote == "" {
-				remote = meta.(*LxdProvider).Config.DefaultRemote
+				remote = meta.(*lxdProvider).Config.DefaultRemote
 			}
-			_, err := meta.(*LxdProvider).GetServer(remote)
+			_, err := meta.(*lxdProvider).GetServer(remote)
 			if err != nil {
 				return err
 			}
@@ -326,9 +326,9 @@ func resourceLxdNoOp() *schema.Resource {
 		Read: func(d *schema.ResourceData, meta interface{}) error {
 			remote := d.Get("remote").(string)
 			if remote == "" {
-				remote = meta.(*LxdProvider).Config.DefaultRemote
+				remote = meta.(*lxdProvider).Config.DefaultRemote
 			}
-			_, err := meta.(*LxdProvider).GetServer(remote)
+			_, err := meta.(*lxdProvider).GetServer(remote)
 			if err != nil {
 				return err
 			}

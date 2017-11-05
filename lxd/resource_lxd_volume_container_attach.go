@@ -59,7 +59,7 @@ func resourceLxdVolumeContainerAttach() *schema.Resource {
 }
 
 func resourceLxdVolumeContainerAttachCreate(d *schema.ResourceData, meta interface{}) error {
-	p := meta.(*LxdProvider)
+	p := meta.(*lxdProvider)
 	server, err := p.GetContainerServer(p.selectRemote(d))
 	if err != nil {
 		return err
@@ -116,7 +116,7 @@ func resourceLxdVolumeContainerAttachCreate(d *schema.ResourceData, meta interfa
 }
 
 func resourceLxdVolumeContainerAttachRead(d *schema.ResourceData, meta interface{}) error {
-	p := meta.(*LxdProvider)
+	p := meta.(*lxdProvider)
 	server, err := p.GetContainerServer(p.selectRemote(d))
 	if err != nil {
 		return err
@@ -139,7 +139,7 @@ func resourceLxdVolumeContainerAttachRead(d *schema.ResourceData, meta interface
 }
 
 func resourceLxdVolumeContainerAttachDelete(d *schema.ResourceData, meta interface{}) (err error) {
-	p := meta.(*LxdProvider)
+	p := meta.(*lxdProvider)
 	server, err := p.GetContainerServer(p.selectRemote(d))
 	if err != nil {
 		return err
@@ -179,7 +179,7 @@ func resourceLxdVolumeContainerAttachDelete(d *schema.ResourceData, meta interfa
 }
 
 func resourceLxdVolumeContainerAttachExists(d *schema.ResourceData, meta interface{}) (exists bool, err error) {
-	p := meta.(*LxdProvider)
+	p := meta.(*lxdProvider)
 	server, err := p.GetContainerServer(p.selectRemote(d))
 	if err != nil {
 		return false, err

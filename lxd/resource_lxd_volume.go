@@ -58,7 +58,7 @@ func resourceLxdVolume() *schema.Resource {
 }
 
 func resourceLxdVolumeCreate(d *schema.ResourceData, meta interface{}) error {
-	p := meta.(*LxdProvider)
+	p := meta.(*lxdProvider)
 	server, err := p.GetContainerServer(p.selectRemote(d))
 	if err != nil {
 		return err
@@ -85,7 +85,7 @@ func resourceLxdVolumeCreate(d *schema.ResourceData, meta interface{}) error {
 }
 
 func resourceLxdVolumeRead(d *schema.ResourceData, meta interface{}) error {
-	p := meta.(*LxdProvider)
+	p := meta.(*lxdProvider)
 	server, err := p.GetContainerServer(p.selectRemote(d))
 	if err != nil {
 		return err
@@ -114,7 +114,7 @@ func resourceLxdVolumeRead(d *schema.ResourceData, meta interface{}) error {
 }
 
 func resourceLxdVolumeUpdate(d *schema.ResourceData, meta interface{}) error {
-	p := meta.(*LxdProvider)
+	p := meta.(*lxdProvider)
 	server, err := p.GetContainerServer(p.selectRemote(d))
 	if err != nil {
 		return err
@@ -143,7 +143,7 @@ func resourceLxdVolumeUpdate(d *schema.ResourceData, meta interface{}) error {
 }
 
 func resourceLxdVolumeDelete(d *schema.ResourceData, meta interface{}) (err error) {
-	p := meta.(*LxdProvider)
+	p := meta.(*lxdProvider)
 	server, err := p.GetContainerServer(p.selectRemote(d))
 	if err != nil {
 		return err
@@ -159,7 +159,7 @@ func resourceLxdVolumeDelete(d *schema.ResourceData, meta interface{}) (err erro
 }
 
 func resourceLxdVolumeExists(d *schema.ResourceData, meta interface{}) (exists bool, err error) {
-	p := meta.(*LxdProvider)
+	p := meta.(*lxdProvider)
 	server, err := p.GetContainerServer(p.selectRemote(d))
 	if err != nil {
 		return false, err
