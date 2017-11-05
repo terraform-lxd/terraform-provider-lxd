@@ -17,11 +17,11 @@ func (v volumeID) String() string {
 	return fmt.Sprintf("%s/%s/%s", v.pool, v.name, v.volType)
 }
 
-func NewVolumeID(pool, name, volType string) volumeID {
+func newVolumeID(pool, name, volType string) volumeID {
 	return volumeID{pool: pool, name: name, volType: volType}
 }
 
-func NewVolumeIDFromResourceID(id string) volumeID {
+func newVolumeIDFromResourceID(id string) volumeID {
 	pieces := strings.SplitN(id, "/", 3)
 	return volumeID{pieces[0], pieces[1], pieces[2]}
 }
@@ -36,7 +36,7 @@ func (v volumeAttachmentID) String() string {
 	return fmt.Sprintf("%s/%s/%s", v.pool, v.volumeName, v.attachedName)
 }
 
-func NewVolumeAttachmentID(pool, volumeName, attachedName string) volumeAttachmentID {
+func newVolumeAttachmentID(pool, volumeName, attachedName string) volumeAttachmentID {
 	return volumeAttachmentID{
 		pool:         pool,
 		volumeName:   volumeName,
@@ -44,7 +44,7 @@ func NewVolumeAttachmentID(pool, volumeName, attachedName string) volumeAttachme
 	}
 }
 
-func NewVolumeAttachmentIDFromResourceID(id string) volumeAttachmentID {
+func newVolumeAttachmentIDFromResourceID(id string) volumeAttachmentID {
 	pieces := strings.SplitN(id, "/", 3)
 	log.Printf("[DEBUG] pieces: %#v", pieces)
 	return volumeAttachmentID{pieces[0], pieces[1], pieces[2]}
