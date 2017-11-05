@@ -149,7 +149,7 @@ func testAccSnapshot_basic(cName, sName string, stateful bool) string {
 	return fmt.Sprintf(`
 resource "lxd_container" "container1" {
   name = "%s"
-  image = "ubuntu:x"
+  image = "images:alpine/3.5"
   profiles = ["default"]
 }
 
@@ -165,7 +165,7 @@ func testAccSnapshot_multiple1(cName, sName string) string {
 	return fmt.Sprintf(`
 resource "lxd_container" "container1" {
   name = "%s"
-  image = "ubuntu:x"
+  image = "images:alpine/3.5"
   profiles = ["default"]
 }
 
@@ -181,7 +181,7 @@ func testAccSnapshot_multiple2(cName, sName1, sName2 string) string {
 	return fmt.Sprintf(`
 resource "lxd_container" "container1" {
   name = "%s"
-  image = "ubuntu:x"
+  image = "images:alpine/3.5"
   profiles = ["default"]
 }
 
