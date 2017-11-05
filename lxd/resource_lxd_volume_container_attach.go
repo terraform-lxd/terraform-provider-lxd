@@ -108,7 +108,7 @@ func resourceLxdVolumeContainerAttachCreate(d *schema.ResourceData, meta interfa
 		return err
 	}
 
-	v := NewVolumeAttachmentID(pool, volumeName, containerName)
+	v := newVolumeAttachmentID(pool, volumeName, containerName)
 	log.Printf("[DEBUG] volume attachment id: %s", v.String())
 	d.SetId(v.String())
 
@@ -122,7 +122,7 @@ func resourceLxdVolumeContainerAttachRead(d *schema.ResourceData, meta interface
 		return err
 	}
 
-	v := NewVolumeAttachmentIDFromResourceID(d.Id())
+	v := newVolumeAttachmentIDFromResourceID(d.Id())
 
 	deviceName, deviceInfo, err := resourceLxdVolumeContainerAttachedVolume(server, v)
 	if err != nil {
@@ -185,7 +185,7 @@ func resourceLxdVolumeContainerAttachExists(d *schema.ResourceData, meta interfa
 		return false, err
 	}
 
-	v := NewVolumeAttachmentIDFromResourceID(d.Id())
+	v := newVolumeAttachmentIDFromResourceID(d.Id())
 	exists = false
 
 	_, _, err = resourceLxdVolumeContainerAttachedVolume(server, v)
