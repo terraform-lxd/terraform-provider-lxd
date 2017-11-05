@@ -91,7 +91,7 @@ func resourceLxdVolumeRead(d *schema.ResourceData, meta interface{}) error {
 		return err
 	}
 
-	v := NewVolumeIdFromResourceId(d.Id())
+	v := NewVolumeIDFromResourceID(d.Id())
 	volume, _, err := server.GetStoragePoolVolume(v.pool, v.volType, v.name)
 	if err != nil {
 		return err
@@ -121,7 +121,7 @@ func resourceLxdVolumeUpdate(d *schema.ResourceData, meta interface{}) error {
 	}
 
 	if d.HasChange("config") {
-		v := NewVolumeIdFromResourceId(d.Id())
+		v := NewVolumeIDFromResourceID(d.Id())
 		volume, etag, err := server.GetStoragePoolVolume(v.pool, v.volType, v.name)
 		if err != nil {
 			return err
@@ -149,7 +149,7 @@ func resourceLxdVolumeDelete(d *schema.ResourceData, meta interface{}) (err erro
 		return err
 	}
 
-	v := NewVolumeIdFromResourceId(d.Id())
+	v := NewVolumeIDFromResourceID(d.Id())
 
 	if err = server.DeleteStoragePoolVolume(v.pool, v.volType, v.name); err != nil {
 		return err
@@ -167,7 +167,7 @@ func resourceLxdVolumeExists(d *schema.ResourceData, meta interface{}) (exists b
 
 	exists = false
 
-	v := NewVolumeIdFromResourceId(d.Id())
+	v := NewVolumeIDFromResourceID(d.Id())
 	_, _, err = server.GetStoragePoolVolume(v.pool, v.volType, v.name)
 	if err == nil {
 		exists = true
