@@ -78,7 +78,7 @@ func resourceLxdVolumeCreate(d *schema.ResourceData, meta interface{}) error {
 		return err
 	}
 
-	v := NewVolumeId(pool, name, volType)
+	v := NewVolumeID(pool, name, volType)
 	d.SetId(v.String())
 
 	return resourceLxdVolumeRead(d, meta)
