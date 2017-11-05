@@ -19,7 +19,7 @@ import (
 	"github.com/lxc/lxd/shared/api"
 )
 
-var updateTimeout int = int(time.Duration(time.Second * 300).Seconds())
+var updateTimeout = int(time.Duration(time.Second * 300).Seconds())
 
 func resourceLxdContainer() *schema.Resource {
 	return &schema.Resource{
