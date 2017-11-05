@@ -151,11 +151,7 @@ func resourceLxdVolumeDelete(d *schema.ResourceData, meta interface{}) (err erro
 
 	v := newVolumeIDFromResourceID(d.Id())
 
-	if err = server.DeleteStoragePoolVolume(v.pool, v.volType, v.name); err != nil {
-		return err
-	}
-
-	return nil
+	return server.DeleteStoragePoolVolume(v.pool, v.volType, v.name)
 }
 
 func resourceLxdVolumeExists(d *schema.ResourceData, meta interface{}) (exists bool, err error) {
