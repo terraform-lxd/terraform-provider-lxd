@@ -108,7 +108,7 @@ func resourceLxdVolumeContainerAttachCreate(d *schema.ResourceData, meta interfa
 		return err
 	}
 
-	v := NewVolumeAttachmentId(pool, volumeName, containerName)
+	v := NewVolumeAttachmentID(pool, volumeName, containerName)
 	log.Printf("[DEBUG] volume attachment id: %s", v.String())
 	d.SetId(v.String())
 

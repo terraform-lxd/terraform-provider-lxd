@@ -36,7 +36,7 @@ func (v volumeAttachmentID) String() string {
 	return fmt.Sprintf("%s/%s/%s", v.pool, v.volumeName, v.attachedName)
 }
 
-func NewVolumeAttachmentId(pool, volumeName, attachedName string) volumeAttachmentID {
+func NewVolumeAttachmentID(pool, volumeName, attachedName string) volumeAttachmentID {
 	return volumeAttachmentID{
 		pool:         pool,
 		volumeName:   volumeName,
