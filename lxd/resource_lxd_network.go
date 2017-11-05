@@ -71,7 +71,7 @@ func resourceLxdNetworkCreate(d *schema.ResourceData, meta interface{}) error {
 	req.Description = desc
 	if err := server.CreateNetwork(req); err != nil {
 		if err.Error() == "not implemented" {
-			err = ErrNetworksNotImplemented
+			err = errNetworksNotImplemented
 		}
 
 		return err
