@@ -182,6 +182,6 @@ func (s snapshotID) String() string {
 	return fmt.Sprintf("%s/%s/%s", s.remote, s.container, s.snapshot)
 }
 
-func (s snapshotID) LxdId() string {
+func (s snapshotID) LxdID() string {
 	return fmt.Sprintf("%s/%s", s.container, s.snapshot)
 }

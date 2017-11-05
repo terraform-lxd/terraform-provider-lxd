@@ -114,7 +114,7 @@ func TestSnapshotId_String(t *testing.T) {
 	}
 }
 
-func TestSnapshotId_LxdId(t *testing.T) {
+func TestSnapshotId_LxdID(t *testing.T) {
 	type fields struct {
 		remote    string
 		container string
@@ -138,8 +138,8 @@ func TestSnapshotId_LxdId(t *testing.T) {
 				container: tt.fields.container,
 				snapshot:  tt.fields.snapshot,
 			}
-			if got := s.LxdId(); got != tt.want {
-				t.Errorf("snapshotId.LxdId() = %v, want %v", got, tt.want)
+			if got := s.LxdID(); got != tt.want {
+				t.Errorf("snapshotId.LxdID() = %v, want %v", got, tt.want)
 			}
 		})
 	}
