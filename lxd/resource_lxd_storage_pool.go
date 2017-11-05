@@ -99,7 +99,7 @@ func resourceLxdStoragePoolRead(d *schema.ResourceData, meta interface{}) error 
 	d.Set("driver", pool.Driver)
 	config := pool.Config
 	delete(config, "name")
-	for k, _ := range config {
+	for k := range config {
 		if strings.HasPrefix(k, "volatile") {
 			delete(config, k)
 		}

@@ -170,7 +170,7 @@ func resourceLxdProfileUpdate(d *schema.ResourceData, meta interface{}) error {
 		oldDevices := resourceLxdDevices(old)
 		newDevices := resourceLxdDevices(new)
 
-		for n, _ := range oldDevices {
+		for n := range oldDevices {
 			delete(newProfile.Devices, n)
 		}
 
