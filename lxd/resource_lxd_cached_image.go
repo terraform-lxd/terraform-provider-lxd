@@ -294,26 +294,26 @@ func resourceLxdCachedImageRead(d *schema.ResourceData, meta interface{}) error 
 	return nil
 }
 
-type cachedImageId struct {
+type cachedImageID struct {
 	remote      string
 	fingerprint string
 }
 
-func newCachedImageId(remote, fingerprint string) cachedImageId {
-	return cachedImageId{
+func newCachedImageId(remote, fingerprint string) cachedImageID {
+	return cachedImageID{
 		remote:      remote,
 		fingerprint: fingerprint,
 	}
 }
 
-func newCachedImageIdFromResourceId(id string) cachedImageId {
+func newCachedImageIdFromResourceId(id string) cachedImageID {
 	parts := strings.SplitN(id, "/", 2)
-	return cachedImageId{
+	return cachedImageID{
 		remote:      parts[0],
 		fingerprint: parts[1],
 	}
 }
 
-func (id cachedImageId) resourceId() string {
+func (id cachedImageID) resourceId() string {
 	return fmt.Sprintf("%s/%s", id.remote, id.fingerprint)
 }
