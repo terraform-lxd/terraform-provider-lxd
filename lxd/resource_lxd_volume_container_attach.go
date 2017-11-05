@@ -171,11 +171,7 @@ func resourceLxdVolumeContainerAttachDelete(d *schema.ResourceData, meta interfa
 		return fmt.Errorf("Unable to detach volume: %s", err)
 	}
 
-	if err := op.Wait(); err != nil {
-		return err
-	}
-
-	return nil
+	return op.Wait()
 }
 
 func resourceLxdVolumeContainerAttachExists(d *schema.ResourceData, meta interface{}) (exists bool, err error) {

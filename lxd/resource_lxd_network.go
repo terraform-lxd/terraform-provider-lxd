@@ -119,11 +119,7 @@ func resourceLxdNetworkDelete(d *schema.ResourceData, meta interface{}) (err err
 
 	name := d.Id()
 
-	if err = server.DeleteNetwork(name); err != nil {
-		return err
-	}
-
-	return nil
+	return server.DeleteNetwork(name)
 }
 
 func resourceLxdNetworkExists(d *schema.ResourceData, meta interface{}) (exists bool, err error) {

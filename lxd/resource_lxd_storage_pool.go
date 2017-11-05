@@ -150,11 +150,7 @@ func resourceLxdStoragePoolDelete(d *schema.ResourceData, meta interface{}) (err
 
 	name := d.Id()
 
-	if err = server.DeleteStoragePool(name); err != nil {
-		return err
-	}
-
-	return nil
+	return server.DeleteStoragePool(name)
 }
 
 func resourceLxdStoragePoolExists(d *schema.ResourceData, meta interface{}) (exists bool, err error) {

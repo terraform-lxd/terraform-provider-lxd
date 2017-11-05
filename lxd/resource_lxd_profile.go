@@ -202,11 +202,7 @@ func resourceLxdProfileDelete(d *schema.ResourceData, meta interface{}) (err err
 
 	name := d.Id()
 
-	if err = server.DeleteProfile(name); err != nil {
-		return err
-	}
-
-	return nil
+	return server.DeleteProfile(name)
 }
 
 func resourceLxdProfileExists(d *schema.ResourceData, meta interface{}) (exists bool, err error) {
