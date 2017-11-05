@@ -19,7 +19,7 @@ import (
 	"github.com/lxc/lxd/shared/api"
 )
 
-var UpdateTimeout int = int(time.Duration(time.Second * 300).Seconds())
+var updateTimeout int = int(time.Duration(time.Second * 300).Seconds())
 
 func resourceLxdContainer() *schema.Resource {
 	return &schema.Resource{
@@ -295,7 +295,7 @@ func resourceLxdContainerCreate(d *schema.ResourceData, meta interface{}) error 
 	// Start container
 	startReq := api.ContainerStatePut{
 		Action:  "start",
-		Timeout: UpdateTimeout,
+		Timeout: updateTimeout,
 		Force:   false,
 	}
 	op2, err := server.UpdateContainerState(name, startReq, "")
@@ -536,7 +536,7 @@ func resourceLxdContainerDelete(d *schema.ResourceData, meta interface{}) (err e
 	if ct.Status == "Running" {
 		stopReq := api.ContainerStatePut{
 			Action:  "stop",
-			Timeout: UpdateTimeout,
+			Timeout: updateTimeout,
 		}
 
 		op, err := server.UpdateContainerState(name, stopReq, etag)
