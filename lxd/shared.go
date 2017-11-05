@@ -21,7 +21,7 @@ func NewVolumeID(pool, name, volType string) volumeID {
 	return volumeID{pool: pool, name: name, volType: volType}
 }
 
-func NewVolumeIdFromResourceId(id string) volumeID {
+func NewVolumeIDFromResourceID(id string) volumeID {
 	pieces := strings.SplitN(id, "/", 3)
 	return volumeID{pieces[0], pieces[1], pieces[2]}
 }
