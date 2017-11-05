@@ -146,7 +146,7 @@ func resourceLxdCachedImageCreate(d *schema.ResourceData, meta interface{}) erro
 	}
 
 	// Image was successfully copied, set resource ID
-	id := newCachedImageId(dstName, imgInfo.Fingerprint)
+	id := newCachedImageID(dstName, imgInfo.Fingerprint)
 	d.SetId(id.resourceId())
 
 	// store remote aliases that we've copied, so we can filter them out later
@@ -299,7 +299,7 @@ type cachedImageID struct {
 	fingerprint string
 }
 
-func newCachedImageId(remote, fingerprint string) cachedImageID {
+func newCachedImageID(remote, fingerprint string) cachedImageID {
 	return cachedImageID{
 		remote:      remote,
 		fingerprint: fingerprint,
