@@ -81,7 +81,7 @@ func resourceLxdCachedImage() *schema.Resource {
 }
 
 func resourceLxdCachedImageCreate(d *schema.ResourceData, meta interface{}) error {
-	p := meta.(*LxdProvider)
+	p := meta.(*lxdProvider)
 
 	dstName := p.selectRemote(d)
 	dstServer, err := p.GetContainerServer(dstName)
@@ -166,7 +166,7 @@ func resourceLxdCachedImageCopyProgressHandler(prog string) {
 }
 
 func resourceLxdCachedImageUpdate(d *schema.ResourceData, meta interface{}) error {
-	p := meta.(*LxdProvider)
+	p := meta.(*lxdProvider)
 	remote := p.selectRemote(d)
 	server, err := p.GetContainerServer(remote)
 	if err != nil {
@@ -208,7 +208,7 @@ func resourceLxdCachedImageUpdate(d *schema.ResourceData, meta interface{}) erro
 }
 
 func resourceLxdCachedImageDelete(d *schema.ResourceData, meta interface{}) error {
-	p := meta.(*LxdProvider)
+	p := meta.(*lxdProvider)
 	remote := p.selectRemote(d)
 	server, err := p.GetContainerServer(remote)
 	if err != nil {
@@ -226,7 +226,7 @@ func resourceLxdCachedImageDelete(d *schema.ResourceData, meta interface{}) erro
 }
 
 func resourceLxdCachedImageExists(d *schema.ResourceData, meta interface{}) (bool, error) {
-	p := meta.(*LxdProvider)
+	p := meta.(*lxdProvider)
 	remote := p.selectRemote(d)
 	server, err := p.GetContainerServer(remote)
 	if err != nil {
@@ -247,7 +247,7 @@ func resourceLxdCachedImageExists(d *schema.ResourceData, meta interface{}) (boo
 }
 
 func resourceLxdCachedImageRead(d *schema.ResourceData, meta interface{}) error {
-	p := meta.(*LxdProvider)
+	p := meta.(*lxdProvider)
 	remote := p.selectRemote(d)
 	server, err := p.GetImageServer(remote)
 	if err != nil {

@@ -54,7 +54,7 @@ func resourceLxdSnapshot() *schema.Resource {
 }
 
 func resourceLxdSnapshotCreate(d *schema.ResourceData, meta interface{}) error {
-	p := meta.(*LxdProvider)
+	p := meta.(*lxdProvider)
 
 	remote := p.selectRemote(d)
 	server, err := p.GetContainerServer(remote)
@@ -105,7 +105,7 @@ func resourceLxdSnapshotCreate(d *schema.ResourceData, meta interface{}) error {
 }
 
 func resourceLxdSnapshotRead(d *schema.ResourceData, meta interface{}) error {
-	p := meta.(*LxdProvider)
+	p := meta.(*lxdProvider)
 	server, err := p.GetContainerServer(p.selectRemote(d))
 	if err != nil {
 		return err
@@ -131,7 +131,7 @@ func resourceLxdSnapshotRead(d *schema.ResourceData, meta interface{}) error {
 }
 
 func resourceLxdSnapshotDelete(d *schema.ResourceData, meta interface{}) error {
-	p := meta.(*LxdProvider)
+	p := meta.(*lxdProvider)
 	server, err := p.GetContainerServer(p.selectRemote(d))
 	if err != nil {
 		return err
@@ -144,7 +144,7 @@ func resourceLxdSnapshotDelete(d *schema.ResourceData, meta interface{}) error {
 }
 
 func resourceLxdSnapshotExists(d *schema.ResourceData, meta interface{}) (bool, error) {
-	p := meta.(*LxdProvider)
+	p := meta.(*lxdProvider)
 	server, err := p.GetContainerServer(p.selectRemote(d))
 	if err != nil {
 		return false, err
