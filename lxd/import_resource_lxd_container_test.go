@@ -21,7 +21,7 @@ func TestAccContainer_importBasic(t *testing.T) {
 			},
 
 			resource.TestStep{
-				ResourceName: resourceName,
+				ResourceName:      resourceName,
 				ImportState:       true,
 				ImportStateVerify: true,
 				ImportStateId:     containerName + "/images:alpine/3.5/amd64",
