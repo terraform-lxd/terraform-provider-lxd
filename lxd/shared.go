@@ -44,7 +44,7 @@ func NewVolumeAttachmentID(pool, volumeName, attachedName string) volumeAttachme
 	}
 }
 
-func NewVolumeAttachmentIdFromResourceId(id string) volumeAttachmentID {
+func NewVolumeAttachmentIDFromResourceID(id string) volumeAttachmentID {
 	pieces := strings.SplitN(id, "/", 3)
 	log.Printf("[DEBUG] pieces: %#v", pieces)
 	return volumeAttachmentID{pieces[0], pieces[1], pieces[2]}
