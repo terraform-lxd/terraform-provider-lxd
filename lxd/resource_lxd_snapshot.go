@@ -163,25 +163,25 @@ func resourceLxdSnapshotExists(d *schema.ResourceData, meta interface{}) (bool, 
 	return false, err
 }
 
-type snapshotId struct {
+type snapshotID struct {
 	remote    string
 	container string
 	snapshot  string
 }
 
-func NewSnapshotId(remote, container, snapshot string) snapshotId {
-	return snapshotId{remote, container, snapshot}
+func NewSnapshotId(remote, container, snapshot string) snapshotID {
+	return snapshotID{remote, container, snapshot}
 }
 
-func NewSnapshotIdFromResourceId(id string) snapshotId {
+func NewSnapshotIdFromResourceId(id string) snapshotID {
 	pieces := strings.SplitN(id, "/", 3)
-	return snapshotId{pieces[0], pieces[1], pieces[2]}
+	return snapshotID{pieces[0], pieces[1], pieces[2]}
 }
 
-func (s snapshotId) String() string {
+func (s snapshotID) String() string {
 	return fmt.Sprintf("%s/%s/%s", s.remote, s.container, s.snapshot)
 }
 
-func (s snapshotId) LxdId() string {
+func (s snapshotID) LxdId() string {
 	return fmt.Sprintf("%s/%s", s.container, s.snapshot)
 }
