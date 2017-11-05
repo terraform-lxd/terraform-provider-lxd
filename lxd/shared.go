@@ -17,7 +17,7 @@ func (v volumeID) String() string {
 	return fmt.Sprintf("%s/%s/%s", v.pool, v.name, v.volType)
 }
 
-func NewVolumeId(pool, name, volType string) volumeID {
+func NewVolumeID(pool, name, volType string) volumeID {
 	return volumeID{pool: pool, name: name, volType: volType}
 }
 
