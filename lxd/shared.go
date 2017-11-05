@@ -7,23 +7,23 @@ import (
 )
 
 // Complex resource ID types
-type volumeId struct {
+type volumeID struct {
 	pool    string
 	name    string
 	volType string
 }
 
-func (v volumeId) String() string {
+func (v volumeID) String() string {
 	return fmt.Sprintf("%s/%s/%s", v.pool, v.name, v.volType)
 }
 
-func NewVolumeId(pool, name, volType string) volumeId {
-	return volumeId{pool: pool, name: name, volType: volType}
+func NewVolumeId(pool, name, volType string) volumeID {
+	return volumeID{pool: pool, name: name, volType: volType}
 }
 
-func NewVolumeIdFromResourceId(id string) volumeId {
+func NewVolumeIdFromResourceId(id string) volumeID {
 	pieces := strings.SplitN(id, "/", 3)
-	return volumeId{pieces[0], pieces[1], pieces[2]}
+	return volumeID{pieces[0], pieces[1], pieces[2]}
 }
 
 type volumeAttachmentId struct {
