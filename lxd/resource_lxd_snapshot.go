@@ -98,7 +98,7 @@ func resourceLxdSnapshotCreate(d *schema.ResourceData, meta interface{}) error {
 		return fmt.Errorf("Failed to create snapshot after %d attempts, last error: %v", i, err)
 	}
 
-	snapID := NewSnapshotId(remote, ctrName, snapPost.Name)
+	snapID := NewSnapshotID(remote, ctrName, snapPost.Name)
 	d.SetId(snapID.String())
 
 	return resourceLxdSnapshotRead(d, meta)
@@ -169,7 +169,7 @@ type snapshotID struct {
 	snapshot  string
 }
 
-func NewSnapshotId(remote, container, snapshot string) snapshotID {
+func NewSnapshotID(remote, container, snapshot string) snapshotID {
 	return snapshotID{remote, container, snapshot}
 }
 
