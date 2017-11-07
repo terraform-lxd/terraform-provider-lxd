@@ -4,32 +4,44 @@ sudo: true
 dist: trusty
 
 env:
-  - TF_ACC=1 \
-   LXD_REMOTE=travis \
-   LXD_ADDR=localhost \
-   LXD_PORT=8443 \
-   LXD_GENERATE_CLIENT_CERTS=true \
-   LXD_ACCEPT_SERVER_CERTIFICATE=true \
-   LXD_SCHEME=https \
-   LXD_PASSWORD=the-password \
+  global:
+    - TF_ACC=1
+    - LXD_REMOTE=travis
+    - LXD_ADDR=localhost
+    - LXD_PORT=8443
+    - LXD_GENERATE_CLIENT_CERTS=true
+    - LXD_ACCEPT_SERVER_CERTIFICATE=true
+    - LXD_SCHEME=https
+    - LXD_PASSWORD="the-password"
+  matrix:
+    - CHANNEL="stable"
+    - CHANNEL="candidate"
+    - CHANNEL="edge"
 
 before_install:
   - sudo apt-get install -y snapd
-  - sudo snap install lxd
+  - sudo snap install lxd --channel=${CHANNEL}
   - export PATH=/snap/bin/:${PATH}
   - sudo lxd waitready --timeout 60
   - sudo lxd init --auto --trust-password="${LXD_PASSWORD}" --network-port=8443 --network-address='[::]'
   - sudo chmod 777 /var/snap/lxd/common/lxd/unix.socket
-  - 'lxc image copy ubuntu:t local: --alias=ubuntu'
-  - lxc image list
 
 go:
   - 1.9
+  - master
+
+before_script:
+  -  go get ./...
+
+script:
+  - make fmtcheck
+  - make vet
+  - make test
 
 matrix:
   fast_finish: true
   allow_failures:
-    - go: tip
+    - go: master
 
 before_deploy: make build
 
@@ -41,5 +53,7 @@ deploy:
   file_glob: true
   skip_cleanup: true
   on:
+    go: '1.9'
     repo: sl1pm4t/terraform-provider-lxd
     tags: true
+    condition: $CHANNEL = "stable"
