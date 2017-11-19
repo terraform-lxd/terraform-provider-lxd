@@ -29,11 +29,9 @@ type lxdProvider struct {
 
 // Provider returns a terraform.ResourceProvider
 func Provider() terraform.ResourceProvider {
-
 	// The provider definition
 	return &schema.Provider{
 		Schema: map[string]*schema.Schema{
-
 			// I'd prefer to call this 'remote', however that was already used in the past
 			// to set the name of the root level LXD remote in the provider
 			// After an deprecation cycle we could rename this to 'remote'
