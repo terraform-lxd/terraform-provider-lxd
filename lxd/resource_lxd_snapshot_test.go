@@ -102,7 +102,7 @@ func TestSnapshotId_String(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			s := snapshotId{
+			s := snapshotID{
 				remote:    tt.fields.remote,
 				container: tt.fields.container,
 				snapshot:  tt.fields.snapshot,
@@ -114,7 +114,7 @@ func TestSnapshotId_String(t *testing.T) {
 	}
 }
 
-func TestSnapshotId_LxdId(t *testing.T) {
+func TestSnapshotId_LxdID(t *testing.T) {
 	type fields struct {
 		remote    string
 		container string
@@ -133,13 +133,13 @@ func TestSnapshotId_LxdId(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			s := snapshotId{
+			s := snapshotID{
 				remote:    tt.fields.remote,
 				container: tt.fields.container,
 				snapshot:  tt.fields.snapshot,
 			}
-			if got := s.LxdId(); got != tt.want {
-				t.Errorf("snapshotId.LxdId() = %v, want %v", got, tt.want)
+			if got := s.LxdID(); got != tt.want {
+				t.Errorf("snapshotId.LxdID() = %v, want %v", got, tt.want)
 			}
 		})
 	}
@@ -149,7 +149,7 @@ func testAccSnapshot_basic(cName, sName string, stateful bool) string {
 	return fmt.Sprintf(`
 resource "lxd_container" "container1" {
   name = "%s"
-  image = "ubuntu:x"
+  image = "images:alpine/3.5"
   profiles = ["default"]
 }
 
@@ -165,7 +165,7 @@ func testAccSnapshot_multiple1(cName, sName string) string {
 	return fmt.Sprintf(`
 resource "lxd_container" "container1" {
   name = "%s"
-  image = "ubuntu:x"
+  image = "images:alpine/3.5"
   profiles = ["default"]
 }
 
@@ -181,7 +181,7 @@ func testAccSnapshot_multiple2(cName, sName1, sName2 string) string {
 	return fmt.Sprintf(`
 resource "lxd_container" "container1" {
   name = "%s"
-  image = "ubuntu:x"
+  image = "images:alpine/3.5"
   profiles = ["default"]
 }
 

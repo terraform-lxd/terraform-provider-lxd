@@ -18,8 +18,8 @@ import (
 	lxd_api "github.com/lxc/lxd/shared/api"
 )
 
-// LxdProvider contains the Provider configuration and initialized remote clients
-type LxdProvider struct {
+// lxdProvider contains the Provider configuration and initialized remote clients
+type lxdProvider struct {
 	Config          *lxd_config.Config
 	RefreshInterval time.Duration
 
@@ -29,11 +29,9 @@ type LxdProvider struct {
 
 // Provider returns a terraform.ResourceProvider
 func Provider() terraform.ResourceProvider {
-
 	// The provider definition
 	return &schema.Provider{
 		Schema: map[string]*schema.Schema{
-
 			// I'd prefer to call this 'remote', however that was already used in the past
 			// to set the name of the root level LXD remote in the provider
 			// After an deprecation cycle we could rename this to 'remote'
@@ -213,7 +211,7 @@ func providerConfigure(d *schema.ResourceData) (interface{}, error) {
 		acceptRemoteCertificate = true
 	}
 
-	lxdProv := LxdProvider{
+	lxdProv := lxdProvider{
 		Config:                  config,
 		RefreshInterval:         refreshIntervalParsed,
 		acceptRemoteCertificate: acceptRemoteCertificate,
@@ -274,7 +272,7 @@ func providerConfigure(d *schema.ResourceData) (interface{}, error) {
 
 // providerConfigureClient will create an LXD client for a given remote.
 // The client is then stored in the p.Config collection of clients.
-func (p *LxdProvider) providerConfigureClient(lxdRemote map[string]interface{}) error {
+func (p *lxdProvider) providerConfigureClient(lxdRemote map[string]interface{}) error {
 	name := lxdRemote["name"].(string)
 	port := lxdRemote["port"].(string)
 	scheme := lxdRemote["scheme"].(string)
@@ -336,7 +334,7 @@ func (p *LxdProvider) providerConfigureClient(lxdRemote map[string]interface{}) 
 
 // getRemoteCertificate will attempt to retrieve a remote LXD server's
 // certificate and save it to the servercerts path.
-func (p *LxdProvider) getRemoteCertificate(remote string) error {
+func (p *lxdProvider) getRemoteCertificate(remote string) error {
 	addr := p.Config.Remotes[remote]
 	certificate, err := shared.GetRemoteCertificate(addr.Addr)
 	if err != nil {
@@ -362,7 +360,7 @@ func (p *LxdProvider) getRemoteCertificate(remote string) error {
 
 // InitClient creates and returns an LXD client for the named remote
 // The created client is stored for later use
-func (p *LxdProvider) initClient(remote string) (lxd.Server, error) {
+func (p *lxdProvider) initClient(remote string) (lxd.Server, error) {
 	var client lxd.Server
 	var err error
 
@@ -385,7 +383,7 @@ func (p *LxdProvider) initClient(remote string) (lxd.Server, error) {
 
 // GetContainerServer returns a client for the named remote
 // It returns an error if the remote is not a ContainerServer
-func (p *LxdProvider) GetContainerServer(remote string) (lxd.ContainerServer, error) {
+func (p *lxdProvider) GetContainerServer(remote string) (lxd.ContainerServer, error) {
 	s, err := p.GetServer(remote)
 	if err != nil {
 		return nil, err
@@ -400,7 +398,7 @@ func (p *LxdProvider) GetContainerServer(remote string) (lxd.ContainerServer, er
 
 // GetImageServer returns a client for the named image server
 // It returns an error if the named remote is not an ImageServer
-func (p *LxdProvider) GetImageServer(remote string) (lxd.ImageServer, error) {
+func (p *lxdProvider) GetImageServer(remote string) (lxd.ImageServer, error) {
 	s, err := p.GetServer(remote)
 	if err != nil {
 		return nil, err
@@ -414,7 +412,7 @@ func (p *LxdProvider) GetImageServer(remote string) (lxd.ImageServer, error) {
 
 // GetServer returns an client for the named remote
 // The returned client could be for an ImageServer or ContainerServer
-func (p *LxdProvider) GetServer(remote string) (lxd.Server, error) {
+func (p *lxdProvider) GetServer(remote string) (lxd.Server, error) {
 	if remote == "" {
 		remote = p.Config.DefaultRemote
 	}
@@ -428,7 +426,7 @@ func (p *LxdProvider) GetServer(remote string) (lxd.Server, error) {
 
 // selectRemote is a convenience method that returns the 'remote' set
 // in the LXD resource or the default remote configured on the Provider.
-func (p *LxdProvider) selectRemote(d *schema.ResourceData) string {
+func (p *lxdProvider) selectRemote(d *schema.ResourceData) string {
 	var remote string
 	if rem, ok := d.GetOk("remote"); ok && rem != "" {
 		remote = rem.(string)

@@ -461,6 +461,14 @@ The following resources are currently available:
   * `remote`    - *Optional* - The remote in which the resource will be created. If it
                                is not provided, the default provider remote is used.
 
+##### Importing
+Importing existing containers is possible with the following ID syntax  
+`terraform import lxd_container.container [remote:]name[/images:alpine/3.5]`.  
+
+ * remote             - *Optional* - is the name of the remote in the provider config
+ * name               - *Required* - is the container name
+ * /images:alpine/3.5 - *Optional* - translates to image = images:alpine/3.5 in the resource configuration
+
 ##### Container Network Access
 
 If your container has multiple network interfaces, you can specify which

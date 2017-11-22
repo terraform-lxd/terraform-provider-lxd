@@ -71,7 +71,7 @@ func resourceLxdProfile() *schema.Resource {
 }
 
 func resourceLxdProfileCreate(d *schema.ResourceData, meta interface{}) error {
-	p := meta.(*LxdProvider)
+	p := meta.(*lxdProvider)
 	server, err := p.GetContainerServer(p.selectRemote(d))
 	if err != nil {
 		return err
@@ -97,7 +97,7 @@ func resourceLxdProfileCreate(d *schema.ResourceData, meta interface{}) error {
 }
 
 func resourceLxdProfileRead(d *schema.ResourceData, meta interface{}) error {
-	p := meta.(*LxdProvider)
+	p := meta.(*lxdProvider)
 	server, err := p.GetContainerServer(p.selectRemote(d))
 	if err != nil {
 		return err
@@ -130,7 +130,7 @@ func resourceLxdProfileRead(d *schema.ResourceData, meta interface{}) error {
 }
 
 func resourceLxdProfileUpdate(d *schema.ResourceData, meta interface{}) error {
-	p := meta.(*LxdProvider)
+	p := meta.(*lxdProvider)
 	server, err := p.GetContainerServer(p.selectRemote(d))
 	if err != nil {
 		return err
@@ -170,7 +170,7 @@ func resourceLxdProfileUpdate(d *schema.ResourceData, meta interface{}) error {
 		oldDevices := resourceLxdDevices(old)
 		newDevices := resourceLxdDevices(new)
 
-		for n, _ := range oldDevices {
+		for n := range oldDevices {
 			delete(newProfile.Devices, n)
 		}
 
@@ -194,7 +194,7 @@ func resourceLxdProfileUpdate(d *schema.ResourceData, meta interface{}) error {
 }
 
 func resourceLxdProfileDelete(d *schema.ResourceData, meta interface{}) (err error) {
-	p := meta.(*LxdProvider)
+	p := meta.(*lxdProvider)
 	server, err := p.GetContainerServer(p.selectRemote(d))
 	if err != nil {
 		return err
@@ -202,15 +202,11 @@ func resourceLxdProfileDelete(d *schema.ResourceData, meta interface{}) (err err
 
 	name := d.Id()
 
-	if err = server.DeleteProfile(name); err != nil {
-		return err
-	}
-
-	return nil
+	return server.DeleteProfile(name)
 }
 
 func resourceLxdProfileExists(d *schema.ResourceData, meta interface{}) (exists bool, err error) {
-	p := meta.(*LxdProvider)
+	p := meta.(*lxdProvider)
 	server, err := p.GetContainerServer(p.selectRemote(d))
 	if err != nil {
 		return false, err
@@ -229,7 +225,7 @@ func resourceLxdProfileExists(d *schema.ResourceData, meta interface{}) (exists 
 }
 
 func resourceLxdProfileImport(d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
-	p := meta.(*LxdProvider)
+	p := meta.(*lxdProvider)
 	remote, name, err := p.Config.ParseRemote(d.Id())
 
 	if err != nil {

@@ -58,7 +58,7 @@ func resourceLxdStoragePool() *schema.Resource {
 }
 
 func resourceLxdStoragePoolCreate(d *schema.ResourceData, meta interface{}) error {
-	p := meta.(*LxdProvider)
+	p := meta.(*lxdProvider)
 	server, err := p.GetContainerServer(p.selectRemote(d))
 	if err != nil {
 		return err
@@ -84,7 +84,7 @@ func resourceLxdStoragePoolCreate(d *schema.ResourceData, meta interface{}) erro
 }
 
 func resourceLxdStoragePoolRead(d *schema.ResourceData, meta interface{}) error {
-	p := meta.(*LxdProvider)
+	p := meta.(*lxdProvider)
 	server, err := p.GetContainerServer(p.selectRemote(d))
 	if err != nil {
 		return err
@@ -99,7 +99,7 @@ func resourceLxdStoragePoolRead(d *schema.ResourceData, meta interface{}) error 
 	d.Set("driver", pool.Driver)
 	config := pool.Config
 	delete(config, "name")
-	for k, _ := range config {
+	for k := range config {
 		if strings.HasPrefix(k, "volatile") {
 			delete(config, k)
 		}
@@ -112,7 +112,7 @@ func resourceLxdStoragePoolRead(d *schema.ResourceData, meta interface{}) error 
 }
 
 func resourceLxdStoragePoolUpdate(d *schema.ResourceData, meta interface{}) error {
-	p := meta.(*LxdProvider)
+	p := meta.(*lxdProvider)
 	server, err := p.GetContainerServer(p.selectRemote(d))
 	if err != nil {
 		return err
@@ -142,7 +142,7 @@ func resourceLxdStoragePoolUpdate(d *schema.ResourceData, meta interface{}) erro
 }
 
 func resourceLxdStoragePoolDelete(d *schema.ResourceData, meta interface{}) (err error) {
-	p := meta.(*LxdProvider)
+	p := meta.(*lxdProvider)
 	server, err := p.GetContainerServer(p.selectRemote(d))
 	if err != nil {
 		return err
@@ -150,15 +150,11 @@ func resourceLxdStoragePoolDelete(d *schema.ResourceData, meta interface{}) (err
 
 	name := d.Id()
 
-	if err = server.DeleteStoragePool(name); err != nil {
-		return err
-	}
-
-	return nil
+	return server.DeleteStoragePool(name)
 }
 
 func resourceLxdStoragePoolExists(d *schema.ResourceData, meta interface{}) (exists bool, err error) {
-	p := meta.(*LxdProvider)
+	p := meta.(*lxdProvider)
 	server, err := p.GetContainerServer(p.selectRemote(d))
 	if err != nil {
 		return false, err
@@ -176,7 +172,7 @@ func resourceLxdStoragePoolExists(d *schema.ResourceData, meta interface{}) (exi
 }
 
 func resourceLxdStoragePoolImport(d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
-	p := meta.(*LxdProvider)
+	p := meta.(*lxdProvider)
 	remote, name, err := p.Config.ParseRemote(d.Id())
 
 	if err != nil {

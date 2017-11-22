@@ -54,7 +54,7 @@ func resourceLxdSnapshot() *schema.Resource {
 }
 
 func resourceLxdSnapshotCreate(d *schema.ResourceData, meta interface{}) error {
-	p := meta.(*LxdProvider)
+	p := meta.(*lxdProvider)
 
 	remote := p.selectRemote(d)
 	server, err := p.GetContainerServer(remote)
@@ -98,20 +98,20 @@ func resourceLxdSnapshotCreate(d *schema.ResourceData, meta interface{}) error {
 		return fmt.Errorf("Failed to create snapshot after %d attempts, last error: %v", i, err)
 	}
 
-	snapID := NewSnapshotId(remote, ctrName, snapPost.Name)
+	snapID := newSnapshotID(remote, ctrName, snapPost.Name)
 	d.SetId(snapID.String())
 
 	return resourceLxdSnapshotRead(d, meta)
 }
 
 func resourceLxdSnapshotRead(d *schema.ResourceData, meta interface{}) error {
-	p := meta.(*LxdProvider)
+	p := meta.(*lxdProvider)
 	server, err := p.GetContainerServer(p.selectRemote(d))
 	if err != nil {
 		return err
 	}
 
-	snapID := NewSnapshotIdFromResourceId(d.Id())
+	snapID := newSnapshotIDFromResourceID(d.Id())
 
 	snap, _, err := server.GetContainerSnapshot(snapID.container, snapID.snapshot)
 	if err != nil {
@@ -131,12 +131,12 @@ func resourceLxdSnapshotRead(d *schema.ResourceData, meta interface{}) error {
 }
 
 func resourceLxdSnapshotDelete(d *schema.ResourceData, meta interface{}) error {
-	p := meta.(*LxdProvider)
+	p := meta.(*lxdProvider)
 	server, err := p.GetContainerServer(p.selectRemote(d))
 	if err != nil {
 		return err
 	}
-	snapID := NewSnapshotIdFromResourceId(d.Id())
+	snapID := newSnapshotIDFromResourceID(d.Id())
 
 	server.DeleteContainerSnapshot(snapID.container, snapID.snapshot)
 
@@ -144,12 +144,12 @@ func resourceLxdSnapshotDelete(d *schema.ResourceData, meta interface{}) error {
 }
 
 func resourceLxdSnapshotExists(d *schema.ResourceData, meta interface{}) (bool, error) {
-	p := meta.(*LxdProvider)
+	p := meta.(*lxdProvider)
 	server, err := p.GetContainerServer(p.selectRemote(d))
 	if err != nil {
 		return false, err
 	}
-	snapID := NewSnapshotIdFromResourceId(d.Id())
+	snapID := newSnapshotIDFromResourceID(d.Id())
 
 	snap, _, err := server.GetContainerSnapshot(snapID.container, snapID.snapshot)
 
@@ -163,25 +163,25 @@ func resourceLxdSnapshotExists(d *schema.ResourceData, meta interface{}) (bool, 
 	return false, err
 }
 
-type snapshotId struct {
+type snapshotID struct {
 	remote    string
 	container string
 	snapshot  string
 }
 
-func NewSnapshotId(remote, container, snapshot string) snapshotId {
-	return snapshotId{remote, container, snapshot}
+func newSnapshotID(remote, container, snapshot string) snapshotID {
+	return snapshotID{remote, container, snapshot}
 }
 
-func NewSnapshotIdFromResourceId(id string) snapshotId {
+func newSnapshotIDFromResourceID(id string) snapshotID {
 	pieces := strings.SplitN(id, "/", 3)
-	return snapshotId{pieces[0], pieces[1], pieces[2]}
+	return snapshotID{pieces[0], pieces[1], pieces[2]}
 }
 
-func (s snapshotId) String() string {
+func (s snapshotID) String() string {
 	return fmt.Sprintf("%s/%s/%s", s.remote, s.container, s.snapshot)
 }
 
-func (s snapshotId) LxdId() string {
+func (s snapshotID) LxdID() string {
 	return fmt.Sprintf("%s/%s", s.container, s.snapshot)
 }

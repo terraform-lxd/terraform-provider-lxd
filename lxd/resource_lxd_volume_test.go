@@ -44,8 +44,8 @@ func testAccVolumeExists(t *testing.T, n string, volume *api.StorageVolume) reso
 			return fmt.Errorf("No ID is set")
 		}
 
-		v := NewVolumeIdFromResourceId(rs.Primary.ID)
-		client, err := testAccProvider.Meta().(*LxdProvider).GetContainerServer("")
+		v := newVolumeIDFromResourceID(rs.Primary.ID)
+		client, err := testAccProvider.Meta().(*lxdProvider).GetContainerServer("")
 		if err != nil {
 			return err
 		}

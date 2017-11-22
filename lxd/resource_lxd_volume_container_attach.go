@@ -59,7 +59,7 @@ func resourceLxdVolumeContainerAttach() *schema.Resource {
 }
 
 func resourceLxdVolumeContainerAttachCreate(d *schema.ResourceData, meta interface{}) error {
-	p := meta.(*LxdProvider)
+	p := meta.(*lxdProvider)
 	server, err := p.GetContainerServer(p.selectRemote(d))
 	if err != nil {
 		return err
@@ -108,7 +108,7 @@ func resourceLxdVolumeContainerAttachCreate(d *schema.ResourceData, meta interfa
 		return err
 	}
 
-	v := NewVolumeAttachmentId(pool, volumeName, containerName)
+	v := newVolumeAttachmentID(pool, volumeName, containerName)
 	log.Printf("[DEBUG] volume attachment id: %s", v.String())
 	d.SetId(v.String())
 
@@ -116,13 +116,13 @@ func resourceLxdVolumeContainerAttachCreate(d *schema.ResourceData, meta interfa
 }
 
 func resourceLxdVolumeContainerAttachRead(d *schema.ResourceData, meta interface{}) error {
-	p := meta.(*LxdProvider)
+	p := meta.(*lxdProvider)
 	server, err := p.GetContainerServer(p.selectRemote(d))
 	if err != nil {
 		return err
 	}
 
-	v := NewVolumeAttachmentIdFromResourceId(d.Id())
+	v := newVolumeAttachmentIDFromResourceID(d.Id())
 
 	deviceName, deviceInfo, err := resourceLxdVolumeContainerAttachedVolume(server, v)
 	if err != nil {
@@ -139,7 +139,7 @@ func resourceLxdVolumeContainerAttachRead(d *schema.ResourceData, meta interface
 }
 
 func resourceLxdVolumeContainerAttachDelete(d *schema.ResourceData, meta interface{}) (err error) {
-	p := meta.(*LxdProvider)
+	p := meta.(*lxdProvider)
 	server, err := p.GetContainerServer(p.selectRemote(d))
 	if err != nil {
 		return err
@@ -171,21 +171,17 @@ func resourceLxdVolumeContainerAttachDelete(d *schema.ResourceData, meta interfa
 		return fmt.Errorf("Unable to detach volume: %s", err)
 	}
 
-	if err := op.Wait(); err != nil {
-		return err
-	}
-
-	return nil
+	return op.Wait()
 }
 
 func resourceLxdVolumeContainerAttachExists(d *schema.ResourceData, meta interface{}) (exists bool, err error) {
-	p := meta.(*LxdProvider)
+	p := meta.(*lxdProvider)
 	server, err := p.GetContainerServer(p.selectRemote(d))
 	if err != nil {
 		return false, err
 	}
 
-	v := NewVolumeAttachmentIdFromResourceId(d.Id())
+	v := newVolumeAttachmentIDFromResourceID(d.Id())
 	exists = false
 
 	_, _, err = resourceLxdVolumeContainerAttachedVolume(server, v)
@@ -198,7 +194,7 @@ func resourceLxdVolumeContainerAttachExists(d *schema.ResourceData, meta interfa
 }
 
 func resourceLxdVolumeContainerAttachedVolume(
-	server lxd.ContainerServer, v volumeAttachmentId) (string, map[string]string, error) {
+	server lxd.ContainerServer, v volumeAttachmentID) (string, map[string]string, error) {
 	var deviceName string
 	var deviceInfo map[string]string
 

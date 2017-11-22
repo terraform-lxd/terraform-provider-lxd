@@ -19,7 +19,7 @@ import (
 	"github.com/lxc/lxd/shared/api"
 )
 
-var UpdateTimeout int = int(time.Duration(time.Second * 300).Seconds())
+var updateTimeout = int(time.Duration(time.Second * 300).Seconds())
 
 func resourceLxdContainer() *schema.Resource {
 	return &schema.Resource{
@@ -28,6 +28,9 @@ func resourceLxdContainer() *schema.Resource {
 		Delete: resourceLxdContainerDelete,
 		Exists: resourceLxdContainerExists,
 		Read:   resourceLxdContainerRead,
+		Importer: &schema.ResourceImporter{
+			State: resourceLxdContainerImport,
+		},
 
 		Schema: map[string]*schema.Schema{
 			"name": &schema.Schema{
@@ -44,9 +47,10 @@ func resourceLxdContainer() *schema.Resource {
 			},
 
 			"image": &schema.Schema{
-				Type:     schema.TypeString,
-				ForceNew: true,
-				Required: true,
+				Type:             schema.TypeString,
+				ForceNew:         true,
+				Required:         true,
+				DiffSuppressFunc: suppressImageDifferences,
 			},
 
 			"profiles": &schema.Schema{
@@ -174,13 +178,13 @@ func resourceLxdContainerCreate(d *schema.ResourceData, meta interface{}) error 
 	// Using Partial to resume uploading files if there was a previous error.
 	d.Partial(true)
 
-	p := meta.(*LxdProvider)
+	p := meta.(*lxdProvider)
 	remote := p.selectRemote(d)
 	server, err := p.GetContainerServer(remote)
 	if err != nil {
 		return err
 	}
-	refreshInterval := meta.(*LxdProvider).RefreshInterval
+	refreshInterval := meta.(*lxdProvider).RefreshInterval
 
 	name := d.Get("name").(string)
 	ephem := d.Get("ephemeral").(bool)
@@ -291,7 +295,7 @@ func resourceLxdContainerCreate(d *schema.ResourceData, meta interface{}) error 
 	// Start container
 	startReq := api.ContainerStatePut{
 		Action:  "start",
-		Timeout: UpdateTimeout,
+		Timeout: updateTimeout,
 		Force:   false,
 	}
 	op2, err := server.UpdateContainerState(name, startReq, "")
@@ -323,7 +327,7 @@ func resourceLxdContainerCreate(d *schema.ResourceData, meta interface{}) error 
 }
 
 func resourceLxdContainerRead(d *schema.ResourceData, meta interface{}) error {
-	p := meta.(*LxdProvider)
+	p := meta.(*lxdProvider)
 	remote := p.selectRemote(d)
 	server, err := p.GetContainerServer(remote)
 	if err != nil {
@@ -344,12 +348,28 @@ func resourceLxdContainerRead(d *schema.ResourceData, meta interface{}) error {
 	}
 	log.Printf("[DEBUG] Retrieved container state %s:\n%#v", name, state)
 
+	d.Set("ephemeral", container.Ephemeral)
+	d.Set("privileged", false) // Create has no handling for it yet
+
+	config := make(map[string]string)
+	limits := make(map[string]string)
 	for k, v := range container.Config {
 		if strings.Contains(k, "limits.") {
-			log.Printf("[DEBUG] Setting limit %s: %s", k, v)
-			d.Set(k, v)
+			limits[strings.TrimPrefix(k, "limits.")] = v
+		} else if strings.HasPrefix(k, "boot.") {
+			config[k] = v
+		} else if strings.HasPrefix(k, "environment.") {
+			config[k] = v
+		} else if strings.HasPrefix(k, "raw.") {
+			config[k] = v
+		} else if strings.HasPrefix(k, "security.") {
+			config[k] = v
+		} else if strings.HasPrefix(k, "user.") {
+			config[k] = v
 		}
 	}
+	d.Set("config", config)
+	d.Set("limits", limits)
 
 	d.Set("status", container.Status)
 
@@ -398,7 +418,7 @@ func resourceLxdContainerRead(d *schema.ResourceData, meta interface{}) error {
 }
 
 func resourceLxdContainerUpdate(d *schema.ResourceData, meta interface{}) error {
-	p := meta.(*LxdProvider)
+	p := meta.(*lxdProvider)
 	remote := p.selectRemote(d)
 	server, err := p.GetContainerServer(remote)
 	if err != nil {
@@ -446,7 +466,7 @@ func resourceLxdContainerUpdate(d *schema.ResourceData, meta interface{}) error 
 		oldDevices := resourceLxdDevices(old)
 		newDevices := resourceLxdDevices(new)
 
-		for n, _ := range oldDevices {
+		for n := range oldDevices {
 			delete(newContainer.Devices, n)
 		}
 
@@ -463,7 +483,7 @@ func resourceLxdContainerUpdate(d *schema.ResourceData, meta interface{}) error 
 		changed = true
 		oldLimits, newLimits := d.GetChange("limits")
 
-		for k, _ := range oldLimits.(map[string]interface{}) {
+		for k := range oldLimits.(map[string]interface{}) {
 			delete(newContainer.Config, k)
 		}
 
@@ -502,21 +522,21 @@ func resourceLxdContainerUpdate(d *schema.ResourceData, meta interface{}) error 
 }
 
 func resourceLxdContainerDelete(d *schema.ResourceData, meta interface{}) (err error) {
-	p := meta.(*LxdProvider)
+	p := meta.(*lxdProvider)
 	remote := p.selectRemote(d)
 	server, err := p.GetContainerServer(remote)
 	if err != nil {
 		return err
 	}
 
-	refreshInterval := meta.(*LxdProvider).RefreshInterval
+	refreshInterval := meta.(*lxdProvider).RefreshInterval
 	name := d.Id()
 
 	ct, etag, _ := server.GetContainerState(name)
 	if ct.Status == "Running" {
 		stopReq := api.ContainerStatePut{
 			Action:  "stop",
-			Timeout: UpdateTimeout,
+			Timeout: updateTimeout,
 		}
 
 		op, err := server.UpdateContainerState(name, stopReq, etag)
@@ -559,7 +579,7 @@ func resourceLxdContainerDelete(d *schema.ResourceData, meta interface{}) (err e
 }
 
 func resourceLxdContainerExists(d *schema.ResourceData, meta interface{}) (exists bool, err error) {
-	p := meta.(*LxdProvider)
+	p := meta.(*lxdProvider)
 	remote := p.selectRemote(d)
 	server, err := p.GetContainerServer(remote)
 	if err != nil {
@@ -579,6 +599,46 @@ func resourceLxdContainerExists(d *schema.ResourceData, meta interface{}) (exist
 	}
 
 	return
+}
+
+func resourceLxdContainerImport(d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
+	p := meta.(*lxdProvider)
+	log.Printf("[DEBUG] Starting import for %s", d.Id())
+	parts := strings.SplitN(d.Id(), "/", 2)
+
+	remote, name, err := p.Config.ParseRemote(parts[0])
+	if err != nil {
+		return nil, err
+	}
+
+	d.SetId(name)
+	if p.Config.DefaultRemote != remote {
+		d.Set("remote", remote)
+	}
+
+	server, err := p.GetContainerServer(p.selectRemote(d))
+	if err != nil {
+		return nil, err
+	}
+
+	ct, _, err := server.GetContainerState(name)
+	if err != nil {
+		return nil, err
+	}
+
+	if ct == nil {
+		return nil, fmt.Errorf("Unable to get container state")
+	}
+
+	log.Printf("[DEBUG] Import container state %#v", ct)
+	d.SetId(name)
+	d.Set("name", name)
+
+	if len(parts) == 2 {
+		d.Set("image", parts[1])
+	}
+
+	return []*schema.ResourceData{d}, err
 }
 
 func resourceLxdContainerRefresh(server lxd.ContainerServer, name string) resource.StateRefreshFunc {
@@ -736,4 +796,14 @@ func recursiveMkdir(d lxd.ContainerServer, container string, p string, mode os.F
 	}
 
 	return nil
+}
+
+// Suppress Diff on empty name
+func suppressImageDifferences(k, old, new string, d *schema.ResourceData) bool {
+	log.Printf("[DEBUG] comparing old %#v and new %#v :: id %s status %#v", old, new, d.Id(), d.Get("Status"))
+	if old == "" && d.Id() != "" {
+		// special case for imports, empty image string is the result of nt knowing which base image name/alias was used to create this host
+		return true
+	}
+	return false
 }

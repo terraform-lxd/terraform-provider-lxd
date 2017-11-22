@@ -58,7 +58,7 @@ func resourceLxdVolume() *schema.Resource {
 }
 
 func resourceLxdVolumeCreate(d *schema.ResourceData, meta interface{}) error {
-	p := meta.(*LxdProvider)
+	p := meta.(*lxdProvider)
 	server, err := p.GetContainerServer(p.selectRemote(d))
 	if err != nil {
 		return err
@@ -78,20 +78,20 @@ func resourceLxdVolumeCreate(d *schema.ResourceData, meta interface{}) error {
 		return err
 	}
 
-	v := NewVolumeId(pool, name, volType)
+	v := newVolumeID(pool, name, volType)
 	d.SetId(v.String())
 
 	return resourceLxdVolumeRead(d, meta)
 }
 
 func resourceLxdVolumeRead(d *schema.ResourceData, meta interface{}) error {
-	p := meta.(*LxdProvider)
+	p := meta.(*lxdProvider)
 	server, err := p.GetContainerServer(p.selectRemote(d))
 	if err != nil {
 		return err
 	}
 
-	v := NewVolumeIdFromResourceId(d.Id())
+	v := newVolumeIDFromResourceID(d.Id())
 	volume, _, err := server.GetStoragePoolVolume(v.pool, v.volType, v.name)
 	if err != nil {
 		return err
@@ -114,14 +114,14 @@ func resourceLxdVolumeRead(d *schema.ResourceData, meta interface{}) error {
 }
 
 func resourceLxdVolumeUpdate(d *schema.ResourceData, meta interface{}) error {
-	p := meta.(*LxdProvider)
+	p := meta.(*lxdProvider)
 	server, err := p.GetContainerServer(p.selectRemote(d))
 	if err != nil {
 		return err
 	}
 
 	if d.HasChange("config") {
-		v := NewVolumeIdFromResourceId(d.Id())
+		v := newVolumeIDFromResourceID(d.Id())
 		volume, etag, err := server.GetStoragePoolVolume(v.pool, v.volType, v.name)
 		if err != nil {
 			return err
@@ -143,23 +143,19 @@ func resourceLxdVolumeUpdate(d *schema.ResourceData, meta interface{}) error {
 }
 
 func resourceLxdVolumeDelete(d *schema.ResourceData, meta interface{}) (err error) {
-	p := meta.(*LxdProvider)
+	p := meta.(*lxdProvider)
 	server, err := p.GetContainerServer(p.selectRemote(d))
 	if err != nil {
 		return err
 	}
 
-	v := NewVolumeIdFromResourceId(d.Id())
+	v := newVolumeIDFromResourceID(d.Id())
 
-	if err = server.DeleteStoragePoolVolume(v.pool, v.volType, v.name); err != nil {
-		return err
-	}
-
-	return nil
+	return server.DeleteStoragePoolVolume(v.pool, v.volType, v.name)
 }
 
 func resourceLxdVolumeExists(d *schema.ResourceData, meta interface{}) (exists bool, err error) {
-	p := meta.(*LxdProvider)
+	p := meta.(*lxdProvider)
 	server, err := p.GetContainerServer(p.selectRemote(d))
 	if err != nil {
 		return false, err
@@ -167,7 +163,7 @@ func resourceLxdVolumeExists(d *schema.ResourceData, meta interface{}) (exists b
 
 	exists = false
 
-	v := NewVolumeIdFromResourceId(d.Id())
+	v := newVolumeIDFromResourceID(d.Id())
 	_, _, err = server.GetStoragePoolVolume(v.pool, v.volType, v.name)
 	if err == nil {
 		exists = true

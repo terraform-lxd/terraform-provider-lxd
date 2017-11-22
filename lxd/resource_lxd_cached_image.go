@@ -81,7 +81,7 @@ func resourceLxdCachedImage() *schema.Resource {
 }
 
 func resourceLxdCachedImageCreate(d *schema.ResourceData, meta interface{}) error {
-	p := meta.(*LxdProvider)
+	p := meta.(*lxdProvider)
 
 	dstName := p.selectRemote(d)
 	dstServer, err := p.GetContainerServer(dstName)
@@ -146,8 +146,8 @@ func resourceLxdCachedImageCreate(d *schema.ResourceData, meta interface{}) erro
 	}
 
 	// Image was successfully copied, set resource ID
-	id := newCachedImageId(dstName, imgInfo.Fingerprint)
-	d.SetId(id.resourceId())
+	id := newCachedImageID(dstName, imgInfo.Fingerprint)
+	d.SetId(id.resourceID())
 
 	// store remote aliases that we've copied, so we can filter them out later
 	copied := make([]string, 0)
@@ -166,13 +166,13 @@ func resourceLxdCachedImageCopyProgressHandler(prog string) {
 }
 
 func resourceLxdCachedImageUpdate(d *schema.ResourceData, meta interface{}) error {
-	p := meta.(*LxdProvider)
+	p := meta.(*lxdProvider)
 	remote := p.selectRemote(d)
 	server, err := p.GetContainerServer(remote)
 	if err != nil {
 		return err
 	}
-	id := newCachedImageIdFromResourceId(d.Id())
+	id := newCachedImageIDFromResourceID(d.Id())
 
 	if d.HasChange("aliases") {
 		old, new := d.GetChange("aliases")
@@ -208,14 +208,14 @@ func resourceLxdCachedImageUpdate(d *schema.ResourceData, meta interface{}) erro
 }
 
 func resourceLxdCachedImageDelete(d *schema.ResourceData, meta interface{}) error {
-	p := meta.(*LxdProvider)
+	p := meta.(*lxdProvider)
 	remote := p.selectRemote(d)
 	server, err := p.GetContainerServer(remote)
 	if err != nil {
 		return err
 	}
 
-	id := newCachedImageIdFromResourceId(d.Id())
+	id := newCachedImageIDFromResourceID(d.Id())
 
 	op, err := server.DeleteImage(id.fingerprint)
 	if err != nil {
@@ -226,14 +226,14 @@ func resourceLxdCachedImageDelete(d *schema.ResourceData, meta interface{}) erro
 }
 
 func resourceLxdCachedImageExists(d *schema.ResourceData, meta interface{}) (bool, error) {
-	p := meta.(*LxdProvider)
+	p := meta.(*lxdProvider)
 	remote := p.selectRemote(d)
 	server, err := p.GetContainerServer(remote)
 	if err != nil {
 		return false, err
 	}
 
-	id := newCachedImageIdFromResourceId(d.Id())
+	id := newCachedImageIDFromResourceID(d.Id())
 
 	_, _, err = server.GetImage(id.fingerprint)
 	if err != nil {
@@ -247,14 +247,14 @@ func resourceLxdCachedImageExists(d *schema.ResourceData, meta interface{}) (boo
 }
 
 func resourceLxdCachedImageRead(d *schema.ResourceData, meta interface{}) error {
-	p := meta.(*LxdProvider)
+	p := meta.(*lxdProvider)
 	remote := p.selectRemote(d)
 	server, err := p.GetImageServer(remote)
 	if err != nil {
 		return err
 	}
 
-	id := newCachedImageIdFromResourceId(d.Id())
+	id := newCachedImageIDFromResourceID(d.Id())
 
 	img, _, err := server.GetImage(id.fingerprint)
 	if err != nil {
@@ -294,26 +294,26 @@ func resourceLxdCachedImageRead(d *schema.ResourceData, meta interface{}) error 
 	return nil
 }
 
-type cachedImageId struct {
+type cachedImageID struct {
 	remote      string
 	fingerprint string
 }
 
-func newCachedImageId(remote, fingerprint string) cachedImageId {
-	return cachedImageId{
+func newCachedImageID(remote, fingerprint string) cachedImageID {
+	return cachedImageID{
 		remote:      remote,
 		fingerprint: fingerprint,
 	}
 }
 
-func newCachedImageIdFromResourceId(id string) cachedImageId {
+func newCachedImageIDFromResourceID(id string) cachedImageID {
 	parts := strings.SplitN(id, "/", 2)
-	return cachedImageId{
+	return cachedImageID{
 		remote:      parts[0],
 		fingerprint: parts[1],
 	}
 }
 
-func (id cachedImageId) resourceId() string {
+func (id cachedImageID) resourceID() string {
 	return fmt.Sprintf("%s/%s", id.remote, id.fingerprint)
 }

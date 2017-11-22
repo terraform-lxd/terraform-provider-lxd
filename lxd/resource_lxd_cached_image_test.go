@@ -176,8 +176,8 @@ func testAccCachedImageExists(t *testing.T, n string, image *api.Image) resource
 			return fmt.Errorf("No ID is set")
 		}
 
-		id := newCachedImageIdFromResourceId(rs.Primary.ID)
-		client, err := testAccProvider.Meta().(*LxdProvider).GetContainerServer("")
+		id := newCachedImageIDFromResourceID(rs.Primary.ID)
+		client, err := testAccProvider.Meta().(*lxdProvider).GetContainerServer("")
 		if err != nil {
 			return err
 		}

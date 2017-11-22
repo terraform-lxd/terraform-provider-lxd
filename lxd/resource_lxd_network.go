@@ -55,7 +55,7 @@ func resourceLxdNetwork() *schema.Resource {
 }
 
 func resourceLxdNetworkCreate(d *schema.ResourceData, meta interface{}) error {
-	p := meta.(*LxdProvider)
+	p := meta.(*lxdProvider)
 	server, err := p.GetContainerServer(p.selectRemote(d))
 	if err != nil {
 		return err
@@ -71,7 +71,7 @@ func resourceLxdNetworkCreate(d *schema.ResourceData, meta interface{}) error {
 	req.Description = desc
 	if err := server.CreateNetwork(req); err != nil {
 		if err.Error() == "not implemented" {
-			err = ErrNetworksNotImplemented
+			err = errNetworksNotImplemented
 		}
 
 		return err
@@ -83,7 +83,7 @@ func resourceLxdNetworkCreate(d *schema.ResourceData, meta interface{}) error {
 }
 
 func resourceLxdNetworkRead(d *schema.ResourceData, meta interface{}) error {
-	p := meta.(*LxdProvider)
+	p := meta.(*lxdProvider)
 	server, err := p.GetContainerServer(p.selectRemote(d))
 	if err != nil {
 		return err
@@ -111,7 +111,7 @@ func resourceLxdNetworkUpdate(d *schema.ResourceData, meta interface{}) error {
 }
 
 func resourceLxdNetworkDelete(d *schema.ResourceData, meta interface{}) (err error) {
-	p := meta.(*LxdProvider)
+	p := meta.(*lxdProvider)
 	server, err := p.GetContainerServer(p.selectRemote(d))
 	if err != nil {
 		return err
@@ -119,15 +119,11 @@ func resourceLxdNetworkDelete(d *schema.ResourceData, meta interface{}) (err err
 
 	name := d.Id()
 
-	if err = server.DeleteNetwork(name); err != nil {
-		return err
-	}
-
-	return nil
+	return server.DeleteNetwork(name)
 }
 
 func resourceLxdNetworkExists(d *schema.ResourceData, meta interface{}) (exists bool, err error) {
-	p := meta.(*LxdProvider)
+	p := meta.(*lxdProvider)
 	server, err := p.GetContainerServer(p.selectRemote(d))
 	if err != nil {
 		return false, err

@@ -4,6 +4,6 @@ import (
 	"errors"
 )
 
-var ErrNetworksNotImplemented = errors.New("This LXD server does not support " +
+var errNetworksNotImplemented = errors.New("This LXD server does not support " +
 	"the creation of networks. You must be running LXD 2.3 or later for this " +
 	"feature.")

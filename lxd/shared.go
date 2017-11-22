@@ -7,47 +7,47 @@ import (
 )
 
 // Complex resource ID types
-type volumeId struct {
+type volumeID struct {
 	pool    string
 	name    string
 	volType string
 }
 
-func (v volumeId) String() string {
+func (v volumeID) String() string {
 	return fmt.Sprintf("%s/%s/%s", v.pool, v.name, v.volType)
 }
 
-func NewVolumeId(pool, name, volType string) volumeId {
-	return volumeId{pool: pool, name: name, volType: volType}
+func newVolumeID(pool, name, volType string) volumeID {
+	return volumeID{pool: pool, name: name, volType: volType}
 }
 
-func NewVolumeIdFromResourceId(id string) volumeId {
+func newVolumeIDFromResourceID(id string) volumeID {
 	pieces := strings.SplitN(id, "/", 3)
-	return volumeId{pieces[0], pieces[1], pieces[2]}
+	return volumeID{pieces[0], pieces[1], pieces[2]}
 }
 
-type volumeAttachmentId struct {
+type volumeAttachmentID struct {
 	pool         string
 	volumeName   string
 	attachedName string
 }
 
-func (v volumeAttachmentId) String() string {
+func (v volumeAttachmentID) String() string {
 	return fmt.Sprintf("%s/%s/%s", v.pool, v.volumeName, v.attachedName)
 }
 
-func NewVolumeAttachmentId(pool, volumeName, attachedName string) volumeAttachmentId {
-	return volumeAttachmentId{
+func newVolumeAttachmentID(pool, volumeName, attachedName string) volumeAttachmentID {
+	return volumeAttachmentID{
 		pool:         pool,
 		volumeName:   volumeName,
 		attachedName: attachedName,
 	}
 }
 
-func NewVolumeAttachmentIdFromResourceId(id string) volumeAttachmentId {
+func newVolumeAttachmentIDFromResourceID(id string) volumeAttachmentID {
 	pieces := strings.SplitN(id, "/", 3)
 	log.Printf("[DEBUG] pieces: %#v", pieces)
-	return volumeAttachmentId{pieces[0], pieces[1], pieces[2]}
+	return volumeAttachmentID{pieces[0], pieces[1], pieces[2]}
 }
 
 // Helper functions
