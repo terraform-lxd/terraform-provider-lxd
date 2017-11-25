@@ -105,10 +105,11 @@ func resourceLxdContainer() *schema.Resource {
 			},
 
 			"privileged": &schema.Schema{
-				Type:     schema.TypeBool,
-				Optional: true,
-				Default:  false,
-				ForceNew: false,
+				Type:       schema.TypeBool,
+				Optional:   true,
+				Default:    false,
+				ForceNew:   false,
+				Deprecated: "Use a config setting of security.privileged=1 instead",
 			},
 
 			"file": &schema.Schema{

@@ -453,7 +453,7 @@ The following resources are currently available:
   * `image`     - *Required* - Base image from which the container will be created.
   * `profiles`  - *Optional* - Array of LXD config profiles to apply to the new container.
   * `ephemeral` - *Optional* - Boolean indicating if this container is ephemeral. Default = false.
-  * `privileged`- *Optional* - Boolean indicating if this container will run in privileged mode. Default = false.
+  * `privileged`- *Deprecated* - Boolean indicating if this container will run in privileged mode. Default = false. This argument is deprecated. Use a config setting of `security.privileged=1` instead.
   * `config`    - *Optional* - Map of key/value pairs of [container config settings](https://github.com/lxc/lxd/blob/master/doc/configuration.md#container-configuration).
   * `limits`    - *Optional* - Map of key/value pairs that define the [container resources limits](https://github.com/lxc/lxd/blob/master/doc/containers.md).
   * `device`    - *Optional* - Device definition. See reference below.
