@@ -462,8 +462,8 @@ The following resources are currently available:
                                is not provided, the default provider remote is used.
 
 ##### Importing
-Importing existing containers is possible with the following ID syntax  
-`terraform import lxd_container.container [remote:]name[/images:alpine/3.5]`.  
+Importing existing containers is possible with the following ID syntax
+`terraform import lxd_container.container [remote:]name[/images:alpine/3.5]`.
 
  * remote             - *Optional* - is the name of the remote in the provider config
  * name               - *Required* - is the container name
@@ -495,7 +495,8 @@ resource "lxd_container" "container1" {
 
 ##### File Block
 
-  * `content` - *Required* - The _contents_ of the file. Use the `file()` function to read in the content of a file from disk.
+  * `content` - *Required unless source is used* - The _contents_ of the file. Use the `file()` function to read in the content of a file from disk.
+  * `source` - *Required unless content is used* - The path to the source file to copy to the container.
   * `target_file` - *Required* - The absolute path of the file on the container, including the filename.
   * `uid` - *Optional* - The UID of the file. Must be an unquoted integer.
   * `gid` - *Optional* - The GID of the file. Must be an unquoted integer.
