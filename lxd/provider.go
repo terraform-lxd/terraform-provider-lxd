@@ -155,6 +155,7 @@ func Provider() terraform.ResourceProvider {
 			"lxd_storage_pool":            resourceLxdStoragePool(),
 			"lxd_volume":                  resourceLxdVolume(),
 			"lxd_volume_container_attach": resourceLxdVolumeContainerAttach(),
+			"lxd_volume_profile_attach":   resourceLxdVolumeProfileAttach(),
 		},
 
 		ConfigureFunc: providerConfigure,
