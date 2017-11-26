@@ -1,6 +1,7 @@
 package lxd
 
 import (
+	"fmt"
 	"log"
 
 	"github.com/hashicorp/terraform/helper/schema"
@@ -34,6 +35,7 @@ func resourceLxdProfile() *schema.Resource {
 			"device": &schema.Schema{
 				Type:     schema.TypeList,
 				Optional: true,
+				Computed: true,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"name": &schema.Schema{
@@ -125,7 +127,12 @@ func resourceLxdProfileRead(d *schema.ResourceData, meta interface{}) error {
 		device["properties"] = lxddevice
 		devices = append(devices, device)
 	}
-	d.Set("device", devices)
+
+	err = d.Set("device", devices)
+	if err != nil {
+		return fmt.Errorf("unable to set profile %s devices: %s", name, err)
+	}
+
 	return nil
 }
 
