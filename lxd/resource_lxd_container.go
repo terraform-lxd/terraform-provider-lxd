@@ -1,8 +1,6 @@
 package lxd
 
 import (
-	"crypto/sha1"
-	"encoding/hex"
 	"fmt"
 	"log"
 	"os"
@@ -14,6 +12,8 @@ import (
 
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
+
+	"github.com/mitchellh/go-homedir"
 
 	lxd "github.com/lxc/lxd/client"
 	"github.com/lxc/lxd/shared/api"
@@ -105,10 +105,11 @@ func resourceLxdContainer() *schema.Resource {
 			},
 
 			"privileged": &schema.Schema{
-				Type:     schema.TypeBool,
-				Optional: true,
-				Default:  false,
-				ForceNew: false,
+				Type:       schema.TypeBool,
+				Optional:   true,
+				Default:    false,
+				ForceNew:   false,
+				Deprecated: "Use a config setting of security.privileged=1 instead",
 			},
 
 			"file": &schema.Schema{
@@ -118,11 +119,12 @@ func resourceLxdContainer() *schema.Resource {
 					Schema: map[string]*schema.Schema{
 						"content": &schema.Schema{
 							Type:     schema.TypeString,
-							Required: true,
-							StateFunc: func(v interface{}) string {
-								hash := sha1.Sum([]byte(v.(string)))
-								return hex.EncodeToString(hash[:])
-							},
+							Optional: true,
+						},
+
+						"source": &schema.Schema{
+							Type:     schema.TypeString,
+							Optional: true,
 						},
 
 						"target_file": &schema.Schema{
@@ -282,8 +284,6 @@ func resourceLxdContainerCreate(d *schema.ResourceData, meta interface{}) error 
 			if err := resourceLxdContainerUploadFile(server, name, file); err != nil {
 				return err
 			}
-			hash := sha1.Sum([]byte(file["content"].(string)))
-			file["content"] = hex.EncodeToString(hash[:])
 		}
 
 		d.Set("file", files)
@@ -653,28 +653,42 @@ func resourceLxdContainerRefresh(server lxd.ContainerServer, name string) resour
 }
 
 func resourceLxdContainerUploadFile(server lxd.ContainerServer, container string, file interface{}) error {
-	var uid, gid int
-	var createDirectories bool
 	fileInfo := file.(map[string]interface{})
 
-	fileContent := fileInfo["content"].(string)
-	fileTarget := fileInfo["target_file"].(string)
+	var fileContent string
+	if v, ok := fileInfo["content"]; ok {
+		fileContent = v.(string)
+	}
 
+	var fileSource string
+	if v, ok := fileInfo["source"]; ok {
+		fileSource = v.(string)
+	}
+
+	// Both content and source cannot be set.
+	if fileContent != "" && fileSource != "" {
+		return fmt.Errorf("only one of content or source can be used in a file")
+	}
+
+	var uid int
 	if v, ok := fileInfo["uid"]; ok {
 		uid = v.(int)
 	}
 
+	var gid int
 	if v, ok := fileInfo["gid"]; ok {
 		gid = v.(int)
 	}
 
+	var createDirectories bool
 	if v, ok := fileInfo["create_directories"]; ok {
 		createDirectories = v.(bool)
 	}
 
+	fileTarget := fileInfo["target_file"].(string)
 	fileTarget, err := filepath.Abs(fileTarget)
 	if err != nil {
-		return fmt.Errorf("Could not santize destination target %s", fileTarget)
+		return fmt.Errorf("Could not determine destination target %s", fileTarget)
 	}
 
 	targetIsDir := strings.HasSuffix(fileTarget, "/")
@@ -696,6 +710,36 @@ func resourceLxdContainerUploadFile(server lxd.ContainerServer, container string
 		mode = os.FileMode(m)
 	}
 
+	// Build the file creation request, without the content.
+	args := lxd.ContainerFileArgs{
+		Mode:      int(mode.Perm()),
+		UID:       int64(uid),
+		GID:       int64(gid),
+		Type:      "file",
+		WriteMode: "overwrite",
+	}
+
+	// If content was specified, read the string.
+	if fileContent != "" {
+		args.Content = strings.NewReader(fileContent)
+	}
+
+	// If a source was specified, read the contents of the source file.
+	if fileSource != "" {
+		path, err := homedir.Expand(fileSource)
+		if err != nil {
+			return fmt.Errorf("unable to determine source file path: %s", err)
+		}
+
+		f, err := os.Open(path)
+		if err != nil {
+			return fmt.Errorf("unable to read source file: %s", err)
+		}
+		defer f.Close()
+
+		args.Content = f
+	}
+
 	log.Printf("[DEBUG] Attempting to upload file to %s with uid %d, gid %d, and mode %s",
 		fileTarget, uid, gid, fmt.Sprintf("%04o", mode))
 
@@ -706,15 +750,6 @@ func resourceLxdContainerUploadFile(server lxd.ContainerServer, container string
 		}
 	}
 
-	f := strings.NewReader(fileContent)
-	args := lxd.ContainerFileArgs{
-		Mode:      int(mode.Perm()),
-		UID:       int64(uid),
-		GID:       int64(gid),
-		Type:      "file",
-		Content:   f,
-		WriteMode: "overwrite",
-	}
 	if err := server.CreateContainerFile(container, fileTarget, args); err != nil {
 		return fmt.Errorf("Could not upload file %s: %s", fileTarget, err)
 	}

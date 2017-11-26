@@ -255,7 +255,7 @@ func TestAccContainer_removeDevice(t *testing.T) {
 	})
 }
 
-func TestAccContainer_fileUpload(t *testing.T) {
+func TestAccContainer_fileUploadContent(t *testing.T) {
 	var container api.Container
 	containerName := strings.ToLower(petname.Generate(2, "-"))
 
@@ -264,13 +264,31 @@ func TestAccContainer_fileUpload(t *testing.T) {
 		Providers: testAccProviders,
 		Steps: []resource.TestStep{
 			resource.TestStep{
-				Config: testAccContainer_fileUpload_1(containerName),
+				Config: testAccContainer_fileUploadContent_1(containerName),
 				Check: resource.ComposeTestCheckFunc(
 					testAccContainerRunning(t, "lxd_container.container1", &container),
 				),
 			},
 			resource.TestStep{
-				Config: testAccContainer_fileUpload_2(containerName),
+				Config: testAccContainer_fileUploadContent_2(containerName),
+				Check: resource.ComposeTestCheckFunc(
+					testAccContainerRunning(t, "lxd_container.container1", &container),
+				),
+			},
+		},
+	})
+}
+
+func TestAccContainer_fileUploadSource(t *testing.T) {
+	var container api.Container
+	containerName := strings.ToLower(petname.Generate(2, "-"))
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:  func() { testAccPreCheck(t) },
+		Providers: testAccProviders,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccContainer_fileUploadSource(containerName),
 				Check: resource.ComposeTestCheckFunc(
 					testAccContainerRunning(t, "lxd_container.container1", &container),
 				),
@@ -673,7 +691,7 @@ resource "lxd_container" "container1" {
 	`, name)
 }
 
-func testAccContainer_fileUpload_1(name string) string {
+func testAccContainer_fileUploadContent_1(name string) string {
 	return fmt.Sprintf(`
 resource "lxd_container" "container1" {
   name = "%s"
@@ -690,7 +708,7 @@ resource "lxd_container" "container1" {
 	`, name)
 }
 
-func testAccContainer_fileUpload_2(name string) string {
+func testAccContainer_fileUploadContent_2(name string) string {
 	return fmt.Sprintf(`
 resource "lxd_container" "container1" {
   name = "%s"
@@ -699,6 +717,23 @@ resource "lxd_container" "container1" {
 
   file {
     content = "Goodbye, World!\n"
+    target_file = "/foo/bar.txt"
+    mode = "0644"
+    create_directories = true
+  }
+}
+	`, name)
+}
+
+func testAccContainer_fileUploadSource(name string) string {
+	return fmt.Sprintf(`
+resource "lxd_container" "container1" {
+  name = "%s"
+  image = "images:alpine/3.5/amd64"
+  profiles = ["default"]
+
+  file {
+    source = "test-fixtures/test-file.txt"
     target_file = "/foo/bar.txt"
     mode = "0644"
     create_directories = true
