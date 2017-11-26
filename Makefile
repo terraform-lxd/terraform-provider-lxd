@@ -13,7 +13,8 @@ build:
 	tar czvf terraform-provider-lxd_${TRAVIS_TAG}_linux_amd64.tar.gz terraform-provider-lxd
 
 dev:
-	go build -v
+	go build -v -o terraform-provider-lxd
+	go build -v -o terraform-provisioner-lxd
 
 vet:
 	@echo "go vet ."

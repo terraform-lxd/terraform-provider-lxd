@@ -373,7 +373,6 @@ func resourceLxdContainerRead(d *schema.ResourceData, meta interface{}) error {
 
 	d.Set("status", container.Status)
 
-	sshIP := ""
 	// First see if there was an access_interface set.
 	// If there was, base ip_address and mac_address off of it.
 	var aiFound bool
@@ -383,7 +382,6 @@ func resourceLxdContainerRead(d *schema.ResourceData, meta interface{}) error {
 			if ip.Family == "inet" {
 				aiFound = true
 				d.Set("ip_address", ip.Address)
-				sshIP = ip.Address
 				d.Set("mac_address", net.Hwaddr)
 			}
 		}
@@ -397,7 +395,6 @@ func resourceLxdContainerRead(d *schema.ResourceData, meta interface{}) error {
 				for _, ip := range net.Addresses {
 					if ip.Family == "inet" {
 						d.Set("ip_address", ip.Address)
-						sshIP = ip.Address
 						d.Set("mac_address", net.Hwaddr)
 					}
 				}
@@ -406,9 +403,20 @@ func resourceLxdContainerRead(d *schema.ResourceData, meta interface{}) error {
 	}
 
 	// Initialize the connection info
+	r, err := p.selectRemoteSchema(remote)
+	if err != nil {
+		return fmt.Errorf("unable to set connection string: %s", err)
+	}
+
 	d.SetConnInfo(map[string]string{
-		"type": "ssh",
-		"host": sshIP,
+		"type":       "lxd",
+		"address":    r["address"].(string),
+		"config_dir": p.Config.ConfigDir,
+		"name":       name,
+		"port":       r["port"].(string),
+		"password":   r["password"].(string),
+		"remote":     r["name"].(string),
+		"scheme":     r["scheme"].(string),
 	})
 
 	// Set the profiles used by the container

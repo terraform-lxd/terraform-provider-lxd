@@ -25,6 +25,7 @@ type lxdProvider struct {
 
 	acceptRemoteCertificate bool
 	clientMap               map[string]lxd.Server
+	remoteSchemas           map[string]interface{}
 }
 
 // Provider returns a terraform.ResourceProvider
@@ -179,6 +180,7 @@ func init() {
 
 func providerConfigure(d *schema.ResourceData) (interface{}, error) {
 	var config *lxd_config.Config
+	remoteSchemas := make(map[string]interface{})
 
 	// Load remotes from LXC config
 	//
@@ -248,22 +250,29 @@ func providerConfigure(d *schema.ResourceData) (interface{}, error) {
 	// Build an LXD client from the environment-driven remote.
 	// LXD_REMOTE must be set, or we ignore all the rest of the env vars.
 	if envRemote["name"] != "" {
+		name := envRemote["name"].(string)
+		remoteSchemas[name] = envRemote
 		err = lxdProv.providerConfigureClient(envRemote)
 		if err != nil {
 			return nil, fmt.Errorf("Unable to create client for remote [%s]: %s",
-				envRemote["name"].(string), err)
+				name, err)
 		}
 	}
 
 	// Loop over LXD Remotes defined in provider and initialise.
 	for _, rem := range d.Get("lxd_remote").([]interface{}) {
 		lxdRemote := rem.(map[string]interface{})
+		name := lxdRemote["name"].(string)
+		remoteSchemas[name] = rem
+
 		err := lxdProv.providerConfigureClient(lxdRemote)
 		if err != nil {
 			return nil, fmt.Errorf("Unable to create client for remote [%s]: %s",
 				lxdRemote["name"].(string), err)
 		}
 	}
+
+	lxdProv.remoteSchemas = remoteSchemas
 
 	log.Printf("[DEBUG] LXD Provider: %#v", lxdProv)
 
@@ -436,7 +445,24 @@ func (p *lxdProvider) selectRemote(d *schema.ResourceData) string {
 	return remote
 }
 
-// validateClient makes a simple GET request to the servers API
+// selectRemoteSchema is a convenience method tha returns the schema of the
+// remote set in the LXD resource or the default remote configured on
+// the Provider.
+func (p *lxdProvider) selectRemoteSchema(remote string) (map[string]interface{}, error) {
+	if remote != "" {
+		return p.remoteSchemas[remote].(map[string]interface{}), nil
+	} else {
+		for _, v := range p.remoteSchemas {
+			remoteSchemaData := v.(map[string]interface{})
+			if remoteSchemaData["default"] == true {
+				return remoteSchemaData, nil
+			}
+		}
+	}
+
+	return nil, fmt.Errorf("unable to find appropriate remote schema")
+}
+
 func validateClient(client lxd.ContainerServer) error {
 	if client == nil {
 		return errors.New("client is nil")
