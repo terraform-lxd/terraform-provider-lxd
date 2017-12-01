@@ -18,41 +18,47 @@ func resourceLxdVolumeContainerAttach() *schema.Resource {
 
 		Schema: map[string]*schema.Schema{
 			"pool": &schema.Schema{
-				Type:     schema.TypeString,
-				ForceNew: true,
-				Required: true,
+				Type:       schema.TypeString,
+				ForceNew:   true,
+				Required:   true,
+				Deprecated: "lxd_volume_container_attach has been deprecated and will be removed",
 			},
 
 			"volume_name": &schema.Schema{
-				Type:     schema.TypeString,
-				ForceNew: true,
-				Required: true,
+				Type:       schema.TypeString,
+				ForceNew:   true,
+				Required:   true,
+				Deprecated: "lxd_volume_container_attach has been deprecated and will be removed",
 			},
 
 			"container_name": &schema.Schema{
-				Type:     schema.TypeString,
-				ForceNew: true,
-				Required: true,
+				Type:       schema.TypeString,
+				ForceNew:   true,
+				Required:   true,
+				Deprecated: "lxd_volume_container_attach has been deprecated and will be removed",
 			},
 
 			"path": &schema.Schema{
-				Type:     schema.TypeString,
-				ForceNew: true,
-				Required: true,
+				Type:       schema.TypeString,
+				ForceNew:   true,
+				Required:   true,
+				Deprecated: "lxd_volume_container_attach has been deprecated and will be removed",
 			},
 
 			"device_name": &schema.Schema{
-				Type:     schema.TypeString,
-				ForceNew: true,
-				Optional: true,
-				Computed: true,
+				Type:       schema.TypeString,
+				ForceNew:   true,
+				Optional:   true,
+				Computed:   true,
+				Deprecated: "lxd_volume_container_attach has been deprecated and will be removed",
 			},
 
 			"remote": &schema.Schema{
-				Type:     schema.TypeString,
-				ForceNew: true,
-				Optional: true,
-				Default:  "",
+				Type:       schema.TypeString,
+				ForceNew:   true,
+				Optional:   true,
+				Default:    "",
+				Deprecated: "lxd_volume_container_attach has been deprecated and will be removed",
 			},
 		},
 	}
