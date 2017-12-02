@@ -7,6 +7,7 @@
 ### Container
 
 * [`lxd_container`](lxd_container.md)
+* [`lxd_container_file`](lxd_container_file.md)
 * [`lxd_snapshot`](lxd_snapshot.md)
 
 ### Network
