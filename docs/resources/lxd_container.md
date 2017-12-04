@@ -4,7 +4,7 @@ Manages an LXD container.
 
 A container can take a number of configuration and device options. A full reference can be found [here](https://github.com/lxc/lxd/blob/master/doc/configuration.md).
 
-## Example
+## Basic Example
 
 ```hcl
 resource "lxd_container" "test1" {
@@ -19,14 +19,37 @@ resource "lxd_container" "test1" {
   limits {
     cpu = 2
   }
+}
+```
+
+## Example to Attach a Volume
+
+```hcl
+resource "lxd_storage_pool" "pool1" {
+  name = "mypool"
+  driver = "dir"
+  config {
+    source = "/var/lib/lxd/storage-pools/mypool"
+  }
+}
+
+resource "lxd_volume" "volume1" {
+  name = "myvolume"
+  pool = "${lxd_storage_pool.pool1.name}"
+}
+
+resource "lxd_container" "container1" {
+  name = "%s"
+  image = "ubuntu"
+  profiles = ["default"]
 
   device {
-    name = "shared"
+    name = "volume1"
     type = "disk"
-
     properties {
-      source = "/tmp"
-      path   = "/tmp"
+      path = "/mount/point/in/container"
+      source = "${lxd_volume.volume1.name}"
+      pool = "${lxd_storage_pool.pool1.name}"
     }
   }
 }

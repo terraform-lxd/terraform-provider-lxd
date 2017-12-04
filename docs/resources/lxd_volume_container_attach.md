@@ -2,6 +2,10 @@
 
 Manages an attachment between an LXD volume and container.
 
+This resource has been deprecated. You can attach volumes to
+containers and profiles by creating the appropriate `device`
+configuration.
+
 ## Example Usage
 
 ```hcl
