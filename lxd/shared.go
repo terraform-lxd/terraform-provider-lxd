@@ -239,7 +239,7 @@ func containerUploadFile(server lxd.ContainerServer, container string, file File
 func containerDeleteFile(server lxd.ContainerServer, container string, targetFile string) error {
 	targetFile, err := filepath.Abs(targetFile)
 	if err != nil {
-		return fmt.Errorf("Could not santize destination target %s", targetFile)
+		return fmt.Errorf("Could not sanitize destination target %s", targetFile)
 	}
 
 	targetIsDir := strings.HasSuffix(targetFile, "/")
