@@ -3,17 +3,11 @@ package lxd
 import (
 	"fmt"
 	"log"
-	"os"
-	"path"
-	"path/filepath"
-	"strconv"
 	"strings"
 	"time"
 
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
-
-	"github.com/mitchellh/go-homedir"
 
 	lxd "github.com/lxc/lxd/client"
 	"github.com/lxc/lxd/shared/api"
@@ -280,13 +274,27 @@ func resourceLxdContainerCreate(d *schema.ResourceData, meta interface{}) error 
 	// and set the contents to a hash in the State
 	if files, ok := d.GetOk("file"); ok {
 		for _, v := range files.([]interface{}) {
-			file := v.(map[string]interface{})
-			if err := resourceLxdContainerUploadFile(server, name, file); err != nil {
+			f := v.(map[string]interface{})
+			file := File{
+				ContainerName:     name,
+				TargetFile:        f["target_file"].(string),
+				Content:           f["content"].(string),
+				Source:            f["source"].(string),
+				UID:               f["uid"].(int),
+				GID:               f["gid"].(int),
+				Mode:              f["mode"].(string),
+				CreateDirectories: f["create_directories"].(bool),
+			}
+
+			if err := containerUploadFile(server, name, file); err != nil {
 				return err
 			}
 		}
 
-		d.Set("file", files)
+		err := d.Set("file", files)
+		if err != nil {
+			return fmt.Errorf("unable to set file in state: %s", err)
+		}
 	}
 
 	d.SetPartial("file")
@@ -506,13 +514,28 @@ func resourceLxdContainerUpdate(d *schema.ResourceData, meta interface{}) error 
 	if d.HasChange("file") {
 		oldFiles, newFiles := d.GetChange("file")
 		for _, v := range oldFiles.([]interface{}) {
-			if err := resourceLxdContainerDeleteFile(server, name, v); err != nil {
+			f := v.(map[string]interface{})
+			targetFile := f["target_file"].(string)
+
+			if err := containerDeleteFile(server, name, targetFile); err != nil {
 				return err
 			}
 		}
 
 		for _, v := range newFiles.([]interface{}) {
-			if err := resourceLxdContainerUploadFile(server, name, v); err != nil {
+			f := v.(map[string]interface{})
+			newFile := File{
+				ContainerName:     name,
+				TargetFile:        f["target_file"].(string),
+				Content:           f["content"].(string),
+				Source:            f["source"].(string),
+				UID:               f["uid"].(int),
+				GID:               f["gid"].(int),
+				Mode:              f["mode"].(string),
+				CreateDirectories: f["create_directories"].(bool),
+			}
+
+			if err := containerUploadFile(server, name, newFile); err != nil {
 				return err
 			}
 		}
@@ -650,187 +673,6 @@ func resourceLxdContainerRefresh(server lxd.ContainerServer, name string) resour
 
 		return st, st.Status, nil
 	}
-}
-
-func resourceLxdContainerUploadFile(server lxd.ContainerServer, container string, file interface{}) error {
-	fileInfo := file.(map[string]interface{})
-
-	var fileContent string
-	if v, ok := fileInfo["content"]; ok {
-		fileContent = v.(string)
-	}
-
-	var fileSource string
-	if v, ok := fileInfo["source"]; ok {
-		fileSource = v.(string)
-	}
-
-	// Both content and source cannot be set.
-	if fileContent != "" && fileSource != "" {
-		return fmt.Errorf("only one of content or source can be used in a file")
-	}
-
-	var uid int
-	if v, ok := fileInfo["uid"]; ok {
-		uid = v.(int)
-	}
-
-	var gid int
-	if v, ok := fileInfo["gid"]; ok {
-		gid = v.(int)
-	}
-
-	var createDirectories bool
-	if v, ok := fileInfo["create_directories"]; ok {
-		createDirectories = v.(bool)
-	}
-
-	fileTarget := fileInfo["target_file"].(string)
-	fileTarget, err := filepath.Abs(fileTarget)
-	if err != nil {
-		return fmt.Errorf("Could not determine destination target %s", fileTarget)
-	}
-
-	targetIsDir := strings.HasSuffix(fileTarget, "/")
-	if targetIsDir {
-		return fmt.Errorf("Target must be an absolute path with filename")
-	}
-
-	mode := os.FileMode(0755)
-	if v, ok := fileInfo["mode"].(string); ok && v != "" {
-		if len(v) != 3 {
-			v = "0" + v
-		}
-
-		m, err := strconv.ParseInt(v, 0, 0)
-		if err != nil {
-			return fmt.Errorf("Could not determine file mode %s", v)
-		}
-
-		mode = os.FileMode(m)
-	}
-
-	// Build the file creation request, without the content.
-	args := lxd.ContainerFileArgs{
-		Mode:      int(mode.Perm()),
-		UID:       int64(uid),
-		GID:       int64(gid),
-		Type:      "file",
-		WriteMode: "overwrite",
-	}
-
-	// If content was specified, read the string.
-	if fileContent != "" {
-		args.Content = strings.NewReader(fileContent)
-	}
-
-	// If a source was specified, read the contents of the source file.
-	if fileSource != "" {
-		path, err := homedir.Expand(fileSource)
-		if err != nil {
-			return fmt.Errorf("unable to determine source file path: %s", err)
-		}
-
-		f, err := os.Open(path)
-		if err != nil {
-			return fmt.Errorf("unable to read source file: %s", err)
-		}
-		defer f.Close()
-
-		args.Content = f
-	}
-
-	log.Printf("[DEBUG] Attempting to upload file to %s with uid %d, gid %d, and mode %s",
-		fileTarget, uid, gid, fmt.Sprintf("%04o", mode))
-
-	if createDirectories {
-		err := recursiveMkdir(server, container, path.Dir(fileTarget), mode, int64(uid), int64(gid))
-		if err != nil {
-			return fmt.Errorf("Could not upload file %s: %s", fileTarget, err)
-		}
-	}
-
-	if err := server.CreateContainerFile(container, fileTarget, args); err != nil {
-		return fmt.Errorf("Could not upload file %s: %s", fileTarget, err)
-	}
-
-	log.Printf("[DEBUG] Successfully uploaded file %s", fileTarget)
-
-	return nil
-}
-
-func resourceLxdContainerDeleteFile(server lxd.ContainerServer, container string, file interface{}) error {
-	fileInfo := file.(map[string]interface{})
-	fileTarget := fileInfo["target_file"].(string)
-	fileTarget, err := filepath.Abs(fileTarget)
-	if err != nil {
-		return fmt.Errorf("Could not santize destination target %s", fileTarget)
-	}
-
-	targetIsDir := strings.HasSuffix(fileTarget, "/")
-	if targetIsDir {
-		return fmt.Errorf("Target must be an absolute path with filename")
-	}
-
-	log.Printf("[DEBUG] Attempting to delete file %s", fileTarget)
-
-	if err := server.DeleteContainerFile(container, fileTarget); err != nil {
-		return fmt.Errorf("Could not delete file %s: %s", fileTarget, err)
-	}
-
-	log.Printf("[DEBUG] Successfully deleted file %s", fileTarget)
-
-	return nil
-}
-
-// recursiveMkdir was copied almost as-is from github.com/lxc/lxd/lxc/file.go
-func recursiveMkdir(d lxd.ContainerServer, container string, p string, mode os.FileMode, uid int64, gid int64) error {
-	/* special case, every container has a /, we don't need to do anything */
-	if p == "/" {
-		return nil
-	}
-
-	// Remove trailing "/" e.g. /A/B/C/. Otherwise we will end up with an
-	// empty array entry "" which will confuse the Mkdir() loop below.
-	pclean := filepath.Clean(p)
-	parts := strings.Split(pclean, "/")
-	i := len(parts)
-
-	for ; i >= 1; i-- {
-		cur := filepath.Join(parts[:i]...)
-		_, resp, err := d.GetContainerFile(container, cur)
-		if err != nil {
-			continue
-		}
-
-		if resp.Type != "directory" {
-			return fmt.Errorf("%s is not a directory", cur)
-		}
-
-		i++
-		break
-	}
-
-	for ; i <= len(parts); i++ {
-		cur := filepath.Join(parts[:i]...)
-		if cur == "" {
-			continue
-		}
-
-		args := lxd.ContainerFileArgs{
-			UID:  uid,
-			GID:  gid,
-			Mode: int(mode.Perm()),
-			Type: "directory",
-		}
-
-		err := d.CreateContainerFile(container, cur, args)
-		if err != nil {
-			return err
-		}
-	}
-
-	return nil
 }
 
 // Suppress Diff on empty name

@@ -3,7 +3,14 @@ package lxd
 import (
 	"fmt"
 	"log"
+	"os"
+	"path"
+	"path/filepath"
+	"strconv"
 	"strings"
+
+	lxd "github.com/lxc/lxd/client"
+	"github.com/mitchellh/go-homedir"
 )
 
 // Complex resource ID types
@@ -48,6 +55,27 @@ func newVolumeAttachmentIDFromResourceID(id string) volumeAttachmentID {
 	pieces := strings.SplitN(id, "/", 3)
 	log.Printf("[DEBUG] pieces: %#v", pieces)
 	return volumeAttachmentID{pieces[0], pieces[1], pieces[2]}
+}
+
+type File struct {
+	RemoteName        string
+	ContainerName     string
+	TargetFile        string
+	Content           string
+	Source            string
+	UID               int
+	GID               int
+	Mode              string
+	CreateDirectories bool
+}
+
+func (f File) String() string {
+	return fmt.Sprintf("%s:%s%s", f.RemoteName, f.ContainerName, f.TargetFile)
+}
+
+func newFileIDFromResourceID(id string) (string, string) {
+	pieces := strings.SplitN(id, "/", 2)
+	return pieces[0], fmt.Sprintf("/%s", pieces[1])
 }
 
 // Helper functions
@@ -126,4 +154,156 @@ func resourceLxdValidateDeviceType(v interface{}, k string) (ws []string, errors
 	}
 
 	return
+}
+
+// containerUploadFile will upload a file to a container.
+func containerUploadFile(server lxd.ContainerServer, container string, file File) error {
+	if file.Content != "" && file.Source != "" {
+		return fmt.Errorf("only one of content or source can be specified")
+	}
+
+	targetFile, err := filepath.Abs(file.TargetFile)
+	if err != nil {
+		return fmt.Errorf("Could not determine destination target %s", targetFile)
+	}
+
+	targetIsDir := strings.HasSuffix(targetFile, "/")
+	if targetIsDir {
+		return fmt.Errorf("Target must be an absolute path with filename")
+	}
+
+	mode := os.FileMode(0755)
+	if len(file.Mode) != 3 {
+		file.Mode = "0" + file.Mode
+	}
+
+	m, err := strconv.ParseInt(file.Mode, 0, 0)
+	if err != nil {
+		return fmt.Errorf("Could not determine file mode %s", file.Mode)
+	}
+
+	mode = os.FileMode(m)
+
+	// Build the file creation request, without the content.
+	uid := int64(file.UID)
+	gid := int64(file.GID)
+	args := lxd.ContainerFileArgs{
+		Mode:      int(mode.Perm()),
+		UID:       int64(uid),
+		GID:       int64(gid),
+		Type:      "file",
+		WriteMode: "overwrite",
+	}
+
+	// If content was specified, read the string.
+	if file.Content != "" {
+		args.Content = strings.NewReader(file.Content)
+	}
+
+	// If a source was specified, read the contents of the source file.
+	if file.Source != "" {
+		path, err := homedir.Expand(file.Source)
+		if err != nil {
+			return fmt.Errorf("unable to determine source file path: %s", err)
+		}
+
+		f, err := os.Open(path)
+		if err != nil {
+			return fmt.Errorf("unable to read source file: %s", err)
+		}
+		defer f.Close()
+
+		args.Content = f
+	}
+
+	log.Printf("[DEBUG] Attempting to upload file to %s with uid %d, gid %d, and mode %s",
+		targetFile, uid, gid, fmt.Sprintf("%04o", mode))
+
+	if file.CreateDirectories {
+		err := recursiveMkdir(server, container, path.Dir(targetFile), mode, uid, gid)
+		if err != nil {
+			return fmt.Errorf("Could not upload file %s: %s", targetFile, err)
+		}
+	}
+
+	if err := server.CreateContainerFile(container, targetFile, args); err != nil {
+		return fmt.Errorf("Could not upload file %s: %s", targetFile, err)
+	}
+
+	log.Printf("[DEBUG] Successfully uploaded file %s", targetFile)
+
+	return nil
+}
+
+// containerDeleteFile will delete a file on a container.
+func containerDeleteFile(server lxd.ContainerServer, container string, targetFile string) error {
+	targetFile, err := filepath.Abs(targetFile)
+	if err != nil {
+		return fmt.Errorf("Could not sanitize destination target %s", targetFile)
+	}
+
+	targetIsDir := strings.HasSuffix(targetFile, "/")
+	if targetIsDir {
+		return fmt.Errorf("Target must be an absolute path with filename")
+	}
+
+	log.Printf("[DEBUG] Attempting to delete file %s", targetFile)
+
+	if err := server.DeleteContainerFile(container, targetFile); err != nil {
+		return fmt.Errorf("Could not delete file %s: %s", targetFile, err)
+	}
+
+	log.Printf("[DEBUG] Successfully deleted file %s", targetFile)
+
+	return nil
+}
+
+// recursiveMkdir was copied almost as-is from github.com/lxc/lxd/lxc/file.go
+func recursiveMkdir(d lxd.ContainerServer, container string, p string, mode os.FileMode, uid int64, gid int64) error {
+	/* special case, every container has a /, we don't need to do anything */
+	if p == "/" {
+		return nil
+	}
+
+	// Remove trailing "/" e.g. /A/B/C/. Otherwise we will end up with an
+	// empty array entry "" which will confuse the Mkdir() loop below.
+	pclean := filepath.Clean(p)
+	parts := strings.Split(pclean, "/")
+	i := len(parts)
+
+	for ; i >= 1; i-- {
+		cur := filepath.Join(parts[:i]...)
+		_, resp, err := d.GetContainerFile(container, cur)
+		if err != nil {
+			continue
+		}
+
+		if resp.Type != "directory" {
+			return fmt.Errorf("%s is not a directory", cur)
+		}
+
+		i++
+		break
+	}
+
+	for ; i <= len(parts); i++ {
+		cur := filepath.Join(parts[:i]...)
+		if cur == "" {
+			continue
+		}
+
+		args := lxd.ContainerFileArgs{
+			UID:  uid,
+			GID:  gid,
+			Mode: int(mode.Perm()),
+			Type: "directory",
+		}
+
+		err := d.CreateContainerFile(container, cur, args)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
