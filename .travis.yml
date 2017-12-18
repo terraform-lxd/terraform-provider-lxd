@@ -43,13 +43,14 @@ matrix:
   allow_failures:
     - go: master
 
-before_deploy: make build
+before_deploy:
+  - make targets
 
 deploy:
   provider: releases
   api_key:
     secure: sfkgrcvaOhvc7lXmyRROGiaSb2YAQjGrBil9FAVX9VRDSO1TPAy9PS7w5Lf1rS05Ifytbtt7sKKWNVeckDXctDS/rFFHu7ONj3qnQq+/O8VlRX8tr0oqzVq48qz4lC/cJ4QjlqNFW1/oNyM55xobQjaNxKsWaHWW826NutdPEIiTgWQgOe9BGgT44AoyYjuFOhb4Bfgbq7Ds4EOSEIkljhmGABzdy5y+YKUcTt0Ta7E9jHticVDNRb+YXl7uyOrQ+9eIMnkIt6imR1rOQ+UVrZWsORhR2yoqXTzkABFdo85Mqs8KPDIcCaCI/ryPJfgpqIrDqQWMHnXP+PrChiE2De0w16HhI+sSnby9Jy1NYFllZLOZ7mcqmamu3HKm+g2By9iEzt8kgg3Lix9zigxOQWiYjO2lOgpNq/fouB73F1BzAxW2UHwgOCE3ciV36oAO6whlPorJ262W+1D4plk1DkugGu7nC8tguBlIZsiGOoenm5/Otp2xKwE12hGT028OkZK2UqNYBngVOG+2PdH0MksnOmhU7DTS6zwy563PIN7wscDHuVxsxRGFLV+l2WZlkkCIUirtenxw88QVlpzI7pbNF45Wu4EpxLEkhOabzRlzjgpkOOPv3JvKuZvBEQnGX72KwltEtpyj51HoWm2M1BJqEn7ZfQ+kyIkqMqQ6hjo=
-  file: terraform-provider-lxd_*.tar.gz
+  file: dist/*.zip
   file_glob: true
   skip_cleanup: true
   on:

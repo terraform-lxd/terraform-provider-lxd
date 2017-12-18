@@ -1,4 +1,7 @@
 GOFMT_FILES?=$$(find . -name '*.go' |grep -v vendor)
+TARGETS=darwin linux windows
+
+default: build
 
 test:
 	go get ./...
@@ -10,7 +13,12 @@ testacc:
 
 build:
 	go build -v
-	tar czvf terraform-provider-lxd_${TRAVIS_TAG}_linux_amd64.tar.gz terraform-provider-lxd
+
+targets: $(TARGETS)
+
+$(TARGETS):
+	GOOS=$@ GOARCH=amd64 go build -o "dist/$@/terraform-provider-lxd_${TRAVIS_TAG}_x4"
+	zip -j dist/terraform-provider-lxd_${TRAVIS_TAG}_$@_amd64.zip dist/$@/terraform-provider-lxd_${TRAVIS_TAG}_x4
 
 dev:
 	go build -v
@@ -37,3 +45,5 @@ fmtcheck:
 		echo "You can use the command: \`make fmt\` to reformat code."; \
 		exit 1; \
 	fi
+
+.PHONY: build test testacc dev vet fmt fmtcheck targets $(TARGETS)
