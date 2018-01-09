@@ -13,17 +13,26 @@ LXD Resource provider for Terraform
 
 ### Using pre-built binary
 
-1. Download the binary from the project [releases page](https://github.com/sl1pm4t/terraform-provider-lxd/releases)
+1. Download the binary from the project [releases page](https://github.com/sl1pm4t/terraform-provider-lxd/releases/latest)
 2. Extract provider binary from tar file.
 3. Copy to `$PATH` or the `~/.terraform` directory so Terraform can find it.
 
 **Example**
 
 ```bash
-wget https://github.com/sl1pm4t/terraform-provider-lxd/releases/download/v0.10.0-beta2/terraform-provider-lxd_v0.10.0-beta2_linux_amd64.tar.gz
+# List latest binaries:
+curl -s https://api.github.com/repos/sl1pm4t/terraform-provider-lxd/releases/latest | jq '.assets | .[] | .browser_download_url'
+  "https://github.com/sl1pm4t/terraform-provider-lxd/releases/download/v1.1.0/terraform-provider-lxd_v1.1.0_darwin_amd64.zip"
+  "https://github.com/sl1pm4t/terraform-provider-lxd/releases/download/v1.1.0/terraform-provider-lxd_v1.1.0_linux_amd64.zip"
+  "https://github.com/sl1pm4t/terraform-provider-lxd/releases/download/v1.1.0/terraform-provider-lxd_v1.1.0_windows_amd64.zip"
 
-tar -xzvf terraform-provider-lxd_*.tar.gz
+# Retrieve zip
+wget https://github.com/sl1pm4t/terraform-provider-lxd/releases/download/v1.1.0/terraform-provider-lxd_v1.1.0_linux_amd64.zip
 
+# Unzip
+unzip terraform-provider-lxd_*.zip
+
+# Copy binary to a location where Terraform will find it
 mkdir -p ~/.terraform/
 mv terraform-provider-lxd ~/.terraform/
 ```
