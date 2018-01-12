@@ -7,6 +7,7 @@ import (
 
 func main() {
 	plugin.Serve(&plugin.ServeOpts{
-		ProviderFunc: lxd.Provider,
+		ProviderFunc:    lxd.Provider,
+		ProvisionerFunc: lxd.Provisioner,
 	})
 }

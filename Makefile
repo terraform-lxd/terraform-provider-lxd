@@ -21,7 +21,8 @@ $(TARGETS):
 	zip -j dist/terraform-provider-lxd_${TRAVIS_TAG}_$@_amd64.zip dist/$@/terraform-provider-lxd_${TRAVIS_TAG}_x4
 
 dev:
-	go build -v
+	go build -v -o terraform-provider-lxd
+	go build -v -o terraform-provisioner-lxd
 
 vet:
 	@echo "go vet ."
