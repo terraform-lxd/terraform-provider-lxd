@@ -9,7 +9,7 @@ test:
 	go test -timeout 20m -v ./lxd
 
 testacc:
-	TF_LOG=debug TF_ACC=1 go test ./lxd -v $(TESTARGS)
+	TF_LOG=debug TF_ACC=1 go test -v $(TESTARGS) -timeout 60m ./lxd
 
 build:
 	go build -v

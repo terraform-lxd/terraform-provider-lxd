@@ -3,3 +3,4 @@ terraform-provider-lxd.iml
 **/*.swp
 settings.json
 **/terraform.tfstate*
+**/*.terraform

@@ -64,6 +64,25 @@ func TestAccLxdProvider_envRemote(t *testing.T) {
 	})
 }
 
+func TestAccLxdProvider_providerRemote(t *testing.T) {
+	envName := strings.ToLower(petname.Generate(2, "-"))
+	envPort := os.Getenv("LXD_PORT")
+	envAddr := os.Getenv("LXD_ADDR")
+	envPassword := os.Getenv("LXD_PASSWORD")
+
+	resource.Test(t, resource.TestCase{
+		Providers: testAccProviders,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccLxdProvider_remote(envName, envAddr, envPort, envPassword),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr("lxd_noop.noop1", "remote", envName),
+				),
+			},
+		},
+	})
+}
+
 func TestAccLxdProvider_imageRemotes(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		Providers: testAccProviders,
@@ -90,6 +109,44 @@ func TestAccLxdProvider_imageRemotes(t *testing.T) {
 	})
 }
 
+func TestAccLxdProvider_socketRemote(t *testing.T) {
+	remoteName := strings.ToLower(petname.Generate(2, "-"))
+	socketAddr := "/var/snap/lxd/common/lxd/unix.socket"
+	addr := fmt.Sprintf("unix:%s", socketAddr)
+
+	envName := os.Getenv("LXD_REMOTE")
+	os.Unsetenv("LXD_REMOTE")
+	defer os.Setenv("LXD_REMOTE", envName)
+
+	tmpDirName := petname.Generate(1, "")
+	tmpDir, err := ioutil.TempDir(os.TempDir(), tmpDirName)
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer os.RemoveAll(tmpDir) // clean up
+
+	conf := &lxd.Config{}
+	conf.Remotes = map[string]lxd.Remote{
+		remoteName: {
+			Addr: addr,
+		},
+	}
+	conf.DefaultRemote = remoteName
+	conf.SaveConfig(filepath.Join(tmpDir, "config.yml"))
+
+	resource.Test(t, resource.TestCase{
+		Providers: testAccProviders,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccLxdProvider_socketRemote(remoteName, socketAddr),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr("lxd_noop.noop1", "remote", remoteName),
+				),
+			},
+		},
+	})
+}
+
 func TestAccLxdProvider_lxcConfigRemotes(t *testing.T) {
 	remoteName := strings.ToLower(petname.Generate(2, "-"))
 	remoteAddr := os.Getenv("LXD_ADDR")
@@ -110,7 +167,7 @@ func TestAccLxdProvider_lxcConfigRemotes(t *testing.T) {
 	conf := &lxd.Config{}
 	conf.Remotes = map[string]lxd.Remote{
 		remoteName: {
-			Addr: fmt.Sprintf("%s://%s:%s", os.Getenv("LXD_SCHEME"), os.Getenv("LXD_ADDR"), os.Getenv("LXD_PORT")),
+			Addr: fmt.Sprintf("%s://%s:%s", os.Getenv("LXD_SCHEME"), remoteAddr, os.Getenv("LXD_PORT")),
 		},
 	}
 	conf.DefaultRemote = remoteName
@@ -143,25 +200,6 @@ func TestAccLxdProvider_lxcConfigRemotes(t *testing.T) {
 		},
 	})
 
-}
-
-func TestAccLxdProvider_providerRemote(t *testing.T) {
-	envName := strings.ToLower(petname.Generate(2, "-"))
-	envPort := os.Getenv("LXD_PORT")
-	envAddr := os.Getenv("LXD_ADDR")
-	envPassword := os.Getenv("LXD_PASSWORD")
-
-	resource.Test(t, resource.TestCase{
-		Providers: testAccProviders,
-		Steps: []resource.TestStep{
-			resource.TestStep{
-				Config: testAccLxdProvider_remote(envName, envAddr, envPort, envPassword),
-				Check: resource.ComposeTestCheckFunc(
-					resource.TestCheckResourceAttr("lxd_noop.noop1", "remote", envName),
-				),
-			},
-		},
-	})
 }
 
 func TestAccLxdProvider_noConfigFile(t *testing.T) {
@@ -224,6 +262,25 @@ resource "lxd_noop" "noop1" {
 	remote = "%s"
 }
 `, remote, addr, port, password, remote)
+}
+
+func testAccLxdProvider_socketRemote(remote, socketAddr string) string {
+	return fmt.Sprintf(`
+provider "lxd" {
+	accept_remote_certificate    = true
+	generate_client_certificates = true
+	lxd_remote {
+		name     = "%s"
+		address  = "%s"
+		scheme   = "unix"
+	}
+}
+
+resource "lxd_noop" "noop1" {
+	name = "noop1"
+	remote = "%s"
+}
+`, remote, socketAddr, remote)
 }
 
 func testAccLxdProvider_lxcConfig1(confDir, remote, addr, port, password string) string {

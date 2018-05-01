@@ -18,6 +18,8 @@ sudo snap install lxd
 _lxc="/snap/bin/lxc"
 _lxd="/snap/bin/lxd"
 sudo $_lxd waitready --timeout 60
+sudo /snap/bin/lxd.migrate -yes
+sudo ln -s /snap/bin/lxc /usr/bin/
 sudo $_lxc config set core.https_address [::]
 sudo $_lxc config set core.trust_password the-password
 #sudo $_lxc storage create default dir source=/mnt
