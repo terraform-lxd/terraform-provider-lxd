@@ -338,7 +338,9 @@ func (p *lxdProvider) createClient(remote string) error {
 				lxdRemote.name, err)
 		}
 
+		p.Lock()
 		p.Config.Remotes[name] = lxd_config.Remote{Addr: daemonAddr}
+		p.Unlock()
 
 		if scheme == "https" {
 			rclient, _ := p.Config.GetContainerServer(name)
