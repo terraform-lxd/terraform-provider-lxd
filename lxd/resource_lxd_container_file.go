@@ -179,6 +179,14 @@ func resourceLxdContainerFileExists(d *schema.ResourceData, meta interface{}) (e
 
 	_, _, err = server.GetContainer(containerName)
 	if err != nil {
+		// If the container could not be found, then the file
+		// can't exist. Ignore the error and return with exists
+		// set to false.
+		if err.Error() == "not found" {
+			err = nil
+			return
+		}
+
 		err = fmt.Errorf("unable to retrieve container %s: %s", containerName, err)
 		return
 	}
