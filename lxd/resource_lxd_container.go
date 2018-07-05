@@ -343,7 +343,7 @@ func resourceLxdContainerRead(d *schema.ResourceData, meta interface{}) error {
 	}
 
 	name := d.Id()
-	
+
 	container, _, err := server.GetContainer(name)
 	if err != nil {
 		return err
