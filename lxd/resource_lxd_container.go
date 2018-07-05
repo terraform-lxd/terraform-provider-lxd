@@ -416,7 +416,9 @@ func resourceLxdContainerRead(d *schema.ResourceData, meta interface{}) error {
 			}
 		}
 
-		if sshIP != "" { break }
+		if sshIP != "" {
+			break
+		}
 		time.Sleep(sleepTime)
 	}
 
