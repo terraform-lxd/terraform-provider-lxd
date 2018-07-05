@@ -343,18 +343,12 @@ func resourceLxdContainerRead(d *schema.ResourceData, meta interface{}) error {
 	}
 
 	name := d.Id()
-
+	
 	container, _, err := server.GetContainer(name)
 	if err != nil {
 		return err
 	}
 	log.Printf("[DEBUG] Retrieved container %s: %#v", name, container)
-
-	state, _, err := server.GetContainerState(name)
-	if err != nil {
-		return err
-	}
-	log.Printf("[DEBUG] Retrieved container state %s:\n%#v", name, state)
 
 	d.Set("ephemeral", container.Ephemeral)
 	d.Set("privileged", false) // Create has no handling for it yet
@@ -382,35 +376,48 @@ func resourceLxdContainerRead(d *schema.ResourceData, meta interface{}) error {
 	d.Set("status", container.Status)
 
 	sshIP := ""
-	// First see if there was an access_interface set.
-	// If there was, base ip_address and mac_address off of it.
-	var aiFound bool
-	if ai, ok := container.Config["user.access_interface"]; ok {
-		net := state.Network[ai]
-		for _, ip := range net.Addresses {
-			if ip.Family == "inet" {
-				aiFound = true
-				d.Set("ip_address", ip.Address)
-				sshIP = ip.Address
-				d.Set("mac_address", net.Hwaddr)
+	loops := 30
+	sleepTime := 500 * time.Millisecond
+	for i := loops; i > 0; i-- {
+		state, _, err := server.GetContainerState(name)
+		if err != nil {
+			return err
+		}
+		log.Printf("[DEBUG] Retrieved container state %s:\n%#v", name, state)
+
+		// First see if there was an access_interface set.
+		// If there was, base ip_address and mac_address off of it.
+		var aiFound bool
+		if ai, ok := container.Config["user.access_interface"]; ok {
+			net := state.Network[ai]
+			for _, ip := range net.Addresses {
+				if ip.Family == "inet" {
+					aiFound = true
+					d.Set("ip_address", ip.Address)
+					sshIP = ip.Address
+					d.Set("mac_address", net.Hwaddr)
+				}
 			}
 		}
-	}
 
-	// If the above wasn't successful, try to automatically
-	// determine the ip_address and mac_address.
-	if !aiFound {
-		for iface, net := range state.Network {
-			if iface != "lo" {
-				for _, ip := range net.Addresses {
-					if ip.Family == "inet" {
-						d.Set("ip_address", ip.Address)
-						sshIP = ip.Address
-						d.Set("mac_address", net.Hwaddr)
+		// If the above wasn't successful, try to automatically
+		// determine the ip_address and mac_address.
+		if !aiFound {
+			for iface, net := range state.Network {
+				if iface != "lo" {
+					for _, ip := range net.Addresses {
+						if ip.Family == "inet" {
+							d.Set("ip_address", ip.Address)
+							sshIP = ip.Address
+							d.Set("mac_address", net.Hwaddr)
+						}
 					}
 				}
 			}
 		}
+
+		if sshIP != "" { break }
+		time.Sleep(sleepTime)
 	}
 
 	// Initialize the connection info
