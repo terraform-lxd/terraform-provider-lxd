@@ -331,6 +331,20 @@ func resourceLxdContainerCreate(d *schema.ResourceData, meta interface{}) error 
 		return fmt.Errorf("Error waiting for container (%s) to become active: %s", name, err)
 	}
 
+	// Lxd will return "Running" even if the "inet" has not yet been set.
+	// wait until we see an "inet" ip_address before reading the state
+	networkConf := &resource.StateChangeConf{
+		Target:     []string{"OK"},
+		Refresh:    resourceLxdContainerWaitForNetwork(server, name),
+		Timeout:    3 * time.Minute,
+		Delay:      refreshInterval,
+		MinTimeout: 3 * time.Second,
+	}
+
+	if _, err = networkConf.WaitForState(); err != nil {
+		return fmt.Errorf("Error waiting for container (%s) network information: %s", name, err)
+	}
+
 	return resourceLxdContainerRead(d, meta)
 }
 
@@ -349,6 +363,12 @@ func resourceLxdContainerRead(d *schema.ResourceData, meta interface{}) error {
 		return err
 	}
 	log.Printf("[DEBUG] Retrieved container %s: %#v", name, container)
+
+	state, _, err := server.GetContainerState(name)
+	if err != nil {
+		return err
+	}
+	log.Printf("[DEBUG] Retrieved container state %s:\n%#v", name, state)
 
 	d.Set("ephemeral", container.Ephemeral)
 	d.Set("privileged", false) // Create has no handling for it yet
@@ -376,50 +396,35 @@ func resourceLxdContainerRead(d *schema.ResourceData, meta interface{}) error {
 	d.Set("status", container.Status)
 
 	sshIP := ""
-	loops := 30
-	sleepTime := 500 * time.Millisecond
-	for i := loops; i > 0; i-- {
-		state, _, err := server.GetContainerState(name)
-		if err != nil {
-			return err
-		}
-		log.Printf("[DEBUG] Retrieved container state %s:\n%#v", name, state)
-
-		// First see if there was an access_interface set.
-		// If there was, base ip_address and mac_address off of it.
-		var aiFound bool
-		if ai, ok := container.Config["user.access_interface"]; ok {
-			net := state.Network[ai]
-			for _, ip := range net.Addresses {
-				if ip.Family == "inet" {
-					aiFound = true
-					d.Set("ip_address", ip.Address)
-					sshIP = ip.Address
-					d.Set("mac_address", net.Hwaddr)
-				}
+	// First see if there was an access_interface set.
+	// If there was, base ip_address and mac_address off of it.
+	var aiFound bool
+	if ai, ok := container.Config["user.access_interface"]; ok {
+		net := state.Network[ai]
+		for _, ip := range net.Addresses {
+			if ip.Family == "inet" {
+				aiFound = true
+				d.Set("ip_address", ip.Address)
+				sshIP = ip.Address
+				d.Set("mac_address", net.Hwaddr)
 			}
 		}
+	}
 
-		// If the above wasn't successful, try to automatically
-		// determine the ip_address and mac_address.
-		if !aiFound {
-			for iface, net := range state.Network {
-				if iface != "lo" {
-					for _, ip := range net.Addresses {
-						if ip.Family == "inet" {
-							d.Set("ip_address", ip.Address)
-							sshIP = ip.Address
-							d.Set("mac_address", net.Hwaddr)
-						}
+	// If the above wasn't successful, try to automatically
+	// determine the ip_address and mac_address.
+	if !aiFound {
+		for iface, net := range state.Network {
+			if iface != "lo" {
+				for _, ip := range net.Addresses {
+					if ip.Family == "inet" {
+						d.Set("ip_address", ip.Address)
+						sshIP = ip.Address
+						d.Set("mac_address", net.Hwaddr)
 					}
 				}
 			}
 		}
-
-		if sshIP != "" {
-			break
-		}
-		time.Sleep(sleepTime)
 	}
 
 	// Initialize the connection info
@@ -681,6 +686,26 @@ func resourceLxdContainerRefresh(server lxd.ContainerServer, name string) resour
 		}
 
 		return st, st.Status, nil
+	}
+}
+
+func resourceLxdContainerWaitForNetwork(server lxd.ContainerServer, name string) resource.StateRefreshFunc {
+	return func() (interface{}, string, error) {
+		st, _, err := server.GetContainerState(name)
+		if err != nil {
+			return st, "Error", err
+		}
+
+		for iface, net := range st.Network {
+			if iface != "lo" {
+				for _, ip := range net.Addresses {
+					if ip.Family == "inet" {
+						return st, "OK", nil
+					}
+				}
+			}
+		}
+		return st, "NOT FOUND", nil
 	}
 }
 
