@@ -44,6 +44,7 @@ provider "lxd" {
     scheme   = "https"
     address  = "10.1.1.8"
     password = "password"
+    default  = true
   }
 
   lxd_remote {
@@ -86,6 +87,10 @@ The `lxd_remote` block supports:
 * `default` - *Optional* - Whether this should be the default remote. This
 	remote will then be used when one is not specified in a resource. Valid
 	values are `true` and `false`.
+  If you choose to _not_ set default=true on any `lxd_remote` this provider
+  will attempt to connect to an LXD server running on the same host through
+  the UNIX socket. See `Undefined Remote` for more information
+  The default can also be set with the `LXD_REMOTE` Environment variable.
 
 * `name` - *Optional* - The name of the LXD remote.
 
