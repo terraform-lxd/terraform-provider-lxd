@@ -6,6 +6,7 @@ import (
 	"github.com/hashicorp/terraform/helper/schema"
 
 	"github.com/lxc/lxd/shared/api"
+	"sort"
 )
 
 func resourceLxdProfile() *schema.Resource {
@@ -115,15 +116,22 @@ func resourceLxdProfileRead(d *schema.ResourceData, meta interface{}) error {
 	d.Set("description", profile.Description)
 	d.Set("config", profile.Config)
 
-	devices := make([]map[string]interface{}, 0)
-	for name, lxddevice := range profile.Devices {
+	devices := make([]map[string]interface{}, len(profile.Devices))
+	keys := make([]string, len(profile.Devices))
+	i := 0
+	for k, _ := range profile.Devices {
+		keys[i] = k
+		i += 1
+	}
+	sort.Strings(keys)
+	for i, name := range keys {
 		device := make(map[string]interface{})
 		device["name"] = name
-		delete(lxddevice, "name")
-		device["type"] = lxddevice["type"]
-		delete(lxddevice, "type")
-		device["properties"] = lxddevice
-		devices = append(devices, device)
+		delete(profile.Devices[name], "name")
+		device["type"] = profile.Devices[name]["type"]
+		delete(profile.Devices[name], "type")
+		device["properties"] = profile.Devices[name]
+		devices[i] = device
 	}
 	d.Set("device", devices)
 	return nil
