@@ -32,7 +32,7 @@ go:
   - master
 
 before_script:
-  -  go get -t ./...
+  -  go get -v -d -t ./...
 
 script:
   - make fmtcheck
