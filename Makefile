@@ -5,10 +5,10 @@ default: build
 
 test:
 	go get -d -t ./...
-	go test -timeout 20m -v ./lxd
+	go test -race -timeout 60m -v ./lxd
 
 testacc:
-	TF_LOG=debug TF_ACC=1 go test -v $(TESTARGS) -timeout 60m ./lxd
+	TF_LOG=debug TF_ACC=1 go test -v -race $(TESTARGS) -timeout 60m ./lxd
 
 build:
 	go build -v

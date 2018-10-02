@@ -112,7 +112,7 @@ func resourceLxdContainerFileCreate(d *schema.ResourceData, meta interface{}) er
 func resourceLxdContainerFileRead(d *schema.ResourceData, meta interface{}) error {
 	p := meta.(*lxdProvider)
 	v, targetFile := newFileIDFromResourceID(d.Id())
-	remote, containerName, err := p.Config.ParseRemote(v)
+	remote, containerName, err := p.LXDConfig.ParseRemote(v)
 
 	remote = p.selectRemote(d)
 	server, err := p.GetContainerServer(remote)
@@ -144,7 +144,7 @@ func resourceLxdContainerFileRead(d *schema.ResourceData, meta interface{}) erro
 func resourceLxdContainerFileDelete(d *schema.ResourceData, meta interface{}) error {
 	p := meta.(*lxdProvider)
 	v, targetFile := newFileIDFromResourceID(d.Id())
-	remote, containerName, err := p.Config.ParseRemote(v)
+	remote, containerName, err := p.LXDConfig.ParseRemote(v)
 	server, err := p.GetContainerServer(remote)
 	if err != nil {
 		return err
@@ -166,7 +166,7 @@ func resourceLxdContainerFileDelete(d *schema.ResourceData, meta interface{}) er
 func resourceLxdContainerFileExists(d *schema.ResourceData, meta interface{}) (exists bool, err error) {
 	p := meta.(*lxdProvider)
 	v, targetFile := newFileIDFromResourceID(d.Id())
-	remote, containerName, err := p.Config.ParseRemote(v)
+	remote, containerName, err := p.LXDConfig.ParseRemote(v)
 	if err != nil {
 		err = fmt.Errorf("unable to determine remote: %s", err)
 		return

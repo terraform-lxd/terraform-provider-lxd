@@ -652,13 +652,13 @@ func resourceLxdContainerImport(d *schema.ResourceData, meta interface{}) ([]*sc
 	log.Printf("[DEBUG] Starting import for %s", d.Id())
 	parts := strings.SplitN(d.Id(), "/", 2)
 
-	remote, name, err := p.Config.ParseRemote(parts[0])
+	remote, name, err := p.LXDConfig.ParseRemote(parts[0])
 	if err != nil {
 		return nil, err
 	}
 
 	d.SetId(name)
-	if p.Config.DefaultRemote != remote {
+	if p.LXDConfig.DefaultRemote != remote {
 		d.Set("remote", remote)
 	}
 

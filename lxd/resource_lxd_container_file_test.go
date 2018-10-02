@@ -66,7 +66,7 @@ func testAccContainerFileExists(t *testing.T, n string, file *lxd.ContainerFileR
 
 		p := testAccProvider.Meta().(*lxdProvider)
 		v, targetFile := newFileIDFromResourceID(rs.Primary.ID)
-		remote, containerName, err := p.Config.ParseRemote(v)
+		remote, containerName, err := p.LXDConfig.ParseRemote(v)
 
 		client, err := p.GetContainerServer(remote)
 		if err != nil {
