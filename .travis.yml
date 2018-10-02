@@ -13,13 +13,20 @@ env:
     - LXD_ACCEPT_SERVER_CERTIFICATE=true
     - LXD_SCHEME=https
     - LXD_PASSWORD="the-password"
+    - CGO_CFLAGS="-I /usr/src/linux-headers-4.4.0-137/include/uapi -I /usr/src/linux-headers-4.4.0-137/include/"
   matrix:
     - CHANNEL="stable"
     - CHANNEL="candidate"
     - CHANNEL="edge"
 
+addons:
+  apt:
+    packages:
+      - snapd
+      - build-essential
+      - linux-headers-4.4.0-137
+
 before_install:
-  - sudo apt-get install -y snapd
   - sudo snap install lxd --channel=${CHANNEL}
   - export PATH=/snap/bin/:${PATH}
   - sudo lxd waitready --timeout 60
@@ -28,10 +35,11 @@ before_install:
 
 go:
   - '1.10'
+  - '1.11'
   - master
 
 before_script:
-  -  go get -t ./...
+  -  go get -v -d -t ./...
 
 script:
   - make fmtcheck
