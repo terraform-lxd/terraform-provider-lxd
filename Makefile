@@ -1,5 +1,5 @@
 GOFMT_FILES?=$$(find . -name '*.go' |grep -v vendor)
-TARGETS=netbsd/386 freebsd/amd64 netbsd/arm linux/amd64 netbsd/amd64 openbsd/amd64 freebsd/386 darwin/amd64 windows/amd64 darwin/386 freebsd/arm openbsd/386 windows/386
+TARGETS=darwin/amd64 freebsd/386 freebsd/amd64 freebsd/arm linux/386 linux/amd64 linux/arm openbsd/386 openbsd/amd64 windows/386 windows/amd64
 
 default: build
 
