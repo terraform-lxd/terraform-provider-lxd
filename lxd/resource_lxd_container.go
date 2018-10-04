@@ -331,6 +331,20 @@ func resourceLxdContainerCreate(d *schema.ResourceData, meta interface{}) error 
 		return fmt.Errorf("Error waiting for container (%s) to become active: %s", name, err)
 	}
 
+	// Lxd will return "Running" even if the "inet" has not yet been set.
+	// wait until we see an "inet" ip_address before reading the state
+	networkConf := &resource.StateChangeConf{
+		Target:     []string{"OK"},
+		Refresh:    resourceLxdContainerWaitForNetwork(server, name),
+		Timeout:    3 * time.Minute,
+		Delay:      refreshInterval,
+		MinTimeout: 3 * time.Second,
+	}
+
+	if _, err = networkConf.WaitForState(); err != nil {
+		return fmt.Errorf("Error waiting for container (%s) network information: %s", name, err)
+	}
+
 	return resourceLxdContainerRead(d, meta)
 }
 
@@ -672,6 +686,26 @@ func resourceLxdContainerRefresh(server lxd.ContainerServer, name string) resour
 		}
 
 		return st, st.Status, nil
+	}
+}
+
+func resourceLxdContainerWaitForNetwork(server lxd.ContainerServer, name string) resource.StateRefreshFunc {
+	return func() (interface{}, string, error) {
+		st, _, err := server.GetContainerState(name)
+		if err != nil {
+			return st, "Error", err
+		}
+
+		for iface, net := range st.Network {
+			if iface != "lo" {
+				for _, ip := range net.Addresses {
+					if ip.Family == "inet" {
+						return st, "OK", nil
+					}
+				}
+			}
+		}
+		return st, "NOT FOUND", nil
 	}
 }
 

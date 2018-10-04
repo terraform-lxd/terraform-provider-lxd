@@ -4,8 +4,7 @@ TARGETS=darwin linux windows
 default: build
 
 test:
-	go get ./...
-	go get github.com/dustinkirkland/golang-petname
+	go get -d -t ./...
 	go test -timeout 20m -v ./lxd
 
 testacc:
