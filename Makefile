@@ -4,8 +4,7 @@ TARGETS=darwin/amd64 freebsd/386 freebsd/amd64 freebsd/arm linux/386 linux/amd64
 default: build
 
 test:
-	go get ./...
-	go get github.com/dustinkirkland/golang-petname
+	go get -d -t ./...
 	go test -timeout 20m -v ./lxd
 
 testacc:
