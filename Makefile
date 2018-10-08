@@ -1,5 +1,5 @@
 GOFMT_FILES?=$$(find . -name '*.go' |grep -v vendor)
-TARGETS=darwin linux windows
+TARGETS=darwin/amd64 freebsd/386 freebsd/amd64 freebsd/arm linux/386 linux/amd64 linux/arm openbsd/386 openbsd/amd64 windows/386 windows/amd64
 
 default: build
 
@@ -13,11 +13,11 @@ testacc:
 build:
 	go build -v
 
-targets: $(TARGETS)
-
-$(TARGETS):
-	GOOS=$@ GOARCH=amd64 go build -o "dist/$@/terraform-provider-lxd_${TRAVIS_TAG}_x4"
-	zip -j dist/terraform-provider-lxd_${TRAVIS_TAG}_$@_amd64.zip dist/$@/terraform-provider-lxd_${TRAVIS_TAG}_x4
+targets:
+	gox -osarch='$(TARGETS)' -output="dist/{{.OS}}_{{.Arch}}/terraform-provider-lxd_${TRAVIS_TAG}_x4"
+	find dist -maxdepth 1 -mindepth 1 -type d -print0 | \
+	sed -z -e 's,^dist/,,' | \
+	xargs -0 --verbose --replace={} zip -r -j "dist/terraform-provider-lxd_${TRAVIS_TAG}_{}.zip" "dist/{}"
 
 dev:
 	go build -v
@@ -45,4 +45,4 @@ fmtcheck:
 		exit 1; \
 	fi
 
-.PHONY: build test testacc dev vet fmt fmtcheck targets $(TARGETS)
+.PHONY: build test testacc dev vet fmt fmtcheck targets
