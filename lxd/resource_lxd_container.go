@@ -101,7 +101,7 @@ func resourceLxdContainer() *schema.Resource {
 			"wait_for_network": &schema.Schema{
 				Type:     schema.TypeBool,
 				Optional: true,
-				Default:  false,
+				Default:  true,
 				ForceNew: false,
 			},
 
