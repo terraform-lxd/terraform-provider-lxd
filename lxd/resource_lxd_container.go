@@ -98,6 +98,13 @@ func resourceLxdContainer() *schema.Resource {
 				ForceNew: true,
 			},
 
+			"wait_for_network": &schema.Schema{
+				Type:     schema.TypeBool,
+				Optional: true,
+				Default:  true,
+				ForceNew: false,
+			},
+
 			"privileged": &schema.Schema{
 				Type:       schema.TypeBool,
 				Optional:   true,
@@ -331,18 +338,20 @@ func resourceLxdContainerCreate(d *schema.ResourceData, meta interface{}) error 
 		return fmt.Errorf("Error waiting for container (%s) to become active: %s", name, err)
 	}
 
-	// Lxd will return "Running" even if the "inet" has not yet been set.
-	// wait until we see an "inet" ip_address before reading the state
-	networkConf := &resource.StateChangeConf{
-		Target:     []string{"OK"},
-		Refresh:    resourceLxdContainerWaitForNetwork(server, name),
-		Timeout:    3 * time.Minute,
-		Delay:      refreshInterval,
-		MinTimeout: 3 * time.Second,
-	}
+	if d.Get("wait_for_network").(bool) {
+		// Lxd will return "Running" even if "inet" has not yet been set.
+		// wait until we see an "inet" ip_address before reading the state.
+		networkConf := &resource.StateChangeConf{
+			Target:     []string{"OK"},
+			Refresh:    resourceLxdContainerWaitForNetwork(server, name),
+			Timeout:    3 * time.Minute,
+			Delay:      refreshInterval,
+			MinTimeout: 3 * time.Second,
+		}
 
-	if _, err = networkConf.WaitForState(); err != nil {
-		return fmt.Errorf("Error waiting for container (%s) network information: %s", name, err)
+		if _, err = networkConf.WaitForState(); err != nil {
+			return fmt.Errorf("Error waiting for container (%s) network information: %s", name, err)
+		}
 	}
 
 	return resourceLxdContainerRead(d, meta)
