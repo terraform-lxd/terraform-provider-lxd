@@ -80,6 +80,9 @@ resource "lxd_container" "container1" {
 
 * `file` - *Optional* - File to upload to the container. See reference below.
 
+* `wait_for_network` - *Optional* - Boolean indicating if the provider should wait for the container's network address to become available during creation.
+  Valid values are `true` and `false`. Defaults to `false`.
+
 The `device` block supports:
 
 * `name` - *Required* - Name of the device.
