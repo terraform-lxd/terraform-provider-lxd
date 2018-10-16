@@ -15,7 +15,7 @@ LXD Resource provider for Terraform
 
 1. Download the binary from the project [releases page](https://github.com/sl1pm4t/terraform-provider-lxd/releases/latest)
 2. Extract provider binary from tar file.
-3. Copy to `$PATH` or the `~/.terraform` directory so Terraform can find it.
+3. Copy to `$PATH` or the `~/.terraform.d/plugins` directory so Terraform can find it.
 
 **Example**
 
@@ -33,8 +33,8 @@ wget https://github.com/sl1pm4t/terraform-provider-lxd/releases/download/v1.1.0/
 unzip terraform-provider-lxd_*.zip
 
 # Copy binary to a location where Terraform will find it
-mkdir -p ~/.terraform/
-mv terraform-provider-lxd ~/.terraform/
+mkdir -p ~/.terraform.d/plugins
+mv terraform-provider-lxd ~/.terraform.d/plugins
 ```
 
 ### Building from source
