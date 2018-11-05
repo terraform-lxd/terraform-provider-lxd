@@ -39,7 +39,10 @@ go:
   - master
 
 before_script:
-  -  go get -v -d -t ./...
+  - go get -v -d -t ./...
+  - cd $GOPATH/src/github.com/hashicorp/terraform
+  - git checkout v0.11.10
+  - cd -
 
 script:
   - make fmtcheck
