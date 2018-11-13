@@ -6,6 +6,7 @@ import (
 	"log"
 	"os"
 	"path"
+	"strings"
 	"sync"
 	"time"
 
@@ -512,7 +513,26 @@ func (p *lxdProvider) GetServer(remoteName string) (lxd.Server, error) {
 	}
 
 	if err != nil {
-		return nil, err
+		// If the reported error contained the path /var/lib/lxd/unix.socket,
+		// it's possible that the user did not define any remotes in order to
+		// use the implicit "local" remote which connects via a unix socket.
+		//
+		// When LXD is installed via a snap package, this path no longer works.
+		// Therefore, we try to retry using the laziest method possible:
+		// set the LXD_SOCKET environment variable to the snap path and see if
+		// the connection works again.
+		if strings.Contains(err.Error(), "/var/lib/lxd/unix.socket") {
+			v := os.Getenv("LXD_SOCKET")
+			os.Setenv("LXD_SOCKET", "/var/snap/lxd/common/lxd/unix.socket")
+			defer os.Setenv("LXD_SOCKET", v)
+
+			client, err = p.getLXDContainerClient(remoteName)
+			if err != nil {
+				return nil, err
+			}
+		} else {
+			return nil, err
+		}
 	}
 
 	// Add the client to the clientMap cache.
