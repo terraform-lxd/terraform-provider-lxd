@@ -361,10 +361,8 @@ resource "lxd_noop" "noop1" {
 func resourceLxdNoOp() *schema.Resource {
 	return &schema.Resource{
 		Create: func(d *schema.ResourceData, meta interface{}) error {
-			remote := d.Get("remote").(string)
-			if remote == "" {
-				remote = meta.(*lxdProvider).Config.DefaultRemote
-			}
+			p := meta.(*lxdProvider)
+			remote := p.selectRemote(d)
 			_, err := meta.(*lxdProvider).GetServer(remote)
 			if err != nil {
 				return err
@@ -376,15 +374,12 @@ func resourceLxdNoOp() *schema.Resource {
 			d.Set("remote", d.Get("remote"))
 			return nil
 		},
-		Delete: func(d *schema.ResourceData, meta interface{}) error {
-			d.SetId("")
-			return nil
-		},
+
+		Delete: schema.RemoveFromState,
+
 		Read: func(d *schema.ResourceData, meta interface{}) error {
-			remote := d.Get("remote").(string)
-			if remote == "" {
-				remote = meta.(*lxdProvider).Config.DefaultRemote
-			}
+			p := meta.(*lxdProvider)
+			remote := p.selectRemote(d)
 			_, err := meta.(*lxdProvider).GetServer(remote)
 			if err != nil {
 				return err

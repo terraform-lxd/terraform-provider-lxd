@@ -18,19 +18,45 @@ import (
 	lxd_api "github.com/lxc/lxd/shared/api"
 )
 
-// lxdProvider contains the Provider configuration and initialized remote clients
-type lxdProvider struct {
-	sync.RWMutex
+// A global mutex
+var mutex sync.RWMutex
 
-	Config          *lxd_config.Config
+// lxdProvider contains the Provider configuration and initialized remote clients.
+type lxdProvider struct {
+	// terraformLXDConfigMap is a map of LXD remotes
+	// which the user has defined in the Terraform schema/configuration.
+	terraformLXDConfigMap map[string]terraformLXDConfig
+
+	// LXDConfig is the converted form of terraformLXDConfig
+	// in LXD's native data structure. This is lazy-loaded / created
+	// only when a connection to an LXD remote/server happens.
+	LXDConfig *lxd_config.Config
+
+	// lxdClientMap is a map of LXD client connections to LXD
+	// remote servers. These are lazy-loaded / created only when
+	// a connection to an LXD remote/server happens.
+	//
+	// While a client can also be retrieved from LXDConfig, this
+	// map serves an additional purpose of ensuring Terraform has
+	// successfully connected and authenticated to each defined
+	// LXD server/remote.
+	lxdClientMap map[string]lxd.Server
+
+	// acceptRemoteCertificates toggles if an LXD remote SSL
+	// certificate should be accepted.
+	acceptRemoteCertificate bool
+
+	// RefreshInterval is a custom interval for communicating
+	// with remote LXD servers.
 	RefreshInterval time.Duration
 
-	acceptRemoteCertificate bool
-	clientMap               map[string]lxd.Server
-	remoteConfigMap         map[string]lxdRemoteConfig
+	// This is a mutex used to handle concurrent reads/writes.
+	sync.RWMutex
 }
 
-type lxdRemoteConfig struct {
+// terraformLXDConfig represents LXD remote/server data
+// as defined in a user's Terraform schema/configuration.
+type terraformLXDConfig struct {
 	name         string
 	address      string
 	port         string
@@ -201,8 +227,8 @@ func providerConfigure(d *schema.ResourceData) (interface{}, error) {
 	// be used.
 	configDir := d.Get("config_dir").(string)
 	configPath := os.ExpandEnv(path.Join(configDir, "config.yml"))
-	if conf, err := lxd_config.LoadConfig(configPath); err == nil {
-		config = conf
+	if v, err := lxd_config.LoadConfig(configPath); err == nil {
+		config = v
 	}
 
 	if config == nil {
@@ -244,11 +270,11 @@ func providerConfigure(d *schema.ResourceData) (interface{}, error) {
 	// This struct is used to store information about this Terraform
 	// provider's configuration for reference throughout the lifecycle.
 	lxdProv := lxdProvider{
-		Config:                  config,
+		LXDConfig:               config,
 		RefreshInterval:         refreshIntervalParsed,
 		acceptRemoteCertificate: acceptRemoteCertificate,
-		clientMap:               make(map[string]lxd.Server),
-		remoteConfigMap:         make(map[string]lxdRemoteConfig),
+		lxdClientMap:            make(map[string]lxd.Server),
+		terraformLXDConfigMap:   make(map[string]terraformLXDConfig),
 	}
 
 	// Create remote from Environment variables (if defined).
@@ -260,7 +286,7 @@ func providerConfigure(d *schema.ResourceData) (interface{}, error) {
 	//   address = LXD_ADDR
 	//   ...
 	// }
-	envRemote := lxdRemoteConfig{
+	envRemote := terraformLXDConfig{
 		name:     os.Getenv("LXD_REMOTE"),
 		address:  os.Getenv("LXD_ADDR"),
 		port:     os.Getenv("LXD_PORT"),
@@ -272,11 +298,8 @@ func providerConfigure(d *schema.ResourceData) (interface{}, error) {
 	// This will be the default remote unless overridden by an
 	// explicitly defined remote in the Terraform configuration.
 	if envRemote.name != "" {
-		lxdProv.Lock()
-		lxdProv.remoteConfigMap[envRemote.name] = envRemote
-		lxdProv.Unlock()
-
-		lxdProv.Config.DefaultRemote = envRemote.name
+		lxdProv.setTerraformLXDConfig(envRemote.name, envRemote)
+		lxdProv.LXDConfig.DefaultRemote = envRemote.name
 	}
 
 	// Loop over LXD Remotes defined in the schema and create
@@ -291,7 +314,7 @@ func providerConfigure(d *schema.ResourceData) (interface{}, error) {
 	// exist yet.
 	for _, v := range d.Get("lxd_remote").([]interface{}) {
 		remote := v.(map[string]interface{})
-		lxdRemote := lxdRemoteConfig{
+		lxdRemote := terraformLXDConfig{
 			name:      remote["name"].(string),
 			address:   remote["address"].(string),
 			port:      remote["port"].(string),
@@ -300,12 +323,10 @@ func providerConfigure(d *schema.ResourceData) (interface{}, error) {
 			isDefault: remote["default"].(bool),
 		}
 
-		lxdProv.Lock()
-		lxdProv.remoteConfigMap[lxdRemote.name] = lxdRemote
-		lxdProv.Unlock()
+		lxdProv.setTerraformLXDConfig(lxdRemote.name, lxdRemote)
 
 		if lxdRemote.isDefault {
-			lxdProv.Config.DefaultRemote = lxdRemote.name
+			lxdProv.LXDConfig.DefaultRemote = lxdRemote.name
 		}
 
 	}
@@ -320,10 +341,10 @@ func providerConfigure(d *schema.ResourceData) (interface{}, error) {
 
 // createClient will create an LXD client for a given remote.
 // The client is then stored in the lxdProvider.Config collection of clients.
-func (p *lxdProvider) createClient(remote string) error {
-	lxdRemote, ok := p.remoteConfigMap[remote]
+func (p *lxdProvider) createClient(remoteName string) error {
+	lxdRemote, ok := p.getTerraformLXDConfig(remoteName)
 	if !ok {
-		return fmt.Errorf("LXD remote [%s] is not defined", remote)
+		return fmt.Errorf("LXD remote [%s] is not defined", remoteName)
 	}
 
 	name := lxdRemote.name
@@ -338,20 +359,17 @@ func (p *lxdProvider) createClient(remote string) error {
 				lxdRemote.name, err)
 		}
 
-		p.Lock()
-		p.Config.Remotes[name] = lxd_config.Remote{Addr: daemonAddr}
-		p.Unlock()
+		p.setLXDRemoteConfig(name, lxd_config.Remote{Addr: daemonAddr})
 
 		if scheme == "https" {
-			rclient, _ := p.Config.GetContainerServer(name)
-
-			// Validate the server certificate or try to add the remote server.
-			serverCertf := p.Config.ServerCertPath(name)
+			// If the LXD remote's certificate does not exist on the client...
+			serverCertf := p.LXDConfig.ServerCertPath(name)
 			if !shared.PathExists(serverCertf) {
 				// Try to obtain an early connection to the remote.
 				// If it succeeds, then either the certificates between
 				// the remote and the client have already been exchanged
 				// or PKI is being used.
+				rclient, _ := p.getLXDContainerClient(name)
 				if err := validateClient(rclient); err != nil {
 					// Either PKI isn't being used or certificates haven't been
 					// exchanged. Try to add the remote certificate.
@@ -372,18 +390,15 @@ func (p *lxdProvider) createClient(remote string) error {
 			// defined in a config.yml file but the client has not yet
 			// exchanged certificates with the remote.
 			lxdRemote.bootstrapped = true
-			p.Lock()
-			p.remoteConfigMap[remote] = lxdRemote
-			p.Unlock()
+			p.setTerraformLXDConfig(remoteName, lxdRemote)
 
 			// Finally, make sure the client is authenticated.
-			// A new client must be created, or there will be a certificate error.
-			rclient, err = p.GetContainerServer(name)
+			rclient, err := p.GetContainerServer(name)
 			if err != nil {
 				return err
 			}
 
-			if err := authenticateToLXDServer(rclient, name, password); err != nil {
+			if err := authenticateToLXDServer(rclient, password); err != nil {
 				return err
 			}
 
@@ -395,19 +410,19 @@ func (p *lxdProvider) createClient(remote string) error {
 
 // getRemoteCertificate will attempt to retrieve a remote LXD server's
 // certificate and save it to the servercerts path.
-func (p *lxdProvider) getRemoteCertificate(remote string) error {
-	addr := p.Config.Remotes[remote]
+func (p *lxdProvider) getRemoteCertificate(remoteName string) error {
+	addr := p.getRemoteConfig(remoteName)
 	certificate, err := shared.GetRemoteCertificate(addr.Addr)
 	if err != nil {
 		return err
 	}
 
-	serverCertDir := p.Config.ConfigPath("servercerts")
+	serverCertDir := p.LXDConfig.ConfigPath("servercerts")
 	if err := os.MkdirAll(serverCertDir, 0750); err != nil {
 		return fmt.Errorf("Could not create server cert dir: %s", err)
 	}
 
-	certf := fmt.Sprintf("%s/%s.crt", serverCertDir, remote)
+	certf := fmt.Sprintf("%s/%s.crt", serverCertDir, remoteName)
 	certOut, err := os.Create(certf)
 	if err != nil {
 		return err
@@ -419,27 +434,81 @@ func (p *lxdProvider) getRemoteCertificate(remote string) error {
 	return nil
 }
 
-// newClient creates and returns an LXD client for the named remote.
-// The created client is stored for later use.
-func (p *lxdProvider) newClient(remote string) (lxd.Server, error) {
-	var client lxd.Server
-	var err error
+// GetContainerServer returns a client for the named remote.
+// It returns an error if the remote is not a ContainerServer.
+func (p *lxdProvider) GetContainerServer(remoteName string) (lxd.ContainerServer, error) {
+	s, err := p.GetServer(remoteName)
+	if err != nil {
+		return nil, err
+	}
 
-	// If the remote doesn't exist in the config, then create a client
-	// for the remote.
-	if v, ok := p.remoteConfigMap[remote]; ok && !v.bootstrapped {
-		err = p.createClient(remote)
+	ci, err := getLXDServerConnectionInfo(s)
+	if err != nil {
+		return nil, err
+	}
+
+	if ci.Protocol == "lxd" {
+		return s.(lxd.ContainerServer), nil
+	}
+
+	err = fmt.Errorf("remote (%s / %s) is not a ContainerServer", remoteName, ci.Protocol)
+	return nil, err
+}
+
+// GetImageServer returns a client for the named image server
+// It returns an error if the named remote is not an ImageServer
+func (p *lxdProvider) GetImageServer(remoteName string) (lxd.ImageServer, error) {
+	s, err := p.GetServer(remoteName)
+	if err != nil {
+		return nil, err
+	}
+
+	ci, err := getLXDServerConnectionInfo(s)
+	if err != nil {
+		return nil, err
+	}
+
+	if ci.Protocol == "simplestreams" || ci.Protocol == "lxd" {
+		return s.(lxd.ImageServer), nil
+	}
+
+	err = fmt.Errorf(
+		"remote (%s / %s / %s) is not an ImageServer",
+		remoteName, ci.Addresses[0], ci.Protocol)
+
+	return nil, err
+}
+
+// GetServer returns a client for the named remote.
+// The returned client could be for an ImageServer or ContainerServer
+func (p *lxdProvider) GetServer(remoteName string) (lxd.Server, error) {
+	if remoteName == "" {
+		remoteName = p.LXDConfig.DefaultRemote
+	}
+
+	// Check and see if a client was already created and cached.
+	if client, ok := p.getLXDClient(remoteName); ok {
+		return client, nil
+	}
+
+	// If a client was not already created, create a new one.
+	if v, ok := p.getTerraformLXDConfig(remoteName); ok && !v.bootstrapped {
+		err := p.createClient(remoteName)
 		if err != nil {
 			return nil, fmt.Errorf("Unable to create client for remote [%s]: %s",
-				remote, err)
+				remoteName, err)
 		}
 	}
 
-	switch p.Config.Remotes[remote].Protocol {
+	var client lxd.Server
+	var err error
+
+	remoteConfig := p.getRemoteConfig(remoteName)
+	switch remoteConfig.Protocol {
 	case "simplestreams":
-		client, err = p.Config.GetImageServer(remote)
+		client, err = p.getLXDImageClient(remoteName)
 	default:
-		client, err = p.Config.GetContainerServer(remote)
+		client, err = p.getLXDContainerClient(remoteName)
 	}
 
 	if err != nil {
@@ -447,74 +516,103 @@ func (p *lxdProvider) newClient(remote string) (lxd.Server, error) {
 	}
 
 	// Add the client to the clientMap cache.
-	p.Lock()
-	p.clientMap[remote] = client
-	p.Unlock()
+	p.setLXDClient(remoteName, client)
 
 	return client, nil
-}
-
-// GetContainerServer returns a client for the named remote.
-// It returns an error if the remote is not a ContainerServer.
-func (p *lxdProvider) GetContainerServer(remote string) (lxd.ContainerServer, error) {
-	s, err := p.GetServer(remote)
-	if err != nil {
-		return nil, err
-	}
-
-	ci, err := s.GetConnectionInfo()
-	if ci.Protocol == "lxd" {
-		return s.(lxd.ContainerServer), nil
-	}
-
-	err = fmt.Errorf("remote (%s / %s) is not a ContainerServer", remote, ci.Protocol)
-	return nil, err
-}
-
-// GetImageServer returns a client for the named image server
-// It returns an error if the named remote is not an ImageServer
-func (p *lxdProvider) GetImageServer(remote string) (lxd.ImageServer, error) {
-	s, err := p.GetServer(remote)
-	if err != nil {
-		return nil, err
-	}
-
-	ci, err := s.GetConnectionInfo()
-	if ci.Protocol == "simplestreams" || ci.Protocol == "lxd" {
-		return s.(lxd.ImageServer), nil
-	}
-
-	err = fmt.Errorf(
-		"remote (%s / %s / %s) is not an ImageServer",
-		remote, ci.Addresses[0], ci.Protocol)
-
-	return nil, err
-}
-
-// GetServer returns a client for the named remote.
-// The returned client could be for an ImageServer or ContainerServer
-func (p *lxdProvider) GetServer(remote string) (lxd.Server, error) {
-	if remote == "" {
-		remote = p.Config.DefaultRemote
-	}
-
-	if client, ok := p.clientMap[remote]; ok {
-		return client, nil
-	}
-
-	return p.newClient(remote)
 }
 
 // selectRemote is a convenience method that returns the 'remote' set
 // in the LXD resource or the default remote configured on the Provider.
 func (p *lxdProvider) selectRemote(d *schema.ResourceData) string {
-	var remote string
+	var remoteName string
 	if rem, ok := d.GetOk("remote"); ok && rem != "" {
-		remote = rem.(string)
+		remoteName = rem.(string)
 	} else {
-		remote = p.Config.DefaultRemote
+		remoteName = p.LXDConfig.DefaultRemote
 	}
-	return remote
+	return remoteName
+}
+
+// setLXDRemoteConfig will add/set a remote configuration in a concurrent-safe way.
+func (p *lxdProvider) setLXDRemoteConfig(remoteName string, remote lxd_config.Remote) {
+	p.Lock()
+	defer p.Unlock()
+
+	p.LXDConfig.Remotes[remoteName] = remote
+}
+
+// getRemoteConfig will retrieve an LXD remote configuration in a concurrent-safe way.
+func (p *lxdProvider) getRemoteConfig(remoteName string) lxd_config.Remote {
+	p.RLock()
+	defer p.RUnlock()
+
+	return p.LXDConfig.Remotes[remoteName]
+}
+
+// getLXDContainerClient will retrieve an LXD Container client in a conncurrent-safe way.
+func (p *lxdProvider) getLXDContainerClient(remoteName string) (lxd.ContainerServer, error) {
+	p.RLock()
+	defer p.RUnlock()
+
+	rclient, err := p.LXDConfig.GetContainerServer(remoteName)
+	return rclient, err
+}
+
+// getLXDImageClient will retrieve an LXD Image client in a conncurrent-safe way.
+func (p *lxdProvider) getLXDImageClient(remoteName string) (lxd.ImageServer, error) {
+	p.RLock()
+	defer p.RUnlock()
+
+	rclient, err := p.LXDConfig.GetImageServer(remoteName)
+	return rclient, err
+}
+
+// setTerraformLXDConfig will add/set a Terraform LXD remote configuration to the
+// collection of all Terraform LXD remotes in a concurrent-safe way.
+func (p *lxdProvider) setTerraformLXDConfig(remoteName string, lxdRemote terraformLXDConfig) {
+	p.Lock()
+	defer p.Unlock()
+
+	p.terraformLXDConfigMap[remoteName] = lxdRemote
+}
+
+// getTerraformLXDConfig will retrieve a Terraform LXD remote configuration from the
+// collection of all Terraform LXD remotes in a concurrent-safe way.
+func (p *lxdProvider) getTerraformLXDConfig(remoteName string) (terraformLXDConfig, bool) {
+	p.RLock()
+	defer p.RUnlock()
+
+	terraformLXDConfig, ok := p.terraformLXDConfigMap[remoteName]
+	return terraformLXDConfig, ok
+}
+
+// setLXDClient will add/set an LXD client to the collection of all LXD clients
+// in a concurrent-safe way.
+func (p *lxdProvider) setLXDClient(remoteName string, lxdClient lxd.Server) {
+	p.Lock()
+	defer p.Unlock()
+
+	p.lxdClientMap[remoteName] = lxdClient
+}
+
+// getLXDClient will retrieve an LXD client from the collection of all LXD clients
+// in a concurrent-safe way.
+func (p *lxdProvider) getLXDClient(remoteName string) (lxd.Server, bool) {
+	p.RLock()
+	defer p.RUnlock()
+
+	lxdClient, ok := p.lxdClientMap[remoteName]
+	return lxdClient, ok
+}
+
+// getLXDServerConnectionInfo returns an LXD server's connection info in a
+// concurrent-safe way.
+func getLXDServerConnectionInfo(server lxd.Server) (*lxd.ConnectionInfo, error) {
+	mutex.RLock()
+	defer mutex.RUnlock()
+
+	ci, err := server.GetConnectionInfo()
+	return ci, err
 }
 
 // validateClient makes a simple GET request to the servers API.
@@ -533,8 +631,16 @@ func validateClient(client lxd.ContainerServer) error {
 // authenticateToLXDServer authenticates to a given remote LXD server.
 // If successful, the LXD server becomes trusted to the LXD client,
 // and vice-versa.
-func authenticateToLXDServer(client lxd.ContainerServer, remote, password string) error {
+func authenticateToLXDServer(client lxd.ContainerServer, password string) error {
+	mutex.Lock()
+	defer mutex.Unlock()
+
 	srv, _, err := client.GetServer()
+
+	if err != nil {
+		return err
+	}
+
 	if srv.Auth == "trusted" {
 		return nil
 	}
@@ -568,7 +674,7 @@ func validateLxdRemoteScheme(v interface{}, k string) ([]string, []error) {
 }
 
 // determineDaemonAddr helps determine the daemon addr of the remote.
-func determineDaemonAddr(lxdRemote lxdRemoteConfig) (string, error) {
+func determineDaemonAddr(lxdRemote terraformLXDConfig) (string, error) {
 	var daemonAddr string
 	if lxdRemote.address != "" {
 		switch lxdRemote.scheme {

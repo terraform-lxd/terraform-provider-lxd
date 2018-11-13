@@ -226,14 +226,14 @@ func resourceLxdProfileExists(d *schema.ResourceData, meta interface{}) (exists 
 
 func resourceLxdProfileImport(d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
 	p := meta.(*lxdProvider)
-	remote, name, err := p.Config.ParseRemote(d.Id())
+	remote, name, err := p.LXDConfig.ParseRemote(d.Id())
 
 	if err != nil {
 		return nil, err
 	}
 
 	d.SetId(name)
-	if p.Config.DefaultRemote != remote {
+	if p.LXDConfig.DefaultRemote != remote {
 		d.Set("remote", remote)
 	}
 
