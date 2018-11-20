@@ -39,6 +39,7 @@ go:
   - master
 
 before_script:
+  - go get github.com/mitchellh/gox
   - go get -v -d -t ./...
   - cd $GOPATH/src/github.com/hashicorp/terraform
   - git checkout v0.11.10
