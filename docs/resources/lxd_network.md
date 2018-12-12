@@ -34,6 +34,16 @@ resource "lxd_profile" "profile1" {
       parent  = "${lxd_network.new_default.name}"
     }
   }
+
+  device {
+    type = "disk"
+    name = "root"
+
+    properties {
+      pool = "default"
+      path = "/"
+    }
+  }
 }
 
 resource "lxd_container" "test1" {
@@ -68,6 +78,16 @@ resource "lxd_profile" "profile1" {
     properties {
       nictype = "bridged"
       parent  = "${lxd_network.internal.name}"
+    }
+  }
+
+  device {
+    type = "disk"
+    name = "root"
+
+    properties {
+      pool = "default"
+      path = "/"
     }
   }
 }
