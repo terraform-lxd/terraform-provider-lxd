@@ -139,8 +139,11 @@ func resourceLxdDevices(d interface{}) map[string]map[string]string {
 }
 
 func resourceLxdValidateDeviceType(v interface{}, k string) (ws []string, errors []error) {
+	validTypes := []string{
+		"none", "disk", "nic", "unix-char", "unix-block", "usb", "gpu", "infiniband", "proxy",
+	}
+
 	value := v.(string)
-	validTypes := []string{"none", "disk", "nic", "unix-char", "unix-block", "usb", "gpu"}
 	valid := false
 
 	for _, v := range validTypes {
