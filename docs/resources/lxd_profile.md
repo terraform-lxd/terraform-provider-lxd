@@ -21,6 +21,16 @@ resource "lxd_profile" "profile1" {
       path   = "/tmp"
     }
   }
+
+  device {
+    type = "disk"
+    name = "root"
+
+    properties {
+      pool = "default"
+      path = "/"
+    }
+  }
 }
 
 resource "lxd_container" "test1" {
