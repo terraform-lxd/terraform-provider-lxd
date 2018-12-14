@@ -56,7 +56,7 @@ func resourceLxdContainer() *schema.Resource {
 			},
 
 			"device": &schema.Schema{
-				Type:     schema.TypeList,
+				Type:     schema.TypeSet,
 				Optional: true,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
@@ -445,6 +445,19 @@ func resourceLxdContainerRead(d *schema.ResourceData, meta interface{}) error {
 	// Set the profiles used by the container
 	d.Set("profiles", container.Profiles)
 
+	// Set the devices used by the container
+	devices := make([]map[string]interface{}, 0)
+	for name, lxddevice := range container.Devices {
+		device := make(map[string]interface{})
+		device["name"] = name
+		delete(lxddevice, "name")
+		device["type"] = lxddevice["type"]
+		delete(lxddevice, "type")
+		device["properties"] = lxddevice
+		devices = append(devices, device)
+	}
+	d.Set("device", devices)
+
 	return nil
 }
 
@@ -564,7 +577,7 @@ func resourceLxdContainerUpdate(d *schema.ResourceData, meta interface{}) error 
 		}
 	}
 
-	return nil
+	return resourceLxdContainerRead(d, meta)
 }
 
 func resourceLxdContainerDelete(d *schema.ResourceData, meta interface{}) (err error) {

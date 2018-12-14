@@ -9,6 +9,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/hashicorp/terraform/helper/schema"
 	lxd "github.com/lxc/lxd/client"
 	"github.com/mitchellh/go-homedir"
 )
@@ -119,7 +120,9 @@ func resourceLxdConfigMapAppend(config map[string]string, append interface{}, na
 
 func resourceLxdDevices(d interface{}) map[string]map[string]string {
 	devices := make(map[string]map[string]string)
-	for _, v := range d.([]interface{}) {
+
+	rawDevices := d.(*schema.Set).List()
+	for _, v := range rawDevices {
 		device := make(map[string]string)
 		d := v.(map[string]interface{})
 		deviceName := d["name"].(string)

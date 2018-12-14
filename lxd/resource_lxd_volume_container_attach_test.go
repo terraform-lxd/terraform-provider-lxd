@@ -12,6 +12,8 @@ import (
 )
 
 func TestAccVolumeContainerAttach_basic(t *testing.T) {
+	t.Skip("lxd_volume_container_attach is deprecated and will be removed in the future")
+
 	poolName := strings.ToLower(petname.Generate(2, "-"))
 	volumeName := strings.ToLower(petname.Generate(2, "-"))
 	containerName := strings.ToLower(petname.Generate(2, "-"))
@@ -34,6 +36,8 @@ func TestAccVolumeContainerAttach_basic(t *testing.T) {
 }
 
 func TestAccVolumeContainerAttach_deviceName(t *testing.T) {
+	t.Skip("lxd_volume_container_attach is deprecated and will be removed in the future")
+
 	poolName := strings.ToLower(petname.Generate(2, "-"))
 	volumeName := strings.ToLower(petname.Generate(2, "-"))
 	containerName := strings.ToLower(petname.Generate(2, "-"))

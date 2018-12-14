@@ -32,7 +32,7 @@ func resourceLxdProfile() *schema.Resource {
 			},
 
 			"device": &schema.Schema{
-				Type:     schema.TypeList,
+				Type:     schema.TypeSet,
 				Optional: true,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
@@ -190,7 +190,7 @@ func resourceLxdProfileUpdate(d *schema.ResourceData, meta interface{}) error {
 		}
 	}
 
-	return nil
+	return resourceLxdProfileRead(d, meta)
 }
 
 func resourceLxdProfileDelete(d *schema.ResourceData, meta interface{}) (err error) {
