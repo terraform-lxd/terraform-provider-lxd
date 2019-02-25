@@ -39,6 +39,12 @@ func resourceLxdSnapshot() *schema.Resource {
 			},
 
 			"creation_date": &schema.Schema{
+				Type:       schema.TypeString,
+				Computed:   true,
+				Deprecated: "Use created_at instead",
+			},
+
+			"created_at": &schema.Schema{
 				Type:     schema.TypeString,
 				Computed: true,
 			},
@@ -125,7 +131,8 @@ func resourceLxdSnapshotRead(d *schema.ResourceData, meta interface{}) error {
 	d.Set("container_name", snapID.container)
 	d.Set("name", snapID.snapshot)
 	d.Set("stateful", snap.Stateful)
-	d.Set("creation_date", snap.CreationDate.String())
+	d.Set("creation_date", snap.CreatedAt.String())
+	d.Set("created_at", snap.CreatedAt.String())
 
 	return nil
 }
