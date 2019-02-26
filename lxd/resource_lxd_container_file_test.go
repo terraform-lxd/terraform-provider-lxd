@@ -91,7 +91,7 @@ func testAccContainerFile_content(name string) string {
 	return fmt.Sprintf(`
 resource "lxd_container" "container1" {
   name = "%s"
-  image = "images:alpine/3.5/amd64"
+  image = "images:alpine/3.9/amd64"
   profiles = ["default"]
 }
 
@@ -108,7 +108,7 @@ func testAccContainerFile_source(name string) string {
 	return fmt.Sprintf(`
 resource "lxd_container" "container1" {
   name = "%s"
-  image = "images:alpine/3.5/amd64"
+  image = "images:alpine/3.9/amd64"
   profiles = ["default"]
 }
 
