@@ -28,5 +28,8 @@ resource "lxd_snapshot" "snap1" {
 
 The following attributes are exported:
 
-* `creation_date` - The time LXD reported the snapshot was successfully
-	created, in UTC.
+* `creation_date` - **Deprecated - use `created_at` instead** - The time LXD
+  reported the snapshot was successfully created, in UTC.
+
+* `created_at` - The time LXD  reported the snapshot was successfully created,
+  in UTC.
