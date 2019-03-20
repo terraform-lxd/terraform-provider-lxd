@@ -14,7 +14,7 @@ import (
 	"github.com/lxc/lxd/shared/api"
 )
 
-func TestAccProfile_basic(t *testing.T) {
+func TestAccProfileBasicConfig(t *testing.T) {
 	var profile api.Profile
 	profileName := strings.ToLower(petname.Generate(2, "-"))
 
@@ -23,7 +23,7 @@ func TestAccProfile_basic(t *testing.T) {
 		Providers: testAccProviders,
 		Steps: []resource.TestStep{
 			resource.TestStep{
-				Config: testAccProfile_basic(profileName),
+				Config: testAccProfileBasicConfig(profileName),
 				Check: resource.ComposeTestCheckFunc(
 					testAccProfileRunning(t, "lxd_profile.profile1", &profile),
 					resource.TestCheckResourceAttr("lxd_profile.profile1", "name", profileName),
@@ -33,7 +33,7 @@ func TestAccProfile_basic(t *testing.T) {
 	})
 }
 
-func TestAccProfile_config(t *testing.T) {
+func TestAccProfileSetConfig(t *testing.T) {
 	var profile api.Profile
 	profileName := strings.ToLower(petname.Generate(2, "-"))
 
@@ -42,7 +42,7 @@ func TestAccProfile_config(t *testing.T) {
 		Providers: testAccProviders,
 		Steps: []resource.TestStep{
 			resource.TestStep{
-				Config: testAccProfile_config(profileName),
+				Config: testAccProfileSetConfig(profileName),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("lxd_profile.profile1", "name", profileName),
 					resource.TestCheckResourceAttr("lxd_profile.profile1", "config.limits.cpu", "2"),
@@ -75,7 +75,7 @@ func TestAccProfile_device(t *testing.T) {
 		Providers: testAccProviders,
 		Steps: []resource.TestStep{
 			resource.TestStep{
-				Config: testAccProfile_device_1(profileName),
+				Config: testAccProfileDevice1Config(profileName),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("lxd_profile.profile1", "name", profileName),
 					resource.TestCheckResourceAttr("lxd_profile.profile1", "device.1834377448.properties.path", "/tmp/shared"),
@@ -84,7 +84,7 @@ func TestAccProfile_device(t *testing.T) {
 				),
 			},
 			resource.TestStep{
-				Config: testAccProfile_device_2(profileName),
+				Config: testAccProfileDevice2Config(profileName),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("lxd_profile.profile1", "name", profileName),
 					resource.TestCheckResourceAttr("lxd_profile.profile1", "device.2643642920.properties.path", "/tmp/shared2"),
@@ -117,14 +117,14 @@ func TestAccProfile_addDevice(t *testing.T) {
 		Providers: testAccProviders,
 		Steps: []resource.TestStep{
 			resource.TestStep{
-				Config: testAccProfile_addDevice_1(profileName),
+				Config: testAccProfileAddDevice1Config(profileName),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("lxd_profile.profile1", "name", profileName),
 					testAccProfileRunning(t, "lxd_profile.profile1", &profile),
 				),
 			},
 			resource.TestStep{
-				Config: testAccProfile_addDevice_2(profileName),
+				Config: testAccProfileAddDevice2Config(profileName),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("lxd_profile.profile1", "name", profileName),
 					resource.TestCheckResourceAttr("lxd_profile.profile1", "device.3028205791.properties.path", "/tmp/shared1"),
@@ -133,7 +133,7 @@ func TestAccProfile_addDevice(t *testing.T) {
 				),
 			},
 			resource.TestStep{
-				Config: testAccProfile_addDevice_3(profileName),
+				Config: testAccProfileAddDevice3Config(profileName),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("lxd_profile.profile1", "name", profileName),
 					resource.TestCheckResourceAttr("lxd_profile.profile1", "device.1620449630.properties.path", "/tmp/shared2"),
@@ -161,7 +161,7 @@ func TestAccProfile_removeDevice(t *testing.T) {
 		Providers: testAccProviders,
 		Steps: []resource.TestStep{
 			resource.TestStep{
-				Config: testAccProfile_removeDevice_1(profileName),
+				Config: testAccProfileRemoveDevice1Config(profileName),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("lxd_profile.profile1", "name", profileName),
 					resource.TestCheckResourceAttr("lxd_profile.profile1", "device.1834377448.properties.path", "/tmp/shared"),
@@ -170,7 +170,7 @@ func TestAccProfile_removeDevice(t *testing.T) {
 				),
 			},
 			resource.TestStep{
-				Config: testAccProfile_removeDevice_2(profileName),
+				Config: testAccProfileRemoveDevice2Config(profileName),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("lxd_profile.profile1", "name", profileName),
 					testAccProfileRunning(t, "lxd_profile.profile1", &profile),
@@ -192,7 +192,7 @@ func TestAccProfile_containerConfig(t *testing.T) {
 		Providers: testAccProviders,
 		Steps: []resource.TestStep{
 			resource.TestStep{
-				Config: testAccProfile_containerConfig(profileName, containerName),
+				Config: testAccProfileContainerConfig(profileName, containerName),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("lxd_profile.profile1", "name", profileName),
 					resource.TestCheckResourceAttr("lxd_container.container1", "name", containerName),
@@ -224,7 +224,7 @@ func TestAccProfile_containerDevice(t *testing.T) {
 		Providers: testAccProviders,
 		Steps: []resource.TestStep{
 			resource.TestStep{
-				Config: testAccProfile_containerDevice(profileName, containerName),
+				Config: testAccProfileContainerDeviceConfig(profileName, containerName),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("lxd_profile.profile1", "name", profileName),
 					resource.TestCheckResourceAttr("lxd_container.container1", "name", containerName),
@@ -320,7 +320,7 @@ func testAccProfileNoDevice(profile *api.Profile, deviceName string) resource.Te
 	}
 }
 
-func testAccProfile_basic(name string) string {
+func testAccProfileBasicConfig(name string) string {
 	return fmt.Sprintf(`
 resource "lxd_profile" "profile1" {
   name = "%s"
@@ -328,7 +328,7 @@ resource "lxd_profile" "profile1" {
 	`, name)
 }
 
-func testAccProfile_config(name string) string {
+func testAccProfileSetConfig(name string) string {
 	return fmt.Sprintf(`
 resource "lxd_profile" "profile1" {
   name = "%s"
@@ -339,7 +339,7 @@ resource "lxd_profile" "profile1" {
 	`, name)
 }
 
-func testAccProfile_device_1(name string) string {
+func testAccProfileDevice1Config(name string) string {
 	return fmt.Sprintf(`
 resource "lxd_profile" "profile1" {
   name = "%s"
@@ -356,7 +356,7 @@ resource "lxd_profile" "profile1" {
 	`, name)
 }
 
-func testAccProfile_device_2(name string) string {
+func testAccProfileDevice2Config(name string) string {
 	return fmt.Sprintf(`
 resource "lxd_profile" "profile1" {
   name = "%s"
@@ -373,7 +373,7 @@ resource "lxd_profile" "profile1" {
 	`, name)
 }
 
-func testAccProfile_addDevice_1(name string) string {
+func testAccProfileAddDevice1Config(name string) string {
 	return fmt.Sprintf(`
 resource "lxd_profile" "profile1" {
   name = "%s"
@@ -381,7 +381,7 @@ resource "lxd_profile" "profile1" {
 `, name)
 }
 
-func testAccProfile_addDevice_2(name string) string {
+func testAccProfileAddDevice2Config(name string) string {
 	return fmt.Sprintf(`
 resource "lxd_profile" "profile1" {
   name = "%s"
@@ -398,7 +398,7 @@ resource "lxd_profile" "profile1" {
 	`, name)
 }
 
-func testAccProfile_addDevice_3(name string) string {
+func testAccProfileAddDevice3Config(name string) string {
 	return fmt.Sprintf(`
 resource "lxd_profile" "profile1" {
   name = "%s"
@@ -424,7 +424,7 @@ resource "lxd_profile" "profile1" {
 	`, name)
 }
 
-func testAccProfile_removeDevice_1(name string) string {
+func testAccProfileRemoveDevice1Config(name string) string {
 	return fmt.Sprintf(`
 resource "lxd_profile" "profile1" {
   name = "%s"
@@ -441,7 +441,7 @@ resource "lxd_profile" "profile1" {
 	`, name)
 }
 
-func testAccProfile_removeDevice_2(name string) string {
+func testAccProfileRemoveDevice2Config(name string) string {
 	return fmt.Sprintf(`
 resource "lxd_profile" "profile1" {
   name = "%s"
@@ -449,7 +449,7 @@ resource "lxd_profile" "profile1" {
 `, name)
 }
 
-func testAccProfile_containerConfig(profileName, containerName string) string {
+func testAccProfileContainerConfig(profileName, containerName string) string {
 	return fmt.Sprintf(`
 resource "lxd_profile" "profile1" {
   name = "%s"
@@ -466,7 +466,7 @@ resource "lxd_container" "container1" {
 	`, profileName, containerName)
 }
 
-func testAccProfile_containerDevice(profileName, containerName string) string {
+func testAccProfileContainerDeviceConfig(profileName, containerName string) string {
 	return fmt.Sprintf(`
 resource "lxd_profile" "profile1" {
   name = "%s"

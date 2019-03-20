@@ -58,6 +58,7 @@ func newVolumeAttachmentIDFromResourceID(id string) volumeAttachmentID {
 	return volumeAttachmentID{pieces[0], pieces[1], pieces[2]}
 }
 
+// File represents a "file" object in LXD
 type File struct {
 	RemoteName        string
 	ContainerName     string

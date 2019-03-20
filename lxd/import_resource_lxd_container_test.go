@@ -17,7 +17,7 @@ func TestAccContainer_importBasic(t *testing.T) {
 		Providers: testAccProviders,
 		Steps: []resource.TestStep{
 			resource.TestStep{
-				Config: testAccContainer_basic(containerName),
+				Config: testAccContainerBasicConfig(containerName),
 			},
 
 			resource.TestStep{
@@ -42,7 +42,7 @@ func TestAccContainer_importConfig(t *testing.T) {
 		Providers: testAccProviders,
 		Steps: []resource.TestStep{
 			resource.TestStep{
-				Config: testAccContainer_config(containerName),
+				Config: testAccContainerGetConfig(containerName),
 			},
 
 			resource.TestStep{

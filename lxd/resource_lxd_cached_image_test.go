@@ -24,7 +24,7 @@ func TestAccCachedImage_basic(t *testing.T) {
 		Providers: testAccProviders,
 		Steps: []resource.TestStep{
 			resource.TestStep{
-				Config: testAccCachedImage_basic(),
+				Config: testAccCachedImageBasicConfig(),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCachedImageExists(t, "lxd_cached_image.img1", &img),
 					resourceAccCachedImageCheckAttributes("lxd_cached_image.img1", &img),
@@ -44,7 +44,7 @@ func TestAccCachedImage_alias(t *testing.T) {
 		Providers: testAccProviders,
 		Steps: []resource.TestStep{
 			resource.TestStep{
-				Config: testAccCachedImage_aliases(alias1, alias2),
+				Config: testAccCachedImageAliasesConfig(alias1, alias2),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCachedImageExists(t, "lxd_cached_image.img2", &img),
 					resourceAccCachedImageCheckAttributes("lxd_cached_image.img2", &img),
@@ -66,7 +66,7 @@ func TestAccCachedImage_copiedAlias(t *testing.T) {
 		Providers: testAccProviders,
 		Steps: []resource.TestStep{
 			resource.TestStep{
-				Config: testAccCachedImage_aliases2(alias1, alias2),
+				Config: testAccCachedImageAliasesConfig2(alias1, alias2),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCachedImageExists(t, "lxd_cached_image.img3", &img),
 					resourceAccCachedImageCheckAttributes("lxd_cached_image.img3", &img),
@@ -79,7 +79,7 @@ func TestAccCachedImage_copiedAlias(t *testing.T) {
 	})
 }
 
-func TestAccCachedImage_aliasCollision(t *testing.T) {
+func TestAccCachedImageAliasCollisionConfig(t *testing.T) {
 	var img api.Image
 
 	resource.Test(t, resource.TestCase{
@@ -87,7 +87,7 @@ func TestAccCachedImage_aliasCollision(t *testing.T) {
 		Providers: testAccProviders,
 		Steps: []resource.TestStep{
 			resource.TestStep{
-				Config: testAccCachedImage_aliasCollision(),
+				Config: testAccCachedImageAliasCollisionConfig(),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCachedImageExists(t, "lxd_cached_image.img4", &img),
 					resourceAccCachedImageCheckAttributes("lxd_cached_image.img4", &img),
@@ -107,7 +107,7 @@ func TestAccCachedImage_aliasAlreadyExists(t *testing.T) {
 		Providers: testAccProviders,
 		Steps: []resource.TestStep{
 			resource.TestStep{
-				Config: testAccCachedImage_aliasExists1(alias),
+				Config: testAccCachedImageAliasExists1Config(alias),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCachedImageExists(t, "lxd_cached_image.exists1", &img),
 					resourceAccCachedImageCheckAttributes("lxd_cached_image.exists1", &img),
@@ -115,7 +115,7 @@ func TestAccCachedImage_aliasAlreadyExists(t *testing.T) {
 				),
 			},
 			resource.TestStep{
-				Config:      testAccCachedImage_aliasExists2(alias),
+				Config:      testAccCachedImageAliasExists2Config(alias),
 				ExpectError: regexp.MustCompile(`.*Image alias already exists on destination.*`),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCachedImageExists(t, "lxd_cached_image.exists1", &img),
@@ -137,7 +137,7 @@ func TestAccCachedImage_addRemoveAlias(t *testing.T) {
 		Providers: testAccProviders,
 		Steps: []resource.TestStep{
 			resource.TestStep{
-				Config: testAccCachedImage_aliases(alias1),
+				Config: testAccCachedImageAliasesConfig(alias1),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCachedImageExists(t, "lxd_cached_image.img2", &img),
 					resourceAccCachedImageCheckAttributes("lxd_cached_image.img2", &img),
@@ -145,7 +145,7 @@ func TestAccCachedImage_addRemoveAlias(t *testing.T) {
 				),
 			},
 			resource.TestStep{
-				Config: testAccCachedImage_aliases(alias1, alias2),
+				Config: testAccCachedImageAliasesConfig(alias1, alias2),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCachedImageExists(t, "lxd_cached_image.img2", &img),
 					resourceAccCachedImageCheckAttributes("lxd_cached_image.img2", &img),
@@ -154,7 +154,7 @@ func TestAccCachedImage_addRemoveAlias(t *testing.T) {
 				),
 			},
 			resource.TestStep{
-				Config: testAccCachedImage_aliases(alias2),
+				Config: testAccCachedImageAliasesConfig(alias2),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCachedImageExists(t, "lxd_cached_image.img2", &img),
 					resourceAccCachedImageCheckAttributes("lxd_cached_image.img2", &img),
@@ -239,7 +239,7 @@ func resourceAccCachedImageCheckAttributes(n string, img *api.Image) resource.Te
 	}
 }
 
-func testAccCachedImage_basic() string {
+func testAccCachedImageBasicConfig() string {
 	return fmt.Sprintf(`
 resource "lxd_cached_image" "img1" {
   source_remote = "images"
@@ -250,7 +250,7 @@ resource "lxd_cached_image" "img1" {
 	`)
 }
 
-func testAccCachedImage_aliases(aliases ...string) string {
+func testAccCachedImageAliasesConfig(aliases ...string) string {
 	return fmt.Sprintf(`
 resource "lxd_cached_image" "img2" {
   source_remote = "images"
@@ -262,7 +262,7 @@ resource "lxd_cached_image" "img2" {
 	`, strings.Join(aliases, `","`))
 }
 
-func testAccCachedImage_aliasExists1(alias string) string {
+func testAccCachedImageAliasExists1Config(alias string) string {
 	return fmt.Sprintf(`
 resource "lxd_cached_image" "exists1" {
   source_remote = "images"
@@ -274,7 +274,7 @@ resource "lxd_cached_image" "exists1" {
 	`, alias)
 }
 
-func testAccCachedImage_aliasExists2(alias string) string {
+func testAccCachedImageAliasExists2Config(alias string) string {
 	return fmt.Sprintf(`
 resource "lxd_cached_image" "exists1" {
   source_remote = "images"
@@ -294,7 +294,7 @@ resource "lxd_cached_image" "exists2" {
 	`, alias, alias)
 }
 
-func testAccCachedImage_aliases2(aliases ...string) string {
+func testAccCachedImageAliasesConfig2(aliases ...string) string {
 	return fmt.Sprintf(`
 resource "lxd_cached_image" "img3" {
   source_remote = "images"
@@ -306,7 +306,7 @@ resource "lxd_cached_image" "img3" {
 	`, strings.Join(aliases, `","`))
 }
 
-func testAccCachedImage_aliasCollision() string {
+func testAccCachedImageAliasCollisionConfig() string {
 	return fmt.Sprintf(`
 resource "lxd_cached_image" "img4" {
   source_remote = "images"

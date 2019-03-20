@@ -23,7 +23,7 @@ func TestAccVolumeContainerAttach_basic(t *testing.T) {
 		Providers: testAccProviders,
 		Steps: []resource.TestStep{
 			resource.TestStep{
-				Config: testAccVolumeContainerAttach_basic(poolName, volumeName, containerName),
+				Config: testAccVolumeContainerAttachBasicConfig(poolName, volumeName, containerName),
 				Check: resource.ComposeTestCheckFunc(
 					testAccVolumeContainerAttachExists(t, "lxd_volume_container_attach.attach1"),
 					resource.TestCheckResourceAttr("lxd_volume_container_attach.attach1", "volume_name", volumeName),
@@ -47,7 +47,7 @@ func TestAccVolumeContainerAttach_deviceName(t *testing.T) {
 		Providers: testAccProviders,
 		Steps: []resource.TestStep{
 			resource.TestStep{
-				Config: testAccVolumeContainerAttach_deviceName(poolName, volumeName, containerName),
+				Config: testAccVolumeContainerAttachDeviceNameConfig(poolName, volumeName, containerName),
 				Check: resource.ComposeTestCheckFunc(
 					testAccVolumeContainerAttachExists(t, "lxd_volume_container_attach.attach1"),
 					resource.TestCheckResourceAttr("lxd_volume_container_attach.attach1", "volume_name", volumeName),
@@ -84,7 +84,7 @@ func testAccVolumeContainerAttachExists(t *testing.T, n string) resource.TestChe
 	}
 }
 
-func testAccVolumeContainerAttach_basic(poolName, volumeName, containerName string) string {
+func testAccVolumeContainerAttachBasicConfig(poolName, volumeName, containerName string) string {
 	return fmt.Sprintf(`
 resource "lxd_storage_pool" "pool1" {
   name = "%s"
@@ -114,7 +114,7 @@ resource "lxd_volume_container_attach" "attach1" {
 	`, poolName, volumeName, containerName)
 }
 
-func testAccVolumeContainerAttach_deviceName(poolName, volumeName, containerName string) string {
+func testAccVolumeContainerAttachDeviceNameConfig(poolName, volumeName, containerName string) string {
 	return fmt.Sprintf(`
 resource "lxd_storage_pool" "pool1" {
   name = "%s"

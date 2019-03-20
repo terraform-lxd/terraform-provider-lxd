@@ -55,7 +55,7 @@ func TestAccLxdProvider_envRemote(t *testing.T) {
 		Providers: testAccProviders,
 		Steps: []resource.TestStep{
 			resource.TestStep{
-				Config: testAccLxdProvider_basic(envName),
+				Config: testAccLxdProviderBasicConfig(envName),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("lxd_noop.noop1", "remote", envName),
 				),
@@ -74,7 +74,7 @@ func TestAccLxdProvider_providerRemote(t *testing.T) {
 		Providers: testAccProviders,
 		Steps: []resource.TestStep{
 			resource.TestStep{
-				Config: testAccLxdProvider_remote(envName, envAddr, envPort, envPassword),
+				Config: testAccLxdProviderRemoteConfig(envName, envAddr, envPort, envPassword),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("lxd_noop.noop1", "remote", envName),
 				),
@@ -88,19 +88,19 @@ func TestAccLxdProvider_imageRemotes(t *testing.T) {
 		Providers: testAccProviders,
 		Steps: []resource.TestStep{
 			resource.TestStep{
-				Config: testAccLxdProvider_basic("ubuntu"),
+				Config: testAccLxdProviderBasicConfig("ubuntu"),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("lxd_noop.noop1", "remote", "ubuntu"),
 				),
 			},
 			resource.TestStep{
-				Config: testAccLxdProvider_basic("ubuntu-daily"),
+				Config: testAccLxdProviderBasicConfig("ubuntu-daily"),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("lxd_noop.noop1", "remote", "ubuntu-daily"),
 				),
 			},
 			resource.TestStep{
-				Config: testAccLxdProvider_basic("images"),
+				Config: testAccLxdProviderBasicConfig("images"),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("lxd_noop.noop1", "remote", "images"),
 				),
@@ -109,7 +109,7 @@ func TestAccLxdProvider_imageRemotes(t *testing.T) {
 	})
 }
 
-func TestAccLxdProvider_socketRemote(t *testing.T) {
+func TestAccLxdProviderSocketRemoteConfig(t *testing.T) {
 	remoteName := strings.ToLower(petname.Generate(2, "-"))
 	socketAddr := "/var/snap/lxd/common/lxd/unix.socket"
 	addr := fmt.Sprintf("unix:%s", socketAddr)
@@ -138,7 +138,7 @@ func TestAccLxdProvider_socketRemote(t *testing.T) {
 		Providers: testAccProviders,
 		Steps: []resource.TestStep{
 			resource.TestStep{
-				Config: testAccLxdProvider_socketRemote(remoteName, socketAddr),
+				Config: testAccLxdProviderSocketRemoteConfig(remoteName, socketAddr),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("lxd_noop.noop1", "remote", remoteName),
 				),
@@ -177,21 +177,21 @@ func TestAccLxdProvider_lxcConfigRemotes(t *testing.T) {
 		Providers: testAccProviders,
 		Steps: []resource.TestStep{
 			resource.TestStep{
-				Config: testAccLxdProvider_lxcConfig1(tmpDir, remoteName, remoteAddr, remotePort, remotePassword),
+				Config: testAccLxdProviderSetLxcConfig1(tmpDir, remoteName, remoteAddr, remotePort, remotePassword),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("lxd_noop.noop1", "remote", remoteName),
 					resource.TestCheckResourceAttr("lxd_noop.noop1", "client_name", remoteName),
 				),
 			},
 			resource.TestStep{
-				Config: testAccLxdProvider_lxcConfig2(tmpDir, remoteName),
+				Config: testAccLxdProviderSetLxcConfig2(tmpDir, remoteName),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("lxd_noop.noop1", "remote", remoteName),
 					resource.TestCheckResourceAttr("lxd_noop.noop1", "client_name", remoteName),
 				),
 			},
 			resource.TestStep{
-				Config: testAccLxdProvider_lxcConfig3(tmpDir),
+				Config: testAccLxdProviderSetLxcConfig3(tmpDir),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("lxd_noop.noop2", "remote", ""),
 					resource.TestCheckResourceAttr("lxd_noop.noop2", "client_name", remoteName),
@@ -219,7 +219,7 @@ func TestAccLxdProvider_noConfigFile(t *testing.T) {
 		Providers: testAccProviders,
 		Steps: []resource.TestStep{
 			resource.TestStep{
-				Config: testAccLxdProvider_configDir(envName, envAddr, envPort, envPassword, tmpDir),
+				Config: testAccLxdProviderSetConfigDir(envName, envAddr, envPort, envPassword, tmpDir),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("lxd_noop.noop1", "remote", envName),
 				),
@@ -232,7 +232,7 @@ func testAccPreCheck(t *testing.T) {
 	// NoOp
 }
 
-func testAccLxdProvider_basic(remote string) string {
+func testAccLxdProviderBasicConfig(remote string) string {
 	return fmt.Sprintf(`
 provider "lxd" {
 }
@@ -244,7 +244,7 @@ resource "lxd_noop" "noop1" {
 `, remote)
 }
 
-func testAccLxdProvider_remote(remote, addr, port, password string) string {
+func testAccLxdProviderRemoteConfig(remote, addr, port, password string) string {
 	return fmt.Sprintf(`
 provider "lxd" {
 	accept_remote_certificate    = true
@@ -264,7 +264,7 @@ resource "lxd_noop" "noop1" {
 `, remote, addr, port, password, remote)
 }
 
-func testAccLxdProvider_socketRemote(remote, socketAddr string) string {
+func testAccLxdProviderSocketRemoteConfig(remote, socketAddr string) string {
 	return fmt.Sprintf(`
 provider "lxd" {
 	accept_remote_certificate    = true
@@ -283,7 +283,7 @@ resource "lxd_noop" "noop1" {
 `, remote, socketAddr, remote)
 }
 
-func testAccLxdProvider_lxcConfig1(confDir, remote, addr, port, password string) string {
+func testAccLxdProviderSetLxcConfig1(confDir, remote, addr, port, password string) string {
 	return fmt.Sprintf(`
 provider "lxd" {
 	config_dir                   = "%s"
@@ -304,7 +304,7 @@ resource "lxd_noop" "noop1" {
 `, confDir, remote, addr, port, password, remote)
 }
 
-func testAccLxdProvider_lxcConfig2(confDir, remote string) string {
+func testAccLxdProviderSetLxcConfig2(confDir, remote string) string {
 
 	return fmt.Sprintf(`
 provider "lxd" {
@@ -321,7 +321,7 @@ resource "lxd_noop" "noop1" {
 }
 
 // Config that does not set remote name, forcing use of default
-func testAccLxdProvider_lxcConfig3(confDir string) string {
+func testAccLxdProviderSetLxcConfig3(confDir string) string {
 	return fmt.Sprintf(`
 provider "lxd" {
 	config_dir = "%s"
@@ -335,7 +335,7 @@ resource "lxd_noop" "noop2" {
 `, confDir)
 }
 
-func testAccLxdProvider_configDir(remote, addr, port, password, confDir string) string {
+func testAccLxdProviderSetConfigDir(remote, addr, port, password, confDir string) string {
 	return fmt.Sprintf(`
 provider "lxd" {
 	accept_remote_certificate    = true

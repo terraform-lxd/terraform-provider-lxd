@@ -17,7 +17,7 @@ func TestLXDProfile_importBasic(t *testing.T) {
 		Providers: testAccProviders,
 		Steps: []resource.TestStep{
 			resource.TestStep{
-				Config: testAccProfile_basic(profileName),
+				Config: testAccProfileBasicConfig(profileName),
 			},
 
 			resource.TestStep{
@@ -37,7 +37,7 @@ func TestLXDProfile_importConfig(t *testing.T) {
 		Providers: testAccProviders,
 		Steps: []resource.TestStep{
 			resource.TestStep{
-				Config: testAccProfile_config(profileName),
+				Config: testAccProfileSetConfig(profileName),
 			},
 
 			resource.TestStep{
@@ -57,7 +57,7 @@ func TestLXDProfile_importDevice(t *testing.T) {
 		Providers: testAccProviders,
 		Steps: []resource.TestStep{
 			resource.TestStep{
-				Config: testAccProfile_device_1(profileName),
+				Config: testAccProfileDevice1Config(profileName),
 			},
 
 			resource.TestStep{

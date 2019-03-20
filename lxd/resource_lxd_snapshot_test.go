@@ -18,7 +18,7 @@ func TestAccSnapshot_stateless(t *testing.T) {
 		Providers: testAccProviders,
 		Steps: []resource.TestStep{
 			resource.TestStep{
-				Config: testAccSnapshot_basic(containerName, snapshotName, false),
+				Config: testAccSnapshotBasicConfig(containerName, snapshotName, false),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("lxd_snapshot.snapshot1", "name", snapshotName),
 				),
@@ -67,13 +67,13 @@ func TestAccSnapshot_multiple(t *testing.T) {
 		Providers: testAccProviders,
 		Steps: []resource.TestStep{
 			resource.TestStep{
-				Config: testAccSnapshot_multiple1(containerName, snap1Name),
+				Config: testAccSnapshotMultiple1Config(containerName, snap1Name),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("lxd_snapshot.snapshot1", "name", snap1Name),
 				),
 			},
 			resource.TestStep{
-				Config: testAccSnapshot_multiple2(containerName, snap1Name, snap2Name),
+				Config: testAccSnapshotMultiple2Config(containerName, snap1Name, snap2Name),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("lxd_snapshot.snapshot1", "name", snap1Name),
 					resource.TestCheckResourceAttr("lxd_snapshot.snapshot2", "name", snap2Name),
@@ -145,7 +145,7 @@ func TestSnapshotId_LxdID(t *testing.T) {
 	}
 }
 
-func testAccSnapshot_basic(cName, sName string, stateful bool) string {
+func testAccSnapshotBasicConfig(cName, sName string, stateful bool) string {
 	return fmt.Sprintf(`
 resource "lxd_container" "container1" {
   name = "%s"
@@ -161,7 +161,7 @@ resource "lxd_snapshot" "snapshot1" {
 	`, cName, sName, stateful)
 }
 
-func testAccSnapshot_multiple1(cName, sName string) string {
+func testAccSnapshotMultiple1Config(cName, sName string) string {
 	return fmt.Sprintf(`
 resource "lxd_container" "container1" {
   name = "%s"
@@ -177,7 +177,7 @@ resource "lxd_snapshot" "snapshot1" {
 	`, cName, sName)
 }
 
-func testAccSnapshot_multiple2(cName, sName1, sName2 string) string {
+func testAccSnapshotMultiple2Config(cName, sName1, sName2 string) string {
 	return fmt.Sprintf(`
 resource "lxd_container" "container1" {
   name = "%s"

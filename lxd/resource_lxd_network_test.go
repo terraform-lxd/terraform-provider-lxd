@@ -20,7 +20,7 @@ func TestAccNetwork_basic(t *testing.T) {
 		Providers: testAccProviders,
 		Steps: []resource.TestStep{
 			resource.TestStep{
-				Config: testAccNetwork_basic(),
+				Config: testAccNetworkBasicConfig(),
 				Check: resource.ComposeTestCheckFunc(
 					testAccNetworkExists(t, "lxd_network.eth1", &network),
 					testAccNetworkConfig(&network, "ipv4.address", "10.150.19.1/24"),
@@ -39,7 +39,7 @@ func TestAccNetwork_description(t *testing.T) {
 		Providers: testAccProviders,
 		Steps: []resource.TestStep{
 			resource.TestStep{
-				Config: testAccNetwork_desc(),
+				Config: testAccNetworkDescConfig(),
 				Check: resource.ComposeTestCheckFunc(
 					testAccNetworkExists(t, "lxd_network.eth1", &network),
 					resource.TestCheckResourceAttr("lxd_network.eth1", "description", "descriptive"),
@@ -67,7 +67,7 @@ func TestAccNetwork_attach(t *testing.T) {
 		Providers: testAccProviders,
 		Steps: []resource.TestStep{
 			resource.TestStep{
-				Config: testAccNetwork_attach(profileName, containerName),
+				Config: testAccNetworkAttachConfig(profileName, containerName),
 				Check: resource.ComposeTestCheckFunc(
 					testAccNetworkExists(t, "lxd_network.eth1", &network),
 					testAccProfileRunning(t, "lxd_profile.profile1", &profile),
@@ -129,7 +129,7 @@ func testAccNetworkConfig(network *api.Network, k, v string) resource.TestCheckF
 	}
 }
 
-func testAccNetwork_basic() string {
+func testAccNetworkBasicConfig() string {
 	return fmt.Sprintf(`
 resource "lxd_network" "eth1" {
   name = "eth1"
@@ -144,7 +144,7 @@ resource "lxd_network" "eth1" {
 `)
 }
 
-func testAccNetwork_desc() string {
+func testAccNetworkDescConfig() string {
 	return fmt.Sprintf(`
 resource "lxd_network" "eth1" {
 	name        = "eth1"
@@ -160,7 +160,7 @@ resource "lxd_network" "eth1" {
 `)
 }
 
-func testAccNetwork_attach(profileName, containerName string) string {
+func testAccNetworkAttachConfig(profileName, containerName string) string {
 	return fmt.Sprintf(`
 resource "lxd_network" "eth1" {
   name = "eth1"

@@ -14,7 +14,7 @@ import (
 	"github.com/lxc/lxd/shared/api"
 )
 
-func TestAccContainer_basic(t *testing.T) {
+func TestAccContainerBasicConfig(t *testing.T) {
 	var container api.Container
 	containerName := strings.ToLower(petname.Generate(2, "-"))
 
@@ -23,7 +23,7 @@ func TestAccContainer_basic(t *testing.T) {
 		Providers: testAccProviders,
 		Steps: []resource.TestStep{
 			resource.TestStep{
-				Config: testAccContainer_basic(containerName),
+				Config: testAccContainerBasicConfig(containerName),
 				Check: resource.ComposeTestCheckFunc(
 					testAccContainerRunning(t, "lxd_container.container1", &container),
 					resource.TestCheckResourceAttr("lxd_container.container1", "name", containerName),
@@ -33,7 +33,7 @@ func TestAccContainer_basic(t *testing.T) {
 	})
 }
 
-func TestAccContainer_remoteImage(t *testing.T) {
+func TestAccContainerRemoteImageConfig(t *testing.T) {
 	var container api.Container
 	containerName := strings.ToLower(petname.Generate(2, "-"))
 
@@ -42,7 +42,7 @@ func TestAccContainer_remoteImage(t *testing.T) {
 		Providers: testAccProviders,
 		Steps: []resource.TestStep{
 			resource.TestStep{
-				Config: testAccContainer_remoteImage(containerName),
+				Config: testAccContainerRemoteImageConfig(containerName),
 				Check: resource.ComposeTestCheckFunc(
 					testAccContainerRunning(t, "lxd_container.container1", &container),
 					resource.TestCheckResourceAttr("lxd_container.container1", "name", containerName),
@@ -52,7 +52,7 @@ func TestAccContainer_remoteImage(t *testing.T) {
 	})
 }
 
-func TestAccContainer_config(t *testing.T) {
+func TestAccContainerGetConfig(t *testing.T) {
 	var container api.Container
 	containerName := strings.ToLower(petname.Generate(2, "-"))
 
@@ -61,7 +61,7 @@ func TestAccContainer_config(t *testing.T) {
 		Providers: testAccProviders,
 		Steps: []resource.TestStep{
 			resource.TestStep{
-				Config: testAccContainer_config(containerName),
+				Config: testAccContainerGetConfig(containerName),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("lxd_container.container1", "name", containerName),
 					resource.TestCheckResourceAttr("lxd_container.container1", "config.boot.autostart", "1"),
@@ -84,7 +84,7 @@ func TestAccContainer_addProfile(t *testing.T) {
 		Providers: testAccProviders,
 		Steps: []resource.TestStep{
 			resource.TestStep{
-				Config: testAccContainer_addProfile_1(profileName, containerName),
+				Config: testAccContainerAddProfile1Config(profileName, containerName),
 				Check: resource.ComposeTestCheckFunc(
 					testAccProfileRunning(t, "lxd_profile.profile1", &profile),
 					testAccContainerRunning(t, "lxd_container.container1", &container),
@@ -94,7 +94,7 @@ func TestAccContainer_addProfile(t *testing.T) {
 				),
 			},
 			resource.TestStep{
-				Config: testAccContainer_addProfile_2(profileName, containerName),
+				Config: testAccContainerAddProfile2Config(profileName, containerName),
 				Check: resource.ComposeTestCheckFunc(
 					testAccProfileRunning(t, "lxd_profile.profile1", &profile),
 					testAccContainerRunning(t, "lxd_container.container1", &container),
@@ -119,7 +119,7 @@ func TestAccContainer_removeProfile(t *testing.T) {
 		Providers: testAccProviders,
 		Steps: []resource.TestStep{
 			resource.TestStep{
-				Config: testAccContainer_removeProfile_1(profileName, containerName),
+				Config: testAccContainerRemoveProfile1Config(profileName, containerName),
 				Check: resource.ComposeTestCheckFunc(
 					testAccProfileRunning(t, "lxd_profile.profile1", &profile),
 					testAccContainerRunning(t, "lxd_container.container1", &container),
@@ -130,7 +130,7 @@ func TestAccContainer_removeProfile(t *testing.T) {
 				),
 			},
 			resource.TestStep{
-				Config: testAccContainer_removeProfile_2(profileName, containerName),
+				Config: testAccContainerRemoveProfile2Config(profileName, containerName),
 				Check: resource.ComposeTestCheckFunc(
 					testAccProfileRunning(t, "lxd_profile.profile1", &profile),
 					testAccContainerRunning(t, "lxd_container.container1", &container),
@@ -165,7 +165,7 @@ func TestAccContainer_device(t *testing.T) {
 		Providers: testAccProviders,
 		Steps: []resource.TestStep{
 			resource.TestStep{
-				Config: testAccContainer_device_1(containerName),
+				Config: testAccContainerDevice1Config(containerName),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("lxd_container.container1", "name", containerName),
 					resource.TestCheckResourceAttr("lxd_container.container1", "device.1834377448.properties.path", "/tmp/shared"),
@@ -174,7 +174,7 @@ func TestAccContainer_device(t *testing.T) {
 				),
 			},
 			resource.TestStep{
-				Config: testAccContainer_device_2(containerName),
+				Config: testAccContainerDevice2Config(containerName),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("lxd_container.container1", "name", containerName),
 					resource.TestCheckResourceAttr("lxd_container.container1", "device.2643642920.properties.path", "/tmp/shared2"),
@@ -201,14 +201,14 @@ func TestAccContainer_addDevice(t *testing.T) {
 		Providers: testAccProviders,
 		Steps: []resource.TestStep{
 			resource.TestStep{
-				Config: testAccContainer_addDevice_1(containerName),
+				Config: testAccContainerAddDevice1Config(containerName),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("lxd_container.container1", "name", containerName),
 					testAccContainerRunning(t, "lxd_container.container1", &container),
 				),
 			},
 			resource.TestStep{
-				Config: testAccContainer_addDevice_2(containerName),
+				Config: testAccContainerAddDevice2Config(containerName),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("lxd_container.container1", "name", containerName),
 					resource.TestCheckResourceAttr("lxd_container.container1", "device.1834377448.properties.path", "/tmp/shared"),
@@ -235,7 +235,7 @@ func TestAccContainer_removeDevice(t *testing.T) {
 		Providers: testAccProviders,
 		Steps: []resource.TestStep{
 			resource.TestStep{
-				Config: testAccContainer_removeDevice_1(containerName),
+				Config: testAccContainerRemoveDevice1Config(containerName),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("lxd_container.container1", "name", containerName),
 					resource.TestCheckResourceAttr("lxd_container.container1", "device.1834377448.properties.path", "/tmp/shared"),
@@ -244,7 +244,7 @@ func TestAccContainer_removeDevice(t *testing.T) {
 				),
 			},
 			resource.TestStep{
-				Config: testAccContainer_removeDevice_2(containerName),
+				Config: testAccContainerRemoveDevice2Config(containerName),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("lxd_container.container1", "name", containerName),
 					testAccContainerRunning(t, "lxd_container.container1", &container),
@@ -264,31 +264,13 @@ func TestAccContainer_fileUploadContent(t *testing.T) {
 		Providers: testAccProviders,
 		Steps: []resource.TestStep{
 			resource.TestStep{
-				Config: testAccContainer_fileUploadContent_1(containerName),
+				Config: testAccContainerFileUploadContent1Config(containerName),
 				Check: resource.ComposeTestCheckFunc(
 					testAccContainerRunning(t, "lxd_container.container1", &container),
 				),
 			},
 			resource.TestStep{
-				Config: testAccContainer_fileUploadContent_2(containerName),
-				Check: resource.ComposeTestCheckFunc(
-					testAccContainerRunning(t, "lxd_container.container1", &container),
-				),
-			},
-		},
-	})
-}
-
-func TestAccContainer_fileUploadSource(t *testing.T) {
-	var container api.Container
-	containerName := strings.ToLower(petname.Generate(2, "-"))
-
-	resource.Test(t, resource.TestCase{
-		PreCheck:  func() { testAccPreCheck(t) },
-		Providers: testAccProviders,
-		Steps: []resource.TestStep{
-			resource.TestStep{
-				Config: testAccContainer_fileUploadSource(containerName),
+				Config: testAccContainerFileUploadContent2Config(containerName),
 				Check: resource.ComposeTestCheckFunc(
 					testAccContainerRunning(t, "lxd_container.container1", &container),
 				),
@@ -297,7 +279,7 @@ func TestAccContainer_fileUploadSource(t *testing.T) {
 	})
 }
 
-func TestAccContainer_defaultProfile(t *testing.T) {
+func TestAccContainerFileUploadSourceConfig(t *testing.T) {
 	var container api.Container
 	containerName := strings.ToLower(petname.Generate(2, "-"))
 
@@ -306,7 +288,25 @@ func TestAccContainer_defaultProfile(t *testing.T) {
 		Providers: testAccProviders,
 		Steps: []resource.TestStep{
 			resource.TestStep{
-				Config: testAccContainer_defaultProfile(containerName),
+				Config: testAccContainerFileUploadSourceConfig(containerName),
+				Check: resource.ComposeTestCheckFunc(
+					testAccContainerRunning(t, "lxd_container.container1", &container),
+				),
+			},
+		},
+	})
+}
+
+func TestAccContainerDefaultProfileConfig(t *testing.T) {
+	var container api.Container
+	containerName := strings.ToLower(petname.Generate(2, "-"))
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:  func() { testAccPreCheck(t) },
+		Providers: testAccProviders,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccContainerDefaultProfileConfig(containerName),
 				Check: resource.ComposeTestCheckFunc(
 					testAccContainerRunning(t, "lxd_container.container1", &container),
 					resource.TestCheckResourceAttr("lxd_container.container1", "profiles.0", "default"),
@@ -317,7 +317,7 @@ func TestAccContainer_defaultProfile(t *testing.T) {
 	})
 }
 
-func TestAccContainer_configLimits(t *testing.T) {
+func TestAccContainerGetConfigLimits(t *testing.T) {
 	var container api.Container
 	containerName := strings.ToLower(petname.Generate(2, "-"))
 
@@ -326,14 +326,14 @@ func TestAccContainer_configLimits(t *testing.T) {
 		Providers: testAccProviders,
 		Steps: []resource.TestStep{
 			resource.TestStep{
-				Config: testAccContainer_configLimits_1(containerName),
+				Config: testAccContainerGetConfigLimits1(containerName),
 				Check: resource.ComposeTestCheckFunc(
 					testAccContainerRunning(t, "lxd_container.container1", &container),
 					resource.TestCheckResourceAttr("lxd_container.container1", "limits.cpu", "1"),
 				),
 			},
 			resource.TestStep{
-				Config: testAccContainer_configLimits_2(containerName),
+				Config: testAccContainerGetConfigLimits2(containerName),
 				Check: resource.ComposeTestCheckFunc(
 					testAccContainerRunning(t, "lxd_container.container1", &container),
 					resource.TestCheckResourceAttr("lxd_container.container1", "limits.cpu", "2"),
@@ -343,7 +343,7 @@ func TestAccContainer_configLimits(t *testing.T) {
 	})
 }
 
-func TestAccContainer_accessInterface(t *testing.T) {
+func TestAccContainerAccessInterface(t *testing.T) {
 	var container api.Container
 	networkName1 := strings.ToLower(petname.Generate(1, "-"))
 	networkName2 := strings.ToLower(petname.Generate(1, "-"))
@@ -354,7 +354,7 @@ func TestAccContainer_accessInterface(t *testing.T) {
 		Providers: testAccProviders,
 		Steps: []resource.TestStep{
 			resource.TestStep{
-				Config: testAccContainer_accessInterface(networkName1, networkName2, containerName),
+				Config: testAccContainerAccessInterfaceConfig(networkName1, networkName2, containerName),
 				Check: resource.ComposeTestCheckFunc(
 					testAccContainerRunning(t, "lxd_container.container1", &container),
 					resource.TestCheckResourceAttr("lxd_container.container1", "name", containerName),
@@ -516,7 +516,7 @@ func testAccContainerNoDevice(container *api.Container, deviceName string) resou
 	}
 }
 
-func testAccContainer_basic(name string) string {
+func testAccContainerBasicConfig(name string) string {
 	return fmt.Sprintf(`
 resource "lxd_container" "container1" {
   name = "%s"
@@ -526,7 +526,7 @@ resource "lxd_container" "container1" {
 	`, name)
 }
 
-func testAccContainer_config(name string) string {
+func testAccContainerGetConfig(name string) string {
 	return fmt.Sprintf(`
 resource "lxd_container" "container1" {
   name = "%s"
@@ -539,7 +539,7 @@ resource "lxd_container" "container1" {
 	`, name)
 }
 
-func testAccContainer_addProfile_1(profileName, containerName string) string {
+func testAccContainerAddProfile1Config(profileName, containerName string) string {
 	return fmt.Sprintf(`
 resource "lxd_profile" "profile1" {
   name = "%s"
@@ -553,7 +553,7 @@ resource "lxd_container" "container1" {
 	`, profileName, containerName)
 }
 
-func testAccContainer_addProfile_2(profileName, containerName string) string {
+func testAccContainerAddProfile2Config(profileName, containerName string) string {
 	return fmt.Sprintf(`
 resource "lxd_profile" "profile1" {
   name = "%s"
@@ -567,7 +567,7 @@ resource "lxd_container" "container1" {
 	`, profileName, containerName)
 }
 
-func testAccContainer_removeProfile_1(profileName, containerName string) string {
+func testAccContainerRemoveProfile1Config(profileName, containerName string) string {
 	return fmt.Sprintf(`
 resource "lxd_profile" "profile1" {
   name = "%s"
@@ -581,7 +581,7 @@ resource "lxd_container" "container1" {
 	`, profileName, containerName)
 }
 
-func testAccContainer_removeProfile_2(profileName, containerName string) string {
+func testAccContainerRemoveProfile2Config(profileName, containerName string) string {
 	return fmt.Sprintf(`
 resource "lxd_profile" "profile1" {
   name = "%s"
@@ -595,7 +595,7 @@ resource "lxd_container" "container1" {
 	`, profileName, containerName)
 }
 
-func testAccContainer_device_1(name string) string {
+func testAccContainerDevice1Config(name string) string {
 	return fmt.Sprintf(`
 resource "lxd_container" "container1" {
   name = "%s"
@@ -614,7 +614,7 @@ resource "lxd_container" "container1" {
 	`, name)
 }
 
-func testAccContainer_device_2(name string) string {
+func testAccContainerDevice2Config(name string) string {
 	return fmt.Sprintf(`
 resource "lxd_container" "container1" {
   name = "%s"
@@ -633,7 +633,7 @@ resource "lxd_container" "container1" {
 	`, name)
 }
 
-func testAccContainer_addDevice_1(name string) string {
+func testAccContainerAddDevice1Config(name string) string {
 	return fmt.Sprintf(`
 resource "lxd_container" "container1" {
   name = "%s"
@@ -643,26 +643,7 @@ resource "lxd_container" "container1" {
 	`, name)
 }
 
-func testAccContainer_addDevice_2(name string) string {
-	return fmt.Sprintf(`
-resource "lxd_container" "container1" {
-  name = "%s"
-  image = "images:alpine/3.9/amd64"
-  profiles = ["default"]
-
-  device {
-    name = "shared"
-    type = "disk"
-    properties {
-      source = "/tmp"
-      path = "/tmp/shared"
-    }
-  }
-}
-	`, name)
-}
-
-func testAccContainer_removeDevice_1(name string) string {
+func testAccContainerAddDevice2Config(name string) string {
 	return fmt.Sprintf(`
 resource "lxd_container" "container1" {
   name = "%s"
@@ -681,7 +662,26 @@ resource "lxd_container" "container1" {
 	`, name)
 }
 
-func testAccContainer_removeDevice_2(name string) string {
+func testAccContainerRemoveDevice1Config(name string) string {
+	return fmt.Sprintf(`
+resource "lxd_container" "container1" {
+  name = "%s"
+  image = "images:alpine/3.9/amd64"
+  profiles = ["default"]
+
+  device {
+    name = "shared"
+    type = "disk"
+    properties {
+      source = "/tmp"
+      path = "/tmp/shared"
+    }
+  }
+}
+	`, name)
+}
+
+func testAccContainerRemoveDevice2Config(name string) string {
 	return fmt.Sprintf(`
 resource "lxd_container" "container1" {
   name = "%s"
@@ -691,7 +691,7 @@ resource "lxd_container" "container1" {
 	`, name)
 }
 
-func testAccContainer_fileUploadContent_1(name string) string {
+func testAccContainerFileUploadContent1Config(name string) string {
 	return fmt.Sprintf(`
 resource "lxd_container" "container1" {
   name = "%s"
@@ -708,7 +708,7 @@ resource "lxd_container" "container1" {
 	`, name)
 }
 
-func testAccContainer_fileUploadContent_2(name string) string {
+func testAccContainerFileUploadContent2Config(name string) string {
 	return fmt.Sprintf(`
 resource "lxd_container" "container1" {
   name = "%s"
@@ -725,7 +725,7 @@ resource "lxd_container" "container1" {
 	`, name)
 }
 
-func testAccContainer_fileUploadSource(name string) string {
+func testAccContainerFileUploadSourceConfig(name string) string {
 	return fmt.Sprintf(`
 resource "lxd_container" "container1" {
   name = "%s"
@@ -742,7 +742,7 @@ resource "lxd_container" "container1" {
 	`, name)
 }
 
-func testAccContainer_remoteImage(name string) string {
+func testAccContainerRemoteImageConfig(name string) string {
 	return fmt.Sprintf(`
 resource "lxd_container" "container1" {
   name = "%s"
@@ -752,7 +752,7 @@ resource "lxd_container" "container1" {
 	`, name)
 }
 
-func testAccContainer_defaultProfile(name string) string {
+func testAccContainerDefaultProfileConfig(name string) string {
 	return fmt.Sprintf(`
 resource "lxd_container" "container1" {
   name = "%s"
@@ -761,7 +761,7 @@ resource "lxd_container" "container1" {
 	`, name)
 }
 
-func testAccContainer_configLimits_1(name string) string {
+func testAccContainerGetConfigLimits1(name string) string {
 	return fmt.Sprintf(`
 resource "lxd_container" "container1" {
   name = "%s"
@@ -775,7 +775,7 @@ resource "lxd_container" "container1" {
 	`, name)
 }
 
-func testAccContainer_configLimits_2(name string) string {
+func testAccContainerGetConfigLimits2(name string) string {
 	return fmt.Sprintf(`
 resource "lxd_container" "container1" {
   name = "%s"
@@ -789,7 +789,7 @@ resource "lxd_container" "container1" {
 	`, name)
 }
 
-func testAccContainer_accessInterface(networkName1, networkName2, containerName string) string {
+func testAccContainerAccessInterfaceConfig(networkName1, networkName2, containerName string) string {
 	return fmt.Sprintf(`
 resource "lxd_network" "network_1" {
   name = "%s"

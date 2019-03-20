@@ -16,7 +16,7 @@ func TestAccLxdStoragePool_importBasic(t *testing.T) {
 		Providers: testAccProviders,
 		Steps: []resource.TestStep{
 			resource.TestStep{
-				Config: testAccStoragePool_basic(poolName),
+				Config: testAccStoragePoolBasicConfig(poolName),
 			},
 
 			resource.TestStep{

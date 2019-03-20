@@ -22,7 +22,7 @@ func TestAccStoragePool_basic(t *testing.T) {
 		Providers: testAccProviders,
 		Steps: []resource.TestStep{
 			resource.TestStep{
-				Config: testAccStoragePool_basic(poolName),
+				Config: testAccStoragePoolBasicConfig(poolName),
 				Check: resource.ComposeTestCheckFunc(
 					testAccStoragePoolExists(t, "lxd_storage_pool.storage_pool1", &pool),
 					resource.TestCheckResourceAttr("lxd_storage_pool.storage_pool1", "name", poolName),
@@ -82,7 +82,7 @@ func testAccStoragePoolConfig(pool *api.StoragePool, k, v string) resource.TestC
 	}
 }
 
-func testAccStoragePool_basic(name string) string {
+func testAccStoragePoolBasicConfig(name string) string {
 	return fmt.Sprintf(`
 resource "lxd_storage_pool" "storage_pool1" {
   name = "%s"

@@ -13,7 +13,7 @@ import (
 	"github.com/lxc/lxd/client"
 )
 
-func TestAccContainerFile_content(t *testing.T) {
+func TestAccContainerFileContentConfig(t *testing.T) {
 	var file lxd.ContainerFileResponse
 
 	containerName := strings.ToLower(petname.Generate(2, "-"))
@@ -23,7 +23,7 @@ func TestAccContainerFile_content(t *testing.T) {
 		Providers: testAccProviders,
 		Steps: []resource.TestStep{
 			resource.TestStep{
-				Config: testAccContainerFile_content(containerName),
+				Config: testAccContainerFileContentConfig(containerName),
 				Check: resource.ComposeTestCheckFunc(
 					testAccContainerFileExists(t, "lxd_container_file.file1", &file),
 					resource.TestCheckResourceAttr("lxd_container_file.file1", "create_directories", "true"),
@@ -33,7 +33,7 @@ func TestAccContainerFile_content(t *testing.T) {
 	})
 }
 
-func TestAccContainerFile_source(t *testing.T) {
+func TestAccContainerFileSourceConfig(t *testing.T) {
 	var file lxd.ContainerFileResponse
 
 	containerName := strings.ToLower(petname.Generate(2, "-"))
@@ -43,7 +43,7 @@ func TestAccContainerFile_source(t *testing.T) {
 		Providers: testAccProviders,
 		Steps: []resource.TestStep{
 			resource.TestStep{
-				Config: testAccContainerFile_source(containerName),
+				Config: testAccContainerFileSourceConfig(containerName),
 				Check: resource.ComposeTestCheckFunc(
 					testAccContainerFileExists(t, "lxd_container_file.file1", &file),
 					resource.TestCheckResourceAttr("lxd_container_file.file1", "create_directories", "true"),
@@ -87,7 +87,7 @@ func testAccContainerFileExists(t *testing.T, n string, file *lxd.ContainerFileR
 	}
 }
 
-func testAccContainerFile_content(name string) string {
+func testAccContainerFileContentConfig(name string) string {
 	return fmt.Sprintf(`
 resource "lxd_container" "container1" {
   name = "%s"
@@ -104,7 +104,7 @@ resource "lxd_container_file" "file1" {
 	`, name)
 }
 
-func testAccContainerFile_source(name string) string {
+func testAccContainerFileSourceConfig(name string) string {
 	return fmt.Sprintf(`
 resource "lxd_container" "container1" {
   name = "%s"
