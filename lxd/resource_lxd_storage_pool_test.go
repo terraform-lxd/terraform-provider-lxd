@@ -87,7 +87,7 @@ func testAccStoragePool_basic(name string) string {
 resource "lxd_storage_pool" "storage_pool1" {
   name = "%s"
   driver = "dir"
-  config {
+  config = {
     source = "/tmp/foo"
   }
 }

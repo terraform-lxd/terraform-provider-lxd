@@ -108,7 +108,7 @@ func testAccVolume_basic(poolName, volumeName string) string {
 resource "lxd_storage_pool" "pool1" {
 	name = "%s"
 	driver = "dir"
-	config {
+	config = {
 		source = "/tmp/foo"
 	}
 }
@@ -125,7 +125,7 @@ func testAccVolume_containerAttach(poolName, volumeName, containerName string) s
 resource "lxd_storage_pool" "pool1" {
 	name = "%s"
 	driver = "dir"
-	config {
+	config = {
 		source = "/tmp/foo"
 	}
 }
@@ -143,7 +143,7 @@ resource "lxd_container" "container1" {
   device {
     name = "volume1"
     type = "disk"
-    properties {
+    properties = {
       path = "/tmp"
       source = "${lxd_volume.volume1.name}"
       pool = "${lxd_storage_pool.pool1.name}"

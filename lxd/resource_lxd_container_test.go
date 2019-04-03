@@ -532,8 +532,8 @@ resource "lxd_container" "container1" {
   name = "%s"
   image = "images:alpine/3.9/amd64"
   profiles = ["default"]
-  config {
-    boot.autostart = 1
+  config = {
+    "boot.autostart" = 1
   }
 }
 	`, name)
@@ -605,7 +605,7 @@ resource "lxd_container" "container1" {
   device {
     name = "shared"
     type = "disk"
-    properties {
+    properties = {
       source = "/tmp"
       path = "/tmp/shared"
     }
@@ -624,7 +624,7 @@ resource "lxd_container" "container1" {
   device {
     name = "shared"
     type = "disk"
-    properties {
+    properties = {
       source = "/tmp"
       path = "/tmp/shared2"
     }
@@ -653,7 +653,7 @@ resource "lxd_container" "container1" {
   device {
     name = "shared"
     type = "disk"
-    properties {
+    properties = {
       source = "/tmp"
       path = "/tmp/shared"
     }
@@ -672,7 +672,7 @@ resource "lxd_container" "container1" {
   device {
     name = "shared"
     type = "disk"
-    properties {
+    properties = {
       source = "/tmp"
       path = "/tmp/shared"
     }
@@ -768,7 +768,7 @@ resource "lxd_container" "container1" {
   image = "images:alpine/3.9/amd64"
   profiles = ["default"]
 
-  limits {
+  limits = {
 	  "cpu" = "1"
   }
 }
@@ -782,7 +782,7 @@ resource "lxd_container" "container1" {
   image = "images:alpine/3.9/amd64"
   profiles = ["default"]
 
-  limits {
+  limits = {
 	  "cpu" = "2"
   }
 }
@@ -794,22 +794,22 @@ func testAccContainer_accessInterface(networkName1, networkName2, containerName 
 resource "lxd_network" "network_1" {
   name = "%s"
 
-  config {
-    ipv4.address = "10.150.19.1/24"
-    ipv4.nat = "true"
-    ipv6.address = "fd42:474b:622d:259d::1/64"
-    ipv6.nat = "false"
+  config = {
+    "ipv4.address" = "10.150.19.1/24"
+    "ipv4.nat" = "true"
+    "ipv6.address" = "fd42:474b:622d:259d::1/64"
+    "ipv6.nat" = "false"
   }
 }
 
 resource "lxd_network" "network_2" {
   name = "%s"
 
-  config {
-    ipv4.address = "10.150.18.1/24"
-    ipv4.nat = "true"
-    ipv6.address = "fd42:474b:622d:259c::1/64"
-    ipv6.nat = "false"
+  config = {
+    "ipv4.address" = "10.150.18.1/24"
+    "ipv4.nat" = "true"
+    "ipv6.address" = "fd42:474b:622d:259c::1/64"
+    "ipv6.nat" = "false"
   }
 }
 
@@ -818,18 +818,18 @@ resource "lxd_container" "container1" {
   image = "images:alpine/3.9/amd64"
   profiles = ["default"]
 
-  config {
-    user.access_interface = "eth0"
+  config = {
+    "user.access_interface" = "eth0"
   }
 
   device {
     name = "eth0"
     type = "nic"
 
-    properties {
+    properties = {
       nictype = "bridged"
       parent = "${lxd_network.network_1.name}"
-      ipv4.address = "10.150.19.200"
+      "ipv4.address" = "10.150.19.200"
     }
   }
 
@@ -837,10 +837,10 @@ resource "lxd_container" "container1" {
     name = "eth1"
     type = "nic"
 
-    properties {
+    properties = {
       nictype = "bridged"
       parent = "${lxd_network.network_2.name}"
-      ipv4.address = "10.150.18.200"
+      "ipv4.address" = "10.150.18.200"
     }
   }
 

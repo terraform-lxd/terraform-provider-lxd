@@ -134,11 +134,11 @@ func testAccNetwork_basic() string {
 resource "lxd_network" "eth1" {
   name = "eth1"
 
-  config {
-    ipv4.address = "10.150.19.1/24"
-    ipv4.nat = "true"
-    ipv6.address = "fd42:474b:622d:259d::1/64"
-    ipv6.nat = "true"
+  config = {
+    "ipv4.address" = "10.150.19.1/24"
+    "ipv4.nat" = "true"
+    "ipv6.address" = "fd42:474b:622d:259d::1/64"
+    "ipv6.nat" = "true"
   }
 }
 `)
@@ -150,11 +150,11 @@ resource "lxd_network" "eth1" {
 	name        = "eth1"
 	description = "descriptive"
 
-  config {
-    ipv4.address = "10.150.19.1/24"
-    ipv4.nat = "true"
-    ipv6.address = "fd42:474b:622d:259d::1/64"
-    ipv6.nat = "true"
+  config = {
+    "ipv4.address" = "10.150.19.1/24"
+    "ipv4.nat" = "true"
+    "ipv6.address" = "fd42:474b:622d:259d::1/64"
+    "ipv6.nat" = "true"
   }
 }
 `)
@@ -165,11 +165,11 @@ func testAccNetwork_attach(profileName, containerName string) string {
 resource "lxd_network" "eth1" {
   name = "eth1"
 
-  config {
-    ipv4.address = "10.150.19.1/24"
-    ipv4.nat = "true"
-    ipv6.address = "fd42:474b:622d:259d::1/64"
-    ipv6.nat = "true"
+  config = {
+    "ipv4.address" = "10.150.19.1/24"
+    "ipv4.nat" = "true"
+    "ipv6.address" = "fd42:474b:622d:259d::1/64"
+    "ipv6.nat" = "true"
   }
 }
 
@@ -179,7 +179,7 @@ resource "lxd_profile" "profile1" {
   device {
     name = "eth1"
     type = "nic"
-    properties {
+    properties = {
       nictype = "bridged"
       parent = "${lxd_network.eth1.name}"
     }

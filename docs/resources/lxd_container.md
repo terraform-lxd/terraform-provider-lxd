@@ -12,11 +12,11 @@ resource "lxd_container" "test1" {
   image     = "ubuntu"
   ephemeral = false
 
-  config {
-    boot.autostart = true
+  config = {
+    "boot.autostart" = true
   }
 
-  limits {
+  limits = {
     cpu = 2
   }
 }
@@ -28,7 +28,7 @@ resource "lxd_container" "test1" {
 resource "lxd_storage_pool" "pool1" {
   name = "mypool"
   driver = "dir"
-  config {
+  config = {
     source = "/var/lib/lxd/storage-pools/mypool"
   }
 }
@@ -46,7 +46,7 @@ resource "lxd_container" "container1" {
   device {
     name = "volume1"
     type = "disk"
-    properties {
+    properties = {
       path = "/mount/point/in/container"
       source = "${lxd_volume.volume1.name}"
       pool = "${lxd_storage_pool.pool1.name}"

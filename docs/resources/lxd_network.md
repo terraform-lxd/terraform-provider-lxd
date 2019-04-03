@@ -14,11 +14,11 @@ for all network details.
 resource "lxd_network" "new_default" {
   name = "new_default"
 
-  config {
-    ipv4.address = "10.150.19.1/24"
-    ipv4.nat     = "true"
-    ipv6.address = "fd42:474b:622d:259d::1/64"
-    ipv6.nat     = "true"
+  config = {
+    "ipv4.address" = "10.150.19.1/24"
+    "ipv4.nat"     = "true"
+    "ipv6.address" = "fd42:474b:622d:259d::1/64"
+    "ipv6.nat"     = "true"
   }
 }
 
@@ -29,7 +29,7 @@ resource "lxd_profile" "profile1" {
     name = "eth0"
     type = "nic"
 
-    properties {
+    properties = {
       nictype = "bridged"
       parent  = "${lxd_network.new_default.name}"
     }
@@ -39,7 +39,7 @@ resource "lxd_profile" "profile1" {
     type = "disk"
     name = "root"
 
-    properties {
+    properties = {
       pool = "default"
       path = "/"
     }
@@ -63,8 +63,8 @@ custom network on `eth1`
 resource "lxd_network" "internal" {
   name = "internal"
 
-  config {
-    ipv4.address = "192.168.255.1/24"
+  config = {
+    "ipv4.address" = "192.168.255.1/24"
   }
 }
 
@@ -75,7 +75,7 @@ resource "lxd_profile" "profile1" {
     name = "eth1"
     type = "nic"
 
-    properties {
+    properties = {
       nictype = "bridged"
       parent  = "${lxd_network.internal.name}"
     }
@@ -85,7 +85,7 @@ resource "lxd_profile" "profile1" {
     type = "disk"
     name = "root"
 
-    properties {
+    properties = {
       pool = "default"
       path = "/"
     }
@@ -112,13 +112,13 @@ Tunnel "server":
 resource "lxd_network" "vxtun" {
   name = "vxtun"
 
-  config {
-    tunnel.vxtun.protocol = "vxlan"
-    tunnel.vxtun.id       = 9999
-    tunnel.vxtun.local    = "10.1.1.1"
-    tunnel.vxtun.remote   = "10.255.1.1"
-    ipv4.address          = "192.168.255.1/24"
-    ipv6.address          = "none"
+  config = {
+    "tunnel.vxtun.protocol" = "vxlan"
+    "tunnel.vxtun.id"       = 9999
+    "tunnel.vxtun.local"    = "10.1.1.1"
+    "tunnel.vxtun.remote"   = "10.255.1.1"
+    "ipv4.address"          = "192.168.255.1/24"
+    "ipv6.address"          = "none"
   }
 }
 ```
@@ -129,13 +129,13 @@ Tunnel "client":
 resource "lxd_network" "vxtun" {
   name = "vxtun"
 
-  config {
-    tunnel.vxtun.protocol = "vxlan"
-    tunnel.vxtun.id       = 9999
-    tunnel.vxtun.local    = "10.255.1.1"
-    tunnel.vxtun.remote   = "10.1.1.1"
-    ipv4.address          = "none"
-    ipv6.address          = "none"
+  config = {
+    "tunnel.vxtun.protocol" = "vxlan"
+    "tunnel.vxtun.id"       = 9999
+    "tunnel.vxtun.local"    = "10.255.1.1"
+    "tunnel.vxtun.remote"   = "10.1.1.1"
+    "ipv4.address"          = "none"
+    "ipv6.address"          = "none"
   }
 }
 ```
