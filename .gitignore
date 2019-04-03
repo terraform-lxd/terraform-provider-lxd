@@ -1,3 +1,4 @@
+terraform-provider-lxd
 terraform-provider-lxd.iml
 .idea
 **/*.swp
