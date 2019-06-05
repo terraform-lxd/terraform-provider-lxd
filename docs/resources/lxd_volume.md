@@ -8,7 +8,7 @@ Manages an LXD volume.
 resource "lxd_storage_pool" "pool1" {
   name = "mypool"
   driver = "dir"
-  config {
+  config = {
     source = "/var/lib/lxd/storage-pools/mypool"
   }
 }

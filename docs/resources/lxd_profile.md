@@ -8,15 +8,15 @@ Manages an LXD profile.
 resource "lxd_profile" "profile1" {
   name = "profile1"
 
-  config {
-    limits.cpu = 2
+  config = {
+    "limits.cpu" = 2
   }
 
   device {
     name = "shared"
     type = "disk"
 
-    properties {
+    properties = {
       source = "/tmp"
       path   = "/tmp"
     }
@@ -26,7 +26,7 @@ resource "lxd_profile" "profile1" {
     type = "disk"
     name = "root"
 
-    properties {
+    properties = {
       pool = "default"
       path = "/"
     }

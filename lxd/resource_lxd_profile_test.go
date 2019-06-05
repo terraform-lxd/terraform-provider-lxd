@@ -332,8 +332,8 @@ func testAccProfile_config(name string) string {
 	return fmt.Sprintf(`
 resource "lxd_profile" "profile1" {
   name = "%s"
-  config {
-    limits.cpu = 2
+  config = {
+    "limits.cpu" = 2
   }
 }
 	`, name)
@@ -347,7 +347,7 @@ resource "lxd_profile" "profile1" {
   device {
     name = "shared"
     type = "disk"
-    properties {
+    properties = {
       source = "/tmp"
       path = "/tmp/shared"
     }
@@ -364,7 +364,7 @@ resource "lxd_profile" "profile1" {
   device {
     name = "shared"
     type = "disk"
-    properties {
+    properties = {
       source = "/tmp"
       path = "/tmp/shared2"
     }
@@ -389,7 +389,7 @@ resource "lxd_profile" "profile1" {
   device {
     name = "shared1"
     type = "disk"
-    properties {
+    properties = {
       source = "/tmp"
       path = "/tmp/shared1"
     }
@@ -406,7 +406,7 @@ resource "lxd_profile" "profile1" {
   device {
     name = "shared2"
     type = "disk"
-    properties {
+    properties = {
       source = "/tmp"
       path = "/tmp/shared2"
     }
@@ -415,7 +415,7 @@ resource "lxd_profile" "profile1" {
   device {
     name = "shared1"
     type = "disk"
-    properties {
+    properties = {
       source = "/tmp"
       path = "/tmp/shared1"
     }
@@ -432,7 +432,7 @@ resource "lxd_profile" "profile1" {
   device {
     name = "shared"
     type = "disk"
-    properties {
+    properties = {
       source = "/tmp"
       path = "/tmp/shared"
     }
@@ -453,8 +453,8 @@ func testAccProfile_containerConfig(profileName, containerName string) string {
 	return fmt.Sprintf(`
 resource "lxd_profile" "profile1" {
   name = "%s"
-  config {
-    limits.cpu = 2
+  config = {
+    "limits.cpu" = 2
   }
 }
 
@@ -473,7 +473,7 @@ resource "lxd_profile" "profile1" {
   device {
     name = "shared"
     type = "disk"
-    properties {
+    properties = {
       source = "/tmp"
       path = "/tmp/shared"
     }
