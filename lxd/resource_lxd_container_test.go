@@ -346,7 +346,6 @@ func TestAccContainer_configLimits(t *testing.T) {
 func TestAccContainer_accessInterface(t *testing.T) {
 	var container api.Container
 	networkName1 := strings.ToLower(petname.Generate(1, "-"))
-	networkName2 := strings.ToLower(petname.Generate(1, "-"))
 	containerName := strings.ToLower(petname.Generate(2, "-"))
 
 	resource.Test(t, resource.TestCase{
@@ -354,7 +353,7 @@ func TestAccContainer_accessInterface(t *testing.T) {
 		Providers: testAccProviders,
 		Steps: []resource.TestStep{
 			resource.TestStep{
-				Config: testAccContainer_accessInterface(networkName1, networkName2, containerName),
+				Config: testAccContainer_accessInterface(networkName1, containerName),
 				Check: resource.ComposeTestCheckFunc(
 					testAccContainerRunning(t, "lxd_container.container1", &container),
 					resource.TestCheckResourceAttr("lxd_container.container1", "name", containerName),
@@ -789,7 +788,7 @@ resource "lxd_container" "container1" {
 	`, name)
 }
 
-func testAccContainer_accessInterface(networkName1, networkName2, containerName string) string {
+func testAccContainer_accessInterface(networkName1, containerName string) string {
 	return fmt.Sprintf(`
 resource "lxd_network" "network_1" {
   name = "%s"
@@ -798,17 +797,6 @@ resource "lxd_network" "network_1" {
     "ipv4.address" = "10.150.19.1/24"
     "ipv4.nat" = "true"
     "ipv6.address" = "fd42:474b:622d:259d::1/64"
-    "ipv6.nat" = "false"
-  }
-}
-
-resource "lxd_network" "network_2" {
-  name = "%s"
-
-  config = {
-    "ipv4.address" = "10.150.18.1/24"
-    "ipv4.nat" = "true"
-    "ipv6.address" = "fd42:474b:622d:259c::1/64"
     "ipv6.nat" = "false"
   }
 }
@@ -832,18 +820,6 @@ resource "lxd_container" "container1" {
       "ipv4.address" = "10.150.19.200"
     }
   }
-
-  device {
-    name = "eth1"
-    type = "nic"
-
-    properties = {
-      nictype = "bridged"
-      parent = "${lxd_network.network_2.name}"
-      "ipv4.address" = "10.150.18.200"
-    }
-  }
-
 }
-	`, networkName1, networkName2, containerName)
+	`, networkName1, containerName)
 }
