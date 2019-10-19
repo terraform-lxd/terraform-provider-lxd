@@ -162,6 +162,18 @@ func resourceLxdContainer() *schema.Resource {
 				ForceNew: false,
 			},
 
+			"ipv4_address": &schema.Schema{
+				Type:     schema.TypeString,
+				Computed: true,
+				ForceNew: false,
+			},
+
+			"ipv6_address": &schema.Schema{
+				Type:     schema.TypeString,
+				Computed: true,
+				ForceNew: false,
+			},
+
 			"status": {
 				Type:     schema.TypeString,
 				Computed: true,
@@ -414,8 +426,16 @@ func resourceLxdContainerRead(d *schema.ResourceData, meta interface{}) error {
 			if ip.Family == "inet" {
 				aiFound = true
 				d.Set("ip_address", ip.Address)
+				d.Set("ipv4_address", ip.Address)
 				sshIP = ip.Address
 				d.Set("mac_address", net.Hwaddr)
+			}
+		}
+
+		for _, ip := range net.Addresses {
+			if ip.Family == "inet6" && ip.Scope == "global" {
+				d.Set("ipv6_address", ip.Address)
+				break
 			}
 		}
 	}
@@ -428,8 +448,16 @@ func resourceLxdContainerRead(d *schema.ResourceData, meta interface{}) error {
 				for _, ip := range net.Addresses {
 					if ip.Family == "inet" {
 						d.Set("ip_address", ip.Address)
+						d.Set("ipv4_address", ip.Address)
 						sshIP = ip.Address
 						d.Set("mac_address", net.Hwaddr)
+					}
+				}
+
+				for _, ip := range net.Addresses {
+					if ip.Family == "inet6" && ip.Scope == "global" {
+						d.Set("ipv6_address", ip.Address)
+						break
 					}
 				}
 			}
