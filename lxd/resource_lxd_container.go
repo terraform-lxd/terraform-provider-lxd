@@ -432,11 +432,8 @@ func resourceLxdContainerRead(d *schema.ResourceData, meta interface{}) error {
 			}
 		}
 
-		for _, ip := range net.Addresses {
-			if ip.Family == "inet6" && ip.Scope == "global" {
-				d.Set("ipv6_address", ip.Address)
-				break
-			}
+		if found, addr := findShortestIPv6Address(&net); found {
+			d.Set("ipv6_address", addr)
 		}
 	}
 
@@ -454,11 +451,8 @@ func resourceLxdContainerRead(d *schema.ResourceData, meta interface{}) error {
 					}
 				}
 
-				for _, ip := range net.Addresses {
-					if ip.Family == "inet6" && ip.Scope == "global" {
-						d.Set("ipv6_address", ip.Address)
-						break
-					}
+				if found, addr := findShortestIPv6Address(&net); found {
+					d.Set("ipv6_address", addr)
 				}
 			}
 		}
@@ -766,4 +760,20 @@ func suppressImageDifferences(k, old, new string, d *schema.ResourceData) bool {
 		return true
 	}
 	return false
+}
+
+// Find the shortest IPv6 address (by its string representation)
+// Usually the manual assigned, preferred address
+func findShortestIPv6Address(network *api.ContainerStateNetwork) (bool, string) {
+	var current string
+
+	for _, ip := range network.Addresses {
+		if ip.Family == "inet6" && ip.Scope == "global" {
+			if len(current) == 0 || len(ip.Address) < len(current) {
+				current = ip.Address
+			}
+		}
+	}
+
+	return len(current) > 0, current
 }
