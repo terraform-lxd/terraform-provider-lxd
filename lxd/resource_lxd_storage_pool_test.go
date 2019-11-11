@@ -88,7 +88,7 @@ resource "lxd_storage_pool" "storage_pool1" {
   name = "%s"
   driver = "dir"
   config = {
-    source = "/tmp/foo"
+    source = "/mnt"
   }
 }
 	`, name)

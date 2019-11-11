@@ -90,7 +90,7 @@ resource "lxd_storage_pool" "pool1" {
   name = "%s"
   driver = "dir"
   config = {
-    source = "/tmp/foo"
+    source = "/mnt"
   }
 }
 
@@ -109,7 +109,7 @@ resource "lxd_volume_container_attach" "attach1" {
   pool = "${lxd_storage_pool.pool1.name}"
   volume_name = "${lxd_volume.volume1.name}"
   container_name = "${lxd_container.container1.name}"
-  path = "/tmp"
+  path = "/mnt"
 }
 	`, poolName, volumeName, containerName)
 }
@@ -120,7 +120,7 @@ resource "lxd_storage_pool" "pool1" {
   name = "%s"
   driver = "dir"
   config = {
-    source = "/tmp/foo"
+    source = "/mnt"
   }
 }
 
@@ -139,7 +139,7 @@ resource "lxd_volume_container_attach" "attach1" {
   pool = "${lxd_storage_pool.pool1.name}"
   volume_name = "${lxd_volume.volume1.name}"
   container_name = "${lxd_container.container1.name}"
-  path = "/tmp"
+  path = "/mnt"
   device_name = "foo"
 }
 	`, poolName, volumeName, containerName)
