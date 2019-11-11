@@ -109,7 +109,7 @@ resource "lxd_storage_pool" "pool1" {
 	name = "%s"
 	driver = "dir"
 	config = {
-		source = "/tmp/foo"
+		source = "/mnt"
 	}
 }
 
@@ -126,7 +126,7 @@ resource "lxd_storage_pool" "pool1" {
 	name = "%s"
 	driver = "dir"
 	config = {
-		source = "/tmp/foo"
+		source = "/mnt"
 	}
 }
 
@@ -144,7 +144,7 @@ resource "lxd_container" "container1" {
     name = "volume1"
     type = "disk"
     properties = {
-      path = "/tmp"
+      path = "/mnt"
       source = "${lxd_volume.volume1.name}"
       pool = "${lxd_storage_pool.pool1.name}"
     }
