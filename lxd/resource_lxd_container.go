@@ -432,7 +432,7 @@ func resourceLxdContainerRead(d *schema.ResourceData, meta interface{}) error {
 			}
 		}
 
-		if found, addr := findShortestIPv6Address(&net); found {
+		if found, addr := findIPv6Address(&net); found {
 			d.Set("ipv6_address", addr)
 		}
 	}
@@ -451,7 +451,7 @@ func resourceLxdContainerRead(d *schema.ResourceData, meta interface{}) error {
 					}
 				}
 
-				if found, addr := findShortestIPv6Address(&net); found {
+				if found, addr := findIPv6Address(&net); found {
 					d.Set("ipv6_address", addr)
 				}
 			}
@@ -762,18 +762,27 @@ func suppressImageDifferences(k, old, new string, d *schema.ResourceData) bool {
 	return false
 }
 
-// Find the shortest IPv6 address (by its string representation)
-// Usually the manual assigned, preferred address
-func findShortestIPv6Address(network *api.ContainerStateNetwork) (bool, string) {
-	var current string
+// Find last global IPv6 address or return any last IPv6 address
+// if there is no global address. This works analog to the IPv4 selection
+// mechanism but favors global addresses.
+func findIPv6Address(network *api.ContainerStateNetwork) (bool, string) {
+	var address string
 
 	for _, ip := range network.Addresses {
 		if ip.Family == "inet6" && ip.Scope == "global" {
-			if len(current) == 0 || len(ip.Address) < len(current) {
-				current = ip.Address
-			}
+			address = ip.Address
 		}
 	}
 
-	return len(current) > 0, current
+	if len(address) > 0 {
+		return true, address
+	}
+
+	for _, ip := range network.Addresses {
+		if ip.Family == "inet6" {
+			address = ip.Address
+		}
+	}
+
+	return len(address) > 0, address
 }

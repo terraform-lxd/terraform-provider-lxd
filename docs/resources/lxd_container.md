@@ -135,7 +135,7 @@ The following attributes are exported:
 
 If your container has multiple network interfaces, you can specify which one
 Terraform should report the IP addresses of. If you do not specify an interface,
-Terraform will use the _last_ IPv4 address detected and the IPv6 address with the shortest text representation.
+Terraform will use the _last_ address detected. Global IPv6 address will be favored if present.
 
 To specify an interface, do the following:
 
