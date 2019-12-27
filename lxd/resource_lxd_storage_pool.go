@@ -101,6 +101,13 @@ func resourceLxdStoragePoolRead(d *schema.ResourceData, meta interface{}) error 
 	delete(config, "name")
 	for k := range config {
 		if strings.HasPrefix(k, "volatile") {
+			// The original source is stored under volatile.initial_source
+			// so we override "source" with its value.
+			if k == "volatile.initial_source" {
+				config["source"] = config[k]
+			}
+
+			// Delete all "volatile" keys.
 			delete(config, k)
 		}
 	}
