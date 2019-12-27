@@ -84,7 +84,7 @@ func resourceLxdCachedImageCreate(d *schema.ResourceData, meta interface{}) erro
 	p := meta.(*lxdProvider)
 
 	dstName := p.selectRemote(d)
-	dstServer, err := p.GetContainerServer(dstName)
+	dstServer, err := p.GetInstanceServer(dstName)
 	if err != nil {
 		return err
 	}
@@ -168,7 +168,7 @@ func resourceLxdCachedImageCopyProgressHandler(prog string) {
 func resourceLxdCachedImageUpdate(d *schema.ResourceData, meta interface{}) error {
 	p := meta.(*lxdProvider)
 	remote := p.selectRemote(d)
-	server, err := p.GetContainerServer(remote)
+	server, err := p.GetInstanceServer(remote)
 	if err != nil {
 		return err
 	}
@@ -210,7 +210,7 @@ func resourceLxdCachedImageUpdate(d *schema.ResourceData, meta interface{}) erro
 func resourceLxdCachedImageDelete(d *schema.ResourceData, meta interface{}) error {
 	p := meta.(*lxdProvider)
 	remote := p.selectRemote(d)
-	server, err := p.GetContainerServer(remote)
+	server, err := p.GetInstanceServer(remote)
 	if err != nil {
 		return err
 	}
@@ -228,7 +228,7 @@ func resourceLxdCachedImageDelete(d *schema.ResourceData, meta interface{}) erro
 func resourceLxdCachedImageExists(d *schema.ResourceData, meta interface{}) (bool, error) {
 	p := meta.(*lxdProvider)
 	remote := p.selectRemote(d)
-	server, err := p.GetContainerServer(remote)
+	server, err := p.GetInstanceServer(remote)
 	if err != nil {
 		return false, err
 	}

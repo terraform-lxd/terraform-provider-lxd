@@ -56,7 +56,7 @@ func resourceLxdNetwork() *schema.Resource {
 
 func resourceLxdNetworkCreate(d *schema.ResourceData, meta interface{}) error {
 	p := meta.(*lxdProvider)
-	server, err := p.GetContainerServer(p.selectRemote(d))
+	server, err := p.GetInstanceServer(p.selectRemote(d))
 	if err != nil {
 		return err
 	}
@@ -89,7 +89,7 @@ func resourceLxdNetworkCreate(d *schema.ResourceData, meta interface{}) error {
 
 func resourceLxdNetworkRead(d *schema.ResourceData, meta interface{}) error {
 	p := meta.(*lxdProvider)
-	server, err := p.GetContainerServer(p.selectRemote(d))
+	server, err := p.GetInstanceServer(p.selectRemote(d))
 	if err != nil {
 		return err
 	}
@@ -117,7 +117,7 @@ func resourceLxdNetworkUpdate(d *schema.ResourceData, meta interface{}) error {
 
 func resourceLxdNetworkDelete(d *schema.ResourceData, meta interface{}) (err error) {
 	p := meta.(*lxdProvider)
-	server, err := p.GetContainerServer(p.selectRemote(d))
+	server, err := p.GetInstanceServer(p.selectRemote(d))
 	if err != nil {
 		return err
 	}
@@ -129,7 +129,7 @@ func resourceLxdNetworkDelete(d *schema.ResourceData, meta interface{}) (err err
 
 func resourceLxdNetworkExists(d *schema.ResourceData, meta interface{}) (exists bool, err error) {
 	p := meta.(*lxdProvider)
-	server, err := p.GetContainerServer(p.selectRemote(d))
+	server, err := p.GetInstanceServer(p.selectRemote(d))
 	if err != nil {
 		return false, err
 	}

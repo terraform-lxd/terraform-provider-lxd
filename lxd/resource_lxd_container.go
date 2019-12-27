@@ -183,7 +183,7 @@ func resourceLxdContainerCreate(d *schema.ResourceData, meta interface{}) error 
 
 	p := meta.(*lxdProvider)
 	remote := p.selectRemote(d)
-	server, err := p.GetContainerServer(remote)
+	server, err := p.GetInstanceServer(remote)
 	if err != nil {
 		return err
 	}
@@ -360,7 +360,7 @@ func resourceLxdContainerCreate(d *schema.ResourceData, meta interface{}) error 
 func resourceLxdContainerRead(d *schema.ResourceData, meta interface{}) error {
 	p := meta.(*lxdProvider)
 	remote := p.selectRemote(d)
-	server, err := p.GetContainerServer(remote)
+	server, err := p.GetInstanceServer(remote)
 	if err != nil {
 		return err
 	}
@@ -464,7 +464,7 @@ func resourceLxdContainerRead(d *schema.ResourceData, meta interface{}) error {
 func resourceLxdContainerUpdate(d *schema.ResourceData, meta interface{}) error {
 	p := meta.(*lxdProvider)
 	remote := p.selectRemote(d)
-	server, err := p.GetContainerServer(remote)
+	server, err := p.GetInstanceServer(remote)
 	if err != nil {
 		return err
 	}
@@ -583,7 +583,7 @@ func resourceLxdContainerUpdate(d *schema.ResourceData, meta interface{}) error 
 func resourceLxdContainerDelete(d *schema.ResourceData, meta interface{}) (err error) {
 	p := meta.(*lxdProvider)
 	remote := p.selectRemote(d)
-	server, err := p.GetContainerServer(remote)
+	server, err := p.GetInstanceServer(remote)
 	if err != nil {
 		return err
 	}
@@ -640,7 +640,7 @@ func resourceLxdContainerDelete(d *schema.ResourceData, meta interface{}) (err e
 func resourceLxdContainerExists(d *schema.ResourceData, meta interface{}) (exists bool, err error) {
 	p := meta.(*lxdProvider)
 	remote := p.selectRemote(d)
-	server, err := p.GetContainerServer(remote)
+	server, err := p.GetInstanceServer(remote)
 	if err != nil {
 		return false, err
 	}
@@ -675,7 +675,7 @@ func resourceLxdContainerImport(d *schema.ResourceData, meta interface{}) ([]*sc
 		d.Set("remote", remote)
 	}
 
-	server, err := p.GetContainerServer(p.selectRemote(d))
+	server, err := p.GetInstanceServer(p.selectRemote(d))
 	if err != nil {
 		return nil, err
 	}

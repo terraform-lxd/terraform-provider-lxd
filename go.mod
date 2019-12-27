@@ -14,7 +14,7 @@ require (
 	github.com/juju/version v0.0.0-20191219164919-81c1be00b9a6 // indirect
 	github.com/juju/webbrowser v1.0.0 // indirect
 	github.com/julienschmidt/httprouter v1.3.0 // indirect
-	github.com/lxc/lxd v0.0.0-20190628103553-26d9261d87d8
+	github.com/lxc/lxd v0.0.0-20191225221339-dfbb18acc0d8
 	github.com/mitchellh/go-homedir v1.1.0
 	github.com/rogpeppe/fastuuid v1.2.0 // indirect
 	gopkg.in/httprequest.v1 v1.2.0 // indirect
