@@ -59,7 +59,7 @@ func resourceLxdStoragePool() *schema.Resource {
 
 func resourceLxdStoragePoolCreate(d *schema.ResourceData, meta interface{}) error {
 	p := meta.(*lxdProvider)
-	server, err := p.GetContainerServer(p.selectRemote(d))
+	server, err := p.GetInstanceServer(p.selectRemote(d))
 	if err != nil {
 		return err
 	}
@@ -85,7 +85,7 @@ func resourceLxdStoragePoolCreate(d *schema.ResourceData, meta interface{}) erro
 
 func resourceLxdStoragePoolRead(d *schema.ResourceData, meta interface{}) error {
 	p := meta.(*lxdProvider)
-	server, err := p.GetContainerServer(p.selectRemote(d))
+	server, err := p.GetInstanceServer(p.selectRemote(d))
 	if err != nil {
 		return err
 	}
@@ -120,7 +120,7 @@ func resourceLxdStoragePoolRead(d *schema.ResourceData, meta interface{}) error 
 
 func resourceLxdStoragePoolUpdate(d *schema.ResourceData, meta interface{}) error {
 	p := meta.(*lxdProvider)
-	server, err := p.GetContainerServer(p.selectRemote(d))
+	server, err := p.GetInstanceServer(p.selectRemote(d))
 	if err != nil {
 		return err
 	}
@@ -150,7 +150,7 @@ func resourceLxdStoragePoolUpdate(d *schema.ResourceData, meta interface{}) erro
 
 func resourceLxdStoragePoolDelete(d *schema.ResourceData, meta interface{}) (err error) {
 	p := meta.(*lxdProvider)
-	server, err := p.GetContainerServer(p.selectRemote(d))
+	server, err := p.GetInstanceServer(p.selectRemote(d))
 	if err != nil {
 		return err
 	}
@@ -162,7 +162,7 @@ func resourceLxdStoragePoolDelete(d *schema.ResourceData, meta interface{}) (err
 
 func resourceLxdStoragePoolExists(d *schema.ResourceData, meta interface{}) (exists bool, err error) {
 	p := meta.(*lxdProvider)
-	server, err := p.GetContainerServer(p.selectRemote(d))
+	server, err := p.GetInstanceServer(p.selectRemote(d))
 	if err != nil {
 		return false, err
 	}
@@ -192,7 +192,7 @@ func resourceLxdStoragePoolImport(d *schema.ResourceData, meta interface{}) ([]*
 		d.Set("remote", remote)
 	}
 
-	server, err := p.GetContainerServer(p.selectRemote(d))
+	server, err := p.GetInstanceServer(p.selectRemote(d))
 	if err != nil {
 		return nil, err
 	}

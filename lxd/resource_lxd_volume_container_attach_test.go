@@ -71,7 +71,7 @@ func testAccVolumeContainerAttachExists(t *testing.T, n string) resource.TestChe
 		}
 
 		v := newVolumeAttachmentIDFromResourceID(rs.Primary.ID)
-		client, err := testAccProvider.Meta().(*lxdProvider).GetContainerServer("")
+		client, err := testAccProvider.Meta().(*lxdProvider).GetInstanceServer("")
 		if err != nil {
 			return err
 		}

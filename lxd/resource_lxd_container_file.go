@@ -77,7 +77,7 @@ func resourceLxdContainerFile() *schema.Resource {
 func resourceLxdContainerFileCreate(d *schema.ResourceData, meta interface{}) error {
 	p := meta.(*lxdProvider)
 	remote := p.selectRemote(d)
-	server, err := p.GetContainerServer(remote)
+	server, err := p.GetInstanceServer(remote)
 	if err != nil {
 		return err
 	}
@@ -115,7 +115,7 @@ func resourceLxdContainerFileRead(d *schema.ResourceData, meta interface{}) erro
 	remote, containerName, err := p.LXDConfig.ParseRemote(v)
 
 	remote = p.selectRemote(d)
-	server, err := p.GetContainerServer(remote)
+	server, err := p.GetInstanceServer(remote)
 	if err != nil {
 		return err
 	}
@@ -145,7 +145,7 @@ func resourceLxdContainerFileDelete(d *schema.ResourceData, meta interface{}) er
 	p := meta.(*lxdProvider)
 	v, targetFile := newFileIDFromResourceID(d.Id())
 	remote, containerName, err := p.LXDConfig.ParseRemote(v)
-	server, err := p.GetContainerServer(remote)
+	server, err := p.GetInstanceServer(remote)
 	if err != nil {
 		return err
 	}
@@ -172,7 +172,7 @@ func resourceLxdContainerFileExists(d *schema.ResourceData, meta interface{}) (e
 		return
 	}
 
-	server, err := p.GetContainerServer(remote)
+	server, err := p.GetInstanceServer(remote)
 	if err != nil {
 		return
 	}

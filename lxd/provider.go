@@ -394,7 +394,7 @@ func (p *lxdProvider) createClient(remoteName string) error {
 			p.setTerraformLXDConfig(remoteName, lxdRemote)
 
 			// Finally, make sure the client is authenticated.
-			rclient, err := p.GetContainerServer(name)
+			rclient, err := p.GetInstanceServer(name)
 			if err != nil {
 				return err
 			}
@@ -435,9 +435,9 @@ func (p *lxdProvider) getRemoteCertificate(remoteName string) error {
 	return nil
 }
 
-// GetContainerServer returns a client for the named remote.
+// GetInstanceServer returns a client for the named remote.
 // It returns an error if the remote is not a ContainerServer.
-func (p *lxdProvider) GetContainerServer(remoteName string) (lxd.ContainerServer, error) {
+func (p *lxdProvider) GetInstanceServer(remoteName string) (lxd.ContainerServer, error) {
 	s, err := p.GetServer(remoteName)
 	if err != nil {
 		return nil, err
@@ -574,7 +574,7 @@ func (p *lxdProvider) getLXDContainerClient(remoteName string) (lxd.ContainerSer
 	p.RLock()
 	defer p.RUnlock()
 
-	rclient, err := p.LXDConfig.GetContainerServer(remoteName)
+	rclient, err := p.LXDConfig.GetInstanceServer(remoteName)
 	return rclient, err
 }
 

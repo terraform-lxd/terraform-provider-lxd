@@ -177,7 +177,7 @@ func testAccCachedImageExists(t *testing.T, n string, image *api.Image) resource
 		}
 
 		id := newCachedImageIDFromResourceID(rs.Primary.ID)
-		client, err := testAccProvider.Meta().(*lxdProvider).GetContainerServer("")
+		client, err := testAccProvider.Meta().(*lxdProvider).GetInstanceServer("")
 		if err != nil {
 			return err
 		}
@@ -254,7 +254,7 @@ func testAccCachedImage_aliases(aliases ...string) string {
 	return fmt.Sprintf(`
 resource "lxd_cached_image" "img2" {
   source_remote = "images"
-  source_image = "alpine/3.9/i386"
+  source_image = "alpine/3.9"
 
   aliases = ["%s"]
   copy_aliases = false
@@ -266,7 +266,7 @@ func testAccCachedImage_aliasExists1(alias string) string {
 	return fmt.Sprintf(`
 resource "lxd_cached_image" "exists1" {
   source_remote = "images"
-  source_image = "alpine/3.9/i386"
+  source_image = "alpine/3.9"
 
   aliases = ["%s"]
   copy_aliases = false
@@ -278,7 +278,7 @@ func testAccCachedImage_aliasExists2(alias string) string {
 	return fmt.Sprintf(`
 resource "lxd_cached_image" "exists1" {
   source_remote = "images"
-  source_image = "alpine/3.9/i386"
+  source_image = "alpine/3.9"
 
   aliases = ["%s"]
   copy_aliases = false
@@ -286,7 +286,7 @@ resource "lxd_cached_image" "exists1" {
 
 resource "lxd_cached_image" "exists2" {
   source_remote = "images"
-  source_image = "alpine/3.9/amd64"
+  source_image = "alpine/3.9"
 
   aliases = ["%s"]
   copy_aliases = false
@@ -310,7 +310,7 @@ func testAccCachedImage_aliasCollision() string {
 	return fmt.Sprintf(`
 resource "lxd_cached_image" "img4" {
   source_remote = "images"
-  source_image = "alpine/3.9/amd64"
+  source_image = "alpine/3.9"
 
   aliases = ["alpine/3.9/amd64"]
   copy_aliases = true
