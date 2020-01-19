@@ -364,6 +364,25 @@ func TestAccContainer_accessInterface(t *testing.T) {
 	})
 }
 
+func TestAccContainer_withDevice(t *testing.T) {
+	var container api.Container
+	containerName := strings.ToLower(petname.Generate(2, "-"))
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:  func() { testAccPreCheck(t) },
+		Providers: testAccProviders,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccContainer_withDevice(containerName),
+				Check: resource.ComposeTestCheckFunc(
+					testAccContainerRunning(t, "lxd_container.container1", &container),
+					resource.TestCheckResourceAttr("lxd_container.container1", "name", containerName),
+				),
+			},
+		},
+	})
+}
+
 func testAccContainerRunning(t *testing.T, n string, container *api.Container) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		rs, ok := s.RootModule().Resources[n]
@@ -822,4 +841,24 @@ resource "lxd_container" "container1" {
   }
 }
 	`, networkName1, containerName)
+}
+
+func testAccContainer_withDevice(name string) string {
+	return fmt.Sprintf(`
+resource "lxd_container" "container1" {
+  name = "%s"
+  image = "images:alpine/3.9/amd64"
+  profiles = ["default"]
+
+  device {
+    name = "foo"
+    type = "nic"
+    properties = {
+      name    = "bar"
+      nictype = "bridged"
+      parent  = "lxdbr0"
+    }
+  }
+}
+	`, name)
 }
