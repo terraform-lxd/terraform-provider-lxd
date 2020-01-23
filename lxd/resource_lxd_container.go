@@ -450,7 +450,6 @@ func resourceLxdContainerRead(d *schema.ResourceData, meta interface{}) error {
 	for name, lxddevice := range container.Devices {
 		device := make(map[string]interface{})
 		device["name"] = name
-		delete(lxddevice, "name")
 		device["type"] = lxddevice["type"]
 		delete(lxddevice, "type")
 		device["properties"] = lxddevice
