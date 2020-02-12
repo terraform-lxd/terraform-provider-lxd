@@ -54,7 +54,7 @@ func TestAccLxdProvider_envRemote(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		Providers: testAccProviders,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccLxdProvider_basic(envName),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("lxd_noop.noop1", "remote", envName),
@@ -73,7 +73,7 @@ func TestAccLxdProvider_providerRemote(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		Providers: testAccProviders,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccLxdProvider_remote(envName, envAddr, envPort, envPassword),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("lxd_noop.noop1", "remote", envName),
@@ -87,19 +87,19 @@ func TestAccLxdProvider_imageRemotes(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		Providers: testAccProviders,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccLxdProvider_basic("ubuntu"),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("lxd_noop.noop1", "remote", "ubuntu"),
 				),
 			},
-			resource.TestStep{
+			{
 				Config: testAccLxdProvider_basic("ubuntu-daily"),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("lxd_noop.noop1", "remote", "ubuntu-daily"),
 				),
 			},
-			resource.TestStep{
+			{
 				Config: testAccLxdProvider_basic("images"),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("lxd_noop.noop1", "remote", "images"),
@@ -137,7 +137,7 @@ func TestAccLxdProvider_socketRemote(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		Providers: testAccProviders,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccLxdProvider_socketRemote(remoteName, socketAddr),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("lxd_noop.noop1", "remote", remoteName),
@@ -176,21 +176,21 @@ func TestAccLxdProvider_lxcConfigRemotes(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		Providers: testAccProviders,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccLxdProvider_lxcConfig1(tmpDir, remoteName, remoteAddr, remotePort, remotePassword),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("lxd_noop.noop1", "remote", remoteName),
 					resource.TestCheckResourceAttr("lxd_noop.noop1", "client_name", remoteName),
 				),
 			},
-			resource.TestStep{
+			{
 				Config: testAccLxdProvider_lxcConfig2(tmpDir, remoteName),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("lxd_noop.noop1", "remote", remoteName),
 					resource.TestCheckResourceAttr("lxd_noop.noop1", "client_name", remoteName),
 				),
 			},
-			resource.TestStep{
+			{
 				Config: testAccLxdProvider_lxcConfig3(tmpDir),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("lxd_noop.noop2", "remote", ""),
@@ -218,7 +218,7 @@ func TestAccLxdProvider_noConfigFile(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		Providers: testAccProviders,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccLxdProvider_configDir(envName, envAddr, envPort, envPassword, tmpDir),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("lxd_noop.noop1", "remote", envName),
@@ -392,18 +392,18 @@ func resourceLxdNoOp() *schema.Resource {
 		},
 
 		Schema: map[string]*schema.Schema{
-			"name": &schema.Schema{
+			"name": {
 				Type:     schema.TypeString,
 				ForceNew: true,
 				Required: true,
 			},
-			"remote": &schema.Schema{
+			"remote": {
 				Type:     schema.TypeString,
 				ForceNew: true,
 				Optional: true,
 				Default:  "",
 			},
-			"client_name": &schema.Schema{
+			"client_name": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},

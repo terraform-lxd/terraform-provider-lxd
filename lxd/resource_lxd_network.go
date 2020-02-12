@@ -16,35 +16,35 @@ func resourceLxdNetwork() *schema.Resource {
 		Read:   resourceLxdNetworkRead,
 
 		Schema: map[string]*schema.Schema{
-			"name": &schema.Schema{
+			"name": {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
 			},
 
-			"description": &schema.Schema{
+			"description": {
 				Type:     schema.TypeString,
 				Optional: true,
 				ForceNew: true,
 			},
 
-			"config": &schema.Schema{
+			"config": {
 				Type:     schema.TypeMap,
 				Required: true,
 				ForceNew: true,
 			},
 
-			"type": &schema.Schema{
+			"type": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
 
-			"managed": &schema.Schema{
+			"managed": {
 				Type:     schema.TypeBool,
 				Computed: true,
 			},
 
-			"remote": &schema.Schema{
+			"remote": {
 				Type:     schema.TypeString,
 				Optional: true,
 				ForceNew: true,

@@ -22,7 +22,7 @@ func TestAccContainer_basic(t *testing.T) {
 		PreCheck:  func() { testAccPreCheck(t) },
 		Providers: testAccProviders,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccContainer_basic(containerName),
 				Check: resource.ComposeTestCheckFunc(
 					testAccContainerRunning(t, "lxd_container.container1", &container),
@@ -41,7 +41,7 @@ func TestAccContainer_remoteImage(t *testing.T) {
 		PreCheck:  func() { testAccPreCheck(t) },
 		Providers: testAccProviders,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccContainer_remoteImage(containerName),
 				Check: resource.ComposeTestCheckFunc(
 					testAccContainerRunning(t, "lxd_container.container1", &container),
@@ -60,7 +60,7 @@ func TestAccContainer_config(t *testing.T) {
 		PreCheck:  func() { testAccPreCheck(t) },
 		Providers: testAccProviders,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccContainer_config(containerName),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("lxd_container.container1", "name", containerName),
@@ -83,7 +83,7 @@ func TestAccContainer_addProfile(t *testing.T) {
 		PreCheck:  func() { testAccPreCheck(t) },
 		Providers: testAccProviders,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccContainer_addProfile_1(profileName, containerName),
 				Check: resource.ComposeTestCheckFunc(
 					testAccProfileRunning(t, "lxd_profile.profile1", &profile),
@@ -93,7 +93,7 @@ func TestAccContainer_addProfile(t *testing.T) {
 					testAccContainerProfile(&container, "default"),
 				),
 			},
-			resource.TestStep{
+			{
 				Config: testAccContainer_addProfile_2(profileName, containerName),
 				Check: resource.ComposeTestCheckFunc(
 					testAccProfileRunning(t, "lxd_profile.profile1", &profile),
@@ -118,7 +118,7 @@ func TestAccContainer_removeProfile(t *testing.T) {
 		PreCheck:  func() { testAccPreCheck(t) },
 		Providers: testAccProviders,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccContainer_removeProfile_1(profileName, containerName),
 				Check: resource.ComposeTestCheckFunc(
 					testAccProfileRunning(t, "lxd_profile.profile1", &profile),
@@ -129,7 +129,7 @@ func TestAccContainer_removeProfile(t *testing.T) {
 					testAccContainerProfile(&container, profileName),
 				),
 			},
-			resource.TestStep{
+			{
 				Config: testAccContainer_removeProfile_2(profileName, containerName),
 				Check: resource.ComposeTestCheckFunc(
 					testAccProfileRunning(t, "lxd_profile.profile1", &profile),
@@ -164,7 +164,7 @@ func TestAccContainer_device(t *testing.T) {
 		PreCheck:  func() { testAccPreCheck(t) },
 		Providers: testAccProviders,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccContainer_device_1(containerName),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("lxd_container.container1", "name", containerName),
@@ -173,7 +173,7 @@ func TestAccContainer_device(t *testing.T) {
 					testAccContainerDevice(&container, "shared", device1),
 				),
 			},
-			resource.TestStep{
+			{
 				Config: testAccContainer_device_2(containerName),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("lxd_container.container1", "name", containerName),
@@ -200,14 +200,14 @@ func TestAccContainer_addDevice(t *testing.T) {
 		PreCheck:  func() { testAccPreCheck(t) },
 		Providers: testAccProviders,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccContainer_addDevice_1(containerName),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("lxd_container.container1", "name", containerName),
 					testAccContainerRunning(t, "lxd_container.container1", &container),
 				),
 			},
-			resource.TestStep{
+			{
 				Config: testAccContainer_addDevice_2(containerName),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("lxd_container.container1", "name", containerName),
@@ -234,7 +234,7 @@ func TestAccContainer_removeDevice(t *testing.T) {
 		PreCheck:  func() { testAccPreCheck(t) },
 		Providers: testAccProviders,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccContainer_removeDevice_1(containerName),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("lxd_container.container1", "name", containerName),
@@ -243,7 +243,7 @@ func TestAccContainer_removeDevice(t *testing.T) {
 					testAccContainerDevice(&container, "shared", device),
 				),
 			},
-			resource.TestStep{
+			{
 				Config: testAccContainer_removeDevice_2(containerName),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("lxd_container.container1", "name", containerName),
@@ -263,13 +263,13 @@ func TestAccContainer_fileUploadContent(t *testing.T) {
 		PreCheck:  func() { testAccPreCheck(t) },
 		Providers: testAccProviders,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccContainer_fileUploadContent_1(containerName),
 				Check: resource.ComposeTestCheckFunc(
 					testAccContainerRunning(t, "lxd_container.container1", &container),
 				),
 			},
-			resource.TestStep{
+			{
 				Config: testAccContainer_fileUploadContent_2(containerName),
 				Check: resource.ComposeTestCheckFunc(
 					testAccContainerRunning(t, "lxd_container.container1", &container),
@@ -287,7 +287,7 @@ func TestAccContainer_fileUploadSource(t *testing.T) {
 		PreCheck:  func() { testAccPreCheck(t) },
 		Providers: testAccProviders,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccContainer_fileUploadSource(containerName),
 				Check: resource.ComposeTestCheckFunc(
 					testAccContainerRunning(t, "lxd_container.container1", &container),
@@ -305,7 +305,7 @@ func TestAccContainer_defaultProfile(t *testing.T) {
 		PreCheck:  func() { testAccPreCheck(t) },
 		Providers: testAccProviders,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccContainer_defaultProfile(containerName),
 				Check: resource.ComposeTestCheckFunc(
 					testAccContainerRunning(t, "lxd_container.container1", &container),
@@ -325,14 +325,14 @@ func TestAccContainer_configLimits(t *testing.T) {
 		PreCheck:  func() { testAccPreCheck(t) },
 		Providers: testAccProviders,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccContainer_configLimits_1(containerName),
 				Check: resource.ComposeTestCheckFunc(
 					testAccContainerRunning(t, "lxd_container.container1", &container),
 					resource.TestCheckResourceAttr("lxd_container.container1", "limits.cpu", "1"),
 				),
 			},
-			resource.TestStep{
+			{
 				Config: testAccContainer_configLimits_2(containerName),
 				Check: resource.ComposeTestCheckFunc(
 					testAccContainerRunning(t, "lxd_container.container1", &container),
@@ -352,7 +352,7 @@ func TestAccContainer_accessInterface(t *testing.T) {
 		PreCheck:  func() { testAccPreCheck(t) },
 		Providers: testAccProviders,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccContainer_accessInterface(networkName1, containerName),
 				Check: resource.ComposeTestCheckFunc(
 					testAccContainerRunning(t, "lxd_container.container1", &container),
@@ -372,7 +372,7 @@ func TestAccContainer_withDevice(t *testing.T) {
 		PreCheck:  func() { testAccPreCheck(t) },
 		Providers: testAccProviders,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccContainer_withDevice(containerName),
 				Check: resource.ComposeTestCheckFunc(
 					testAccContainerRunning(t, "lxd_container.container1", &container),

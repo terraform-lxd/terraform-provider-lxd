@@ -21,13 +21,13 @@ func resourceLxdStoragePool() *schema.Resource {
 		},
 
 		Schema: map[string]*schema.Schema{
-			"name": &schema.Schema{
+			"name": {
 				Type:     schema.TypeString,
 				ForceNew: true,
 				Required: true,
 			},
 
-			"driver": &schema.Schema{
+			"driver": {
 				Type:     schema.TypeString,
 				ForceNew: true,
 				Required: true,
@@ -41,13 +41,13 @@ func resourceLxdStoragePool() *schema.Resource {
 				},
 			},
 
-			"config": &schema.Schema{
+			"config": {
 				Type:     schema.TypeMap,
 				Required: true,
 				ForceNew: false,
 			},
 
-			"remote": &schema.Schema{
+			"remote": {
 				Type:     schema.TypeString,
 				ForceNew: true,
 				Optional: true,

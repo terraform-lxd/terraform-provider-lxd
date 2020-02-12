@@ -21,7 +21,7 @@ func TestAccStoragePool_basic(t *testing.T) {
 		PreCheck:  func() { testAccPreCheck(t) },
 		Providers: testAccProviders,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccStoragePool_basic(poolName),
 				Check: resource.ComposeTestCheckFunc(
 					testAccStoragePoolExists(t, "lxd_storage_pool.storage_pool1", &pool),

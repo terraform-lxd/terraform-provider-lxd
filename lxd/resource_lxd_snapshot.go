@@ -19,37 +19,37 @@ func resourceLxdSnapshot() *schema.Resource {
 		Read:   resourceLxdSnapshotRead,
 
 		Schema: map[string]*schema.Schema{
-			"container_name": &schema.Schema{
+			"container_name": {
 				Type:     schema.TypeString,
 				ForceNew: true,
 				Required: true,
 			},
 
-			"name": &schema.Schema{
+			"name": {
 				Type:     schema.TypeString,
 				ForceNew: true,
 				Required: true,
 			},
 
-			"stateful": &schema.Schema{
+			"stateful": {
 				Type:     schema.TypeBool,
 				Optional: true,
 				Default:  false,
 				ForceNew: true,
 			},
 
-			"creation_date": &schema.Schema{
+			"creation_date": {
 				Type:       schema.TypeString,
 				Computed:   true,
 				Deprecated: "Use created_at instead",
 			},
 
-			"created_at": &schema.Schema{
+			"created_at": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
 
-			"remote": &schema.Schema{
+			"remote": {
 				Type:     schema.TypeString,
 				ForceNew: true,
 				Optional: true,

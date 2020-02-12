@@ -17,37 +17,37 @@ func resourceLxdVolume() *schema.Resource {
 		Read:   resourceLxdVolumeRead,
 
 		Schema: map[string]*schema.Schema{
-			"name": &schema.Schema{
+			"name": {
 				Type:     schema.TypeString,
 				ForceNew: true,
 				Required: true,
 			},
 
-			"pool": &schema.Schema{
+			"pool": {
 				Type:     schema.TypeString,
 				ForceNew: true,
 				Required: true,
 			},
 
-			"type": &schema.Schema{
+			"type": {
 				Type:     schema.TypeString,
 				ForceNew: true,
 				Optional: true,
 				Default:  "custom",
 			},
 
-			"config": &schema.Schema{
+			"config": {
 				Type:     schema.TypeMap,
 				Optional: true,
 				ForceNew: false,
 			},
 
-			"expanded_config": &schema.Schema{
+			"expanded_config": {
 				Type:     schema.TypeMap,
 				Computed: true,
 			},
 
-			"remote": &schema.Schema{
+			"remote": {
 				Type:     schema.TypeString,
 				ForceNew: true,
 				Optional: true,
