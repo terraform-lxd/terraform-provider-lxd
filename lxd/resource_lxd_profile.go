@@ -20,34 +20,34 @@ func resourceLxdProfile() *schema.Resource {
 		},
 
 		Schema: map[string]*schema.Schema{
-			"name": &schema.Schema{
+			"name": {
 				Type:     schema.TypeString,
 				ForceNew: true,
 				Required: true,
 			},
 
-			"description": &schema.Schema{
+			"description": {
 				Type:     schema.TypeString,
 				Optional: true,
 			},
 
-			"device": &schema.Schema{
+			"device": {
 				Type:     schema.TypeSet,
 				Optional: true,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
-						"name": &schema.Schema{
+						"name": {
 							Type:     schema.TypeString,
 							Required: true,
 						},
 
-						"type": &schema.Schema{
+						"type": {
 							Type:         schema.TypeString,
 							Required:     true,
 							ValidateFunc: resourceLxdValidateDeviceType,
 						},
 
-						"properties": &schema.Schema{
+						"properties": {
 							Type:     schema.TypeMap,
 							Required: true,
 						},
@@ -55,12 +55,12 @@ func resourceLxdProfile() *schema.Resource {
 				},
 			},
 
-			"config": &schema.Schema{
+			"config": {
 				Type:     schema.TypeMap,
 				Optional: true,
 			},
 
-			"remote": &schema.Schema{
+			"remote": {
 				Type:     schema.TypeString,
 				ForceNew: true,
 				Optional: true,

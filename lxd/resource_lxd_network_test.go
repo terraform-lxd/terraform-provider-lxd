@@ -19,7 +19,7 @@ func TestAccNetwork_basic(t *testing.T) {
 		PreCheck:  func() { testAccPreCheck(t) },
 		Providers: testAccProviders,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccNetwork_basic(),
 				Check: resource.ComposeTestCheckFunc(
 					testAccNetworkExists(t, "lxd_network.eth1", &network),
@@ -38,7 +38,7 @@ func TestAccNetwork_description(t *testing.T) {
 		PreCheck:  func() { testAccPreCheck(t) },
 		Providers: testAccProviders,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccNetwork_desc(),
 				Check: resource.ComposeTestCheckFunc(
 					testAccNetworkExists(t, "lxd_network.eth1", &network),
@@ -66,7 +66,7 @@ func TestAccNetwork_attach(t *testing.T) {
 		PreCheck:  func() { testAccPreCheck(t) },
 		Providers: testAccProviders,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccNetwork_attach(profileName, containerName),
 				Check: resource.ComposeTestCheckFunc(
 					testAccNetworkExists(t, "lxd_network.eth1", &network),

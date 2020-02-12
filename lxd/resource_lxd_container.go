@@ -27,27 +27,27 @@ func resourceLxdContainer() *schema.Resource {
 		},
 
 		Schema: map[string]*schema.Schema{
-			"name": &schema.Schema{
+			"name": {
 				Type:     schema.TypeString,
 				ForceNew: true,
 				Required: true,
 			},
 
-			"remote": &schema.Schema{
+			"remote": {
 				Type:     schema.TypeString,
 				ForceNew: true,
 				Optional: true,
 				Default:  "",
 			},
 
-			"image": &schema.Schema{
+			"image": {
 				Type:             schema.TypeString,
 				ForceNew:         true,
 				Required:         true,
 				DiffSuppressFunc: suppressImageDifferences,
 			},
 
-			"profiles": &schema.Schema{
+			"profiles": {
 				Type:     schema.TypeList,
 				Elem:     &schema.Schema{Type: schema.TypeString},
 				Optional: true,
@@ -55,23 +55,23 @@ func resourceLxdContainer() *schema.Resource {
 				Computed: true,
 			},
 
-			"device": &schema.Schema{
+			"device": {
 				Type:     schema.TypeSet,
 				Optional: true,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
-						"name": &schema.Schema{
+						"name": {
 							Type:     schema.TypeString,
 							Required: true,
 						},
 
-						"type": &schema.Schema{
+						"type": {
 							Type:         schema.TypeString,
 							Required:     true,
 							ValidateFunc: resourceLxdValidateDeviceType,
 						},
 
-						"properties": &schema.Schema{
+						"properties": {
 							Type:     schema.TypeMap,
 							Required: true,
 						},
@@ -79,33 +79,33 @@ func resourceLxdContainer() *schema.Resource {
 				},
 			},
 
-			"config": &schema.Schema{
+			"config": {
 				Type:     schema.TypeMap,
 				Optional: true,
 				ForceNew: true,
 			},
 
-			"limits": &schema.Schema{
+			"limits": {
 				Type:     schema.TypeMap,
 				Optional: true,
 				ForceNew: false,
 			},
 
-			"ephemeral": &schema.Schema{
+			"ephemeral": {
 				Type:     schema.TypeBool,
 				Optional: true,
 				Default:  false,
 				ForceNew: true,
 			},
 
-			"wait_for_network": &schema.Schema{
+			"wait_for_network": {
 				Type:     schema.TypeBool,
 				Optional: true,
 				Default:  true,
 				ForceNew: false,
 			},
 
-			"privileged": &schema.Schema{
+			"privileged": {
 				Type:       schema.TypeBool,
 				Optional:   true,
 				Default:    false,
@@ -113,42 +113,42 @@ func resourceLxdContainer() *schema.Resource {
 				Deprecated: "Use a config setting of security.privileged=1 instead",
 			},
 
-			"file": &schema.Schema{
+			"file": {
 				Type:     schema.TypeList,
 				Optional: true,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
-						"content": &schema.Schema{
+						"content": {
 							Type:     schema.TypeString,
 							Optional: true,
 						},
 
-						"source": &schema.Schema{
+						"source": {
 							Type:     schema.TypeString,
 							Optional: true,
 						},
 
-						"target_file": &schema.Schema{
+						"target_file": {
 							Type:     schema.TypeString,
 							Required: true,
 						},
 
-						"uid": &schema.Schema{
+						"uid": {
 							Type:     schema.TypeInt,
 							Optional: true,
 						},
 
-						"gid": &schema.Schema{
+						"gid": {
 							Type:     schema.TypeInt,
 							Optional: true,
 						},
 
-						"mode": &schema.Schema{
+						"mode": {
 							Type:     schema.TypeString,
 							Optional: true,
 						},
 
-						"create_directories": &schema.Schema{
+						"create_directories": {
 							Type:     schema.TypeBool,
 							Optional: true,
 						},
@@ -156,18 +156,18 @@ func resourceLxdContainer() *schema.Resource {
 				},
 			},
 
-			"ip_address": &schema.Schema{
+			"ip_address": {
 				Type:     schema.TypeString,
 				Computed: true,
 				ForceNew: false,
 			},
 
-			"status": &schema.Schema{
+			"status": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
 
-			"mac_address": &schema.Schema{
+			"mac_address": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},

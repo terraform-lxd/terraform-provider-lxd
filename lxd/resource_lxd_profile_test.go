@@ -22,7 +22,7 @@ func TestAccProfile_basic(t *testing.T) {
 		PreCheck:  func() { testAccPreCheck(t) },
 		Providers: testAccProviders,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccProfile_basic(profileName),
 				Check: resource.ComposeTestCheckFunc(
 					testAccProfileRunning(t, "lxd_profile.profile1", &profile),
@@ -41,7 +41,7 @@ func TestAccProfile_config(t *testing.T) {
 		PreCheck:  func() { testAccPreCheck(t) },
 		Providers: testAccProviders,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccProfile_config(profileName),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("lxd_profile.profile1", "name", profileName),
@@ -74,7 +74,7 @@ func TestAccProfile_device(t *testing.T) {
 		PreCheck:  func() { testAccPreCheck(t) },
 		Providers: testAccProviders,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccProfile_device_1(profileName),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("lxd_profile.profile1", "name", profileName),
@@ -83,7 +83,7 @@ func TestAccProfile_device(t *testing.T) {
 					testAccProfileDevice(&profile, "shared", device1),
 				),
 			},
-			resource.TestStep{
+			{
 				Config: testAccProfile_device_2(profileName),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("lxd_profile.profile1", "name", profileName),
@@ -116,14 +116,14 @@ func TestAccProfile_addDevice(t *testing.T) {
 		PreCheck:  func() { testAccPreCheck(t) },
 		Providers: testAccProviders,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccProfile_addDevice_1(profileName),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("lxd_profile.profile1", "name", profileName),
 					testAccProfileRunning(t, "lxd_profile.profile1", &profile),
 				),
 			},
-			resource.TestStep{
+			{
 				Config: testAccProfile_addDevice_2(profileName),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("lxd_profile.profile1", "name", profileName),
@@ -132,7 +132,7 @@ func TestAccProfile_addDevice(t *testing.T) {
 					testAccProfileDevice(&profile, "shared1", device1),
 				),
 			},
-			resource.TestStep{
+			{
 				Config: testAccProfile_addDevice_3(profileName),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("lxd_profile.profile1", "name", profileName),
@@ -160,7 +160,7 @@ func TestAccProfile_removeDevice(t *testing.T) {
 		PreCheck:  func() { testAccPreCheck(t) },
 		Providers: testAccProviders,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccProfile_removeDevice_1(profileName),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("lxd_profile.profile1", "name", profileName),
@@ -169,7 +169,7 @@ func TestAccProfile_removeDevice(t *testing.T) {
 					testAccProfileDevice(&profile, "shared", device),
 				),
 			},
-			resource.TestStep{
+			{
 				Config: testAccProfile_removeDevice_2(profileName),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("lxd_profile.profile1", "name", profileName),
@@ -191,7 +191,7 @@ func TestAccProfile_containerConfig(t *testing.T) {
 		PreCheck:  func() { testAccPreCheck(t) },
 		Providers: testAccProviders,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccProfile_containerConfig(profileName, containerName),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("lxd_profile.profile1", "name", profileName),
@@ -223,7 +223,7 @@ func TestAccProfile_containerDevice(t *testing.T) {
 		PreCheck:  func() { testAccPreCheck(t) },
 		Providers: testAccProviders,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccProfile_containerDevice(profileName, containerName),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("lxd_profile.profile1", "name", profileName),

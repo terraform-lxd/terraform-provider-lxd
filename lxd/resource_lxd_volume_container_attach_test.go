@@ -22,7 +22,7 @@ func TestAccVolumeContainerAttach_basic(t *testing.T) {
 		PreCheck:  func() { testAccPreCheck(t) },
 		Providers: testAccProviders,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccVolumeContainerAttach_basic(poolName, volumeName, containerName),
 				Check: resource.ComposeTestCheckFunc(
 					testAccVolumeContainerAttachExists(t, "lxd_volume_container_attach.attach1"),
@@ -46,7 +46,7 @@ func TestAccVolumeContainerAttach_deviceName(t *testing.T) {
 		PreCheck:  func() { testAccPreCheck(t) },
 		Providers: testAccProviders,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccVolumeContainerAttach_deviceName(poolName, volumeName, containerName),
 				Check: resource.ComposeTestCheckFunc(
 					testAccVolumeContainerAttachExists(t, "lxd_volume_container_attach.attach1"),

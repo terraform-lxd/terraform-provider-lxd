@@ -17,7 +17,7 @@ func TestAccSnapshot_stateless(t *testing.T) {
 		PreCheck:  func() { testAccPreCheck(t) },
 		Providers: testAccProviders,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccSnapshot_basic(containerName, snapshotName, false),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("lxd_snapshot.snapshot1", "name", snapshotName),
@@ -66,13 +66,13 @@ func TestAccSnapshot_multiple(t *testing.T) {
 		PreCheck:  func() { testAccPreCheck(t) },
 		Providers: testAccProviders,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccSnapshot_multiple1(containerName, snap1Name),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("lxd_snapshot.snapshot1", "name", snap1Name),
 				),
 			},
-			resource.TestStep{
+			{
 				Config: testAccSnapshot_multiple2(containerName, snap1Name, snap2Name),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("lxd_snapshot.snapshot1", "name", snap1Name),

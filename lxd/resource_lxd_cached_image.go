@@ -47,7 +47,7 @@ func resourceLxdCachedImage() *schema.Resource {
 				ForceNew: true,
 			},
 
-			"remote": &schema.Schema{
+			"remote": {
 				Type:     schema.TypeString,
 				ForceNew: true,
 				Optional: true,

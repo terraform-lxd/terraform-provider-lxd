@@ -15,57 +15,57 @@ func resourceLxdContainerFile() *schema.Resource {
 		Delete: resourceLxdContainerFileDelete,
 
 		Schema: map[string]*schema.Schema{
-			"container_name": &schema.Schema{
+			"container_name": {
 				Type:     schema.TypeString,
 				ForceNew: true,
 				Required: true,
 			},
 
-			"target_file": &schema.Schema{
+			"target_file": {
 				Type:     schema.TypeString,
 				ForceNew: true,
 				Required: true,
 			},
 
-			"content": &schema.Schema{
+			"content": {
 				Type:          schema.TypeString,
 				ForceNew:      true,
 				Optional:      true,
 				ConflictsWith: []string{"source"},
 			},
 
-			"source": &schema.Schema{
+			"source": {
 				Type:          schema.TypeString,
 				ForceNew:      true,
 				Optional:      true,
 				ConflictsWith: []string{"content"},
 			},
 
-			"uid": &schema.Schema{
+			"uid": {
 				Type:     schema.TypeInt,
 				ForceNew: true,
 				Optional: true,
 			},
 
-			"gid": &schema.Schema{
+			"gid": {
 				Type:     schema.TypeInt,
 				ForceNew: true,
 				Optional: true,
 			},
 
-			"mode": &schema.Schema{
+			"mode": {
 				Type:     schema.TypeString,
 				ForceNew: true,
 				Optional: true,
 			},
 
-			"create_directories": &schema.Schema{
+			"create_directories": {
 				Type:     schema.TypeBool,
 				ForceNew: true,
 				Optional: true,
 			},
 
-			"remote": &schema.Schema{
+			"remote": {
 				Type:     schema.TypeString,
 				ForceNew: true,
 				Optional: true,

@@ -75,45 +75,45 @@ func Provider() terraform.ResourceProvider {
 			// I'd prefer to call this 'remote', however that was already used in the past
 			// to set the name of the root level LXD remote in the provider
 			// After an deprecation cycle we could rename this to 'remote'
-			"lxd_remote": &schema.Schema{
+			"lxd_remote": {
 				Type:     schema.TypeList,
 				Optional: true,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
-						"address": &schema.Schema{
+						"address": {
 							Type:        schema.TypeString,
 							Optional:    true,
 							Description: descriptions["lxd_remote_address"],
 							Default:     "",
 						},
 
-						"default": &schema.Schema{
+						"default": {
 							Type:        schema.TypeBool,
 							Optional:    true,
 							Description: descriptions["lxd_remote_default"],
 						},
 
-						"name": &schema.Schema{
+						"name": {
 							Type:        schema.TypeString,
 							Required:    true,
 							Description: descriptions["lxd_remote_name"],
 						},
 
-						"password": &schema.Schema{
+						"password": {
 							Type:        schema.TypeString,
 							Optional:    true,
 							Sensitive:   true,
 							Description: descriptions["lxd_remote_password"],
 						},
 
-						"port": &schema.Schema{
+						"port": {
 							Type:        schema.TypeString,
 							Optional:    true,
 							Description: descriptions["lxd_remote_port"],
 							Default:     "8443",
 						},
 
-						"scheme": &schema.Schema{
+						"scheme": {
 							Type:         schema.TypeString,
 							Optional:     true,
 							Description:  descriptions["lxd_remote_scheme"],
@@ -124,38 +124,38 @@ func Provider() terraform.ResourceProvider {
 				},
 			},
 
-			"address": &schema.Schema{
+			"address": {
 				Type:     schema.TypeString,
 				Optional: true,
 				Removed:  "Use `lxd_remote.address` instead.",
 			},
 
-			"scheme": &schema.Schema{
+			"scheme": {
 				Type:     schema.TypeString,
 				Optional: true,
 				Removed:  "Use `lxd_remote.scheme` instead.",
 			},
 
-			"port": &schema.Schema{
+			"port": {
 				Type:     schema.TypeString,
 				Optional: true,
 				Removed:  "Use `lxd_remote.port` instead.",
 			},
 
-			"remote": &schema.Schema{
+			"remote": {
 				Type:     schema.TypeString,
 				Optional: true,
 				Removed:  "Use `lxd_remote.name` instead.",
 			},
 
-			"remote_password": &schema.Schema{
+			"remote_password": {
 				Type:      schema.TypeString,
 				Sensitive: true,
 				Optional:  true,
 				Removed:   "Use `lxd_remote.password` instead.",
 			},
 
-			"config_dir": &schema.Schema{
+			"config_dir": {
 				Type:        schema.TypeString,
 				Optional:    true,
 				Description: descriptions["lxd_config_dir"],
@@ -164,21 +164,21 @@ func Provider() terraform.ResourceProvider {
 				},
 			},
 
-			"generate_client_certificates": &schema.Schema{
+			"generate_client_certificates": {
 				Type:        schema.TypeBool,
 				Optional:    true,
 				Description: descriptions["lxd_generate_client_certs"],
 				DefaultFunc: schema.EnvDefaultFunc("LXD_GENERATE_CLIENT_CERTS", ""),
 			},
 
-			"accept_remote_certificate": &schema.Schema{
+			"accept_remote_certificate": {
 				Type:        schema.TypeBool,
 				Optional:    true,
 				Description: descriptions["lxd_accept_remote_certificate"],
 				DefaultFunc: schema.EnvDefaultFunc("LXD_ACCEPT_SERVER_CERTIFICATE", ""),
 			},
 
-			"refresh_interval": &schema.Schema{
+			"refresh_interval": {
 				Type:        schema.TypeString,
 				Optional:    true,
 				Description: descriptions["lxd_refresh_interval"],

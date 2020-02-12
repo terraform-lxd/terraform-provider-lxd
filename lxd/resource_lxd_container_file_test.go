@@ -22,7 +22,7 @@ func TestAccContainerFile_content(t *testing.T) {
 		PreCheck:  func() { testAccPreCheck(t) },
 		Providers: testAccProviders,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccContainerFile_content(containerName),
 				Check: resource.ComposeTestCheckFunc(
 					testAccContainerFileExists(t, "lxd_container_file.file1", &file),
@@ -42,7 +42,7 @@ func TestAccContainerFile_source(t *testing.T) {
 		PreCheck:  func() { testAccPreCheck(t) },
 		Providers: testAccProviders,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccContainerFile_source(containerName),
 				Check: resource.ComposeTestCheckFunc(
 					testAccContainerFileExists(t, "lxd_container_file.file1", &file),

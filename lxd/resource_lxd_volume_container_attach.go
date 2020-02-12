@@ -17,35 +17,35 @@ func resourceLxdVolumeContainerAttach() *schema.Resource {
 		Read:   resourceLxdVolumeContainerAttachRead,
 
 		Schema: map[string]*schema.Schema{
-			"pool": &schema.Schema{
+			"pool": {
 				Type:       schema.TypeString,
 				ForceNew:   true,
 				Required:   true,
 				Deprecated: "lxd_volume_container_attach has been deprecated and will be removed",
 			},
 
-			"volume_name": &schema.Schema{
+			"volume_name": {
 				Type:       schema.TypeString,
 				ForceNew:   true,
 				Required:   true,
 				Deprecated: "lxd_volume_container_attach has been deprecated and will be removed",
 			},
 
-			"container_name": &schema.Schema{
+			"container_name": {
 				Type:       schema.TypeString,
 				ForceNew:   true,
 				Required:   true,
 				Deprecated: "lxd_volume_container_attach has been deprecated and will be removed",
 			},
 
-			"path": &schema.Schema{
+			"path": {
 				Type:       schema.TypeString,
 				ForceNew:   true,
 				Required:   true,
 				Deprecated: "lxd_volume_container_attach has been deprecated and will be removed",
 			},
 
-			"device_name": &schema.Schema{
+			"device_name": {
 				Type:       schema.TypeString,
 				ForceNew:   true,
 				Optional:   true,
@@ -53,7 +53,7 @@ func resourceLxdVolumeContainerAttach() *schema.Resource {
 				Deprecated: "lxd_volume_container_attach has been deprecated and will be removed",
 			},
 
-			"remote": &schema.Schema{
+			"remote": {
 				Type:       schema.TypeString,
 				ForceNew:   true,
 				Optional:   true,
