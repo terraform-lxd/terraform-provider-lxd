@@ -162,13 +162,13 @@ func resourceLxdContainer() *schema.Resource {
 				ForceNew: false,
 			},
 
-			"ipv4_address": &schema.Schema{
+			"ipv4_address": {
 				Type:     schema.TypeString,
 				Computed: true,
 				ForceNew: false,
 			},
 
-			"ipv6_address": &schema.Schema{
+			"ipv6_address": {
 				Type:     schema.TypeString,
 				Computed: true,
 				ForceNew: false,
