@@ -358,6 +358,8 @@ func TestAccContainer_accessInterface(t *testing.T) {
 					testAccContainerRunning(t, "lxd_container.container1", &container),
 					resource.TestCheckResourceAttr("lxd_container.container1", "name", containerName),
 					resource.TestCheckResourceAttr("lxd_container.container1", "ip_address", "10.150.19.200"),
+					resource.TestCheckResourceAttr("lxd_container.container1", "ipv4_address", "10.150.19.200"),
+					resource.TestCheckResourceAttr("lxd_container.container1", "ipv6_address", "fd42:474b:622d:259d:216:3eff:fe39:7f36"),
 				),
 			},
 		},
@@ -836,6 +838,7 @@ resource "lxd_container" "container1" {
     properties = {
       nictype = "bridged"
       parent = "${lxd_network.network_1.name}"
+      hwaddr = "00:16:3e:39:7f:36"
       "ipv4.address" = "10.150.19.200"
     }
   }

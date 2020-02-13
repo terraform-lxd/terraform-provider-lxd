@@ -162,6 +162,18 @@ func resourceLxdContainer() *schema.Resource {
 				ForceNew: false,
 			},
 
+			"ipv4_address": &schema.Schema{
+				Type:     schema.TypeString,
+				Computed: true,
+				ForceNew: false,
+			},
+
+			"ipv6_address": &schema.Schema{
+				Type:     schema.TypeString,
+				Computed: true,
+				ForceNew: false,
+			},
+
 			"status": {
 				Type:     schema.TypeString,
 				Computed: true,
@@ -414,9 +426,14 @@ func resourceLxdContainerRead(d *schema.ResourceData, meta interface{}) error {
 			if ip.Family == "inet" {
 				aiFound = true
 				d.Set("ip_address", ip.Address)
+				d.Set("ipv4_address", ip.Address)
 				sshIP = ip.Address
 				d.Set("mac_address", net.Hwaddr)
 			}
+		}
+
+		if found, addr := findIPv6Address(&net); found {
+			d.Set("ipv6_address", addr)
 		}
 	}
 
@@ -428,9 +445,14 @@ func resourceLxdContainerRead(d *schema.ResourceData, meta interface{}) error {
 				for _, ip := range net.Addresses {
 					if ip.Family == "inet" {
 						d.Set("ip_address", ip.Address)
+						d.Set("ipv4_address", ip.Address)
 						sshIP = ip.Address
 						d.Set("mac_address", net.Hwaddr)
 					}
+				}
+
+				if found, addr := findIPv6Address(&net); found {
+					d.Set("ipv6_address", addr)
 				}
 			}
 		}
@@ -738,4 +760,29 @@ func suppressImageDifferences(k, old, new string, d *schema.ResourceData) bool {
 		return true
 	}
 	return false
+}
+
+// Find last global IPv6 address or return any last IPv6 address
+// if there is no global address. This works analog to the IPv4 selection
+// mechanism but favors global addresses.
+func findIPv6Address(network *api.ContainerStateNetwork) (bool, string) {
+	var address string
+
+	for _, ip := range network.Addresses {
+		if ip.Family == "inet6" && ip.Scope == "global" {
+			address = ip.Address
+		}
+	}
+
+	if len(address) > 0 {
+		return true, address
+	}
+
+	for _, ip := range network.Addresses {
+		if ip.Family == "inet6" {
+			address = ip.Address
+		}
+	}
+
+	return len(address) > 0, address
 }

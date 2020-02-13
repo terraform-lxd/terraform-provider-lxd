@@ -117,8 +117,14 @@ The `file` block supports:
 
 The following attributes are exported:
 
-* `ip_address` - The IP Address of the container. See Container Network Access
+* `ip_address` - The IPv4 Address of the container. See Container Network Access
   for more details.
+
+* `ipv4_address` - The IPv4 Address of the container. See Container Network
+  Access for more details.
+
+* `ipv6_address` - The IPv6 Address of the container. See Container Network
+  Access for more details.
 
 * `mac_address` - The MAC address of the detected NIC. See Container Network
   Access for more details.
@@ -128,8 +134,8 @@ The following attributes are exported:
 ## Container Network Access
 
 If your container has multiple network interfaces, you can specify which one
-Terraform should report the IP address of. If you do not specify an interface,
-Terraform will use the _last_ one detected.
+Terraform should report the IP addresses of. If you do not specify an interface,
+Terraform will use the _last_ address detected. Global IPv6 address will be favored if present.
 
 To specify an interface, do the following:
 
