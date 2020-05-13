@@ -405,6 +405,8 @@ func resourceLxdContainerRead(d *schema.ResourceData, meta interface{}) error {
 			config[k] = v
 		} else if strings.HasPrefix(k, "raw.") {
 			config[k] = v
+		} else if strings.HasPrefix(k, "linux.") {
+			config[k] = v
 		} else if strings.HasPrefix(k, "security.") {
 			config[k] = v
 		} else if strings.HasPrefix(k, "user.") {
