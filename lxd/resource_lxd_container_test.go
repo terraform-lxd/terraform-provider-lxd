@@ -6,8 +6,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/dustinkirkland/golang-petname"
-
+	petname "github.com/dustinkirkland/golang-petname"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/terraform"
 
@@ -27,6 +26,46 @@ func TestAccContainer_basic(t *testing.T) {
 				Check: resource.ComposeTestCheckFunc(
 					testAccContainerRunning(t, "lxd_container.container1", &container),
 					resource.TestCheckResourceAttr("lxd_container.container1", "name", containerName),
+				),
+			},
+		},
+	})
+}
+
+func TestAccContainer_typeContainer(t *testing.T) {
+	var container api.Container
+	containerName := strings.ToLower(petname.Generate(2, "-"))
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:  func() { testAccPreCheck(t) },
+		Providers: testAccProviders,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccContainer_type(containerName, "container"),
+				Check: resource.ComposeTestCheckFunc(
+					testAccContainerRunning(t, "lxd_container.container1", &container),
+					resource.TestCheckResourceAttr("lxd_container.container1", "type", "container"),
+				),
+			},
+		},
+	})
+}
+
+func TestAccContainer_typeVirtualMachine(t *testing.T) {
+	t.Skip("Travis CI environment does not support virtualization")
+
+	var container api.Container
+	containerName := strings.ToLower(petname.Generate(2, "-"))
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:  func() { testAccPreCheck(t) },
+		Providers: testAccProviders,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccContainer_type(containerName, "virtual-machine"),
+				Check: resource.ComposeTestCheckFunc(
+					testAccContainerRunning(t, "lxd_container.container1", &container),
+					resource.TestCheckResourceAttr("lxd_container.container1", "type", "virtual-machine"),
 				),
 			},
 		},
@@ -618,6 +657,17 @@ resource "lxd_container" "container1" {
   profiles = ["default"]
 }
 	`, name)
+}
+
+func testAccContainer_type(name string, cType string) string {
+	return fmt.Sprintf(`
+resource "lxd_container" "container1" {
+  name = "%s"
+  type = "%s"
+  image = "images:alpine/3.12/amd64"
+  profiles = ["default"]
+}
+	`, name, cType)
 }
 
 func testAccContainer_config(name string) string {

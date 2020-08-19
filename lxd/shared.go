@@ -163,6 +163,28 @@ func resourceLxdValidateDeviceType(v interface{}, k string) (ws []string, errors
 	return
 }
 
+func resourceLxdValidateInstanceType(v interface{}, k string) (ws []string, errors []error) {
+	validTypes := []string{"container", "virtual-machine"}
+	value := v.(string)
+	valid := false
+
+	if v == nil {
+		return
+	}
+
+	for _, v := range validTypes {
+		if value == v {
+			valid = true
+		}
+	}
+
+	if !valid {
+		errors = append(errors, fmt.Errorf("Instance must have a type of: %v", validTypes))
+	}
+
+	return
+}
+
 // containerUploadFile will upload a file to a container.
 func containerUploadFile(server lxd.ContainerServer, container string, file File) error {
 	if file.Content != "" && file.Source != "" {
