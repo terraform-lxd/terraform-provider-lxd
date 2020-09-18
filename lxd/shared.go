@@ -68,6 +68,7 @@ type File struct {
 	GID               int
 	Mode              string
 	CreateDirectories bool
+	Append            bool
 }
 
 func (f File) String() string {
@@ -194,11 +195,16 @@ func containerUploadFile(server lxd.ContainerServer, container string, file File
 	uid := int64(file.UID)
 	gid := int64(file.GID)
 	args := lxd.ContainerFileArgs{
-		Mode:      int(mode.Perm()),
-		UID:       int64(uid),
-		GID:       int64(gid),
-		Type:      "file",
-		WriteMode: "overwrite",
+		Mode: int(mode.Perm()),
+		UID:  int64(uid),
+		GID:  int64(gid),
+		Type: "file",
+	}
+
+	if file.Append {
+		args.WriteMode = "append"
+	} else {
+		args.WriteMode = "overwrite"
 	}
 
 	// If content was specified, read the string.

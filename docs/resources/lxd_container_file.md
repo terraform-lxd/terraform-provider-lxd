@@ -48,3 +48,5 @@ resource "lxd_container_file" "file1" {
 
 * `create_directories` - *Optional* - Whether to create the directories leading
 	to the target if they do not exist.
+
+* `append` - *Optional* - Whether to append the content to the target file. Defaults to false, where target file will be overwritten
