@@ -70,6 +70,12 @@ func resourceLxdContainerFile() *schema.Resource {
 				ForceNew: true,
 				Optional: true,
 			},
+
+			"append": {
+				Type:     schema.TypeBool,
+				ForceNew: true,
+				Optional: true,
+			},
 		},
 	}
 }
@@ -98,6 +104,7 @@ func resourceLxdContainerFileCreate(d *schema.ResourceData, meta interface{}) er
 		GID:               d.Get("gid").(int),
 		Mode:              d.Get("mode").(string),
 		CreateDirectories: d.Get("create_directories").(bool),
+		Append:            d.Get("append").(bool),
 	}
 
 	err = containerUploadFile(server, containerName, file)
