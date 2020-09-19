@@ -5,7 +5,7 @@ import (
 	"testing"
 
 	"github.com/dustinkirkland/golang-petname"
-	"github.com/hashicorp/terraform/helper/resource"
+	"github.com/hashicorp/terraform-plugin-sdk/helper/resource"
 )
 
 func TestAccLxdStoragePool_importBasic(t *testing.T) {

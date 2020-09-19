@@ -13,9 +13,9 @@ import (
 	"path/filepath"
 
 	petname "github.com/dustinkirkland/golang-petname"
-	"github.com/hashicorp/terraform/helper/resource"
-	"github.com/hashicorp/terraform/helper/schema"
-	"github.com/hashicorp/terraform/terraform"
+	"github.com/hashicorp/terraform-plugin-sdk/helper/resource"
+	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
+	"github.com/hashicorp/terraform-plugin-sdk/terraform"
 	lxd "github.com/lxc/lxd/lxc/config"
 )
 

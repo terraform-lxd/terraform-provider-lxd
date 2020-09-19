@@ -6,7 +6,7 @@ import (
 	"testing"
 
 	"github.com/dustinkirkland/golang-petname"
-	"github.com/hashicorp/terraform/helper/resource"
+	"github.com/hashicorp/terraform-plugin-sdk/helper/resource"
 )
 
 func TestAccSnapshot_stateless(t *testing.T) {

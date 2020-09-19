@@ -1,7 +1,7 @@
 package main
 
 import (
-	"github.com/hashicorp/terraform/plugin"
+	"github.com/hashicorp/terraform-plugin-sdk/plugin"
 	"github.com/sl1pm4t/terraform-provider-lxd/lxd"
 )
 

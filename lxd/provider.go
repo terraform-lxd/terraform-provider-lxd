@@ -10,8 +10,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/hashicorp/terraform/helper/schema"
-	"github.com/hashicorp/terraform/terraform"
+	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
+	"github.com/hashicorp/terraform-plugin-sdk/terraform"
 
 	lxd "github.com/lxc/lxd/client"
 	lxd_config "github.com/lxc/lxd/lxc/config"
