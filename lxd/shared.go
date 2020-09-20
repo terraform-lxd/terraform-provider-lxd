@@ -9,7 +9,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/hashicorp/terraform/helper/schema"
+	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
 	lxd "github.com/lxc/lxd/client"
 	"github.com/mitchellh/go-homedir"
 )
