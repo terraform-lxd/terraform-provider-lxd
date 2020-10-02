@@ -10,7 +10,7 @@ import (
 func resourceLxdNetwork() *schema.Resource {
 	return &schema.Resource{
 		Create: resourceLxdNetworkCreate,
-		//Update: resourceLxdNetworkUpdate,
+		Update: resourceLxdNetworkUpdate,
 		Delete: resourceLxdNetworkDelete,
 		Exists: resourceLxdNetworkExists,
 		Read:   resourceLxdNetworkRead,
@@ -25,13 +25,11 @@ func resourceLxdNetwork() *schema.Resource {
 			"description": {
 				Type:     schema.TypeString,
 				Optional: true,
-				ForceNew: true,
 			},
 
 			"config": {
 				Type:     schema.TypeMap,
 				Required: true,
-				ForceNew: true,
 			},
 
 			"type": {
@@ -111,8 +109,32 @@ func resourceLxdNetworkRead(d *schema.ResourceData, meta interface{}) error {
 }
 
 func resourceLxdNetworkUpdate(d *schema.ResourceData, meta interface{}) error {
-	// Network is not able to be updated yet.
-	return nil
+	p := meta.(*lxdProvider)
+	server, err := p.GetInstanceServer(p.selectRemote(d))
+	if err != nil {
+		return err
+	}
+
+	name := d.Id()
+	_, etag, err := server.GetNetwork(name)
+	if err != nil {
+		return err
+	}
+
+	config := resourceLxdConfigMap(d.Get("config"))
+	desc := d.Get("description").(string)
+
+	req := api.NetworkPut{
+		Config:      config,
+		Description: desc,
+	}
+
+	err = server.UpdateNetwork(name, req, etag)
+	if err != nil {
+		return err
+	}
+
+	return resourceLxdNetworkRead(d, meta)
 }
 
 func resourceLxdNetworkDelete(d *schema.ResourceData, meta interface{}) (err error) {
