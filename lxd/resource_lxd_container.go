@@ -40,6 +40,13 @@ func resourceLxdContainer() *schema.Resource {
 				Default:  "",
 			},
 
+			"target": {
+				Type:     schema.TypeString,
+				ForceNew: true,
+				Optional: true,
+				Computed: true,
+			},
+
 			"image": {
 				Type:             schema.TypeString,
 				ForceNew:         true,
@@ -271,6 +278,11 @@ func resourceLxdContainerCreate(d *schema.ResourceData, meta interface{}) error 
 		}
 	}
 
+	// Use specific target node in a cluster
+	if target, ok := d.GetOk("target"); ok && target != "" {
+		server = server.UseTarget(target.(string))
+	}
+
 	// Create container. It will not be running after this operation
 	op1, err := server.CreateContainerFromImage(imgServer, *imgInfo, createReq)
 	if err != nil {
@@ -402,6 +414,7 @@ func resourceLxdContainerRead(d *schema.ResourceData, meta interface{}) error {
 
 	d.Set("ephemeral", container.Ephemeral)
 	d.Set("privileged", false) // Create has no handling for it yet
+	d.Set("target", container.Location)
 
 	config := make(map[string]string)
 	limits := make(map[string]string)
