@@ -3,6 +3,7 @@
 ### Image
 
 * [`lxd_cached_image`](lxd_cached_image.md)
+* [`lxd_publish_image`](lxd_publish_image.md)
 
 ### Container
 
