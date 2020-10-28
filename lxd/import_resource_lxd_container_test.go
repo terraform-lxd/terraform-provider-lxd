@@ -26,6 +26,7 @@ func TestAccContainer_importBasic(t *testing.T) {
 				ImportStateVerify: true,
 				ImportStateVerifyIgnore: []string{
 					"wait_for_network",
+					"start_container",
 				},
 				ImportStateId: containerName + "/images:alpine/3.9/amd64",
 			},
@@ -52,6 +53,7 @@ func TestAccContainer_importConfig(t *testing.T) {
 				ImportStateVerifyIgnore: []string{
 					"image",
 					"wait_for_network",
+					"start_container",
 				},
 			},
 		},

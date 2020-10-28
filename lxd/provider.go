@@ -188,6 +188,7 @@ func Provider() terraform.ResourceProvider {
 
 		ResourcesMap: map[string]*schema.Resource{
 			"lxd_cached_image":            resourceLxdCachedImage(),
+			"lxd_publish_image":           resourceLxdPublishImage(),
 			"lxd_container":               resourceLxdContainer(),
 			"lxd_container_file":          resourceLxdContainerFile(),
 			"lxd_network":                 resourceLxdNetwork(),

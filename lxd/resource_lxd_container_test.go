@@ -385,6 +385,25 @@ func TestAccContainer_withDevice(t *testing.T) {
 	})
 }
 
+func TestAccContainer_isStopped(t *testing.T) {
+	var container api.Container
+	containerName := strings.ToLower(petname.Generate(2, "-"))
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:  func() { testAccPreCheck(t) },
+		Providers: testAccProviders,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccContainer_isStopped(containerName),
+				Check: resource.ComposeTestCheckFunc(
+					testAccContainerState(t, "lxd_container.container1", &container, api.Stopped),
+					resource.TestCheckResourceAttr("lxd_container.container1", "name", containerName),
+				),
+			},
+		},
+	})
+}
+
 func testAccContainerRunning(t *testing.T, n string, container *api.Container) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		rs, ok := s.RootModule().Resources[n]
@@ -433,6 +452,38 @@ func testAccContainerConfig(container *api.Container, k, v string) resource.Test
 		}
 
 		return fmt.Errorf("Config not found: %s", k)
+	}
+}
+
+func testAccContainerState(t *testing.T, n string, container *api.Container, state api.StatusCode) resource.TestCheckFunc {
+	return func(s *terraform.State) error {
+		rs, ok := s.RootModule().Resources[n]
+		if !ok {
+			return fmt.Errorf("Not found: %s", n)
+		}
+
+		if rs.Primary.ID == "" {
+			return fmt.Errorf("No ID is set")
+		}
+
+		client, err := testAccProvider.Meta().(*lxdProvider).GetInstanceServer("")
+		if err != nil {
+			return err
+		}
+		ct, _, err := client.GetContainer(rs.Primary.ID)
+		if err != nil {
+			return err
+		}
+
+		if ct != nil {
+			if ct.StatusCode != state {
+				return fmt.Errorf("Wrong container state. Container has: %s", ct.StatusCode)
+			}
+			*container = *ct
+			return nil
+		}
+
+		return fmt.Errorf("Container not found: %s", rs.Primary.ID)
 	}
 }
 
@@ -862,6 +913,18 @@ resource "lxd_container" "container1" {
       parent  = "lxdbr0"
     }
   }
+}
+	`, name)
+}
+
+func testAccContainer_isStopped(name string) string {
+	return fmt.Sprintf(`
+resource "lxd_container" "container1" {
+  name = "%s"
+  image = "images:alpine/3.9/amd64"
+  profiles = ["default"]
+
+  start_container = false
 }
 	`, name)
 }
