@@ -404,6 +404,29 @@ func TestAccContainer_isStopped(t *testing.T) {
 	})
 }
 
+func TestAccContainer_target(t *testing.T) {
+	t.Skip("Test environment does not support clustering yet")
+
+	var container api.Container
+	containerName := strings.ToLower(petname.Generate(2, "-"))
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:  func() { testAccPreCheck(t) },
+		Providers: testAccProviders,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccContainer_target(containerName, "node-2"),
+				Check: resource.ComposeTestCheckFunc(
+					testAccContainerRunning(t, "lxd_container.container1", &container),
+					testAccContainerRunning(t, "lxd_container.container2", &container),
+					resource.TestCheckResourceAttr("lxd_container.container1", "target", "node-2"),
+					resource.TestCheckResourceAttr("lxd_container.container2", "target", "node-2"),
+				),
+			},
+		},
+	})
+}
+
 func testAccContainerRunning(t *testing.T, n string, container *api.Container) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		rs, ok := s.RootModule().Resources[n]
@@ -927,4 +950,22 @@ resource "lxd_container" "container1" {
   start_container = false
 }
 	`, name)
+}
+
+func testAccContainer_target(name string, target string) string {
+	return fmt.Sprintf(`
+resource "lxd_container" "container1" {
+  name = "%s-1"
+  image = "images:alpine/3.9/amd64"
+  profiles = ["default"]
+  target = "%s"
+}
+
+resource "lxd_container" "container2" {
+  name = "%s-2"
+  image = "images:alpine/3.9/amd64"
+  profiles = ["default"]
+  target = "%s"
+}
+	`, name, target, name, target)
 }

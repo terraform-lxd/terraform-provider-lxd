@@ -83,6 +83,8 @@ resource "lxd_container" "container1" {
 * `wait_for_network` - *Optional* - Boolean indicating if the provider should wait for the container's network address to become available during creation.
   Valid values are `true` and `false`. Defaults to `true`.
 
+* `target` - *Optional* - Specify a target node in a cluster.
+
 The `device` block supports:
 
 * `name` - *Required* - Name of the device.
