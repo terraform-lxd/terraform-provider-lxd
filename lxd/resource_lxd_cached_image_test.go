@@ -72,7 +72,7 @@ func TestAccCachedImage_copiedAlias(t *testing.T) {
 					resourceAccCachedImageCheckAttributes("lxd_cached_image.img3", &img),
 					testAccCachedImageContainsAlias(&img, alias1),
 					testAccCachedImageContainsAlias(&img, alias2),
-					testAccCachedImageContainsAlias(&img, "alpine/3.9"),
+					testAccCachedImageContainsAlias(&img, "alpine/3.12"),
 				),
 			},
 		},
@@ -91,7 +91,7 @@ func TestAccCachedImage_aliasCollision(t *testing.T) {
 				Check: resource.ComposeTestCheckFunc(
 					testAccCachedImageExists(t, "lxd_cached_image.img4", &img),
 					resourceAccCachedImageCheckAttributes("lxd_cached_image.img4", &img),
-					testAccCachedImageContainsAlias(&img, "alpine/3.9/amd64"),
+					testAccCachedImageContainsAlias(&img, "alpine/3.12/amd64"),
 				),
 			},
 		},
@@ -243,7 +243,7 @@ func testAccCachedImage_basic() string {
 	return fmt.Sprintf(`
 resource "lxd_cached_image" "img1" {
   source_remote = "images"
-  source_image = "alpine/3.9"
+  source_image = "alpine/3.12"
 
   copy_aliases = true
 }
@@ -254,7 +254,7 @@ func testAccCachedImage_aliases(aliases ...string) string {
 	return fmt.Sprintf(`
 resource "lxd_cached_image" "img2" {
   source_remote = "images"
-  source_image = "alpine/3.9"
+  source_image = "alpine/3.12"
 
   aliases = ["%s"]
   copy_aliases = false
@@ -266,7 +266,7 @@ func testAccCachedImage_aliasExists1(alias string) string {
 	return fmt.Sprintf(`
 resource "lxd_cached_image" "exists1" {
   source_remote = "images"
-  source_image = "alpine/3.9"
+  source_image = "alpine/3.12"
 
   aliases = ["%s"]
   copy_aliases = false
@@ -278,7 +278,7 @@ func testAccCachedImage_aliasExists2(alias string) string {
 	return fmt.Sprintf(`
 resource "lxd_cached_image" "exists1" {
   source_remote = "images"
-  source_image = "alpine/3.9"
+  source_image = "alpine/3.12"
 
   aliases = ["%s"]
   copy_aliases = false
@@ -286,7 +286,7 @@ resource "lxd_cached_image" "exists1" {
 
 resource "lxd_cached_image" "exists2" {
   source_remote = "images"
-  source_image = "alpine/3.9"
+  source_image = "alpine/3.12"
 
   aliases = ["%s"]
   copy_aliases = false
@@ -298,9 +298,9 @@ func testAccCachedImage_aliases2(aliases ...string) string {
 	return fmt.Sprintf(`
 resource "lxd_cached_image" "img3" {
   source_remote = "images"
-  source_image = "alpine/3.9"
+  source_image = "alpine/3.12"
 
-  aliases = ["alpine/3.9","%s"]
+  aliases = ["alpine/3.12","%s"]
   copy_aliases = true
 }
 	`, strings.Join(aliases, `","`))
@@ -310,9 +310,9 @@ func testAccCachedImage_aliasCollision() string {
 	return fmt.Sprintf(`
 resource "lxd_cached_image" "img4" {
   source_remote = "images"
-  source_image = "alpine/3.9"
+  source_image = "alpine/3.12"
 
-  aliases = ["alpine/3.9/amd64"]
+  aliases = ["alpine/3.12/amd64"]
   copy_aliases = true
 }
 	`)

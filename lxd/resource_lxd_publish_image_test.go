@@ -87,7 +87,7 @@ func testAccPublishImage_basic(name string) string {
 	return fmt.Sprintf(`
 resource "lxd_container" "container1" {
   name = "%s"
-  image = "images:alpine/3.9/amd64"
+  image = "images:alpine/3.12/amd64"
   profiles = ["default"]
 
   start_container = false
@@ -106,7 +106,7 @@ func testAccPublishImage_aliases(name string, aliases []interface{}) string {
 	return fmt.Sprintf(`
 resource "lxd_container" "container1" {
   name = "%s"
-  image = "images:alpine/3.9/amd64"
+  image = "images:alpine/3.12/amd64"
   profiles = ["default"]
 
   start_container = false
@@ -125,7 +125,7 @@ func testAccPublishImage_properties(name string, properties map[string]string) s
 	return fmt.Sprintf(`
 resource "lxd_container" "container1" {
   name = "%s"
-  image = "images:alpine/3.9/amd64"
+  image = "images:alpine/3.12/amd64"
   profiles = ["default"]
 
   start_container = false
