@@ -460,7 +460,7 @@ resource "lxd_profile" "profile1" {
 
 resource "lxd_container" "container1" {
   name = "%s"
-  image = "images:alpine/3.9"
+  image = "images:alpine/3.12"
   profiles = ["default", "${lxd_profile.profile1.name}"]
 }
 	`, profileName, containerName)
@@ -482,7 +482,7 @@ resource "lxd_profile" "profile1" {
 
 resource "lxd_container" "container1" {
   name = "%s"
-  image = "images:alpine/3.9"
+  image = "images:alpine/3.12"
   profiles = ["default", "${lxd_profile.profile1.name}"]
 }
 	`, profileName, containerName)
