@@ -1,0 +1,42 @@
+on: [push, pull_request]
+name: Test
+jobs:
+  test:
+    runs-on: ubuntu-20.04
+    strategy:
+      fail-fast: false
+      matrix:
+        go-version:
+          - "1.15"
+        channel:
+          - latest/stable
+          - latest/candidate
+
+    env:
+      TF_ACC: "1"
+      GO111MODULE: "on"
+      LXD_REMOTE: travis
+      LXD_ADDR: localhost
+      LXD_PORT: 8443
+      LXD_GENERATE_CLIENT_CERTS: "true"
+      LXD_ACCEPT_SERVER_CERTIFICATE: "true"
+      LXD_SCHEME: https
+      LXD_PASSWORD: the-password
+
+    steps:
+      - name: Setup Go ${{ matrix.go-version }}
+        uses: actions/setup-go@v2
+        with:
+          go-version: ${{ matrix.go-version }}
+
+      - name: Setup LXD from ${{ matrix.channel }} channel
+        run: |
+          sudo snap refresh lxd --channel=${{ matrix.channel }}
+          sudo lxd waitready --timeout 60
+          sudo lxd init --auto --trust-password="$LXD_PASSWORD" --network-port=8443 --network-address='[::]'
+          sudo chmod 777 /var/snap/lxd/common/lxd/unix.socket
+
+      - uses: actions/checkout@v2
+      - run: make fmtcheck
+      - run: make vet
+      - run: make test
