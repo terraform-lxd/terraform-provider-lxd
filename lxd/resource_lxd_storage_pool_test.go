@@ -5,8 +5,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/dustinkirkland/golang-petname"
-
+	petname "github.com/dustinkirkland/golang-petname"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/terraform"
 
@@ -16,13 +15,14 @@ import (
 func TestAccStoragePool_basic(t *testing.T) {
 	var pool api.StoragePool
 	poolName := strings.ToLower(petname.Generate(2, "-"))
+	source := t.TempDir()
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:  func() { testAccPreCheck(t) },
 		Providers: testAccProviders,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccStoragePool_basic(poolName),
+				Config: testAccStoragePool_basic(poolName, source),
 				Check: resource.ComposeTestCheckFunc(
 					testAccStoragePoolExists(t, "lxd_storage_pool.storage_pool1", &pool),
 					resource.TestCheckResourceAttr("lxd_storage_pool.storage_pool1", "name", poolName),
@@ -82,14 +82,14 @@ func testAccStoragePoolConfig(pool *api.StoragePool, k, v string) resource.TestC
 	}
 }
 
-func testAccStoragePool_basic(name string) string {
+func testAccStoragePool_basic(name, source string) string {
 	return fmt.Sprintf(`
 resource "lxd_storage_pool" "storage_pool1" {
   name = "%s"
   driver = "dir"
   config = {
-    source = "/mnt"
+    source = "%s"
   }
 }
-	`, name)
+	`, name, source)
 }

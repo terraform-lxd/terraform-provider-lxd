@@ -5,8 +5,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/dustinkirkland/golang-petname"
-
+	petname "github.com/dustinkirkland/golang-petname"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/terraform"
 )
@@ -17,13 +16,14 @@ func TestAccVolumeContainerAttach_basic(t *testing.T) {
 	poolName := strings.ToLower(petname.Generate(2, "-"))
 	volumeName := strings.ToLower(petname.Generate(2, "-"))
 	containerName := strings.ToLower(petname.Generate(2, "-"))
+	source := t.TempDir()
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:  func() { testAccPreCheck(t) },
 		Providers: testAccProviders,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccVolumeContainerAttach_basic(poolName, volumeName, containerName),
+				Config: testAccVolumeContainerAttach_basic(poolName, source, volumeName, containerName),
 				Check: resource.ComposeTestCheckFunc(
 					testAccVolumeContainerAttachExists(t, "lxd_volume_container_attach.attach1"),
 					resource.TestCheckResourceAttr("lxd_volume_container_attach.attach1", "volume_name", volumeName),
@@ -41,13 +41,14 @@ func TestAccVolumeContainerAttach_deviceName(t *testing.T) {
 	poolName := strings.ToLower(petname.Generate(2, "-"))
 	volumeName := strings.ToLower(petname.Generate(2, "-"))
 	containerName := strings.ToLower(petname.Generate(2, "-"))
+	source := t.TempDir()
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:  func() { testAccPreCheck(t) },
 		Providers: testAccProviders,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccVolumeContainerAttach_deviceName(poolName, volumeName, containerName),
+				Config: testAccVolumeContainerAttach_deviceName(poolName, source, volumeName, containerName),
 				Check: resource.ComposeTestCheckFunc(
 					testAccVolumeContainerAttachExists(t, "lxd_volume_container_attach.attach1"),
 					resource.TestCheckResourceAttr("lxd_volume_container_attach.attach1", "volume_name", volumeName),
@@ -84,13 +85,13 @@ func testAccVolumeContainerAttachExists(t *testing.T, n string) resource.TestChe
 	}
 }
 
-func testAccVolumeContainerAttach_basic(poolName, volumeName, containerName string) string {
+func testAccVolumeContainerAttach_basic(poolName, source, volumeName, containerName string) string {
 	return fmt.Sprintf(`
 resource "lxd_storage_pool" "pool1" {
   name = "%s"
   driver = "dir"
   config = {
-    source = "/mnt"
+    source = "%s"
   }
 }
 
@@ -111,16 +112,16 @@ resource "lxd_volume_container_attach" "attach1" {
   container_name = "${lxd_container.container1.name}"
   path = "/mnt"
 }
-	`, poolName, volumeName, containerName)
+	`, poolName, source, volumeName, containerName)
 }
 
-func testAccVolumeContainerAttach_deviceName(poolName, volumeName, containerName string) string {
+func testAccVolumeContainerAttach_deviceName(poolName, source, volumeName, containerName string) string {
 	return fmt.Sprintf(`
 resource "lxd_storage_pool" "pool1" {
   name = "%s"
   driver = "dir"
   config = {
-    source = "/mnt"
+    source = "%s"
   }
 }
 
@@ -142,5 +143,5 @@ resource "lxd_volume_container_attach" "attach1" {
   path = "/mnt"
   device_name = "foo"
 }
-	`, poolName, volumeName, containerName)
+	`, poolName, source, volumeName, containerName)
 }
