@@ -1,4 +1,4 @@
-module github.com/sl1pm4t/terraform-provider-lxd
+module github.com/terraform-lxd/terraform-provider-lxd
 
 go 1.14
 
