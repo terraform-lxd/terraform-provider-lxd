@@ -33,7 +33,7 @@ before_install:
   - sudo chmod 777 /var/snap/lxd/common/lxd/unix.socket
 
 go:
-  - '1.14'
+  - '1.15'
   - master
 
 before_script:
@@ -61,7 +61,7 @@ matrix:
 #  file_glob: true
 #  skip_cleanup: true
 #  on:
-#    go: '1.14'
+#    go: '1.15'
 #    repo: sl1pm4t/terraform-provider-lxd
 #    tags: true
 #    condition: $CHANNEL = "stable"
