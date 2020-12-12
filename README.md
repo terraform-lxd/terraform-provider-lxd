@@ -2,8 +2,6 @@
 
 LXD Resource provider for Terraform
 
-[![Build Status](https://travis-ci.org/terraform-lxd/terraform-provider-lxd.svg?branch=master)](https://travis-ci.org/terraform-lxd/terraform-provider-lxd)
-
 ## Prerequisites
 
 * [Terraform](http://terraform.io)
@@ -11,30 +9,23 @@ LXD Resource provider for Terraform
 
 ## Installation
 
-### Using pre-built binary
+This provider is published in the [Terraform Registry](https://registry.terraform.io/providers/terraform-lxd/lxd/).
 
-1. Download the binary from the project [releases page](https://github.com/terraform-lxd/terraform-provider-lxd/releases/latest)
-2. Extract provider binary from tar file.
-3. Copy to `$PATH` or the `~/.terraform.d/plugins` directory so Terraform can find it.
+Follow the official instructions for declaring providers in your Terraform configuration
+[here](https://www.terraform.io/docs/configuration/provider-requirements.html).
 
-**Example**
+### Quick Example
 
-```bash
-# List latest binaries:
-curl -s https://api.github.com/repos/terraform-lxd/terraform-provider-lxd/releases/latest | jq '.assets | .[] | .browser_download_url'
-  "https://github.com/terraform-lxd/terraform-provider-lxd/releases/download/v1.1.0/terraform-provider-lxd_v1.1.0_darwin_amd64.zip"
-  "https://github.com/terraform-lxd/terraform-provider-lxd/releases/download/v1.1.0/terraform-provider-lxd_v1.1.0_linux_amd64.zip"
-  "https://github.com/terraform-lxd/terraform-provider-lxd/releases/download/v1.1.0/terraform-provider-lxd_v1.1.0_windows_amd64.zip"
+Add the following to your Terraform configuration:
 
-# Retrieve zip
-wget https://github.com/terraform-lxd/terraform-provider-lxd/releases/download/v1.1.0/terraform-provider-lxd_v1.1.0_linux_amd64.zip
-
-# Unzip
-unzip terraform-provider-lxd_*.zip
-
-# Copy binary to a location where Terraform will find it
-mkdir -p ~/.terraform.d/plugins
-mv terraform-provider-lxd ~/.terraform.d/plugins
+```hcl
+terraform {
+  required_providers {
+    lxd = {
+      source = "terraform-lxd/lxd"
+    }
+  }
+}
 ```
 
 ### Building from source
@@ -61,6 +52,8 @@ includes SSH.
 
 Some recognition for great contributors to this project:
 
+  * [jgraichen](https://github.com/jgraichen)
   * [jtopjian](https://github.com/jtopjian)
   * [mjrider](https://github.com/mjrider)
+  * [sl1pm4t](https://github.com/sl1pm4t)
   * [yobert](https://github.com/yobert)
