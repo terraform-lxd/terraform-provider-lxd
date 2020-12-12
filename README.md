@@ -2,7 +2,7 @@
 
 LXD Resource provider for Terraform
 
-[![Build Status](https://travis-ci.org/sl1pm4t/terraform-provider-lxd.svg?branch=master)](https://travis-ci.org/sl1pm4t/terraform-provider-lxd)
+[![Build Status](https://travis-ci.org/terraform-lxd/terraform-provider-lxd.svg?branch=master)](https://travis-ci.org/terraform-lxd/terraform-provider-lxd)
 
 ## Prerequisites
 
@@ -13,7 +13,7 @@ LXD Resource provider for Terraform
 
 ### Using pre-built binary
 
-1. Download the binary from the project [releases page](https://github.com/sl1pm4t/terraform-provider-lxd/releases/latest)
+1. Download the binary from the project [releases page](https://github.com/terraform-lxd/terraform-provider-lxd/releases/latest)
 2. Extract provider binary from tar file.
 3. Copy to `$PATH` or the `~/.terraform.d/plugins` directory so Terraform can find it.
 
@@ -21,13 +21,13 @@ LXD Resource provider for Terraform
 
 ```bash
 # List latest binaries:
-curl -s https://api.github.com/repos/sl1pm4t/terraform-provider-lxd/releases/latest | jq '.assets | .[] | .browser_download_url'
-  "https://github.com/sl1pm4t/terraform-provider-lxd/releases/download/v1.1.0/terraform-provider-lxd_v1.1.0_darwin_amd64.zip"
-  "https://github.com/sl1pm4t/terraform-provider-lxd/releases/download/v1.1.0/terraform-provider-lxd_v1.1.0_linux_amd64.zip"
-  "https://github.com/sl1pm4t/terraform-provider-lxd/releases/download/v1.1.0/terraform-provider-lxd_v1.1.0_windows_amd64.zip"
+curl -s https://api.github.com/repos/terraform-lxd/terraform-provider-lxd/releases/latest | jq '.assets | .[] | .browser_download_url'
+  "https://github.com/terraform-lxd/terraform-provider-lxd/releases/download/v1.1.0/terraform-provider-lxd_v1.1.0_darwin_amd64.zip"
+  "https://github.com/terraform-lxd/terraform-provider-lxd/releases/download/v1.1.0/terraform-provider-lxd_v1.1.0_linux_amd64.zip"
+  "https://github.com/terraform-lxd/terraform-provider-lxd/releases/download/v1.1.0/terraform-provider-lxd_v1.1.0_windows_amd64.zip"
 
 # Retrieve zip
-wget https://github.com/sl1pm4t/terraform-provider-lxd/releases/download/v1.1.0/terraform-provider-lxd_v1.1.0_linux_amd64.zip
+wget https://github.com/terraform-lxd/terraform-provider-lxd/releases/download/v1.1.0/terraform-provider-lxd_v1.1.0_linux_amd64.zip
 
 # Unzip
 unzip terraform-provider-lxd_*.zip
@@ -43,7 +43,7 @@ mv terraform-provider-lxd ~/.terraform.d/plugins
 2. Use `go get` to pull down this repository and compile the binary:
 
 ```
-go get -v -u github.com/sl1pm4t/terraform-provider-lxd
+go get -v -u github.com/terraform-lxd/terraform-provider-lxd
 ```
 
 ## Documentation
