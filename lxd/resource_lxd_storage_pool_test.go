@@ -32,6 +32,34 @@ func TestAccStoragePool_basic(t *testing.T) {
 	})
 }
 
+func TestAccStoragePool_target(t *testing.T) {
+	t.Skip("Test environment does not support clustering yet")
+
+	var pool api.StoragePool
+	poolName := strings.ToLower(petname.Generate(2, "-"))
+
+	// t.TempDir cannot be used here as the temp directory
+	// is only created on the node running the test - not any
+	// of the other nodes in the cluster.
+	source := "/mnt"
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:  func() { testAccPreCheck(t) },
+		Providers: testAccProviders,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccStoragePool_target(poolName, source),
+				Check: resource.ComposeTestCheckFunc(
+					testAccStoragePoolExists(t, "lxd_storage_pool.storage_pool1", &pool),
+					resource.TestCheckResourceAttr("lxd_storage_pool.storage_pool1", "name", poolName),
+					resource.TestCheckResourceAttr("lxd_storage_pool.storage_pool1_node1", "config.source", source),
+					resource.TestCheckResourceAttr("lxd_storage_pool.storage_pool1_node2", "config.source", source),
+				),
+			},
+		},
+	})
+}
+
 func testAccStoragePoolExists(t *testing.T, n string, pool *api.StoragePool) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		rs, ok := s.RootModule().Resources[n]
@@ -92,4 +120,38 @@ resource "lxd_storage_pool" "storage_pool1" {
   }
 }
 	`, name, source)
+}
+
+func testAccStoragePool_target(name, source string) string {
+	return fmt.Sprintf(`
+resource "lxd_storage_pool" "storage_pool1_node1" {
+  target = "node1"
+
+  name = "%s"
+  driver = "dir"
+  config = {
+    source = "%s"
+  }
+}
+
+resource "lxd_storage_pool" "storage_pool1_node2" {
+  target = "node2"
+
+  name = "%s"
+  driver = "dir"
+  config = {
+    source = "%s"
+  }
+}
+
+resource "lxd_storage_pool" "storage_pool1" {
+  depends_on = [
+    "lxd_storage_pool.storage_pool1_node1",
+    "lxd_storage_pool.storage_pool1_node2",
+  ]
+
+  name = "%s"
+  driver = "dir"
+}
+	`, name, source, name, source, name)
 }
