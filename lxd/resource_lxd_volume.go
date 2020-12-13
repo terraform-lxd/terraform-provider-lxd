@@ -23,6 +23,19 @@ func resourceLxdVolume() *schema.Resource {
 				Required: true,
 			},
 
+			"remote": {
+				Type:     schema.TypeString,
+				ForceNew: true,
+				Optional: true,
+				Default:  "",
+			},
+
+			"target": {
+				Type:     schema.TypeString,
+				Optional: true,
+				ForceNew: true,
+			},
+
 			"pool": {
 				Type:     schema.TypeString,
 				ForceNew: true,
@@ -46,13 +59,6 @@ func resourceLxdVolume() *schema.Resource {
 				Type:     schema.TypeMap,
 				Computed: true,
 			},
-
-			"remote": {
-				Type:     schema.TypeString,
-				ForceNew: true,
-				Optional: true,
-				Default:  "",
-			},
 		},
 	}
 }
@@ -62,6 +68,11 @@ func resourceLxdVolumeCreate(d *schema.ResourceData, meta interface{}) error {
 	server, err := p.GetInstanceServer(p.selectRemote(d))
 	if err != nil {
 		return err
+	}
+
+	if v, ok := d.GetOk("target"); ok && v != "" {
+		target := v.(string)
+		server = server.UseTarget(target)
 	}
 
 	name := d.Get("name").(string)
@@ -89,6 +100,11 @@ func resourceLxdVolumeRead(d *schema.ResourceData, meta interface{}) error {
 	server, err := p.GetInstanceServer(p.selectRemote(d))
 	if err != nil {
 		return err
+	}
+
+	if v, ok := d.GetOk("target"); ok && v != "" {
+		target := v.(string)
+		server = server.UseTarget(target)
 	}
 
 	v := newVolumeIDFromResourceID(d.Id())
@@ -120,6 +136,11 @@ func resourceLxdVolumeUpdate(d *schema.ResourceData, meta interface{}) error {
 		return err
 	}
 
+	if v, ok := d.GetOk("target"); ok && v != "" {
+		target := v.(string)
+		server = server.UseTarget(target)
+	}
+
 	if d.HasChange("config") {
 		v := newVolumeIDFromResourceID(d.Id())
 		volume, etag, err := server.GetStoragePoolVolume(v.pool, v.volType, v.name)
@@ -149,6 +170,11 @@ func resourceLxdVolumeDelete(d *schema.ResourceData, meta interface{}) (err erro
 		return err
 	}
 
+	if v, ok := d.GetOk("target"); ok && v != "" {
+		target := v.(string)
+		server = server.UseTarget(target)
+	}
+
 	v := newVolumeIDFromResourceID(d.Id())
 
 	return server.DeleteStoragePoolVolume(v.pool, v.volType, v.name)
@@ -159,6 +185,11 @@ func resourceLxdVolumeExists(d *schema.ResourceData, meta interface{}) (exists b
 	server, err := p.GetInstanceServer(p.selectRemote(d))
 	if err != nil {
 		return false, err
+	}
+
+	if v, ok := d.GetOk("target"); ok && v != "" {
+		target := v.(string)
+		server = server.UseTarget(target)
 	}
 
 	exists = false

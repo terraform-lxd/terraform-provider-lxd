@@ -26,16 +26,18 @@ resource "lxd_volume" "volume1" {
 
 * `name` - *Required* - Name of the storage pool.
 
+* `target` - *Optional* - Specify a target node in a cluster.
+
 * `pool` - *Required* - The Storage Pool to host the volume.
 
 * `type` - *Optional* - The "type" of volume. The default value is `custom`,
 	which is the type to use for storage volumes attached to containers.
 
-* `config` - *Required* - Map of key/value pairs of
+* `config` - *Optional* - Map of key/value pairs of
 	[volume config settings](https://github.com/lxc/lxd/blob/master/doc/configuration.md).
 	Config settings vary depending on the Storage Pool used.
 
 ## Notes
 
 * Technically, an LXD volume is simply a container or profile device of
-  type `disk`
+  type `disk`.
