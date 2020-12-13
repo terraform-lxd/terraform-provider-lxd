@@ -27,6 +27,19 @@ func resourceLxdStoragePool() *schema.Resource {
 				Required: true,
 			},
 
+			"remote": {
+				Type:     schema.TypeString,
+				ForceNew: true,
+				Optional: true,
+				Default:  "",
+			},
+
+			"target": {
+				Type:     schema.TypeString,
+				Optional: true,
+				ForceNew: true,
+			},
+
 			"driver": {
 				Type:     schema.TypeString,
 				ForceNew: true,
@@ -43,15 +56,7 @@ func resourceLxdStoragePool() *schema.Resource {
 
 			"config": {
 				Type:     schema.TypeMap,
-				Required: true,
-				ForceNew: false,
-			},
-
-			"remote": {
-				Type:     schema.TypeString,
-				ForceNew: true,
 				Optional: true,
-				Default:  "",
 			},
 		},
 	}
@@ -62,6 +67,11 @@ func resourceLxdStoragePoolCreate(d *schema.ResourceData, meta interface{}) erro
 	server, err := p.GetInstanceServer(p.selectRemote(d))
 	if err != nil {
 		return err
+	}
+
+	if v, ok := d.GetOk("target"); ok && v != "" {
+		target := v.(string)
+		server = server.UseTarget(target)
 	}
 
 	name := d.Get("name").(string)
@@ -90,28 +100,47 @@ func resourceLxdStoragePoolRead(d *schema.ResourceData, meta interface{}) error 
 		return err
 	}
 
+	if v, ok := d.GetOk("target"); ok && v != "" {
+		target := v.(string)
+		server = server.UseTarget(target)
+	}
+
 	name := d.Id()
 
 	pool, _, err := server.GetStoragePool(name)
 	if err != nil {
+		if err.Error() == "No such object" {
+			d.SetId("")
+			return nil
+		}
 		return err
 	}
-	d.Set("driver", pool.Driver)
-	config := pool.Config
-	delete(config, "name")
-	for k := range config {
-		if strings.HasPrefix(k, "volatile") {
-			// The original source is stored under volatile.initial_source
-			// so we override "source" with its value.
-			if k == "volatile.initial_source" {
-				config["source"] = config[k]
-			}
 
-			// Delete all "volatile" keys.
-			delete(config, k)
+	d.Set("driver", pool.Driver)
+
+	// Only set config values if we're not running in
+	// clustered mode. This is because the cluster shares data
+	// with other resources of the same name and will cause
+	// config keys to be added and removed without a good way
+	// of reconcilling data defined in Terraform versus what LXD
+	// is returning.
+	if v := d.Get("target"); v == "" {
+		config := pool.Config
+		delete(config, "name")
+		for k := range config {
+			if strings.HasPrefix(k, "volatile") {
+				// The original source is stored under volatile.initial_source
+				// so we override "source" with its value.
+				if k == "volatile.initial_source" {
+					config["source"] = config[k]
+				}
+
+				// Delete all "volatile" keys.
+				delete(config, k)
+			}
 		}
+		d.Set("config", config)
 	}
-	d.Set("config", config)
 
 	log.Printf("[DEBUG] Retrieved storage pool %s: %#v", name, pool)
 
@@ -123,6 +152,11 @@ func resourceLxdStoragePoolUpdate(d *schema.ResourceData, meta interface{}) erro
 	server, err := p.GetInstanceServer(p.selectRemote(d))
 	if err != nil {
 		return err
+	}
+
+	if v, ok := d.GetOk("target"); ok && v != "" {
+		target := v.(string)
+		server = server.UseTarget(target)
 	}
 
 	name := d.Id()
@@ -155,9 +189,19 @@ func resourceLxdStoragePoolDelete(d *schema.ResourceData, meta interface{}) (err
 		return err
 	}
 
+	if v, ok := d.GetOk("target"); ok && v != "" {
+		target := v.(string)
+		server = server.UseTarget(target)
+	}
+
 	name := d.Id()
 
-	return server.DeleteStoragePool(name)
+	err = server.DeleteStoragePool(name)
+	if err != nil && err.Error() == "No such object" {
+		err = nil
+	}
+
+	return err
 }
 
 func resourceLxdStoragePoolExists(d *schema.ResourceData, meta interface{}) (exists bool, err error) {
@@ -167,11 +211,20 @@ func resourceLxdStoragePoolExists(d *schema.ResourceData, meta interface{}) (exi
 		return false, err
 	}
 
+	if v, ok := d.GetOk("target"); ok && v != "" {
+		target := v.(string)
+		server = server.UseTarget(target)
+	}
+
 	name := d.Id()
 	exists = false
 
-	_, _, err = server.GetStoragePool(name)
-	if err == nil {
+	v, _, err := server.GetStoragePool(name)
+	if err != nil && err.Error() == "No such object" {
+		err = nil
+	}
+
+	if err == nil && v != nil {
 		exists = true
 	}
 
