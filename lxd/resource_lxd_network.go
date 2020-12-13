@@ -14,6 +14,9 @@ func resourceLxdNetwork() *schema.Resource {
 		Delete: resourceLxdNetworkDelete,
 		Exists: resourceLxdNetworkExists,
 		Read:   resourceLxdNetworkRead,
+		Importer: &schema.ResourceImporter{
+			State: resourceLxdNetworkImport,
+		},
 
 		Schema: map[string]*schema.Schema{
 			"name": {
@@ -135,7 +138,7 @@ func resourceLxdNetworkRead(d *schema.ResourceData, meta interface{}) error {
 	// config keys to be added and removed without a good way
 	// of reconcilling data defined in Terraform versus what LXD
 	// is returning.
-	if v, ok := d.GetOk("target"); ok && v == "" {
+	if v := d.Get("target"); v == "" {
 		d.Set("config", network.Config)
 	}
 
@@ -222,4 +225,34 @@ func resourceLxdNetworkExists(d *schema.ResourceData, meta interface{}) (exists 
 	}
 
 	return
+}
+
+func resourceLxdNetworkImport(d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
+	p := meta.(*lxdProvider)
+	remote, name, err := p.LXDConfig.ParseRemote(d.Id())
+
+	if err != nil {
+		return nil, err
+	}
+
+	d.SetId(name)
+
+	if p.LXDConfig.DefaultRemote != remote {
+		d.Set("remote", remote)
+	}
+
+	server, err := p.GetInstanceServer(p.selectRemote(d))
+	if err != nil {
+		return nil, err
+	}
+
+	network, _, err := server.GetNetwork(name)
+	if err != nil {
+		return nil, err
+	}
+
+	log.Printf("[DEBUG] Import Retrieved network %s: %#v", name, network)
+
+	d.Set("name", name)
+	return []*schema.ResourceData{d}, nil
 }
