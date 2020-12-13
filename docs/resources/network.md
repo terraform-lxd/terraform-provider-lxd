@@ -151,13 +151,18 @@ Also note how the client does not provide an IP address range.
 * `name` - *Required* - Name of the network. This is usually the device the
 	network will appear as to containers.
 
-* `config` - *Optional* - Map of key/value pairs of
+* `type` - *Optional* - The type of network to create. Can be one of: bridge,
+  macvlan, sriov, ovn, or physical. If no type is specified, usually a bridge
+  is created.
+
+* `config` - *Required* - Map of key/value pairs of
 	[network config settings](https://github.com/lxc/lxd/blob/master/doc/configuration.md).
 
 ## Attribute Reference
 
 The following attributes are exported:
 
-* `type` - The type of network. This will be either bridged or physical.
+* `type` - The type of network. Can be one of: bridge, macvlan, sriov, ovn or
+  physical.
 
 * `managed` - Whether or not the network is managed.

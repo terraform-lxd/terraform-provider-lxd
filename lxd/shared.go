@@ -147,6 +147,10 @@ func resourceLxdValidateDeviceType(v interface{}, k string) (ws []string, errors
 		"none", "disk", "nic", "unix-char", "unix-block", "usb", "gpu", "infiniband", "proxy",
 	}
 
+	if v == nil {
+		return
+	}
+
 	value := v.(string)
 	valid := false
 
@@ -165,12 +169,36 @@ func resourceLxdValidateDeviceType(v interface{}, k string) (ws []string, errors
 
 func resourceLxdValidateInstanceType(v interface{}, k string) (ws []string, errors []error) {
 	validTypes := []string{"container", "virtual-machine"}
-	value := v.(string)
-	valid := false
 
 	if v == nil {
 		return
 	}
+
+	value := v.(string)
+	valid := false
+
+	for _, v := range validTypes {
+		if value == v {
+			valid = true
+		}
+	}
+
+	if !valid {
+		errors = append(errors, fmt.Errorf("Instance must have a type of: %v", validTypes))
+	}
+
+	return
+}
+
+func resourceLxdValidateNetworkType(v interface{}, k string) (ws []string, errors []error) {
+	validTypes := []string{"bridge", "macvlan", "sriov", "ovn", "physical"}
+
+	if v == nil {
+		return
+	}
+
+	value := v.(string)
+	valid := false
 
 	for _, v := range validTypes {
 		if value == v {
