@@ -22,6 +22,19 @@ func resourceLxdNetwork() *schema.Resource {
 				ForceNew: true,
 			},
 
+			"remote": {
+				Type:     schema.TypeString,
+				Optional: true,
+				ForceNew: true,
+				Default:  "",
+			},
+
+			"target": {
+				Type:     schema.TypeString,
+				Optional: true,
+				ForceNew: true,
+			},
+
 			"type": {
 				Type:         schema.TypeString,
 				ForceNew:     true,
@@ -37,19 +50,13 @@ func resourceLxdNetwork() *schema.Resource {
 
 			"config": {
 				Type:     schema.TypeMap,
-				Required: true,
+				Optional: true,
+				Computed: true,
 			},
 
 			"managed": {
 				Type:     schema.TypeBool,
 				Computed: true,
-			},
-
-			"remote": {
-				Type:     schema.TypeString,
-				Optional: true,
-				ForceNew: true,
-				Default:  "",
 			},
 		},
 	}
@@ -70,6 +77,11 @@ func resourceLxdNetworkCreate(d *schema.ResourceData, meta interface{}) error {
 	req := api.NetworksPost{Name: name}
 	req.Config = config
 	req.Description = desc
+
+	if v, ok := d.GetOk("target"); ok && v != "" {
+		target := v.(string)
+		server = server.UseTarget(target)
+	}
 
 	if v, ok := d.GetOk("type"); ok && v != "" {
 		networkType := v.(string)
@@ -103,6 +115,11 @@ func resourceLxdNetworkRead(d *schema.ResourceData, meta interface{}) error {
 
 	network, _, err := server.GetNetwork(name)
 	if err != nil {
+		if err.Error() == "not found" {
+			d.SetId("")
+			return nil
+		}
+
 		return err
 	}
 
@@ -154,7 +171,12 @@ func resourceLxdNetworkDelete(d *schema.ResourceData, meta interface{}) (err err
 
 	name := d.Id()
 
-	return server.DeleteNetwork(name)
+	err = server.DeleteNetwork(name)
+	if err != nil && err.Error() == "not found" {
+		err = nil
+	}
+
+	return err
 }
 
 func resourceLxdNetworkExists(d *schema.ResourceData, meta interface{}) (exists bool, err error) {
@@ -168,7 +190,11 @@ func resourceLxdNetworkExists(d *schema.ResourceData, meta interface{}) (exists 
 
 	exists = false
 
-	if _, _, err := server.GetNetwork(name); err == nil {
+	v, _, err := server.GetNetwork(name)
+	if err != nil && err.Error() == "not found" {
+		err = nil
+	}
+	if err == nil && v != nil {
 		exists = true
 	}
 

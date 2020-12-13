@@ -143,10 +143,50 @@ resource "lxd_network" "vxtun" {
 Note how the `local` and `remote` addresses are swapped between the two.
 Also note how the client does not provide an IP address range.
 
+## Cluster Example
+
+In order to create a network in a cluster, you first have to
+define the network on each node in the cluster. Then you can create
+the actual network:
+
+```hcl
+resource "lxd_network" "my_network_node1" {
+  name = "my_network"
+  target = "node1"
+}
+
+resource "lxd_network" "my_network_node2" {
+  name = "my_network"
+  target = "node2"
+}
+
+resource "lxd_network" "my_network" {
+  depends_on = [
+    "lxd_network.my_network_node1",
+    "lxd_network.my_network_node2",
+  ]
+
+  name = "my_network"
+
+  config = {
+    "ipv4.address" = "10.150.19.1/24"
+    "ipv4.nat"     = "true"
+    "ipv6.address" = "fd42:474b:622d:259d::1/64"
+    "ipv6.nat"     = "true"
+  }
+}
+```
+
+Please see the [LXD Clustering documentation](https://lxd.readthedocs.io/en/latest/clustering/)
+for more details on how to create a network in clustered mode.
+
+
 ## Argument Reference
 
 * `remote` - *Optional* - The remote in which the resource will be created. If
 	it is not provided, the default provider remote is used.
+
+* `target` - *Optional* - Specify a target node in a cluster.
 
 * `name` - *Required* - Name of the network. This is usually the device the
 	network will appear as to containers.
@@ -155,7 +195,7 @@ Also note how the client does not provide an IP address range.
   macvlan, sriov, ovn, or physical. If no type is specified, usually a bridge
   is created.
 
-* `config` - *Required* - Map of key/value pairs of
+* `config` - *Optional* - Map of key/value pairs of
 	[network config settings](https://github.com/lxc/lxd/blob/master/doc/configuration.md).
 
 ## Attribute Reference
