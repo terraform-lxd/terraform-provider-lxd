@@ -206,3 +206,14 @@ The following attributes are exported:
   physical.
 
 * `managed` - Whether or not the network is managed.
+
+## Importing
+
+Networks can be imported by doing:
+
+```shell
+$ terraform import lxd_network.my_network <name of network>
+```
+
+> NOTE: Importing of clustered networks is not supported.
+
