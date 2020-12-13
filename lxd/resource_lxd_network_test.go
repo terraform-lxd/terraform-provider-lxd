@@ -25,6 +25,7 @@ func TestAccNetwork_basic(t *testing.T) {
 					testAccNetworkExists(t, "lxd_network.eth1", &network),
 					testAccNetworkConfig(&network, "ipv4.address", "10.150.19.1/24"),
 					resource.TestCheckResourceAttr("lxd_network.eth1", "name", "eth1"),
+					resource.TestCheckResourceAttr("lxd_network.eth1", "type", "bridge"),
 				),
 			},
 		},
@@ -103,6 +104,24 @@ func TestAccNetwork_updateConfig(t *testing.T) {
 					testAccNetworkExists(t, "lxd_network.eth1", &network),
 					resource.TestCheckResourceAttr("lxd_network.eth1", "config.ipv4.address", "10.150.21.1/24"),
 					resource.TestCheckResourceAttr("lxd_network.eth1", "config.ipv4.nat", "false"),
+				),
+			},
+		},
+	})
+}
+
+func TestAccNetwork_typeMacvlan(t *testing.T) {
+	var network api.Network
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:  func() { testAccPreCheck(t) },
+		Providers: testAccProviders,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccNetwork_typeMacvlan(),
+				Check: resource.ComposeTestCheckFunc(
+					testAccNetworkExists(t, "lxd_network.eth1", &network),
+					resource.TestCheckResourceAttr("lxd_network.eth1", "type", "macvlan"),
 				),
 			},
 		},
@@ -284,4 +303,17 @@ resource "lxd_container" "c1" {
   }
 }
   `, name)
+}
+
+func testAccNetwork_typeMacvlan() string {
+	return fmt.Sprintf(`
+resource "lxd_network" "eth1" {
+  name = "eth1"
+	type = "macvlan"
+
+  config = {
+    "parent" = "nosuchint"
+  }
+}
+`)
 }

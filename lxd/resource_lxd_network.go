@@ -22,6 +22,14 @@ func resourceLxdNetwork() *schema.Resource {
 				ForceNew: true,
 			},
 
+			"type": {
+				Type:         schema.TypeString,
+				ForceNew:     true,
+				Optional:     true,
+				Computed:     true,
+				ValidateFunc: resourceLxdValidateNetworkType,
+			},
+
 			"description": {
 				Type:     schema.TypeString,
 				Optional: true,
@@ -30,11 +38,6 @@ func resourceLxdNetwork() *schema.Resource {
 			"config": {
 				Type:     schema.TypeMap,
 				Required: true,
-			},
-
-			"type": {
-				Type:     schema.TypeString,
-				Computed: true,
 			},
 
 			"managed": {
@@ -67,6 +70,11 @@ func resourceLxdNetworkCreate(d *schema.ResourceData, meta interface{}) error {
 	req := api.NetworksPost{Name: name}
 	req.Config = config
 	req.Description = desc
+
+	if v, ok := d.GetOk("type"); ok && v != "" {
+		networkType := v.(string)
+		req.Type = networkType
+	}
 
 	mutex.Lock()
 	err = server.CreateNetwork(req)
