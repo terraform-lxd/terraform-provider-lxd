@@ -51,7 +51,6 @@ func resourceLxdNetwork() *schema.Resource {
 			"config": {
 				Type:     schema.TypeMap,
 				Optional: true,
-				Computed: true,
 			},
 
 			"managed": {
@@ -113,6 +112,11 @@ func resourceLxdNetworkRead(d *schema.ResourceData, meta interface{}) error {
 	}
 	name := d.Id()
 
+	if v, ok := d.GetOk("target"); ok && v != "" {
+		target := v.(string)
+		server = server.UseTarget(target)
+	}
+
 	network, _, err := server.GetNetwork(name)
 	if err != nil {
 		if err.Error() == "not found" {
@@ -125,7 +129,16 @@ func resourceLxdNetworkRead(d *schema.ResourceData, meta interface{}) error {
 
 	log.Printf("[DEBUG] Retrieved network %s: %#v", name, network)
 
-	d.Set("config", network.Config)
+	// Only set config values if we're not running in
+	// clustered mode. This is because the cluster shares data
+	// with other resources of the same name and will cause
+	// config keys to be added and removed without a good way
+	// of reconcilling data defined in Terraform versus what LXD
+	// is returning.
+	if v, ok := d.GetOk("target"); ok && v == "" {
+		d.Set("config", network.Config)
+	}
+
 	d.Set("description", network.Description)
 	d.Set("type", network.Type)
 	d.Set("managed", network.Managed)
@@ -138,6 +151,11 @@ func resourceLxdNetworkUpdate(d *schema.ResourceData, meta interface{}) error {
 	server, err := p.GetInstanceServer(p.selectRemote(d))
 	if err != nil {
 		return err
+	}
+
+	if v, ok := d.GetOk("target"); ok && v != "" {
+		target := v.(string)
+		server = server.UseTarget(target)
 	}
 
 	name := d.Id()
@@ -167,6 +185,11 @@ func resourceLxdNetworkDelete(d *schema.ResourceData, meta interface{}) (err err
 	server, err := p.GetInstanceServer(p.selectRemote(d))
 	if err != nil {
 		return err
+	}
+
+	if v, ok := d.GetOk("target"); ok && v != "" {
+		target := v.(string)
+		server = server.UseTarget(target)
 	}
 
 	name := d.Id()

@@ -347,11 +347,19 @@ func testAccNetwork_target() string {
 resource "lxd_network" "cluster_network_node1" {
   name = "cluster_network"
   target = "node1"
+
+  config = {
+    "bridge.external_interfaces" = "nosuchint"
+  }
 }
 
 resource "lxd_network" "cluster_network_node2" {
   name = "cluster_network"
   target = "node2"
+
+  config = {
+    "bridge.external_interfaces" = "nosuchint"
+  }
 }
 
 resource "lxd_network" "cluster_network" {
