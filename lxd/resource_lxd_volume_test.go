@@ -55,6 +55,27 @@ func TestAccVolume_containerAttach(t *testing.T) {
 	})
 }
 
+func TestAccVolume_target(t *testing.T) {
+	t.Skip("Test environment does not support clustering yet")
+
+	var volume api.StorageVolume
+	volumeName := strings.ToLower(petname.Generate(2, "-"))
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:  func() { testAccPreCheck(t) },
+		Providers: testAccProviders,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccVolume_target(volumeName),
+				Check: resource.ComposeTestCheckFunc(
+					testAccVolumeExists(t, "lxd_volume.volume1", &volume),
+					resource.TestCheckResourceAttr("lxd_volume.volume1", "name", volumeName),
+				),
+			},
+		},
+	})
+}
+
 func testAccVolumeExists(t *testing.T, n string, volume *api.StorageVolume) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		rs, ok := s.RootModule().Resources[n]
@@ -152,4 +173,15 @@ resource "lxd_container" "container1" {
   }
 }
 	`, poolName, source, volumeName, containerName)
+}
+
+func testAccVolume_target(volumeName string) string {
+	return fmt.Sprintf(`
+resource "lxd_volume" "volume1" {
+  target = "node2"
+
+  name = "%s"
+  pool = "default"
+}
+	`, volumeName)
 }
