@@ -1,8 +1,17 @@
 ## 0.5.0 (Unreleased)
 
+IMPROVEMENTS
+
+* Added `type` to `lxd_container` to enable the choice of either a container or virtual machine to be created [GH-215](https://github.com/terraform-lxd/terraform-provider-lxd/pull/215)
+* Allow the `type` in `lxd_network` to be set [GH-220](https://github.com/terraform-lxd/terraform-provider-lxd/pull/220)
+
 ## 0.4.1 (December 12, 2020)
 
-No changes. This release was only created to be published to the Terraform Registry.
+This version bump was primarily to do the initial publication to the Terraform Registry.
+
+IMPROVEMENTS
+
+* Added `target` argument to `lxd_container` to help support clustering mode [GH-212](https://github.com/terraform-lxd/terraform-provider-lxd/pull/212)
 
 ## 0.4.0 (November 9, 2020)
 
