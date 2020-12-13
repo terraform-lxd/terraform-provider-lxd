@@ -128,6 +128,30 @@ func TestAccNetwork_typeMacvlan(t *testing.T) {
 	})
 }
 
+func TestAccNetwork_target(t *testing.T) {
+	t.Skip("Test environment does not support clustering yet")
+
+	var network api.Network
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:  func() { testAccPreCheck(t) },
+		Providers: testAccProviders,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccNetwork_target(),
+				Check: resource.ComposeTestCheckFunc(
+					testAccNetworkExists(t, "lxd_network.cluster_network", &network),
+					testAccNetworkConfig(&network, "ipv4.address", "10.150.19.1/24"),
+					resource.TestCheckResourceAttr("lxd_network.cluster_network_node1", "name", "cluster_network"),
+					resource.TestCheckResourceAttr("lxd_network.cluster_network_node2", "name", "cluster_network"),
+					resource.TestCheckResourceAttr("lxd_network.cluster_network", "name", "cluster_network"),
+					resource.TestCheckResourceAttr("lxd_network.cluster_network", "type", "bridge"),
+				),
+			},
+		},
+	})
+}
+
 func testAccNetworkExists(t *testing.T, n string, network *api.Network) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		rs, ok := s.RootModule().Resources[n]
@@ -313,6 +337,36 @@ resource "lxd_network" "eth1" {
 
   config = {
     "parent" = "nosuchint"
+  }
+}
+`)
+}
+
+func testAccNetwork_target() string {
+	return fmt.Sprintf(`
+resource "lxd_network" "cluster_network_node1" {
+  name = "cluster_network"
+  target = "node1"
+}
+
+resource "lxd_network" "cluster_network_node2" {
+  name = "cluster_network"
+  target = "node2"
+}
+
+resource "lxd_network" "cluster_network" {
+  depends_on = [
+    "lxd_network.cluster_network_node1",
+    "lxd_network.cluster_network_node2",
+  ]
+
+  name = lxd_network.cluster_network_node1.name
+
+  config = {
+    "ipv4.address" = "10.150.19.1/24"
+    "ipv4.nat" = "true"
+    "ipv6.address" = "fd42:474b:622d:259d::1/64"
+    "ipv6.nat" = "true"
   }
 }
 `)
