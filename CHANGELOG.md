@@ -1,6 +1,6 @@
-## 0.6.0 (Unreleased)
+## 1.6.0 (Unreleased)
 
-## 0.5.0 (December 15, 2020)
+## 1.5.0 (December 15, 2020)
 
 IMPROVEMENTS
 
@@ -11,7 +11,7 @@ IMPROVEMENTS
 * Added `target` to `lxd_volume` to help support clustering mode [GH-225](https://github.com/terraform-lxd/terraform-provider-lxd/pull/225)
 * Added support for importing `lxd_network` resources [GH-226](https://github.com/terraform-lxd/terraform-provider-lxd/pull/226)
 
-## 0.4.1 (December 12, 2020)
+## 1.4.1 (December 12, 2020)
 
 This version bump was primarily to do the initial publication to the Terraform Registry.
 
@@ -19,7 +19,7 @@ IMPROVEMENTS
 
 * Added `target` argument to `lxd_container` to help support clustering mode [GH-212](https://github.com/terraform-lxd/terraform-provider-lxd/pull/212)
 
-## 0.4.0 (November 9, 2020)
+## 1.4.0 (November 9, 2020)
 
 IMPROVEMENTS
 
@@ -29,14 +29,14 @@ IMPROVEMENTS
 * Added `lxd_publish_image` [GH-209](https://github.com/terraform-lxd/terraform-provider-lxd/pull/209)
 * Allow `linux.*` attributes in `lxd_container` [GH-194](https://github.com/terraform-lxd/terraform-provider-lxd/pull/194)
 
-## 0.3.0 (January 27, 2020)
+## 1.3.0 (January 27, 2020)
 
 BUG FIXES
 
 * Fixed retrieved storage pool source in `lxd_storage_pool` [GH-181](https://github.com/terraform-lxd/terraform-provider-lxd/pull/181)
 * Fixed accidental deletion of `lxd_container` device name [GH-184](https://github.com/terraform-lxd/terraform-provider-lxd/pull/184)
 
-## 0.2.0 (June 20, 2019)
+## 1.2.0 (June 20, 2019)
 
 IMPROVEMENTS
 
