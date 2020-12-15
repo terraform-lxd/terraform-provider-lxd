@@ -97,7 +97,6 @@ func resourceLxdContainer() *schema.Resource {
 			"config": {
 				Type:     schema.TypeMap,
 				Optional: true,
-				ForceNew: true,
 			},
 
 			"limits": {
@@ -448,19 +447,20 @@ func resourceLxdContainerRead(d *schema.ResourceData, meta interface{}) error {
 	config := make(map[string]string)
 	limits := make(map[string]string)
 	for k, v := range container.Config {
-		if strings.Contains(k, "limits.") {
+		switch {
+		case strings.Contains(k, "limits."):
 			limits[strings.TrimPrefix(k, "limits.")] = v
-		} else if strings.HasPrefix(k, "boot.") {
+		case strings.HasPrefix(k, "boot."):
 			config[k] = v
-		} else if strings.HasPrefix(k, "environment.") {
+		case strings.HasPrefix(k, "environment."):
 			config[k] = v
-		} else if strings.HasPrefix(k, "raw.") {
+		case strings.HasPrefix(k, "raw."):
 			config[k] = v
-		} else if strings.HasPrefix(k, "linux.") {
+		case strings.HasPrefix(k, "linux."):
 			config[k] = v
-		} else if strings.HasPrefix(k, "security.") {
+		case strings.HasPrefix(k, "security."):
 			config[k] = v
-		} else if strings.HasPrefix(k, "user.") {
+		case strings.HasPrefix(k, "user."):
 			config[k] = v
 		}
 	}
