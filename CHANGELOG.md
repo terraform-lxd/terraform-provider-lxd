@@ -1,5 +1,9 @@
 ## 1.6.0 (Unreleased)
 
+IMPROVEMENTS
+
+* Don't cause `lxd_container` trigger a rebuild when the config changes [GH-227](https://github.com/terraform-lxd/terraform-provider-lxd/pull/227)
+
 ## 1.5.0 (December 15, 2020)
 
 IMPROVEMENTS
