@@ -1,5 +1,9 @@
 ## 1.6.0 (Unreleased)
 
+BUG FIXES
+
+* Fixed an issue in `lxd_container` where delete would fail for ephemeral containers [GH-230](https://github.com/terraform-lxd/terraform-provider-lxd/pull/230)
+
 IMPROVEMENTS
 
 * Don't cause `lxd_container` trigger a rebuild when the config changes [GH-227](https://github.com/terraform-lxd/terraform-provider-lxd/pull/227)
