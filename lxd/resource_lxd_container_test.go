@@ -32,6 +32,25 @@ func TestAccContainer_basic(t *testing.T) {
 	})
 }
 
+func TestAccContainer_basicEphemeral(t *testing.T) {
+	var container api.Container
+	containerName := strings.ToLower(petname.Generate(2, "-"))
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:  func() { testAccPreCheck(t) },
+		Providers: testAccProviders,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccContainer_basicEphemeral(containerName),
+				Check: resource.ComposeTestCheckFunc(
+					testAccContainerRunning(t, "lxd_container.container1", &container),
+					resource.TestCheckResourceAttr("lxd_container.container1", "name", containerName),
+				),
+			},
+		},
+	})
+}
+
 func TestAccContainer_typeContainer(t *testing.T) {
 	var container api.Container
 	containerName := strings.ToLower(petname.Generate(2, "-"))
@@ -655,6 +674,17 @@ resource "lxd_container" "container1" {
   name = "%s"
   image = "images:alpine/3.12/amd64"
   profiles = ["default"]
+}
+	`, name)
+}
+
+func testAccContainer_basicEphemeral(name string) string {
+	return fmt.Sprintf(`
+resource "lxd_container" "container1" {
+  name = "%s"
+  image = "images:alpine/3.12/amd64"
+  profiles = ["default"]
+  ephemeral = true
 }
 	`, name)
 }
