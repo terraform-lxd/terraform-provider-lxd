@@ -64,7 +64,7 @@ resource "lxd_container" "container1" {
 
 * `image` - *Required* - Base image from which the container will be created.
 
-* `type` - *Optional* -  Instance type. Can be `"container"`, or `"virtual-machine`.
+* `type` - *Optional* -  Instance type. Can be `"container"`, or `"virtual-machine"`.
 
 * `profiles` - *Optional* - List of LXD config profiles to apply to the new
 	container.
