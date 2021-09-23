@@ -44,7 +44,6 @@ func resourceLxdProject() *schema.Resource {
 			"config": {
 				Type:     schema.TypeMap,
 				Optional: true,
-				ForceNew: false,
 			},
 		},
 	}
