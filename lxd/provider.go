@@ -184,6 +184,12 @@ func Provider() terraform.ResourceProvider {
 				Description: descriptions["lxd_refresh_interval"],
 				Default:     "10s",
 			},
+
+			"project": {
+				Type:        schema.TypeString,
+				Optional:    true,
+				Description: descriptions["lxd_project"],
+			},
 		},
 
 		ResourcesMap: map[string]*schema.Resource{
@@ -217,6 +223,7 @@ func init() {
 		"lxd_remote_port":                  "Port LXD Daemon API is listening on. default = 8443.",
 		"lxd_remote_name":                  "Name of the LXD remote. Required when lxd_scheme set to https, to enable locating server certificate.",
 		"lxd_remote_password":              "The password for the remote.",
+		"lxd_project":                      "The project where project-scoped resources will be created. Can be overridden in individual resources. default = default",
 	}
 }
 
@@ -267,6 +274,10 @@ func providerConfigure(d *schema.ResourceData) (interface{}, error) {
 		if err := config.GenerateClientCertificate(); err != nil {
 			return nil, err
 		}
+	}
+
+	if v, ok := d.Get("project").(string); ok && v != "" {
+		config.ProjectOverride = v
 	}
 
 	// Create an lxdProvider struct.
