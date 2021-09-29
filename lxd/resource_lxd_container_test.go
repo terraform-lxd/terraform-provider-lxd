@@ -521,6 +521,27 @@ func TestAccContainer_target(t *testing.T) {
 	})
 }
 
+func TestAccContainer_project(t *testing.T) {
+	var container api.Container
+	var project string
+	containerName := strings.ToLower(petname.Generate(2, "-"))
+	project = strings.ToLower(petname.Name())
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:  func() { testAccPreCheck(t) },
+		Providers: testAccProviders,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccContainer_project(containerName, project),
+				Check: resource.ComposeTestCheckFunc(
+					testAccContainerRunning(t, "lxd_container.container1", &container),
+					resource.TestCheckResourceAttr("lxd_container.container1", "project", project),
+				),
+			},
+		},
+	})
+}
+
 func testAccContainerRunning(t *testing.T, n string, container *api.Container) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		rs, ok := s.RootModule().Resources[n]
@@ -1128,4 +1149,25 @@ resource "lxd_container" "container2" {
   target = "%s"
 }
 	`, name, target, name, target)
+}
+
+func testAccContainer_project(name string, project string) string {
+	return fmt.Sprintf(`
+resource "lxd_project" "project1" {
+	name        = "%s"
+	description = "Terraform provider test project"
+	config = {
+		"features.images" = true
+		"features.profiles" = true
+		"features.storage.volumes" = false
+	}
+}
+
+resource "lxd_container" "container1" {
+	project = lxd_project.project1.name
+  name = "%s"
+  image = "images:alpine/3.12/amd64"
+  profiles = ["default"]
+}
+	`, project, name)
 }

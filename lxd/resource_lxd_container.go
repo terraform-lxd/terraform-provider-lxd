@@ -204,6 +204,12 @@ func resourceLxdContainer() *schema.Resource {
 				Default:  true,
 				ForceNew: false,
 			},
+
+			"project": {
+				Type:     schema.TypeString,
+				Optional: true,
+				ForceNew: true,
+			},
 		},
 	}
 }
@@ -215,6 +221,12 @@ func resourceLxdContainerCreate(d *schema.ResourceData, meta interface{}) error 
 	d.Partial(true)
 
 	p := meta.(*lxdProvider)
+
+	project := d.Get("project").(string)
+	if project == "" {
+		p.LXDConfig.ProjectOverride = project
+	}
+
 	remote := p.selectRemote(d)
 	server, err := p.GetInstanceServer(remote)
 	if err != nil {
@@ -410,6 +422,11 @@ func resourceLxdContainerCreate(d *schema.ResourceData, meta interface{}) error 
 
 func resourceLxdContainerRead(d *schema.ResourceData, meta interface{}) error {
 	p := meta.(*lxdProvider)
+
+	if v, ok := d.Get("project").(string); ok && v != "" {
+		p.LXDConfig.ProjectOverride = v
+	}
+
 	remote := p.selectRemote(d)
 	server, err := p.GetInstanceServer(remote)
 	if err != nil {
@@ -537,6 +554,11 @@ func resourceLxdContainerRead(d *schema.ResourceData, meta interface{}) error {
 
 func resourceLxdContainerUpdate(d *schema.ResourceData, meta interface{}) error {
 	p := meta.(*lxdProvider)
+
+	if v, ok := d.Get("project").(string); ok && v != "" {
+		p.LXDConfig.ProjectOverride = v
+	}
+
 	remote := p.selectRemote(d)
 	server, err := p.GetInstanceServer(remote)
 	if err != nil {
@@ -678,6 +700,11 @@ func resourceLxdContainerUpdate(d *schema.ResourceData, meta interface{}) error 
 
 func resourceLxdContainerDelete(d *schema.ResourceData, meta interface{}) (err error) {
 	p := meta.(*lxdProvider)
+
+	if v, ok := d.Get("project").(string); ok && v != "" {
+		p.LXDConfig.ProjectOverride = v
+	}
+
 	remote := p.selectRemote(d)
 	server, err := p.GetInstanceServer(remote)
 	if err != nil {
@@ -740,6 +767,11 @@ func resourceLxdContainerDelete(d *schema.ResourceData, meta interface{}) (err e
 
 func resourceLxdContainerExists(d *schema.ResourceData, meta interface{}) (exists bool, err error) {
 	p := meta.(*lxdProvider)
+
+	if v, ok := d.Get("project").(string); ok && v != "" {
+		p.LXDConfig.ProjectOverride = v
+	}
+
 	remote := p.selectRemote(d)
 	server, err := p.GetInstanceServer(remote)
 	if err != nil {
@@ -763,6 +795,11 @@ func resourceLxdContainerExists(d *schema.ResourceData, meta interface{}) (exist
 
 func resourceLxdContainerImport(d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
 	p := meta.(*lxdProvider)
+
+	if v, ok := d.Get("project").(string); ok && v != "" {
+		p.LXDConfig.ProjectOverride = v
+	}
+
 	log.Printf("[DEBUG] Starting import for %s", d.Id())
 	parts := strings.SplitN(d.Id(), "/", 2)
 
