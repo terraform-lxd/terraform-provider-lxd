@@ -58,12 +58,21 @@ func resourceLxdPublishImage() *schema.Resource {
 				Optional:    true,
 				ForceNew:    true,
 			},
+			"project": {
+				Type:     schema.TypeString,
+				Optional: true,
+				ForceNew: true,
+			},
 		},
 	}
 }
 
 func resourceLxdPublishImageCreate(d *schema.ResourceData, meta interface{}) error {
 	p := meta.(*lxdProvider)
+
+	if project, ok := d.Get("project").(string); ok && project != "" {
+		p.LXDConfig.ProjectOverride = project
+	}
 
 	dstName := p.selectRemote(d)
 	dstServer, err := p.GetInstanceServer(dstName)
@@ -144,6 +153,11 @@ func resourceLxdPublishImageCreate(d *schema.ResourceData, meta interface{}) err
 
 func resourceLxdPublishImageUpdate(d *schema.ResourceData, meta interface{}) error {
 	p := meta.(*lxdProvider)
+
+	if project, ok := d.Get("project").(string); ok && project != "" {
+		p.LXDConfig.ProjectOverride = project
+	}
+
 	remote := p.selectRemote(d)
 	server, err := p.GetInstanceServer(remote)
 	if err != nil {
@@ -199,6 +213,11 @@ func resourceLxdPublishImageUpdate(d *schema.ResourceData, meta interface{}) err
 
 func resourceLxdPublishImageRead(d *schema.ResourceData, meta interface{}) error {
 	p := meta.(*lxdProvider)
+
+	if project, ok := d.Get("project").(string); ok && project != "" {
+		p.LXDConfig.ProjectOverride = project
+	}
+
 	remote := p.selectRemote(d)
 	server, err := p.GetImageServer(remote)
 	if err != nil {

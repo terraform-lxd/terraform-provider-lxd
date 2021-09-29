@@ -5,8 +5,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/dustinkirkland/golang-petname"
-
+	petname "github.com/dustinkirkland/golang-petname"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/terraform"
@@ -83,6 +82,30 @@ func TestAccPublishImage_properties(t *testing.T) {
 	})
 }
 
+func TestAccPublishImage_project(t *testing.T) {
+	var container api.Container
+	var project string
+	var img api.Image
+	containerName := strings.ToLower(petname.Generate(2, "-"))
+	project = strings.ToLower(petname.Name())
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:  func() { testAccPreCheck(t) },
+		Providers: testAccProviders,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccPublishImage_project(containerName, project),
+				Check: resource.ComposeTestCheckFunc(
+					testAccContainerState(t, "lxd_container.container1", &container, api.Stopped),
+					resource.TestCheckResourceAttr("lxd_container.container1", "name", containerName),
+					testAccCachedImageExists(t, "lxd_publish_image.test_basic", &img),
+					resource.TestCheckResourceAttr("lxd_publish_image.test_basic", "project", project),
+				),
+			},
+		},
+	})
+}
+
 func testAccPublishImage_basic(name string) string {
 	return fmt.Sprintf(`
 resource "lxd_container" "container1" {
@@ -140,6 +163,25 @@ resource "lxd_publish_image" "test_basic" {
   }
 }
 	`, name, name, strings.Join(formatProperties(properties), "\n"))
+}
+
+func testAccPublishImage_project(name string, project string) string {
+	return fmt.Sprintf(`
+resource "lxd_container" "container1" {
+	project = "%s"
+  name = "%s"
+  image = "images:alpine/3.12/amd64"
+  profiles = ["default"]
+
+  start_container = false
+}
+
+resource "lxd_publish_image" "test_basic" {
+	project = "%s"
+  container = "%s"
+  depends_on = [ lxd_container.container1 ]
+}
+	`, project, name, project, name)
 }
 
 func testAccPublishImageExists(t *testing.T, n string, image *api.Image) resource.TestCheckFunc {
