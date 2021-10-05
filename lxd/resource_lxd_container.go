@@ -563,6 +563,28 @@ func resourceLxdContainerUpdate(d *schema.ResourceData, meta interface{}) error 
 		Restore:      ct.Restore,
 	}
 
+	if d.HasChanges("config") {
+		oldConfig, newConfig := d.GetChange("config")
+		oldConfigMap := resourceLxdConfigMap(oldConfig)
+		newConfigMap := resourceLxdConfigMap(newConfig)
+
+		for key := range oldConfigMap {
+			if _, inNew := newConfigMap[key]; !inNew {
+				if _, exists := newContainer.Config[key]; exists {
+					changed = true
+					delete(newContainer.Config, key)
+				}
+			}
+		}
+
+		for key, value := range newConfigMap {
+			if val, exists := newContainer.Config[key]; !exists || val != value {
+				changed = true
+				newContainer.Config[key] = value
+			}
+		}
+	}
+
 	if d.HasChange("profiles") {
 		_, newProfiles := d.GetChange("profiles")
 		if v, ok := newProfiles.([]interface{}); ok {
