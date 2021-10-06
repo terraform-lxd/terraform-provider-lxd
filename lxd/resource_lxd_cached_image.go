@@ -76,12 +76,22 @@ func resourceLxdCachedImage() *schema.Resource {
 				Computed: true,
 				Elem:     &schema.Schema{Type: schema.TypeString},
 			},
+
+			"project": {
+				Type:     schema.TypeString,
+				Optional: true,
+				ForceNew: true,
+			},
 		},
 	}
 }
 
 func resourceLxdCachedImageCreate(d *schema.ResourceData, meta interface{}) error {
 	p := meta.(*lxdProvider)
+
+	if v, ok := d.Get("project").(string); ok && v != "" {
+		p.LXDConfig.ProjectOverride = v
+	}
 
 	dstName := p.selectRemote(d)
 	dstServer, err := p.GetInstanceServer(dstName)
@@ -167,6 +177,11 @@ func resourceLxdCachedImageCopyProgressHandler(prog string) {
 
 func resourceLxdCachedImageUpdate(d *schema.ResourceData, meta interface{}) error {
 	p := meta.(*lxdProvider)
+
+	if v, ok := d.Get("project").(string); ok && v != "" {
+		p.LXDConfig.ProjectOverride = v
+	}
+
 	remote := p.selectRemote(d)
 	server, err := p.GetInstanceServer(remote)
 	if err != nil {
@@ -209,6 +224,11 @@ func resourceLxdCachedImageUpdate(d *schema.ResourceData, meta interface{}) erro
 
 func resourceLxdCachedImageDelete(d *schema.ResourceData, meta interface{}) error {
 	p := meta.(*lxdProvider)
+
+	if v, ok := d.Get("project").(string); ok && v != "" {
+		p.LXDConfig.ProjectOverride = v
+	}
+
 	remote := p.selectRemote(d)
 	server, err := p.GetInstanceServer(remote)
 	if err != nil {
@@ -227,6 +247,11 @@ func resourceLxdCachedImageDelete(d *schema.ResourceData, meta interface{}) erro
 
 func resourceLxdCachedImageExists(d *schema.ResourceData, meta interface{}) (bool, error) {
 	p := meta.(*lxdProvider)
+
+	if v, ok := d.Get("project").(string); ok && v != "" {
+		p.LXDConfig.ProjectOverride = v
+	}
+
 	remote := p.selectRemote(d)
 	server, err := p.GetInstanceServer(remote)
 	if err != nil {
@@ -248,6 +273,11 @@ func resourceLxdCachedImageExists(d *schema.ResourceData, meta interface{}) (boo
 
 func resourceLxdCachedImageRead(d *schema.ResourceData, meta interface{}) error {
 	p := meta.(*lxdProvider)
+
+	if v, ok := d.Get("project").(string); ok && v != "" {
+		p.LXDConfig.ProjectOverride = v
+	}
+
 	remote := p.selectRemote(d)
 	server, err := p.GetImageServer(remote)
 	if err != nil {
