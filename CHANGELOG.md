@@ -7,6 +7,7 @@ BUG FIXES
 IMPROVEMENTS
 
 * Don't cause `lxd_container` trigger a rebuild when the config changes [GH-227](https://github.com/terraform-lxd/terraform-provider-lxd/pull/227)
+* Update the containers configuration when it has changed [GH-240](https://github.com/terraform-lxd/terraform-provider-lxd/pull)
 
 ## 1.5.0 (December 15, 2020)
 
