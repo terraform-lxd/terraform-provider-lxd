@@ -131,6 +131,42 @@ func TestAccContainer_config(t *testing.T) {
 	})
 }
 
+func TestAccContainer_updateConfig(t *testing.T) {
+	var container api.Container
+	containerName := strings.ToLower(petname.Generate(2, "-"))
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:  func() { testAccPreCheck(t) },
+		Providers: testAccProviders,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccContainer_updateConfig1(containerName),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr("lxd_container.container1", "name", containerName),
+					resource.TestCheckResourceAttr("lxd_container.container1", "config.boot.autostart", "1"),
+					resource.TestCheckResourceAttr("lxd_container.container1", "config.user.dummy", "5"),
+					testAccContainerRunning(t, "lxd_container.container1", &container),
+					testAccContainerConfig(&container, "boot.autostart", "1"),
+					testAccContainerConfig(&container, "user.dummy", "5"),
+					testAccContainerConfigAbsent(&container, "user.user-data"),
+				),
+			},
+			{
+				Config: testAccContainer_updateConfig2(containerName),
+				Check: resource.ComposeTestCheckFunc(
+					testAccContainerRunning(t, "lxd_container.container1", &container),
+					resource.TestCheckResourceAttr("lxd_container.container1", "name", containerName),
+					resource.TestCheckResourceAttr("lxd_container.container1", "config.user.dummy", "5"),
+					resource.TestCheckResourceAttr("lxd_container.container1", "config.user.user-data", "#cloud-config"),
+					testAccContainerConfigAbsent(&container, "boot.autostart"),
+					testAccContainerConfig(&container, "user.dummy", "5"),
+					testAccContainerConfig(&container, "user.user-data", "#cloud-config"),
+				),
+			},
+		},
+	})
+}
+
 func TestAccContainer_addProfile(t *testing.T) {
 	var profile api.Profile
 	var container api.Container
@@ -536,6 +572,22 @@ func testAccContainerConfig(container *api.Container, k, v string) resource.Test
 	}
 }
 
+func testAccContainerConfigAbsent(container *api.Container, k string) resource.TestCheckFunc {
+	return func(s *terraform.State) error {
+		if container.Config == nil {
+			return fmt.Errorf("No config")
+		}
+
+		for key := range container.Config {
+			if k == key {
+				return fmt.Errorf("Config key present, but be absent: %s", k)
+			}
+		}
+
+		return nil
+	}
+}
+
 func testAccContainerState(t *testing.T, n string, container *api.Container, state api.StatusCode) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		rs, ok := s.RootModule().Resources[n]
@@ -708,6 +760,34 @@ resource "lxd_container" "container1" {
   profiles = ["default"]
   config = {
     "boot.autostart" = 1
+  }
+}
+	`, name)
+}
+
+func testAccContainer_updateConfig1(name string) string {
+	return fmt.Sprintf(`
+resource "lxd_container" "container1" {
+  name = "%s"
+  image = "images:alpine/3.12"
+  profiles = ["default"]
+  config = {
+    "boot.autostart" = 1
+	"user.dummy" = 5
+  }
+}
+	`, name)
+}
+
+func testAccContainer_updateConfig2(name string) string {
+	return fmt.Sprintf(`
+resource "lxd_container" "container1" {
+  name = "%s"
+  image = "images:alpine/3.12"
+  profiles = ["default"]
+  config = {
+	"user.dummy" = 5
+    "user.user-data" = "#cloud-config"
   }
 }
 	`, name)
