@@ -1,4 +1,6 @@
-## 1.6.0 (Unreleased)
+## 1.7.0 (Unreleased)
+
+## 1.6.0 (October 7, 2021)
 
 BUG FIXES
 
