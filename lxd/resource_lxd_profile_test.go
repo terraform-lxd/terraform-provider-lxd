@@ -6,8 +6,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/dustinkirkland/golang-petname"
-
+	petname "github.com/dustinkirkland/golang-petname"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
 
@@ -78,7 +77,7 @@ func TestAccProfile_device(t *testing.T) {
 				Config: testAccProfile_device_1(profileName),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("lxd_profile.profile1", "name", profileName),
-					resource.TestCheckResourceAttr("lxd_profile.profile1", "device.1834377448.properties.path", "/tmp/shared"),
+					resource.TestCheckResourceAttr("lxd_profile.profile1", "device.properties.path", "/tmp/shared"),
 					testAccProfileRunning(t, "lxd_profile.profile1", &profile),
 					testAccProfileDevice(&profile, "shared", device1),
 				),
@@ -87,7 +86,7 @@ func TestAccProfile_device(t *testing.T) {
 				Config: testAccProfile_device_2(profileName),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("lxd_profile.profile1", "name", profileName),
-					resource.TestCheckResourceAttr("lxd_profile.profile1", "device.2643642920.properties.path", "/tmp/shared2"),
+					resource.TestCheckResourceAttr("lxd_profile.profile1", "device.properties.path", "/tmp/shared2"),
 					testAccProfileRunning(t, "lxd_profile.profile1", &profile),
 					testAccProfileDevice(&profile, "shared", device2),
 				),
@@ -164,7 +163,7 @@ func TestAccProfile_removeDevice(t *testing.T) {
 				Config: testAccProfile_removeDevice_1(profileName),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("lxd_profile.profile1", "name", profileName),
-					resource.TestCheckResourceAttr("lxd_profile.profile1", "device.1834377448.properties.path", "/tmp/shared"),
+					resource.TestCheckResourceAttr("lxd_profile.profile1", "device.properties.path", "/tmp/shared"),
 					testAccProfileRunning(t, "lxd_profile.profile1", &profile),
 					testAccProfileDevice(&profile, "shared", device),
 				),
@@ -228,7 +227,7 @@ func TestAccProfile_containerDevice(t *testing.T) {
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("lxd_profile.profile1", "name", profileName),
 					resource.TestCheckResourceAttr("lxd_container.container1", "name", containerName),
-					resource.TestCheckResourceAttr("lxd_profile.profile1", "device.1834377448.properties.path", "/tmp/shared"),
+					resource.TestCheckResourceAttr("lxd_profile.profile1", "device.properties.path", "/tmp/shared"),
 					testAccProfileRunning(t, "lxd_profile.profile1", &profile),
 					testAccContainerRunning(t, "lxd_container.container1", &container),
 					testAccProfileDevice(&profile, "shared", device),
