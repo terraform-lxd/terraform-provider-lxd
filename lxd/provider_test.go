@@ -15,18 +15,17 @@ import (
 	petname "github.com/dustinkirkland/golang-petname"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
 	lxd "github.com/lxc/lxd/lxc/config"
 )
 
-var testAccProviders map[string]terraform.ResourceProvider
 var testAccProvider *schema.Provider
+var testAccProviders map[string]*schema.Provider
 
 func init() {
-	testAccProvider = Provider().(*schema.Provider)
+	testAccProvider = Provider()
 	testAccProvider.ResourcesMap["lxd_noop"] = resourceLxdNoOp()
 
-	testAccProviders = map[string]terraform.ResourceProvider{
+	testAccProviders = map[string]*schema.Provider{
 		"lxd": testAccProvider,
 	}
 
@@ -34,7 +33,7 @@ func init() {
 }
 
 func TestProvider(t *testing.T) {
-	if err := Provider().(*schema.Provider).InternalValidate(); err != nil {
+	if err := Provider().InternalValidate(); err != nil {
 		t.Fatalf("err: %s", err)
 	}
 }
@@ -42,10 +41,6 @@ func TestProvider(t *testing.T) {
 func testProviderConfigureWrapper(d *schema.ResourceData) (interface{}, error) {
 	d.Set("refresh_interval", "5s")
 	return providerConfigure(d)
-}
-
-func TestProvider_impl(t *testing.T) {
-	var _ terraform.ResourceProvider = Provider()
 }
 
 func TestAccLxdProvider_envRemote(t *testing.T) {
