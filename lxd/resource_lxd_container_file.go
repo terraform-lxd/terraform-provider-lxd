@@ -54,7 +54,7 @@ func resourceLxdContainerFile() *schema.Resource {
 			},
 
 			"mode": {
-				Type:     schema.TypeString,
+				Type:     schema.TypeInt,
 				ForceNew: true,
 				Optional: true,
 			},
@@ -102,7 +102,7 @@ func resourceLxdContainerFileCreate(d *schema.ResourceData, meta interface{}) er
 		Source:            d.Get("source").(string),
 		UID:               d.Get("uid").(int),
 		GID:               d.Get("gid").(int),
-		Mode:              d.Get("mode").(string),
+		Mode:              d.Get("mode").(int),
 		CreateDirectories: d.Get("create_directories").(bool),
 		Append:            d.Get("append").(bool),
 	}

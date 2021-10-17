@@ -6,7 +6,6 @@ import (
 	"os"
 	"path"
 	"path/filepath"
-	"strconv"
 	"strings"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
@@ -66,7 +65,7 @@ type File struct {
 	Source            string
 	UID               int
 	GID               int
-	Mode              string
+	Mode              int
 	CreateDirectories bool
 	Append            bool
 }
@@ -229,23 +228,16 @@ func containerUploadFile(server lxd.ContainerServer, container string, file File
 		return fmt.Errorf("Target must be an absolute path with filename")
 	}
 
-	mode := os.FileMode(0755)
-	if len(file.Mode) != 3 {
-		file.Mode = "0" + file.Mode
+	mode := os.FileMode(file.Mode)
+	if mode == 0 {
+		mode = os.FileMode(0755)
 	}
-
-	m, err := strconv.ParseInt(file.Mode, 0, 0)
-	if err != nil {
-		return fmt.Errorf("Could not determine file mode %s", file.Mode)
-	}
-
-	mode = os.FileMode(m)
 
 	// Build the file creation request, without the content.
 	uid := int64(file.UID)
 	gid := int64(file.GID)
 	args := lxd.ContainerFileArgs{
-		Mode: int(mode.Perm()),
+		Mode: int(mode),
 		UID:  int64(uid),
 		GID:  int64(gid),
 		Type: "file",

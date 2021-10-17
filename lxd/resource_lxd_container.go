@@ -328,7 +328,7 @@ func resourceLxdContainerCreate(d *schema.ResourceData, meta interface{}) error 
 				Source:            f["source"].(string),
 				UID:               f["uid"].(int),
 				GID:               f["gid"].(int),
-				Mode:              f["mode"].(string),
+				Mode:              f["mode"].(int),
 				CreateDirectories: f["create_directories"].(bool),
 			}
 
@@ -652,7 +652,7 @@ func resourceLxdContainerUpdate(d *schema.ResourceData, meta interface{}) error 
 				Source:            f["source"].(string),
 				UID:               f["uid"].(int),
 				GID:               f["gid"].(int),
-				Mode:              f["mode"].(string),
+				Mode:              f["mode"].(int),
 				CreateDirectories: f["create_directories"].(bool),
 			}
 
