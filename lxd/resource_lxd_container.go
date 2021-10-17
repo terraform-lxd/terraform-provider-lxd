@@ -3,6 +3,7 @@ package lxd
 import (
 	"fmt"
 	"log"
+	"strconv"
 	"strings"
 	"time"
 
@@ -321,6 +322,7 @@ func resourceLxdContainerCreate(d *schema.ResourceData, meta interface{}) error 
 	if files, ok := d.GetOk("file"); ok {
 		for _, v := range files.([]interface{}) {
 			f := v.(map[string]interface{})
+			mode, _ := strconv.Atoi(f["mode"].(string))
 			file := File{
 				ContainerName:     name,
 				TargetFile:        f["target_file"].(string),
@@ -328,7 +330,7 @@ func resourceLxdContainerCreate(d *schema.ResourceData, meta interface{}) error 
 				Source:            f["source"].(string),
 				UID:               f["uid"].(int),
 				GID:               f["gid"].(int),
-				Mode:              f["mode"].(int),
+				Mode:              mode,
 				CreateDirectories: f["create_directories"].(bool),
 			}
 
@@ -645,6 +647,7 @@ func resourceLxdContainerUpdate(d *schema.ResourceData, meta interface{}) error 
 
 		for _, v := range newFiles.([]interface{}) {
 			f := v.(map[string]interface{})
+			mode, _ := strconv.Atoi(f["mode"].(string))
 			newFile := File{
 				ContainerName:     name,
 				TargetFile:        f["target_file"].(string),
@@ -652,7 +655,7 @@ func resourceLxdContainerUpdate(d *schema.ResourceData, meta interface{}) error 
 				Source:            f["source"].(string),
 				UID:               f["uid"].(int),
 				GID:               f["gid"].(int),
-				Mode:              f["mode"].(int),
+				Mode:              mode,
 				CreateDirectories: f["create_directories"].(bool),
 			}
 
