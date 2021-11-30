@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"log"
 	"strings"
-
 	"time"
 
 	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
@@ -70,7 +69,7 @@ func resourceLxdSnapshotCreate(d *schema.ResourceData, meta interface{}) error {
 
 	ctrName := d.Get("container_name").(string)
 
-	snapPost := api.ContainerSnapshotsPost{}
+	snapPost := api.InstanceSnapshotsPost{}
 	snapPost.Name = d.Get("name").(string)
 	snapPost.Stateful = d.Get("stateful").(bool)
 
@@ -79,7 +78,7 @@ func resourceLxdSnapshotCreate(d *schema.ResourceData, meta interface{}) error {
 	var i int
 	for i = 0; i < 5; i++ {
 
-		op, err := server.CreateContainerSnapshot(ctrName, snapPost)
+		op, err := server.CreateInstanceSnapshot(ctrName, snapPost)
 		if err != nil {
 			return err
 		}
@@ -119,7 +118,7 @@ func resourceLxdSnapshotRead(d *schema.ResourceData, meta interface{}) error {
 
 	snapID := newSnapshotIDFromResourceID(d.Id())
 
-	snap, _, err := server.GetContainerSnapshot(snapID.container, snapID.snapshot)
+	snap, _, err := server.GetInstanceSnapshot(snapID.container, snapID.snapshot)
 	if err != nil {
 		if err.Error() == "not found" {
 			d.SetId("")
@@ -145,7 +144,7 @@ func resourceLxdSnapshotDelete(d *schema.ResourceData, meta interface{}) error {
 	}
 	snapID := newSnapshotIDFromResourceID(d.Id())
 
-	server.DeleteContainerSnapshot(snapID.container, snapID.snapshot)
+	server.DeleteInstanceSnapshot(snapID.container, snapID.snapshot)
 
 	return nil
 }
@@ -158,7 +157,7 @@ func resourceLxdSnapshotExists(d *schema.ResourceData, meta interface{}) (bool, 
 	}
 	snapID := newSnapshotIDFromResourceID(d.Id())
 
-	snap, _, err := server.GetContainerSnapshot(snapID.container, snapID.snapshot)
+	snap, _, err := server.GetInstanceSnapshot(snapID.container, snapID.snapshot)
 
 	if err != nil && err.Error() == "not found" {
 		err = nil
