@@ -1,5 +1,8 @@
 ## 1.7.0 (Unreleased)
 
+IMPROVEMENTS
+* Added `virtual-machine` support to `lxd_container_snapshot` [GH-248](https://github.com/terraform-lxd/terraform-provider-lxd/pull/248)
+
 ## 1.6.0 (October 7, 2021)
 
 BUG FIXES
