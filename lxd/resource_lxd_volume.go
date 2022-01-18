@@ -60,7 +60,7 @@ func resourceLxdVolume() *schema.Resource {
 				Computed: true,
 			},
 			"location": {
-				Type: schema.TypeString,
+				Type:     schema.TypeString,
 				Computed: true,
 			},
 		},
