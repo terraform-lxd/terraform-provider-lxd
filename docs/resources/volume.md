@@ -41,7 +41,7 @@ resource "lxd_volume" "volume1" {
 
 The following attributes are exported:
 
-* `location` - Name of the node where volume was created.
+* `location` - Name of the node where volume was created. It could be useful with LXD in cluster mode.
 
 ## Notes
 
