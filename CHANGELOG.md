@@ -2,6 +2,7 @@
 
 IMPROVEMENTS
 * Added `virtual-machine` support to `lxd_container_snapshot` [GH-248](https://github.com/terraform-lxd/terraform-provider-lxd/pull/248)
+* Added `location` to `lxd_volume` [GH-252](https://github.com/terraform-lxd/terraform-provider-lxd/pull/252)
 
 ## 1.6.0 (October 7, 2021)
 
