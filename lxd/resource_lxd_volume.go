@@ -59,6 +59,10 @@ func resourceLxdVolume() *schema.Resource {
 				Type:     schema.TypeMap,
 				Computed: true,
 			},
+			"location": {
+				Type:     schema.TypeString,
+				Computed: true,
+			},
 		},
 	}
 }
@@ -125,6 +129,7 @@ func resourceLxdVolumeRead(d *schema.ResourceData, meta interface{}) error {
 
 	d.Set("config", newConfig)
 	d.Set("expanded_config", volume.Config)
+	d.Set("location", volume.Location)
 
 	return nil
 }

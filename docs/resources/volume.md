@@ -37,6 +37,12 @@ resource "lxd_volume" "volume1" {
 	[volume config settings](https://github.com/lxc/lxd/blob/master/doc/configuration.md).
 	Config settings vary depending on the Storage Pool used.
 
+## Attribute Reference
+
+The following attributes are exported:
+
+* `location` - Name of the node where volume was created. It could be useful with LXD in cluster mode.
+
 ## Notes
 
 * Technically, an LXD volume is simply a container or profile device of
