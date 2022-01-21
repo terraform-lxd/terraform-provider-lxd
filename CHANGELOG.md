@@ -1,4 +1,6 @@
-## 1.7.0 (Unreleased)
+## 1.8.0 (Unreleased)
+
+## 1.7.0 (January 20, 2022)
 
 IMPROVEMENTS
 * Added `virtual-machine` support to `lxd_container_snapshot` [GH-248](https://github.com/terraform-lxd/terraform-provider-lxd/pull/248)
