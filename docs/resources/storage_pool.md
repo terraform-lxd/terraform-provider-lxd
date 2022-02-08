@@ -23,7 +23,7 @@ the storage pool on each node in the cluster. Then you can create the
 actual pool
 
 ```hcl
-resource "lxd_stoarge_pool" "mypool_node1" {
+resource "lxd_storage_pool" "mypool_node1" {
   target = "node1"
 
   name = "mypool"
@@ -33,7 +33,7 @@ resource "lxd_stoarge_pool" "mypool_node1" {
   }
 }
 
-resource "lxd_stoarge_pool" "mypool_node2" {
+resource "lxd_storage_pool" "mypool_node2" {
   target = "node2"
 
   name = "mypool"
