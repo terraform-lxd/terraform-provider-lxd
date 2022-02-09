@@ -1,5 +1,11 @@
 ## 1.8.0 (Unreleased)
 
+## 1.7.1 (February 8, 2022)
+
+OTHER
+
+* Support for Apple M1 [GH-255](https://github.com/terraform-lxd/terraform-provider-lxd/pull/255)
+
 ## 1.7.0 (January 20, 2022)
 
 IMPROVEMENTS
