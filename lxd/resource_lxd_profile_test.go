@@ -239,6 +239,38 @@ func TestAccProfile_containerDevice(t *testing.T) {
 	})
 }
 
+func TestAccProfile_containerDevice_2(t *testing.T) {
+	var profile api.Profile
+	var container api.Container
+	profileName := strings.ToLower(petname.Generate(2, "-"))
+	containerName := strings.ToLower(petname.Generate(2, "-"))
+
+	device := map[string]string{
+		"type":    "nic",
+		"name":    "bar",
+		"nictype": "bridged",
+		"parent":  "lxdbr0",
+	}
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:  func() { testAccPreCheck(t) },
+		Providers: testAccProviders,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccProfile_containerDevice_2(profileName, containerName),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr("lxd_profile.profile1", "name", profileName),
+					resource.TestCheckResourceAttr("lxd_container.container1", "name", containerName),
+					testAccProfileRunning(t, "lxd_profile.profile1", &profile),
+					testAccContainerRunning(t, "lxd_container.container1", &container),
+					testAccProfileDevice(&profile, "foo", device),
+					testAccContainerExpandedDevice(&container, "foo", device),
+				),
+			},
+		},
+	})
+}
+
 func testAccProfileRunning(t *testing.T, n string, profile *api.Profile) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		rs, ok := s.RootModule().Resources[n]
@@ -476,6 +508,30 @@ resource "lxd_profile" "profile1" {
     properties = {
       source = "/tmp"
       path = "/tmp/shared"
+    }
+  }
+}
+
+resource "lxd_container" "container1" {
+  name = "%s"
+  image = "images:alpine/3.12"
+  profiles = ["default", "${lxd_profile.profile1.name}"]
+}
+	`, profileName, containerName)
+}
+
+func testAccProfile_containerDevice_2(profileName, containerName string) string {
+	return fmt.Sprintf(`
+resource "lxd_profile" "profile1" {
+  name = "%s"
+
+  device {
+    name = "foo"
+    type = "nic"
+    properties = {
+      name    = "bar"
+      nictype = "bridged"
+      parent  = "lxdbr0"
     }
   }
 }

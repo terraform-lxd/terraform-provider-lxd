@@ -464,6 +464,13 @@ func TestAccContainer_withDevice(t *testing.T) {
 	var container api.Container
 	containerName := strings.ToLower(petname.Generate(2, "-"))
 
+	device := map[string]string{
+		"type":    "nic",
+		"name":    "bar",
+		"nictype": "bridged",
+		"parent":  "lxdbr0",
+	}
+
 	resource.Test(t, resource.TestCase{
 		PreCheck:  func() { testAccPreCheck(t) },
 		Providers: testAccProviders,
@@ -473,6 +480,7 @@ func TestAccContainer_withDevice(t *testing.T) {
 				Check: resource.ComposeTestCheckFunc(
 					testAccContainerRunning(t, "lxd_container.container1", &container),
 					resource.TestCheckResourceAttr("lxd_container.container1", "name", containerName),
+					testAccContainerDevice(&container, "foo", device),
 				),
 			},
 		},
