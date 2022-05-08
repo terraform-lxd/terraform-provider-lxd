@@ -714,7 +714,7 @@ func resourceLxdContainerDelete(d *schema.ResourceData, meta interface{}) (err e
 		}
 
 		if _, err = stateConf.WaitForState(); err != nil {
-			if err.Error() == "not found" || err.Error() == "Not Found" {
+			if strings.Contains(strings.ToLower(err.Error()), "not found") {
 				// Ephemeral containers will be deleted when they are stopped
 				// so we can just return nil here and end the Delete call early.
 				return nil

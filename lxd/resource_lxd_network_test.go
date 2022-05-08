@@ -333,10 +333,10 @@ func testAccNetwork_typeMacvlan() string {
 	return fmt.Sprintf(`
 resource "lxd_network" "eth1" {
   name = "eth1"
-	type = "macvlan"
+  type = "macvlan"
 
   config = {
-    "parent" = "nosuchint"
+    "parent" = "lxdbr0"
   }
 }
 `)
