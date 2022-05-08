@@ -1,5 +1,11 @@
 ## 1.8.0 (Unreleased)
 
+## 1.7.2 (May 8, 2022)
+
+BUG FIXES
+
+* Fixed a bug to keep device names in profiles [GH-259](https://github.com/terraform-lxd/terraform-provider-lxd/pull/259)
+
 ## 1.7.1 (February 8, 2022)
 
 OTHER
