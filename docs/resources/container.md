@@ -9,7 +9,7 @@ A container can take a number of configuration and device options. A full refere
 ```hcl
 resource "lxd_container" "test1" {
   name      = "test1"
-  image     = "ubuntu"
+  image     = "images:ubuntu/22.04"
   ephemeral = false
 
   config = {
@@ -62,7 +62,8 @@ resource "lxd_container" "container1" {
 
 * `name` - *Required* - Name of the container.
 
-* `image` - *Required* - Base image from which the container will be created.
+* `image` - *Required* - Base image from which the container will be created. Must
+*       specify [an image accessible from the provider remote](https://linuxcontainers.org/lxd/docs/master/image-handling/).
 
 * `type` - *Optional* -  Instance type. Can be `"container"`, or `"virtual-machine"`.
 
