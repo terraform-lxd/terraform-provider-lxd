@@ -28,7 +28,7 @@ func TestAccContainer_importBasic(t *testing.T) {
 					"wait_for_network",
 					"start_container",
 				},
-				ImportStateId: containerName + "/images:alpine/3.12/amd64",
+				ImportStateId: containerName + "/images:alpine/3.16/amd64",
 			},
 		},
 	})
