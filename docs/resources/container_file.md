@@ -20,6 +20,7 @@ resource "lxd_container_file" "file1" {
   target_file        = "/foo/bar.txt"
   source             = "/path/to/local/file"
   create_directories = true
+}
 ```
 
 ## Argument Reference
