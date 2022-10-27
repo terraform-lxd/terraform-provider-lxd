@@ -55,6 +55,28 @@ resource "lxd_container" "container1" {
 }
 ```
 
+## Example to proxy/forward ports
+
+```hcl
+resource "lxd_container" "container1" {
+  name = "test2"
+  image = "ubuntu"
+  profiles = ["default"]
+  ephemeral = false
+
+  device {
+    name = "http"
+    type = "proxy"
+    properties = {
+      # Listen on LXD host's TCP port 80
+      listen = "tcp:0.0.0.0:80"
+      # And connect to the container's TCP port 80
+      connect = "tcp:127.0.0.1:80"
+    }
+  }
+}
+```
+
 ## Argument Reference
 
 * `remote` - *Optional* - The remote in which the resource will be created. If
