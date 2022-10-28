@@ -58,7 +58,7 @@ The `device` block supports:
 * `name` - *Required* - Name of the device.
 
 * `type` - *Required* - Type of the device Must be one of none, disk, nic,
-	unix-char, unix-block, usb, gpu.
+	unix-char, unix-block, usb, gpu, infiniband, proxy.
 
 * `properties`- *Required* - Map of key/value pairs of
 	[device properties](https://github.com/lxc/lxd/blob/master/doc/configuration.md).
