@@ -1,5 +1,11 @@
 ## 1.8.0 (Unreleased)
 
+## 1.7.3 (November 1, 2022)
+
+BUG FIXES
+
+* Fixed a nil pointer error with `lxd_publish_image` [GH-274](https://github.com/terraform-lxd/terraform-provider-lxd/pull/274)
+
 ## 1.7.2 (May 8, 2022)
 
 BUG FIXES
