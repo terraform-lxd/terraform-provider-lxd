@@ -77,6 +77,10 @@ func resourceLxdPublishImageCreate(d *schema.ResourceData, meta interface{}) err
 		return err
 	}
 
+	if ct == nil {
+		return fmt.Errorf("Unable to find the container: %s", container)
+	}
+
 	if ct.StatusCode != api.Stopped {
 		return fmt.Errorf("Container is running")
 	}
