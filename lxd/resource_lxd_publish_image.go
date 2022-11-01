@@ -72,7 +72,7 @@ func resourceLxdPublishImageCreate(d *schema.ResourceData, meta interface{}) err
 	}
 
 	container := d.Get("container").(string)
-	ct, _, err := dstServer.GetContainerState(container)
+	ct, _, err := dstServer.GetInstanceState(container)
 	if err != nil && err.Error() == "not found" {
 		return err
 	}
