@@ -1,4 +1,10 @@
-## 1.8.0 (Unreleased)
+## 1.9.0 (Unreleased)
+
+## 1.8.0 (November 3, 2022)
+
+IMPROVEMENTS
+
+Replace `GetContainerState` with `GetInstanceState` in `lxd_publish_image` to support VM imaging [GH-276](https://github.com/terraform-lxd/terraform-provider-lxd/pull/276)
 
 ## 1.7.3 (November 1, 2022)
 
