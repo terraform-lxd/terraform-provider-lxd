@@ -4,7 +4,7 @@
 
 IMPROVEMENTS
 
-Replace `GetContainerState` with `GetInstanceState` in `lxd_publish_image` to support VM imaging [GH-276](https://github.com/terraform-lxd/terraform-provider-lxd/pull/276)
+* Replace `GetContainerState` with `GetInstanceState` in `lxd_publish_image` to support VM imaging [GH-276](https://github.com/terraform-lxd/terraform-provider-lxd/pull/276)
 
 ## 1.7.3 (November 1, 2022)
 
