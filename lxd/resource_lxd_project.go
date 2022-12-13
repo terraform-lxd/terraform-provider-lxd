@@ -15,9 +15,6 @@ func resourceLxdProject() *schema.Resource {
 		Delete: resourceLxdProjectDelete,
 		Exists: resourceLxdProjectExists,
 		Read:   resourceLxdProjectRead,
-		//Importer: &schema.ResourceImporter{
-		//	State: resourceLxdProjectImport,
-		//},
 
 		Schema: map[string]*schema.Schema{
 			"name": {
@@ -34,13 +31,6 @@ func resourceLxdProject() *schema.Resource {
 			"config": {
 				Type:     schema.TypeMap,
 				Optional: true,
-			},
-
-			"remote": {
-				Type:     schema.TypeString,
-				ForceNew: true,
-				Optional: true,
-				Default:  "",
 			},
 
 			"target": {
@@ -91,7 +81,6 @@ func resourceLxdProjectRead(d *schema.ResourceData, meta interface{}) error {
 		return err
 	}
 
-	// TODO: WTF is target?
 	if v, ok := d.GetOk("target"); ok && v != "" {
 		target := v.(string)
 		server = server.UseTarget(target)
@@ -198,33 +187,4 @@ func resourceLxdProjectExists(d *schema.ResourceData, meta interface{}) (exists 
 	}
 
 	return
-}
-
-func resourceLxdProjectImport(d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
-	p := meta.(*lxdProvider)
-	remote, name, err := p.LXDConfig.ParseRemote(d.Id())
-
-	if err != nil {
-		return nil, err
-	}
-
-	d.SetId(name)
-	if p.LXDConfig.DefaultRemote != remote {
-		d.Set("remote", remote)
-	}
-
-	server, err := p.GetInstanceServer(p.selectRemote(d))
-	if err != nil {
-		return nil, err
-	}
-
-	project, _, err := server.GetProject(name)
-	if err != nil {
-		return nil, err
-	}
-
-	log.Printf("[DEBUG] Import Retrieved project %s: %#v", name, project)
-
-	d.Set("name", name)
-	return []*schema.ResourceData{d}, nil
 }

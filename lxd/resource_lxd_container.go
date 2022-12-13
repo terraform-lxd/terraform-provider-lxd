@@ -272,8 +272,6 @@ func resourceLxdContainerCreate(d *schema.ResourceData, meta interface{}) error 
 	createReq.Config = config
 	createReq.Devices = devices
 	createReq.Ephemeral = ephem
-	// NOTE: https://github.com/lxc/lxd/blob/3df4aa84e8a86f5186b312243dc212ff8da06941/shared/api/instance.go#L218
-	// TODO: I think this one is not the right parameter (it a image instance project?)
 
 	instanceType := d.Get("type").(string)
 	if instanceType == "container" {
@@ -459,7 +457,6 @@ func resourceLxdContainerRead(d *schema.ResourceData, meta interface{}) error {
 		d.Set("type", container.Type)
 	}
 
-	// https://github.com/lxc/lxd/blob/3df4aa84e8a86f5186b312243dc212ff8da06941/shared/api/instance.go#L218
 	d.Set("ephemeral", container.Ephemeral)
 	d.Set("privileged", false) // Create has no handling for it yet
 	d.Set("target", container.Location)
@@ -586,13 +583,6 @@ func resourceLxdContainerUpdate(d *schema.ResourceData, meta interface{}) error 
 		Profiles:     ct.Profiles,
 		Restore:      ct.Restore,
 	}
-
-	if d.HasChanges("project") {
-		if v, ok := d.Get("project").(string); ok && v != "" {
-			p.LXDConfig.ProjectOverride = v
-		}
-	}
-
 
 	if d.HasChanges("config") {
 		oldConfig, newConfig := d.GetChange("config")

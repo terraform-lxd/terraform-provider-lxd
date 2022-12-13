@@ -531,9 +531,9 @@ func TestAccContainer_target(t *testing.T) {
 	})
 }
 
-func TestAccContainer_project(t *testing.T) {
-	//var container api.Container
-	//var project api.Project
+func TestAccContainer_createProject(t *testing.T) {
+	var container api.Container
+	var project api.Project
 	containerName := strings.ToLower(petname.Generate(2, "-"))
 	projectName := strings.ToLower(petname.Name())
 
@@ -544,10 +544,43 @@ func TestAccContainer_project(t *testing.T) {
 			{
 				Config: testAccContainer_project(projectName, containerName),
 				Check: resource.ComposeTestCheckFunc(
-					//testAccProjectRunning(t, "lxd_project.project1", &project),
-					//testAccContainerRunning(t, "lxd_container.container1", &container),
-					//resource.TestCheckResourceAttr("lxd_container.container1", "project", projectName),
-					//resource.TestCheckResourceAttr("lxd_container.container1", "name", containerName),
+					testAccProjectRunning(t, "lxd_project.project1", &project),
+					testAccContainerRunningInProject(t, "lxd_container.container1", &container, projectName),
+					resource.TestCheckResourceAttr("lxd_container.container1", "project", projectName),
+					resource.TestCheckResourceAttr("lxd_container.container1", "name", containerName),
+				),
+			},
+		},
+	})
+}
+
+func TestAccContainer_removeProject(t *testing.T) {
+	var project api.Project
+	var container api.Container
+	projectName := strings.ToLower(petname.Generate(2, "-"))
+	containerName := strings.ToLower(petname.Generate(2, "-"))
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:  func() { testAccPreCheck(t) },
+		Providers: testAccProviders,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccContainer_removeProject_1(projectName, containerName),
+				Check: resource.ComposeTestCheckFunc(
+					testAccProjectRunning(t, "lxd_project.project1", &project),
+					testAccContainerRunningInProject(t, "lxd_container.container1", &container, projectName),
+					resource.TestCheckResourceAttr("lxd_project.project1", "name", projectName),
+					resource.TestCheckResourceAttr("lxd_container.container1", "name", containerName),
+					resource.TestCheckResourceAttr("lxd_container.container1", "project", projectName),
+				),
+			},
+			{
+				Config: testAccContainer_removeProject_2(projectName, containerName),
+				Check: resource.ComposeTestCheckFunc(
+					testAccProjectRunning(t, "lxd_project.project1", &project),
+					testAccContainerRunning(t, "lxd_container.container1", &container),
+					resource.TestCheckResourceAttr("lxd_project.project1", "name", projectName),
+					resource.TestCheckResourceAttr("lxd_container.container1", "name", containerName),
 				),
 			},
 		},
@@ -569,8 +602,38 @@ func testAccContainerRunning(t *testing.T, n string, container *api.Container) r
 		if err != nil {
 			return err
 		}
-		// TODO: Shouldn't I use project here?
-		//client.UseProject(rs.Primary.ID)
+
+		ct, _, err := client.GetContainer(rs.Primary.ID)
+		if err != nil {
+			return err
+		}
+
+		if ct != nil {
+			*container = *ct
+			return nil
+		}
+
+		return fmt.Errorf("Container not found: %s", rs.Primary.ID)
+	}
+}
+
+func testAccContainerRunningInProject(t *testing.T, n string, container *api.Container, project string) resource.TestCheckFunc {
+	return func(s *terraform.State) error {
+		rs, ok := s.RootModule().Resources[n]
+		if !ok {
+			return fmt.Errorf("Not found: %s", n)
+		}
+
+		if rs.Primary.ID == "" {
+			return fmt.Errorf("No ID is set")
+		}
+
+		client, err := testAccProvider.Meta().(*lxdProvider).GetInstanceServer("")
+		if err != nil {
+			return err
+		}
+
+		client = client.UseProject(project)
 		ct, _, err := client.GetContainer(rs.Primary.ID)
 		if err != nil {
 			return err
@@ -1179,7 +1242,44 @@ resource "lxd_project" "project1" {
 resource "lxd_container" "container1" {
   name = "%s"
   image = "images:alpine/3.16/amd64"
-  project = "${lxd_project.project1.name}"
+  project = lxd_project.project1.name
+}
+	`, projectName, containerName)
+}
+
+func testAccContainer_removeProject_1(projectName, containerName string) string {
+	return fmt.Sprintf(`
+resource "lxd_project" "project1" {
+  name        = "%s"
+  description = "Terraform provider test project"
+  config = {
+	"features.storage.volumes" = false
+	"features.images" = false
+	"features.profiles" = false
+  }
+}
+resource "lxd_container" "container1" {
+  name = "%s"
+  image = "images:alpine/3.16/amd64"
+  project = lxd_project.project1.name
+}
+	`, projectName, containerName)
+}
+
+func testAccContainer_removeProject_2(projectName, containerName string) string {
+	return fmt.Sprintf(`
+resource "lxd_project" "project1" {
+  name        = "%s"
+  description = "Terraform provider test project"
+  config = {
+	"features.storage.volumes" = false
+	"features.images" = false
+	"features.profiles" = false
+  }
+}
+resource "lxd_container" "container1" {
+  name = "%s"
+  image = "images:alpine/3.16/amd64"
 }
 	`, projectName, containerName)
 }
