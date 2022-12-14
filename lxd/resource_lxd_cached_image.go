@@ -76,6 +76,12 @@ func resourceLxdCachedImage() *schema.Resource {
 				Computed: true,
 				Elem:     &schema.Schema{Type: schema.TypeString},
 			},
+
+			"project": {
+				Type:     schema.TypeString,
+				Optional: true,
+				ForceNew: true,
+			},
 		},
 	}
 }
@@ -87,6 +93,10 @@ func resourceLxdCachedImageCreate(d *schema.ResourceData, meta interface{}) erro
 	dstServer, err := p.GetInstanceServer(dstName)
 	if err != nil {
 		return err
+	}
+	project := d.Get("project").(string)
+	if project != "" {
+		dstServer = dstServer.UseProject(project)
 	}
 
 	srcName := d.Get("source_remote").(string)
@@ -172,6 +182,10 @@ func resourceLxdCachedImageUpdate(d *schema.ResourceData, meta interface{}) erro
 	if err != nil {
 		return err
 	}
+	project := d.Get("project").(string)
+	if project != "" {
+		server = server.UseProject(project)
+	}
 	id := newCachedImageIDFromResourceID(d.Id())
 
 	if d.HasChange("aliases") {
@@ -214,6 +228,10 @@ func resourceLxdCachedImageDelete(d *schema.ResourceData, meta interface{}) erro
 	if err != nil {
 		return err
 	}
+	project := d.Get("project").(string)
+	if project != "" {
+		server = server.UseProject(project)
+	}
 
 	id := newCachedImageIDFromResourceID(d.Id())
 
@@ -232,6 +250,10 @@ func resourceLxdCachedImageExists(d *schema.ResourceData, meta interface{}) (boo
 	if err != nil {
 		return false, err
 	}
+	project := d.Get("project").(string)
+	if project != "" {
+		server = server.UseProject(project)
+	}
 
 	id := newCachedImageIDFromResourceID(d.Id())
 
@@ -249,9 +271,13 @@ func resourceLxdCachedImageExists(d *schema.ResourceData, meta interface{}) (boo
 func resourceLxdCachedImageRead(d *schema.ResourceData, meta interface{}) error {
 	p := meta.(*lxdProvider)
 	remote := p.selectRemote(d)
-	server, err := p.GetImageServer(remote)
+	server, err := p.GetInstanceServer(remote)
 	if err != nil {
 		return err
+	}
+	project := d.Get("project").(string)
+	if project != "" {
+		server = server.UseProject(project)
 	}
 
 	id := newCachedImageIDFromResourceID(d.Id())

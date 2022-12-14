@@ -165,6 +165,26 @@ func TestAccCachedImage_addRemoveAlias(t *testing.T) {
 	})
 }
 
+func TestAccCachedImage_project(t *testing.T) {
+	var img api.Image
+	var project api.Project
+	projectName := strings.ToLower(petname.Name())
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:  func() { testAccPreCheck(t) },
+		Providers: testAccProviders,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccCachedImage_project(projectName),
+				Check: resource.ComposeTestCheckFunc(
+					testAccProjectRunning(t, "lxd_project.project1", &project),
+					testAccCachedImageExistsInProject(t, "lxd_cached_image.img1", &img, projectName),
+				),
+			},
+		},
+	})
+}
+
 func testAccCachedImageExists(t *testing.T, n string, image *api.Image) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		rs, ok := s.RootModule().Resources[n]
@@ -181,6 +201,38 @@ func testAccCachedImageExists(t *testing.T, n string, image *api.Image) resource
 		if err != nil {
 			return err
 		}
+		img, _, err := client.GetImage(id.fingerprint)
+		if err != nil {
+			return err
+		}
+
+		if img != nil {
+			*image = *img
+			return nil
+		}
+
+		return fmt.Errorf("Image not found: %s", rs.Primary.ID)
+	}
+}
+
+
+func testAccCachedImageExistsInProject(t *testing.T, n string, image *api.Image, project string) resource.TestCheckFunc {
+	return func(s *terraform.State) error {
+		rs, ok := s.RootModule().Resources[n]
+		if !ok {
+			return fmt.Errorf("Not found in state: %s", n)
+		}
+
+		if rs.Primary.ID == "" {
+			return fmt.Errorf("No ID is set")
+		}
+
+		id := newCachedImageIDFromResourceID(rs.Primary.ID)
+		client, err := testAccProvider.Meta().(*lxdProvider).GetInstanceServer("")
+		if err != nil {
+			return err
+		}
+		client = client.UseProject(project)
 		img, _, err := client.GetImage(id.fingerprint)
 		if err != nil {
 			return err
@@ -316,4 +368,23 @@ resource "lxd_cached_image" "img4" {
   copy_aliases = true
 }
 	`)
+}
+
+func testAccCachedImage_project(project string) string {
+return fmt.Sprintf(`
+resource "lxd_project" "project1" {
+  name        = "%s"
+  description = "Terraform provider test project"
+  config = {
+	"features.storage.volumes" = false
+	"features.images" = false
+	"features.profiles" = false
+  }
+}
+resource "lxd_cached_image" "img1" {
+  source_remote = "images"
+  source_image = "alpine/3.16"
+  project = lxd_project.project1.name
+}
+	`, project)
 }
