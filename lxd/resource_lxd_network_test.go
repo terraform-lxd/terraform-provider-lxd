@@ -152,6 +152,26 @@ func TestAccNetwork_target(t *testing.T) {
 	})
 }
 
+func TestAccNetwork_project(t *testing.T) {
+	var network api.Network
+	var project api.Project
+	projectName := strings.ToLower(petname.Name())
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:  func() { testAccPreCheck(t) },
+		Providers: testAccProviders,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccNetwork_project(projectName),
+				Check: resource.ComposeTestCheckFunc(
+					testAccProjectRunning(t, "lxd_project.project1", &project),
+					testAccNetworkExistsInProject(t, "lxd_network.eth0", &network, projectName),
+				),
+			},
+		},
+	})
+}
+
 func testAccNetworkExists(t *testing.T, n string, network *api.Network) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		rs, ok := s.RootModule().Resources[n]
@@ -167,6 +187,33 @@ func testAccNetworkExists(t *testing.T, n string, network *api.Network) resource
 		if err != nil {
 			return err
 		}
+		n, _, err := client.GetNetwork(rs.Primary.ID)
+		if err != nil {
+			return err
+		}
+
+		*network = *n
+
+		return nil
+	}
+}
+
+func testAccNetworkExistsInProject(t *testing.T, n string, network *api.Network, project string) resource.TestCheckFunc {
+	return func(s *terraform.State) error {
+		rs, ok := s.RootModule().Resources[n]
+		if !ok {
+			return fmt.Errorf("Not found: %s", n)
+		}
+
+		if rs.Primary.ID == "" {
+			return fmt.Errorf("No ID is set")
+		}
+
+		client, err := testAccProvider.Meta().(*lxdProvider).GetInstanceServer("")
+		if err != nil {
+			return err
+		}
+		client = client.UseProject(project)
 		n, _, err := client.GetNetwork(rs.Primary.ID)
 		if err != nil {
 			return err
@@ -378,4 +425,28 @@ resource "lxd_network" "cluster_network" {
   }
 }
 `)
+}
+
+func testAccNetwork_project(project string) string {
+return fmt.Sprintf(`
+resource "lxd_project" "project1" {
+  name        = "%s"
+  description = "Terraform provider test project"
+  config = {
+	"features.storage.volumes" = false
+	"features.images" = false
+	"features.profiles" = false
+  }
+}
+resource "lxd_network" "eth0" {
+  name = "eth0"
+  config = {
+    "ipv4.address" = "10.150.19.1/24"
+    "ipv4.nat" = "true"
+    "ipv6.address" = "fd42:474b:622d:259d::1/64"
+    "ipv6.nat" = "true"
+  }
+  project = lxd_project.project1.name
+}
+	`, project)
 }

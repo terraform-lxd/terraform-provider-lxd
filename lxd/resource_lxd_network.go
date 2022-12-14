@@ -60,6 +60,12 @@ func resourceLxdNetwork() *schema.Resource {
 				Type:     schema.TypeBool,
 				Computed: true,
 			},
+
+			"project": {
+				Type:     schema.TypeString,
+				Optional: true,
+				ForceNew: true,
+			},
 		},
 	}
 }
@@ -69,6 +75,10 @@ func resourceLxdNetworkCreate(d *schema.ResourceData, meta interface{}) error {
 	server, err := p.GetInstanceServer(p.selectRemote(d))
 	if err != nil {
 		return err
+	}
+	project := d.Get("project").(string)
+	if project != "" {
+		server = server.UseProject(project)
 	}
 
 	name := d.Get("name").(string)
@@ -113,6 +123,11 @@ func resourceLxdNetworkRead(d *schema.ResourceData, meta interface{}) error {
 	if err != nil {
 		return err
 	}
+	project := d.Get("project").(string)
+	if project != "" {
+		server = server.UseProject(project)
+	}
+
 	name := d.Id()
 
 	if v, ok := d.GetOk("target"); ok && v != "" {
@@ -155,6 +170,10 @@ func resourceLxdNetworkUpdate(d *schema.ResourceData, meta interface{}) error {
 	if err != nil {
 		return err
 	}
+	project := d.Get("project").(string)
+	if project != "" {
+		server = server.UseProject(project)
+	}
 
 	if v, ok := d.GetOk("target"); ok && v != "" {
 		target := v.(string)
@@ -189,6 +208,10 @@ func resourceLxdNetworkDelete(d *schema.ResourceData, meta interface{}) (err err
 	if err != nil {
 		return err
 	}
+	project := d.Get("project").(string)
+	if project != "" {
+		server = server.UseProject(project)
+	}
 
 	if v, ok := d.GetOk("target"); ok && v != "" {
 		target := v.(string)
@@ -210,6 +233,10 @@ func resourceLxdNetworkExists(d *schema.ResourceData, meta interface{}) (exists 
 	server, err := p.GetInstanceServer(p.selectRemote(d))
 	if err != nil {
 		return false, err
+	}
+	project := d.Get("project").(string)
+	if project != "" {
+		server = server.UseProject(project)
 	}
 
 	name := d.Id()
@@ -244,6 +271,10 @@ func resourceLxdNetworkImport(d *schema.ResourceData, meta interface{}) ([]*sche
 	server, err := p.GetInstanceServer(p.selectRemote(d))
 	if err != nil {
 		return nil, err
+	}
+	project := d.Get("project").(string)
+	if project != "" {
+		server = server.UseProject(project)
 	}
 
 	network, _, err := server.GetNetwork(name)
