@@ -76,6 +76,28 @@ func TestAccVolume_target(t *testing.T) {
 	})
 }
 
+func TestAccVolume_project(t *testing.T) {
+	var project api.Project
+	var volume api.StorageVolume
+
+	volumeName := strings.ToLower(petname.Generate(2, "-"))
+	projectName := strings.ToLower(petname.Name())
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:  func() { testAccPreCheck(t) },
+		Providers: testAccProviders,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccVolume_project(projectName, volumeName),
+				Check: resource.ComposeTestCheckFunc(
+					testAccProjectRunning(t, "lxd_project.project1", &project),
+					testAccVolumeExistsInProject(t, "lxd_volume.volume1", &volume, projectName),
+				),
+			},
+		},
+	})
+}
+
 func testAccVolumeExists(t *testing.T, n string, volume *api.StorageVolume) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		rs, ok := s.RootModule().Resources[n]
@@ -92,6 +114,34 @@ func testAccVolumeExists(t *testing.T, n string, volume *api.StorageVolume) reso
 		if err != nil {
 			return err
 		}
+		vol, _, err := client.GetStoragePoolVolume(v.pool, v.volType, v.name)
+		if err != nil {
+			return err
+		}
+
+		*volume = *vol
+
+		return nil
+	}
+}
+
+func testAccVolumeExistsInProject(t *testing.T, n string, volume *api.StorageVolume, project string) resource.TestCheckFunc {
+	return func(s *terraform.State) error {
+		rs, ok := s.RootModule().Resources[n]
+		if !ok {
+			return fmt.Errorf("Not found: %s", n)
+		}
+
+		if rs.Primary.ID == "" {
+			return fmt.Errorf("No ID is set")
+		}
+
+		v := newVolumeIDFromResourceID(rs.Primary.ID)
+		client, err := testAccProvider.Meta().(*lxdProvider).GetInstanceServer("")
+		if err != nil {
+			return err
+		}
+		client = client.UseProject(project)
 		vol, _, err := client.GetStoragePoolVolume(v.pool, v.volType, v.name)
 		if err != nil {
 			return err
@@ -184,4 +234,23 @@ resource "lxd_volume" "volume1" {
   pool = "default"
 }
 	`, volumeName)
+}
+
+func testAccVolume_project(project, volumeName string) string {
+	return fmt.Sprintf(`
+resource "lxd_project" "project1" {
+  name        = "%s"
+  description = "Terraform provider test project"
+  config = {
+	"features.storage.volumes" = false
+	"features.images" = false
+	"features.profiles" = false
+  }
+}
+resource "lxd_volume" "volume1" {
+  name = "%s"
+  pool = "default"
+  project = lxd_project.project1.name
+}
+	`, project, volumeName)
 }
