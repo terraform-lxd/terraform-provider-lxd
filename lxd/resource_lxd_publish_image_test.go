@@ -83,6 +83,29 @@ func TestAccPublishImage_properties(t *testing.T) {
 	})
 }
 
+func TestAccPublishImage_project(t *testing.T) {
+	var img api.Image
+	var container api.Container
+	var project api.Project
+	projectName := strings.ToLower(petname.Name())
+	containerName := strings.ToLower(petname.Generate(2, "-"))
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:  func() { testAccPreCheck(t) },
+		Providers: testAccProviders,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccPublishImage_project(projectName, containerName),
+				Check: resource.ComposeTestCheckFunc(
+					testAccProjectRunning(t, "lxd_project.project1", &project),
+					testAccContainerRunningInProject(t, "lxd_container.container1", &container, projectName),
+					testAccPublishImageExistsInProject(t, "lxd_publish_image.test_basic", &img, projectName),
+				),
+			},
+		},
+	})
+}
+
 func testAccPublishImage_basic(name string) string {
 	return fmt.Sprintf(`
 resource "lxd_container" "container1" {
@@ -142,6 +165,33 @@ resource "lxd_publish_image" "test_basic" {
 	`, name, name, strings.Join(formatProperties(properties), "\n"))
 }
 
+func testAccPublishImage_project(project, container string) string {
+	return fmt.Sprintf(`
+resource "lxd_project" "project1" {
+  name        = "%s"
+  description = "Terraform provider test project"
+  config = {
+	"features.storage.volumes" = false
+	"features.images" = false
+	"features.profiles" = false
+  }
+}
+resource "lxd_container" "container1" {
+  name = "%s"
+  image = "images:alpine/3.16/amd64"
+  profiles = ["default"]
+  project = lxd_project.project1.name
+  start_container = false
+}
+
+resource "lxd_publish_image" "test_basic" {
+  depends_on = [ lxd_container.container1 ]
+  project = lxd_project.project1.name
+  container = "%s"
+}
+	`, project, container, container)
+}
+
 func testAccPublishImageExists(t *testing.T, n string, image *api.Image) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		rs, ok := s.RootModule().Resources[n]
@@ -158,6 +208,37 @@ func testAccPublishImageExists(t *testing.T, n string, image *api.Image) resourc
 		if err != nil {
 			return err
 		}
+		img, _, err := client.GetImage(id.fingerprint)
+		if err != nil {
+			return err
+		}
+
+		if img != nil {
+			*image = *img
+			return nil
+		}
+
+		return fmt.Errorf("Image not found: %s", rs.Primary.ID)
+	}
+}
+
+func testAccPublishImageExistsInProject(t *testing.T, n string, image *api.Image, project string) resource.TestCheckFunc {
+	return func(s *terraform.State) error {
+		rs, ok := s.RootModule().Resources[n]
+		if !ok {
+			return fmt.Errorf("Not found in state: %s", n)
+		}
+
+		if rs.Primary.ID == "" {
+			return fmt.Errorf("No ID is set")
+		}
+
+		id := newPublishImageIDFromResourceID(rs.Primary.ID)
+		client, err := testAccProvider.Meta().(*lxdProvider).GetInstanceServer("")
+		if err != nil {
+			return err
+		}
+		client = client.UseProject(project)
 		img, _, err := client.GetImage(id.fingerprint)
 		if err != nil {
 			return err
