@@ -7,6 +7,8 @@ import (
 
 	"github.com/dustinkirkland/golang-petname"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/resource"
+	"github.com/hashicorp/terraform-plugin-sdk/terraform"
+	"github.com/lxc/lxd/shared/api"
 )
 
 func TestAccSnapshot_stateless(t *testing.T) {
@@ -81,6 +83,58 @@ func TestAccSnapshot_multiple(t *testing.T) {
 			},
 		},
 	})
+}
+
+func TestAccSnapshot_project(t *testing.T) {
+	var project api.Project
+	var container api.Container
+	var snap api.InstanceSnapshot
+	projectName := strings.ToLower(petname.Name())
+	containerName := strings.ToLower(petname.Generate(2, "-"))
+	snapName := strings.ToLower(petname.Generate(2, "-"))
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:  func() { testAccPreCheck(t) },
+		Providers: testAccProviders,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccSnapshot_project(projectName, containerName, snapName),
+				Check: resource.ComposeTestCheckFunc(
+					testAccProjectRunning(t, "lxd_project.project1", &project),
+					testAccContainerRunningInProject(t, "lxd_container.container1", &container, projectName),
+					testAccSnapshotExistsInProject(t, "lxd_snapshot.snapshot1", &snap, projectName),
+				),
+			},
+		},
+	})
+}
+
+func testAccSnapshotExistsInProject(t *testing.T, n string, snap *api.InstanceSnapshot, project string) resource.TestCheckFunc {
+	return func(s *terraform.State) error {
+		rs, ok := s.RootModule().Resources[n]
+		if !ok {
+			return fmt.Errorf("Not found: %s", n)
+		}
+
+		if rs.Primary.ID == "" {
+			return fmt.Errorf("No ID is set")
+		}
+
+		client, err := testAccProvider.Meta().(*lxdProvider).GetInstanceServer("")
+		if err != nil {
+			return err
+		}
+		client = client.UseProject(project)
+		snapID := newSnapshotIDFromResourceID(rs.Primary.ID)
+		sn, _, err := client.GetInstanceSnapshot(snapID.container, snapID.snapshot)
+		if err != nil {
+			return err
+		}
+
+		*snap = *sn
+
+		return nil
+	}
 }
 
 func TestSnapshotId_String(t *testing.T) {
@@ -197,4 +251,29 @@ resource "lxd_snapshot" "snapshot2" {
   stateful = "false"
 }
 	`, cName, sName1, sName2)
+}
+func testAccSnapshot_project(project, container, snapshot string) string {
+	return fmt.Sprintf(`
+resource "lxd_project" "project1" {
+  name        = "%s"
+  description = "Terraform provider test project"
+  config = {
+	"features.storage.volumes" = false
+	"features.images" = false
+	"features.profiles" = false
+  }
+}
+resource "lxd_container" "container1" {
+  name = "%s"
+  image = "images:alpine/3.16"
+  project = lxd_project.project1.name
+}
+
+resource "lxd_snapshot" "snapshot1" {
+  container_name = "${lxd_container.container1.name}"
+  name = "%s"
+  stateful = "false"
+  project = lxd_project.project1.name
+}
+	`, project, container, snapshot)
 }
