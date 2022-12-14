@@ -76,8 +76,8 @@ func resourceLxdPublishImageCreate(d *schema.ResourceData, meta interface{}) err
 	if err != nil {
 		return err
 	}
-	project := d.Get("project").(string)
-	if project != "" {
+	if p, ok := d.GetOk("project"); ok && p != "" {
+		project := p.(string)
 		dstServer = dstServer.UseProject(project)
 	}
 
@@ -163,8 +163,8 @@ func resourceLxdPublishImageUpdate(d *schema.ResourceData, meta interface{}) err
 	if err != nil {
 		return err
 	}
-	project := d.Get("project").(string)
-	if project != "" {
+	if p, ok := d.GetOk("project"); ok && p != "" {
+		project := p.(string)
 		server = server.UseProject(project)
 	}
 	id := newPublishImageIDFromResourceID(d.Id())
@@ -222,8 +222,9 @@ func resourceLxdPublishImageRead(d *schema.ResourceData, meta interface{}) error
 	if err != nil {
 		return err
 	}
-	project := d.Get("project").(string)
-	if project != "" {
+
+	if p, ok := d.GetOk("project"); ok && p != "" {
+		project := p.(string)
 		server = server.UseProject(project)
 	}
 

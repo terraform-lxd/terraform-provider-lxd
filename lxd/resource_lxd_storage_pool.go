@@ -74,8 +74,9 @@ func resourceLxdStoragePoolCreate(d *schema.ResourceData, meta interface{}) erro
 	if err != nil {
 		return err
 	}
-	project := d.Get("project").(string)
-	if project != "" {
+
+	if p, ok := d.GetOk("project"); ok && p != "" {
+		project := p.(string)
 		server = server.UseProject(project)
 	}
 
@@ -109,8 +110,9 @@ func resourceLxdStoragePoolRead(d *schema.ResourceData, meta interface{}) error 
 	if err != nil {
 		return err
 	}
-	project := d.Get("project").(string)
-	if project != "" {
+
+	if p, ok := d.GetOk("project"); ok && p != "" {
+		project := p.(string)
 		server = server.UseProject(project)
 	}
 
@@ -167,8 +169,9 @@ func resourceLxdStoragePoolUpdate(d *schema.ResourceData, meta interface{}) erro
 	if err != nil {
 		return err
 	}
-	project := d.Get("project").(string)
-	if project != "" {
+
+	if p, ok := d.GetOk("project"); ok && p != "" {
+		project := p.(string)
 		server = server.UseProject(project)
 	}
 
@@ -206,8 +209,9 @@ func resourceLxdStoragePoolDelete(d *schema.ResourceData, meta interface{}) (err
 	if err != nil {
 		return err
 	}
-	project := d.Get("project").(string)
-	if project != "" {
+
+	if p, ok := d.GetOk("project"); ok && p != "" {
+		project := p.(string)
 		server = server.UseProject(project)
 	}
 
@@ -232,8 +236,9 @@ func resourceLxdStoragePoolExists(d *schema.ResourceData, meta interface{}) (exi
 	if err != nil {
 		return false, err
 	}
-	project := d.Get("project").(string)
-	if project != "" {
+
+	if p, ok := d.GetOk("project"); ok && p != "" {
+		project := p.(string)
 		server = server.UseProject(project)
 	}
 
@@ -275,8 +280,8 @@ func resourceLxdStoragePoolImport(d *schema.ResourceData, meta interface{}) ([]*
 	if err != nil {
 		return nil, err
 	}
-	project := d.Get("project").(string)
-	if project != "" {
+	if p, ok := d.GetOk("project"); ok && p != "" {
+		project := p.(string)
 		server = server.UseProject(project)
 	}
 

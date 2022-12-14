@@ -94,8 +94,8 @@ func resourceLxdContainerFileCreate(d *schema.ResourceData, meta interface{}) er
 		return err
 	}
 
-	project := d.Get("project").(string)
-	if project != "" {
+	if p, ok := d.GetOk("project"); ok && p != "" {
+		project := p.(string)
 		server = server.UseProject(project)
 	}
 
@@ -138,8 +138,8 @@ func resourceLxdContainerFileRead(d *schema.ResourceData, meta interface{}) erro
 		return err
 	}
 
-	project := d.Get("project").(string)
-	if project != "" {
+	if p, ok := d.GetOk("project"); ok && p != "" {
+		project := p.(string)
 		server = server.UseProject(project)
 	}
 
@@ -173,8 +173,8 @@ func resourceLxdContainerFileDelete(d *schema.ResourceData, meta interface{}) er
 		return err
 	}
 
-	project := d.Get("project").(string)
-	if project != "" {
+	if p, ok := d.GetOk("project"); ok && p != "" {
+		project := p.(string)
 		server = server.UseProject(project)
 	}
 
@@ -205,8 +205,8 @@ func resourceLxdContainerFileExists(d *schema.ResourceData, meta interface{}) (e
 		return
 	}
 
-	project := d.Get("project").(string)
-	if project != "" {
+	if p, ok := d.GetOk("project"); ok && p != "" {
+		project := p.(string)
 		server = server.UseProject(project)
 	}
 

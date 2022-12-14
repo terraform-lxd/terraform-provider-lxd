@@ -231,7 +231,6 @@ func resourceLxdContainerCreate(d *schema.ResourceData, meta interface{}) error 
 
 	name := d.Get("name").(string)
 	ephem := d.Get("ephemeral").(bool)
-	project := d.Get("project").(string)
 	image := d.Get("image").(string)
 	imgRemote := remote
 	if imgParts := strings.SplitN(image, ":", 2); len(imgParts) == 2 {
@@ -243,7 +242,8 @@ func resourceLxdContainerCreate(d *schema.ResourceData, meta interface{}) error 
 		return fmt.Errorf("could not create image server client: %v", err)
 	}
 
-	if project != "" {
+	if p, ok := d.GetOk("project"); ok && p != "" {
+		project := p.(string)
 		server = server.UseProject(project)
 	}
 
@@ -430,8 +430,10 @@ func resourceLxdContainerRead(d *schema.ResourceData, meta interface{}) error {
 		return err
 	}
 
-	project := d.Get("project").(string)
-	server = server.UseProject(project)
+	if p, ok := d.GetOk("project"); ok && p != "" {
+		project := p.(string)
+		server = server.UseProject(project)
+	}
 
 	name := d.Id()
 	// https://github.com/lxc/lxd/blob/master/client/lxd_instances.go
@@ -561,8 +563,10 @@ func resourceLxdContainerUpdate(d *schema.ResourceData, meta interface{}) error 
 		return err
 	}
 
-	project := d.Get("project").(string)
-	server = server.UseProject(project)
+	if p, ok := d.GetOk("project"); ok && p != "" {
+		project := p.(string)
+		server = server.UseProject(project)
+	}
 	name := d.Id()
 
 	// changed determines if an update call needs made.
@@ -707,8 +711,10 @@ func resourceLxdContainerDelete(d *schema.ResourceData, meta interface{}) (err e
 	}
 
 	refreshInterval := meta.(*lxdProvider).RefreshInterval
-	project := d.Get("project").(string)
-	server = server.UseProject(project)
+	if p, ok := d.GetOk("project"); ok && p != "" {
+		project := p.(string)
+		server = server.UseProject(project)
+	}
 
 	name := d.Id()
 	ct, etag, _ := server.GetInstanceState(name)
@@ -771,8 +777,10 @@ func resourceLxdContainerExists(d *schema.ResourceData, meta interface{}) (exist
 		return false, err
 	}
 
-	project := d.Get("project").(string)
-	server = server.UseProject(project)
+	if p, ok := d.GetOk("project"); ok && p != "" {
+		project := p.(string)
+		server = server.UseProject(project)
+	}
 
 	exists = false
 	name := d.Id()
@@ -806,6 +814,10 @@ func resourceLxdContainerImport(d *schema.ResourceData, meta interface{}) ([]*sc
 	server, err := p.GetInstanceServer(p.selectRemote(d))
 	if err != nil {
 		return nil, err
+	}
+	if p, ok := d.GetOk("project"); ok && p != "" {
+		project := p.(string)
+		server = server.UseProject(project)
 	}
 
 	ct, _, err := server.GetInstanceState(name)

@@ -76,8 +76,9 @@ func resourceLxdNetworkCreate(d *schema.ResourceData, meta interface{}) error {
 	if err != nil {
 		return err
 	}
-	project := d.Get("project").(string)
-	if project != "" {
+
+	if p, ok := d.GetOk("project"); ok && p != "" {
+		project := p.(string)
 		server = server.UseProject(project)
 	}
 
@@ -123,8 +124,9 @@ func resourceLxdNetworkRead(d *schema.ResourceData, meta interface{}) error {
 	if err != nil {
 		return err
 	}
-	project := d.Get("project").(string)
-	if project != "" {
+
+	if p, ok := d.GetOk("project"); ok && p != "" {
+		project := p.(string)
 		server = server.UseProject(project)
 	}
 
@@ -170,8 +172,9 @@ func resourceLxdNetworkUpdate(d *schema.ResourceData, meta interface{}) error {
 	if err != nil {
 		return err
 	}
-	project := d.Get("project").(string)
-	if project != "" {
+
+	if p, ok := d.GetOk("project"); ok && p != "" {
+		project := p.(string)
 		server = server.UseProject(project)
 	}
 
@@ -208,8 +211,9 @@ func resourceLxdNetworkDelete(d *schema.ResourceData, meta interface{}) (err err
 	if err != nil {
 		return err
 	}
-	project := d.Get("project").(string)
-	if project != "" {
+
+	if p, ok := d.GetOk("project"); ok && p != "" {
+		project := p.(string)
 		server = server.UseProject(project)
 	}
 
@@ -234,8 +238,9 @@ func resourceLxdNetworkExists(d *schema.ResourceData, meta interface{}) (exists 
 	if err != nil {
 		return false, err
 	}
-	project := d.Get("project").(string)
-	if project != "" {
+
+	if p, ok := d.GetOk("project"); ok && p != "" {
+		project := p.(string)
 		server = server.UseProject(project)
 	}
 
@@ -272,8 +277,8 @@ func resourceLxdNetworkImport(d *schema.ResourceData, meta interface{}) ([]*sche
 	if err != nil {
 		return nil, err
 	}
-	project := d.Get("project").(string)
-	if project != "" {
+	if p, ok := d.GetOk("project"); ok && p != "" {
+		project := p.(string)
 		server = server.UseProject(project)
 	}
 
