@@ -66,6 +66,12 @@ func resourceLxdProfile() *schema.Resource {
 				Optional: true,
 				Default:  "",
 			},
+
+			"project": {
+				Type:     schema.TypeString,
+				Optional: true,
+				ForceNew: true,
+			},
 		},
 	}
 }
@@ -81,6 +87,10 @@ func resourceLxdProfileCreate(d *schema.ResourceData, meta interface{}) error {
 	description := d.Get("description").(string)
 	config := resourceLxdConfigMap(d.Get("config"))
 	devices := resourceLxdDevices(d.Get("device"))
+	project := d.Get("project").(string)
+	if project != "" {
+		server = server.UseProject(project)
+	}
 
 	req := api.ProfilesPost{Name: name}
 	req.Config = config
@@ -102,9 +112,12 @@ func resourceLxdProfileRead(d *schema.ResourceData, meta interface{}) error {
 	if err != nil {
 		return err
 	}
+	project := d.Get("project").(string)
+	if project != "" {
+		server = server.UseProject(project)
+	}
 
 	name := d.Id()
-
 	profile, _, err := server.GetProfile(name)
 	if err != nil {
 		return err
@@ -133,6 +146,10 @@ func resourceLxdProfileUpdate(d *schema.ResourceData, meta interface{}) error {
 	server, err := p.GetInstanceServer(p.selectRemote(d))
 	if err != nil {
 		return err
+	}
+	project := d.Get("project").(string)
+	if project != "" {
+		server = server.UseProject(project)
 	}
 
 	name := d.Id()
@@ -198,6 +215,10 @@ func resourceLxdProfileDelete(d *schema.ResourceData, meta interface{}) (err err
 	if err != nil {
 		return err
 	}
+	project := d.Get("project").(string)
+	if project != "" {
+		server = server.UseProject(project)
+	}
 
 	name := d.Id()
 
@@ -209,6 +230,10 @@ func resourceLxdProfileExists(d *schema.ResourceData, meta interface{}) (exists 
 	server, err := p.GetInstanceServer(p.selectRemote(d))
 	if err != nil {
 		return false, err
+	}
+	project := d.Get("project").(string)
+	if project != "" {
+		server = server.UseProject(project)
 	}
 
 	name := d.Id()
@@ -239,6 +264,10 @@ func resourceLxdProfileImport(d *schema.ResourceData, meta interface{}) ([]*sche
 	server, err := p.GetInstanceServer(p.selectRemote(d))
 	if err != nil {
 		return nil, err
+	}
+	project := d.Get("project").(string)
+	if project != "" {
+		server = server.UseProject(project)
 	}
 
 	profile, _, err := server.GetProfile(name)

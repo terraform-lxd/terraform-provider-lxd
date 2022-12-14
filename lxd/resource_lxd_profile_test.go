@@ -273,6 +273,27 @@ func TestAccProfile_containerDevice_2(t *testing.T) {
 	})
 }
 
+func TestAccProfile_project(t *testing.T) {
+	var profile api.Profile
+	var project api.Project
+	profileName := strings.ToLower(petname.Generate(2, "-"))
+	projectName := strings.ToLower(petname.Name())
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:  func() { testAccPreCheck(t) },
+		Providers: testAccProviders,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccProfile_project(projectName, profileName),
+				Check: resource.ComposeTestCheckFunc(
+					testAccProjectRunning(t, "lxd_project.project1", &project),
+					testAccProfileRunningInProject(t, "lxd_profile.profile1", &profile, projectName),
+				),
+			},
+		},
+	})
+}
+
 func testAccProfileRunning(t *testing.T, n string, profile *api.Profile) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		rs, ok := s.RootModule().Resources[n]
@@ -288,6 +309,36 @@ func testAccProfileRunning(t *testing.T, n string, profile *api.Profile) resourc
 		if err != nil {
 			return err
 		}
+		p, _, err := client.GetProfile(rs.Primary.ID)
+		if err != nil {
+			return err
+		}
+
+		if p != nil {
+			*profile = *p
+			return nil
+		}
+
+		return fmt.Errorf("Profile not found: %s", rs.Primary.ID)
+	}
+}
+
+func testAccProfileRunningInProject(t *testing.T, n string, profile *api.Profile, projectName string) resource.TestCheckFunc {
+	return func(s *terraform.State) error {
+		rs, ok := s.RootModule().Resources[n]
+		if !ok {
+			return fmt.Errorf("Not found: %s", n)
+		}
+
+		if rs.Primary.ID == "" {
+			return fmt.Errorf("No ID is set")
+		}
+
+		client, err := testAccProvider.Meta().(*lxdProvider).GetInstanceServer("")
+		if err != nil {
+			return err
+		}
+		client = client.UseProject(projectName)
 		p, _, err := client.GetProfile(rs.Primary.ID)
 		if err != nil {
 			return err
@@ -544,4 +595,32 @@ resource "lxd_container" "container1" {
   profiles = ["default", "${lxd_profile.profile1.name}"]
 }
 	`, profileName, containerName)
+}
+
+func testAccProfile_project(projectName, profileName string) string {
+	return fmt.Sprintf(`
+resource "lxd_project" "project1" {
+  name        = "%s"
+  description = "Terraform provider test project"
+  config = {
+	"features.storage.volumes" = false
+	"features.images" = false
+	"features.profiles" = false
+  }
+}
+resource "lxd_profile" "profile1" {
+  name = "%s"
+  project = lxd_project.project1.name
+
+  device {
+    name = "foo"
+    type = "nic"
+    properties = {
+      name    = "bar"
+      nictype = "bridged"
+      parent  = "lxdbr0"
+    }
+  }
+}
+	`, projectName, profileName)
 }
