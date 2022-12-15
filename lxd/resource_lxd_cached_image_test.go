@@ -215,7 +215,6 @@ func testAccCachedImageExists(t *testing.T, n string, image *api.Image) resource
 	}
 }
 
-
 func testAccCachedImageExistsInProject(t *testing.T, n string, image *api.Image, project string) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		rs, ok := s.RootModule().Resources[n]
@@ -371,7 +370,7 @@ resource "lxd_cached_image" "img4" {
 }
 
 func testAccCachedImage_project(project string) string {
-return fmt.Sprintf(`
+	return fmt.Sprintf(`
 resource "lxd_project" "project1" {
   name        = "%s"
   description = "Terraform provider test project"

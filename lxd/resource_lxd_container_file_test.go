@@ -181,7 +181,7 @@ resource "lxd_container_file" "file1" {
 }
 
 func testAccContainerFile_project(project, container string) string {
-return fmt.Sprintf(`
+	return fmt.Sprintf(`
 resource "lxd_project" "project1" {
   name        = "%s"
   description = "Terraform provider test project"

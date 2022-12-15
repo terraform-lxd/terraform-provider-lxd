@@ -428,7 +428,7 @@ resource "lxd_network" "cluster_network" {
 }
 
 func testAccNetwork_project(project string) string {
-return fmt.Sprintf(`
+	return fmt.Sprintf(`
 resource "lxd_project" "project1" {
   name        = "%s"
   description = "Terraform provider test project"

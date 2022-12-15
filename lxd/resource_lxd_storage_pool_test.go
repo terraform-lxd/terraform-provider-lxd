@@ -229,4 +229,3 @@ resource "lxd_storage_pool" "storage_pool1" {
 }
 	`, project, name, source)
 }
-
