@@ -174,6 +174,7 @@ resource "lxd_project" "project1" {
 	"features.storage.volumes" = false
 	"features.images" = false
 	"features.profiles" = false
+	"features.storage.buckets" = false
   }
 }
 resource "lxd_container" "container1" {

@@ -133,6 +133,7 @@ resource "lxd_project" "project0" {
 	"features.images" = true
 	"features.profiles" = true
 	"features.storage.volumes" = true
+	"features.storage.buckets" = true
   }
 }`, name)
 }
@@ -146,6 +147,7 @@ resource "lxd_project" "project1" {
 	"features.images" = false
 	"features.profiles" = false
 	"features.storage.volumes" = false
+	"features.storage.buckets" = false
   }
 }`, name)
 }

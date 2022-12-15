@@ -377,6 +377,7 @@ resource "lxd_project" "project1" {
   config = {
 	"features.storage.volumes" = false
 	"features.images" = false
+	"features.storage.buckets" = false 
 	"features.profiles" = false
   }
 }
