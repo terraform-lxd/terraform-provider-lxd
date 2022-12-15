@@ -165,7 +165,7 @@ func TestAccNetwork_project(t *testing.T) {
 				Config: testAccNetwork_project(projectName),
 				Check: resource.ComposeTestCheckFunc(
 					testAccProjectRunning(t, "lxd_project.project1", &project),
-					testAccNetworkExistsInProject(t, "lxd_network.eth0", &network, projectName),
+					testAccNetworkExistsInProject(t, "lxd_network.eth1", &network, projectName),
 				),
 			},
 		},
@@ -439,8 +439,8 @@ resource "lxd_project" "project1" {
 	"features.storage.buckets" = false
   }
 }
-resource "lxd_network" "eth0" {
-  name = "eth0"
+resource "lxd_network" "eth1" {
+  name = "eth1"
   config = {
     "ipv4.address" = "10.150.19.1/24"
     "ipv4.nat" = "true"
