@@ -97,7 +97,7 @@ func resourceLxdProjectRead(d *schema.ResourceData, meta interface{}) error {
 
 	d.Set("description", project.Description)
 	d.Set("config", project.Config)
-	d.Set("name", project.Config)
+	d.Set("name", project.Name)
 
 	return nil
 }
