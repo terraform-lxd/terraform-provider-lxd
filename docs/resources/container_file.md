@@ -51,3 +51,5 @@ resource "lxd_container_file" "file1" {
 	to the target if they do not exist.
 
 * `append` - *Optional* - Whether to append the content to the target file. Defaults to false, where target file will be overwritten
+
+* `project` - *Optional* - Name of the project where the container to which this file will be appended exist.

@@ -53,6 +53,8 @@ resource "lxd_container" "test1" {
 
 * `device` - *Optional* - Device definition. See reference below.
 
+* `project` - *Optional* - Name of the project where profile will be stored.
+
 The `device` block supports:
 
 * `name` - *Required* - Name of the device.

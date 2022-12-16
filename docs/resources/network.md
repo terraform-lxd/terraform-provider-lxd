@@ -198,6 +198,8 @@ for more details on how to create a network in clustered mode.
 * `config` - *Optional* - Map of key/value pairs of
 	[network config settings](https://github.com/lxc/lxd/blob/master/doc/configuration.md).
 
+* `project` - *Optional* - Name of the project where network will be created.
+
 ## Attribute Reference
 
 The following attributes are exported:
