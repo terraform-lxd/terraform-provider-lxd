@@ -73,7 +73,7 @@ for more details on how to create a storage pool in clustered mode.
 	[storage pool config settings](https://github.com/lxc/lxd/blob/master/doc/configuration.md).
 	Config settings vary from driver to driver.
 
-* `project` - *Optional* - Name of the project where storage pool will be stored.
+* `project` - *Optional* - Name of the project where the storage pool will be stored.
 
 ## Importing
 

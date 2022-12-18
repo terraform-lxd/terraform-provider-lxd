@@ -94,8 +94,8 @@ func resourceLxdCachedImageCreate(d *schema.ResourceData, meta interface{}) erro
 	if err != nil {
 		return err
 	}
-	if p, ok := d.GetOk("project"); ok && p != "" {
-		project := p.(string)
+	if v, ok := d.GetOk("project"); ok && v != "" {
+		project := v.(string)
 		dstServer = dstServer.UseProject(project)
 	}
 
@@ -182,8 +182,8 @@ func resourceLxdCachedImageUpdate(d *schema.ResourceData, meta interface{}) erro
 	if err != nil {
 		return err
 	}
-	if p, ok := d.GetOk("project"); ok && p != "" {
-		project := p.(string)
+	if v, ok := d.GetOk("project"); ok && v != "" {
+		project := v.(string)
 		server = server.UseProject(project)
 	}
 	id := newCachedImageIDFromResourceID(d.Id())
@@ -228,8 +228,8 @@ func resourceLxdCachedImageDelete(d *schema.ResourceData, meta interface{}) erro
 	if err != nil {
 		return err
 	}
-	if p, ok := d.GetOk("project"); ok && p != "" {
-		project := p.(string)
+	if v, ok := d.GetOk("project"); ok && v != "" {
+		project := v.(string)
 		server = server.UseProject(project)
 	}
 
@@ -251,8 +251,8 @@ func resourceLxdCachedImageExists(d *schema.ResourceData, meta interface{}) (boo
 		return false, err
 	}
 
-	if p, ok := d.GetOk("project"); ok && p != "" {
-		project := p.(string)
+	if v, ok := d.GetOk("project"); ok && v != "" {
+		project := v.(string)
 		server = server.UseProject(project)
 	}
 
@@ -276,8 +276,8 @@ func resourceLxdCachedImageRead(d *schema.ResourceData, meta interface{}) error 
 	if err != nil {
 		return err
 	}
-	if p, ok := d.GetOk("project"); ok && p != "" {
-		project := p.(string)
+	if v, ok := d.GetOk("project"); ok && v != "" {
+		project := v.(string)
 		server = server.UseProject(project)
 	}
 

@@ -80,8 +80,8 @@ func resourceLxdVolumeCreate(d *schema.ResourceData, meta interface{}) error {
 		return err
 	}
 
-	if p, ok := d.GetOk("project"); ok && p != "" {
-		project := p.(string)
+	if v, ok := d.GetOk("project"); ok && v != "" {
+		project := v.(string)
 		server = server.UseProject(project)
 	}
 
@@ -117,8 +117,8 @@ func resourceLxdVolumeRead(d *schema.ResourceData, meta interface{}) error {
 		return err
 	}
 
-	if p, ok := d.GetOk("project"); ok && p != "" {
-		project := p.(string)
+	if v, ok := d.GetOk("project"); ok && v != "" {
+		project := v.(string)
 		server = server.UseProject(project)
 	}
 
@@ -157,8 +157,8 @@ func resourceLxdVolumeUpdate(d *schema.ResourceData, meta interface{}) error {
 		return err
 	}
 
-	if p, ok := d.GetOk("project"); ok && p != "" {
-		project := p.(string)
+	if v, ok := d.GetOk("project"); ok && v != "" {
+		project := v.(string)
 		server = server.UseProject(project)
 	}
 
@@ -196,8 +196,8 @@ func resourceLxdVolumeDelete(d *schema.ResourceData, meta interface{}) (err erro
 		return err
 	}
 
-	if p, ok := d.GetOk("project"); ok && p != "" {
-		project := p.(string)
+	if v, ok := d.GetOk("project"); ok && v != "" {
+		project := v.(string)
 		server = server.UseProject(project)
 	}
 
@@ -218,8 +218,8 @@ func resourceLxdVolumeExists(d *schema.ResourceData, meta interface{}) (exists b
 		return false, err
 	}
 
-	if p, ok := d.GetOk("project"); ok && p != "" {
-		project := p.(string)
+	if v, ok := d.GetOk("project"); ok && v != "" {
+		project := v.(string)
 		server = server.UseProject(project)
 	}
 

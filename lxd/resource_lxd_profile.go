@@ -88,8 +88,8 @@ func resourceLxdProfileCreate(d *schema.ResourceData, meta interface{}) error {
 	config := resourceLxdConfigMap(d.Get("config"))
 	devices := resourceLxdDevices(d.Get("device"))
 
-	if p, ok := d.GetOk("project"); ok && p != "" {
-		project := p.(string)
+	if v, ok := d.GetOk("project"); ok && v != "" {
+		project := v.(string)
 		server = server.UseProject(project)
 	}
 
@@ -114,8 +114,8 @@ func resourceLxdProfileRead(d *schema.ResourceData, meta interface{}) error {
 		return err
 	}
 
-	if p, ok := d.GetOk("project"); ok && p != "" {
-		project := p.(string)
+	if v, ok := d.GetOk("project"); ok && v != "" {
+		project := v.(string)
 		server = server.UseProject(project)
 	}
 
@@ -150,8 +150,8 @@ func resourceLxdProfileUpdate(d *schema.ResourceData, meta interface{}) error {
 		return err
 	}
 
-	if p, ok := d.GetOk("project"); ok && p != "" {
-		project := p.(string)
+	if v, ok := d.GetOk("project"); ok && v != "" {
+		project := v.(string)
 		server = server.UseProject(project)
 	}
 
@@ -219,8 +219,8 @@ func resourceLxdProfileDelete(d *schema.ResourceData, meta interface{}) (err err
 		return err
 	}
 
-	if p, ok := d.GetOk("project"); ok && p != "" {
-		project := p.(string)
+	if v, ok := d.GetOk("project"); ok && v != "" {
+		project := v.(string)
 		server = server.UseProject(project)
 	}
 
@@ -236,8 +236,8 @@ func resourceLxdProfileExists(d *schema.ResourceData, meta interface{}) (exists 
 		return false, err
 	}
 
-	if p, ok := d.GetOk("project"); ok && p != "" {
-		project := p.(string)
+	if v, ok := d.GetOk("project"); ok && v != "" {
+		project := v.(string)
 		server = server.UseProject(project)
 	}
 
@@ -271,8 +271,8 @@ func resourceLxdProfileImport(d *schema.ResourceData, meta interface{}) ([]*sche
 		return nil, err
 	}
 
-	if p, ok := d.GetOk("project"); ok && p != "" {
-		project := p.(string)
+	if v, ok := d.GetOk("project"); ok && v != "" {
+		project := v.(string)
 		server = server.UseProject(project)
 	}
 

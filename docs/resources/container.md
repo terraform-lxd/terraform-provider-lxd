@@ -110,7 +110,7 @@ resource "lxd_container" "container1" {
 
 * `target` - *Optional* - Specify a target node in a cluster.
 
-* `project` - *Optional* - Name of the project where container will be spawned.
+* `project` - *Optional* - Name of the project where the container will be spawned.
 
 The `device` block supports:
 

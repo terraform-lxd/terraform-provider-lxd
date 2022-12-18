@@ -37,7 +37,7 @@ resource "lxd_volume" "volume1" {
 	[volume config settings](https://github.com/lxc/lxd/blob/master/doc/configuration.md).
 	Config settings vary depending on the Storage Pool used.
 
-* `project` - *Optional* - Name of the project where volume will be stored.
+* `project` - *Optional* - Name of the project where the volume will be stored.
 
 ## Attribute Reference
 

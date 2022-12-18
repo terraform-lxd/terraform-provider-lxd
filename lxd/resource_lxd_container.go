@@ -242,8 +242,8 @@ func resourceLxdContainerCreate(d *schema.ResourceData, meta interface{}) error 
 		return fmt.Errorf("could not create image server client: %v", err)
 	}
 
-	if p, ok := d.GetOk("project"); ok && p != "" {
-		project := p.(string)
+	if v, ok := d.GetOk("project"); ok && v != "" {
+		project := v.(string)
 		server = server.UseProject(project)
 	}
 
@@ -430,8 +430,8 @@ func resourceLxdContainerRead(d *schema.ResourceData, meta interface{}) error {
 		return err
 	}
 
-	if p, ok := d.GetOk("project"); ok && p != "" {
-		project := p.(string)
+	if v, ok := d.GetOk("project"); ok && v != "" {
+		project := v.(string)
 		server = server.UseProject(project)
 	}
 
@@ -563,8 +563,8 @@ func resourceLxdContainerUpdate(d *schema.ResourceData, meta interface{}) error 
 		return err
 	}
 
-	if p, ok := d.GetOk("project"); ok && p != "" {
-		project := p.(string)
+	if v, ok := d.GetOk("project"); ok && v != "" {
+		project := v.(string)
 		server = server.UseProject(project)
 	}
 	name := d.Id()
@@ -711,8 +711,8 @@ func resourceLxdContainerDelete(d *schema.ResourceData, meta interface{}) (err e
 	}
 
 	refreshInterval := meta.(*lxdProvider).RefreshInterval
-	if p, ok := d.GetOk("project"); ok && p != "" {
-		project := p.(string)
+	if v, ok := d.GetOk("project"); ok && v != "" {
+		project := v.(string)
 		server = server.UseProject(project)
 	}
 
@@ -777,8 +777,8 @@ func resourceLxdContainerExists(d *schema.ResourceData, meta interface{}) (exist
 		return false, err
 	}
 
-	if p, ok := d.GetOk("project"); ok && p != "" {
-		project := p.(string)
+	if v, ok := d.GetOk("project"); ok && v != "" {
+		project := v.(string)
 		server = server.UseProject(project)
 	}
 
@@ -815,8 +815,8 @@ func resourceLxdContainerImport(d *schema.ResourceData, meta interface{}) ([]*sc
 	if err != nil {
 		return nil, err
 	}
-	if p, ok := d.GetOk("project"); ok && p != "" {
-		project := p.(string)
+	if v, ok := d.GetOk("project"); ok && v != "" {
+		project := v.(string)
 		server = server.UseProject(project)
 	}
 
