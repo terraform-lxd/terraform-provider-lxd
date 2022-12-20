@@ -1,4 +1,19 @@
-## 1.9.0 (Unreleased)
+## 1.10.0 (Unreleased)
+
+## 1.9.0 (December 19, 2022)
+
+IMPROVEMENTS
+
+* Added `lxd_project` resource [GH-279](https://github.com/terraform-lxd/terraform-provider-lxd/pull/279)
+* Added `project` to `lxd_cached_image` [GH-279](https://github.com/terraform-lxd/terraform-provider-lxd/pull/279)
+* Added `project` to `lxd_container` [GH-279](https://github.com/terraform-lxd/terraform-provider-lxd/pull/279)
+* Added `project` to `lxd_container_file` [GH-279](https://github.com/terraform-lxd/terraform-provider-lxd/pull/279)
+* Added `project` to `lxd_network` [GH-279](https://github.com/terraform-lxd/terraform-provider-lxd/pull/279)
+* Added `project` to `lxd_profile` [GH-279](https://github.com/terraform-lxd/terraform-provider-lxd/pull/279)
+* Added `project` to `lxd_publish_image` [GH-279](https://github.com/terraform-lxd/terraform-provider-lxd/pull/279)
+* Added `project` to `lxd_snapshot` [GH-279](https://github.com/terraform-lxd/terraform-provider-lxd/pull/279)
+* Added `project` to `lxd_storage_pool` [GH-279](https://github.com/terraform-lxd/terraform-provider-lxd/pull/279)
+* Added `project` to `lxd_volume` [GH-279](https://github.com/terraform-lxd/terraform-provider-lxd/pull/279)
 
 ## 1.8.0 (November 3, 2022)
 
