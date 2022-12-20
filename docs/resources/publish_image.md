@@ -45,6 +45,8 @@ resource "lxd_publish_image" "test1" {
 
 * `triggers` - *Optional* - A map of arbitrary strings that, when changed, will force the resource to be replaced.
 
+* `project` - *Optional* - Name of the project where the published image will be stored.
+
 ## Notes
 
 * The container must be stopped

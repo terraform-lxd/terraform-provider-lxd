@@ -204,6 +204,12 @@ func resourceLxdContainer() *schema.Resource {
 				Default:  true,
 				ForceNew: false,
 			},
+
+			"project": {
+				Type:     schema.TypeString,
+				Optional: true,
+				ForceNew: true,
+			},
 		},
 	}
 }
@@ -215,6 +221,7 @@ func resourceLxdContainerCreate(d *schema.ResourceData, meta interface{}) error 
 	d.Partial(true)
 
 	p := meta.(*lxdProvider)
+
 	remote := p.selectRemote(d)
 	server, err := p.GetInstanceServer(remote)
 	if err != nil {
@@ -233,6 +240,11 @@ func resourceLxdContainerCreate(d *schema.ResourceData, meta interface{}) error 
 	imgServer, err := p.GetImageServer(imgRemote)
 	if err != nil {
 		return fmt.Errorf("could not create image server client: %v", err)
+	}
+
+	if v, ok := d.GetOk("project"); ok && v != "" {
+		project := v.(string)
+		server = server.UseProject(project)
 	}
 
 	// Prepare container config
@@ -319,6 +331,7 @@ func resourceLxdContainerCreate(d *schema.ResourceData, meta interface{}) error 
 	d.SetPartial("name")
 	d.SetPartial("image")
 	d.SetPartial("profiles")
+	d.SetPartial("project")
 	d.SetPartial("ephemeral")
 	d.SetPartial("privileged")
 	d.SetPartial("config")
@@ -410,14 +423,20 @@ func resourceLxdContainerCreate(d *schema.ResourceData, meta interface{}) error 
 
 func resourceLxdContainerRead(d *schema.ResourceData, meta interface{}) error {
 	p := meta.(*lxdProvider)
+
 	remote := p.selectRemote(d)
 	server, err := p.GetInstanceServer(remote)
 	if err != nil {
 		return err
 	}
 
-	name := d.Id()
+	if v, ok := d.GetOk("project"); ok && v != "" {
+		project := v.(string)
+		server = server.UseProject(project)
+	}
 
+	name := d.Id()
+	// https://github.com/lxc/lxd/blob/master/client/lxd_instances.go
 	container, _, err := server.GetInstance(name)
 	if err != nil {
 		return err
@@ -537,12 +556,17 @@ func resourceLxdContainerRead(d *schema.ResourceData, meta interface{}) error {
 
 func resourceLxdContainerUpdate(d *schema.ResourceData, meta interface{}) error {
 	p := meta.(*lxdProvider)
+
 	remote := p.selectRemote(d)
 	server, err := p.GetInstanceServer(remote)
 	if err != nil {
 		return err
 	}
 
+	if v, ok := d.GetOk("project"); ok && v != "" {
+		project := v.(string)
+		server = server.UseProject(project)
+	}
 	name := d.Id()
 
 	// changed determines if an update call needs made.
@@ -554,6 +578,7 @@ func resourceLxdContainerUpdate(d *schema.ResourceData, meta interface{}) error 
 	}
 
 	// Copy the current container configuration to the updatable container struct.
+	// https://github.com/lxc/lxd/blob/3df4aa84e8a86f5186b312243dc212ff8da06941/shared/api/instance.go#L136
 	newContainer := api.InstancePut{
 		Architecture: ct.Architecture,
 		Config:       ct.Config,
@@ -678,6 +703,7 @@ func resourceLxdContainerUpdate(d *schema.ResourceData, meta interface{}) error 
 
 func resourceLxdContainerDelete(d *schema.ResourceData, meta interface{}) (err error) {
 	p := meta.(*lxdProvider)
+
 	remote := p.selectRemote(d)
 	server, err := p.GetInstanceServer(remote)
 	if err != nil {
@@ -685,8 +711,12 @@ func resourceLxdContainerDelete(d *schema.ResourceData, meta interface{}) (err e
 	}
 
 	refreshInterval := meta.(*lxdProvider).RefreshInterval
-	name := d.Id()
+	if v, ok := d.GetOk("project"); ok && v != "" {
+		project := v.(string)
+		server = server.UseProject(project)
+	}
 
+	name := d.Id()
 	ct, etag, _ := server.GetInstanceState(name)
 	if ct.Status == "Running" {
 		stopReq := api.InstanceStatePut{
@@ -740,16 +770,20 @@ func resourceLxdContainerDelete(d *schema.ResourceData, meta interface{}) (err e
 
 func resourceLxdContainerExists(d *schema.ResourceData, meta interface{}) (exists bool, err error) {
 	p := meta.(*lxdProvider)
+
 	remote := p.selectRemote(d)
 	server, err := p.GetInstanceServer(remote)
 	if err != nil {
 		return false, err
 	}
 
-	name := d.Id()
+	if v, ok := d.GetOk("project"); ok && v != "" {
+		project := v.(string)
+		server = server.UseProject(project)
+	}
 
 	exists = false
-
+	name := d.Id()
 	ct, _, err := server.GetInstanceState(name)
 	if err != nil && err.Error() == "not found" {
 		err = nil
@@ -763,6 +797,7 @@ func resourceLxdContainerExists(d *schema.ResourceData, meta interface{}) (exist
 
 func resourceLxdContainerImport(d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
 	p := meta.(*lxdProvider)
+
 	log.Printf("[DEBUG] Starting import for %s", d.Id())
 	parts := strings.SplitN(d.Id(), "/", 2)
 
@@ -779,6 +814,10 @@ func resourceLxdContainerImport(d *schema.ResourceData, meta interface{}) ([]*sc
 	server, err := p.GetInstanceServer(p.selectRemote(d))
 	if err != nil {
 		return nil, err
+	}
+	if v, ok := d.GetOk("project"); ok && v != "" {
+		project := v.(string)
+		server = server.UseProject(project)
 	}
 
 	ct, _, err := server.GetInstanceState(name)

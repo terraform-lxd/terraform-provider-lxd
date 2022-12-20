@@ -33,6 +33,8 @@ resource "lxd_container" "test1" {
 * `copy_aliases` - *Optional* - Whether to copy the aliases of the image from
 	the remote. Valid values are `true` and `false`. Defaults to `true`.
 
+* `project` - *Optional* - Name of the project where the image will be stored.
+
 ## Attribute Reference
 
 The following attributes are exported:

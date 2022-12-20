@@ -60,6 +60,29 @@ func TestAccStoragePool_target(t *testing.T) {
 	})
 }
 
+func TestAccStoragePool_project(t *testing.T) {
+	var pool api.StoragePool
+	var project api.Project
+
+	source := t.TempDir()
+	projectName := strings.ToLower(petname.Name())
+	poolName := strings.ToLower(petname.Generate(2, "-"))
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:  func() { testAccPreCheck(t) },
+		Providers: testAccProviders,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccStoragePool_project(poolName, source, projectName),
+				Check: resource.ComposeTestCheckFunc(
+					testAccProjectRunning(t, "lxd_project.project1", &project),
+					testAccStoragePoolExistsInProject(t, "lxd_storage_pool.storage_pool1", &pool, projectName),
+				),
+			},
+		},
+	})
+}
+
 func testAccStoragePoolExists(t *testing.T, n string, pool *api.StoragePool) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		rs, ok := s.RootModule().Resources[n]
@@ -77,6 +100,35 @@ func testAccStoragePoolExists(t *testing.T, n string, pool *api.StoragePool) res
 		if err != nil {
 			return err
 		}
+		v, _, err := client.GetStoragePool(poolName)
+		if err != nil {
+			return err
+		}
+
+		*pool = *v
+
+		return nil
+	}
+}
+
+func testAccStoragePoolExistsInProject(t *testing.T, n string, pool *api.StoragePool, project string) resource.TestCheckFunc {
+	return func(s *terraform.State) error {
+		rs, ok := s.RootModule().Resources[n]
+		if !ok {
+			return fmt.Errorf("Not found: %s", n)
+		}
+
+		if rs.Primary.ID == "" {
+			return fmt.Errorf("No ID is set")
+		}
+
+		poolName := rs.Primary.ID
+
+		client, err := testAccProvider.Meta().(*lxdProvider).GetInstanceServer("")
+		if err != nil {
+			return err
+		}
+		client = client.UseProject(project)
 		v, _, err := client.GetStoragePool(poolName)
 		if err != nil {
 			return err
@@ -154,4 +206,27 @@ resource "lxd_storage_pool" "storage_pool1" {
   driver = "dir"
 }
 	`, name, source, name, source, name)
+}
+
+func testAccStoragePool_project(name, source, project string) string {
+	return fmt.Sprintf(`
+resource "lxd_project" "project1" {
+  name        = "%s"
+  description = "Terraform provider test project"
+  config = {
+	"features.storage.volumes" = false
+	"features.images" = false
+	"features.profiles" = false
+	"features.storage.buckets" = false
+  }
+}
+resource "lxd_storage_pool" "storage_pool1" {
+  name = "%s"
+  driver = "dir"
+  config = {
+    source = "%s"
+  }
+  project = lxd_project.project1.name
+}
+	`, project, name, source)
 }

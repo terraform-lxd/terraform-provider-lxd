@@ -31,6 +31,7 @@ type lxdProvider struct {
 	// LXDConfig is the converted form of terraformLXDConfig
 	// in LXD's native data structure. This is lazy-loaded / created
 	// only when a connection to an LXD remote/server happens.
+	// https://github.com/lxc/lxd/blob/master/lxc/config/config.go
 	LXDConfig *lxd_config.Config
 
 	// lxdClientMap is a map of LXD client connections to LXD
@@ -184,6 +185,11 @@ func Provider() terraform.ResourceProvider {
 				Description: descriptions["lxd_refresh_interval"],
 				Default:     "10s",
 			},
+			"project": {
+				Type:        schema.TypeString,
+				Optional:    true,
+				Description: descriptions["lxd_project"],
+			},
 		},
 
 		ResourcesMap: map[string]*schema.Resource{
@@ -193,6 +199,7 @@ func Provider() terraform.ResourceProvider {
 			"lxd_container_file":          resourceLxdContainerFile(),
 			"lxd_network":                 resourceLxdNetwork(),
 			"lxd_profile":                 resourceLxdProfile(),
+			"lxd_project":                 resourceLxdProject(),
 			"lxd_snapshot":                resourceLxdSnapshot(),
 			"lxd_storage_pool":            resourceLxdStoragePool(),
 			"lxd_volume":                  resourceLxdVolume(),
@@ -216,6 +223,7 @@ func init() {
 		"lxd_remote_port":                  "Port LXD Daemon API is listening on. default = 8443.",
 		"lxd_remote_name":                  "Name of the LXD remote. Required when lxd_scheme set to https, to enable locating server certificate.",
 		"lxd_remote_password":              "The password for the remote.",
+		"lxd_project":                      "The project where project-scoped resources will be created. Can be overridden in individual resources. default = default",
 	}
 }
 
@@ -266,6 +274,10 @@ func providerConfigure(d *schema.ResourceData) (interface{}, error) {
 		if err := config.GenerateClientCertificate(); err != nil {
 			return nil, err
 		}
+	}
+
+	if v, ok := d.Get("project").(string); ok && v != "" {
+		config.ProjectOverride = v
 	}
 
 	// Create an lxdProvider struct.

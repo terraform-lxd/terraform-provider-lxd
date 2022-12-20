@@ -66,6 +66,12 @@ func resourceLxdProfile() *schema.Resource {
 				Optional: true,
 				Default:  "",
 			},
+
+			"project": {
+				Type:     schema.TypeString,
+				Optional: true,
+				ForceNew: true,
+			},
 		},
 	}
 }
@@ -81,6 +87,11 @@ func resourceLxdProfileCreate(d *schema.ResourceData, meta interface{}) error {
 	description := d.Get("description").(string)
 	config := resourceLxdConfigMap(d.Get("config"))
 	devices := resourceLxdDevices(d.Get("device"))
+
+	if v, ok := d.GetOk("project"); ok && v != "" {
+		project := v.(string)
+		server = server.UseProject(project)
+	}
 
 	req := api.ProfilesPost{Name: name}
 	req.Config = config
@@ -103,8 +114,12 @@ func resourceLxdProfileRead(d *schema.ResourceData, meta interface{}) error {
 		return err
 	}
 
-	name := d.Id()
+	if v, ok := d.GetOk("project"); ok && v != "" {
+		project := v.(string)
+		server = server.UseProject(project)
+	}
 
+	name := d.Id()
 	profile, _, err := server.GetProfile(name)
 	if err != nil {
 		return err
@@ -133,6 +148,11 @@ func resourceLxdProfileUpdate(d *schema.ResourceData, meta interface{}) error {
 	server, err := p.GetInstanceServer(p.selectRemote(d))
 	if err != nil {
 		return err
+	}
+
+	if v, ok := d.GetOk("project"); ok && v != "" {
+		project := v.(string)
+		server = server.UseProject(project)
 	}
 
 	name := d.Id()
@@ -199,6 +219,11 @@ func resourceLxdProfileDelete(d *schema.ResourceData, meta interface{}) (err err
 		return err
 	}
 
+	if v, ok := d.GetOk("project"); ok && v != "" {
+		project := v.(string)
+		server = server.UseProject(project)
+	}
+
 	name := d.Id()
 
 	return server.DeleteProfile(name)
@@ -209,6 +234,11 @@ func resourceLxdProfileExists(d *schema.ResourceData, meta interface{}) (exists 
 	server, err := p.GetInstanceServer(p.selectRemote(d))
 	if err != nil {
 		return false, err
+	}
+
+	if v, ok := d.GetOk("project"); ok && v != "" {
+		project := v.(string)
+		server = server.UseProject(project)
 	}
 
 	name := d.Id()
@@ -239,6 +269,11 @@ func resourceLxdProfileImport(d *schema.ResourceData, meta interface{}) ([]*sche
 	server, err := p.GetInstanceServer(p.selectRemote(d))
 	if err != nil {
 		return nil, err
+	}
+
+	if v, ok := d.GetOk("project"); ok && v != "" {
+		project := v.(string)
+		server = server.UseProject(project)
 	}
 
 	profile, _, err := server.GetProfile(name)

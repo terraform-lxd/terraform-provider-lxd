@@ -58,6 +58,12 @@ func resourceLxdStoragePool() *schema.Resource {
 				Type:     schema.TypeMap,
 				Optional: true,
 			},
+
+			"project": {
+				Type:     schema.TypeString,
+				Optional: true,
+				ForceNew: true,
+			},
 		},
 	}
 }
@@ -67,6 +73,11 @@ func resourceLxdStoragePoolCreate(d *schema.ResourceData, meta interface{}) erro
 	server, err := p.GetInstanceServer(p.selectRemote(d))
 	if err != nil {
 		return err
+	}
+
+	if v, ok := d.GetOk("project"); ok && v != "" {
+		project := v.(string)
+		server = server.UseProject(project)
 	}
 
 	if v, ok := d.GetOk("target"); ok && v != "" {
@@ -98,6 +109,11 @@ func resourceLxdStoragePoolRead(d *schema.ResourceData, meta interface{}) error 
 	server, err := p.GetInstanceServer(p.selectRemote(d))
 	if err != nil {
 		return err
+	}
+
+	if v, ok := d.GetOk("project"); ok && v != "" {
+		project := v.(string)
+		server = server.UseProject(project)
 	}
 
 	if v, ok := d.GetOk("target"); ok && v != "" {
@@ -154,6 +170,11 @@ func resourceLxdStoragePoolUpdate(d *schema.ResourceData, meta interface{}) erro
 		return err
 	}
 
+	if v, ok := d.GetOk("project"); ok && v != "" {
+		project := v.(string)
+		server = server.UseProject(project)
+	}
+
 	if v, ok := d.GetOk("target"); ok && v != "" {
 		target := v.(string)
 		server = server.UseTarget(target)
@@ -189,6 +210,11 @@ func resourceLxdStoragePoolDelete(d *schema.ResourceData, meta interface{}) (err
 		return err
 	}
 
+	if v, ok := d.GetOk("project"); ok && v != "" {
+		project := v.(string)
+		server = server.UseProject(project)
+	}
+
 	if v, ok := d.GetOk("target"); ok && v != "" {
 		target := v.(string)
 		server = server.UseTarget(target)
@@ -209,6 +235,11 @@ func resourceLxdStoragePoolExists(d *schema.ResourceData, meta interface{}) (exi
 	server, err := p.GetInstanceServer(p.selectRemote(d))
 	if err != nil {
 		return false, err
+	}
+
+	if v, ok := d.GetOk("project"); ok && v != "" {
+		project := v.(string)
+		server = server.UseProject(project)
 	}
 
 	if v, ok := d.GetOk("target"); ok && v != "" {
@@ -248,6 +279,10 @@ func resourceLxdStoragePoolImport(d *schema.ResourceData, meta interface{}) ([]*
 	server, err := p.GetInstanceServer(p.selectRemote(d))
 	if err != nil {
 		return nil, err
+	}
+	if v, ok := d.GetOk("project"); ok && v != "" {
+		project := v.(string)
+		server = server.UseProject(project)
 	}
 
 	pool, _, err := server.GetStoragePool(name)

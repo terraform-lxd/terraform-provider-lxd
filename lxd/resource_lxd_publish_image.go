@@ -58,6 +58,12 @@ func resourceLxdPublishImage() *schema.Resource {
 				Optional:    true,
 				ForceNew:    true,
 			},
+
+			"project": {
+				Type:     schema.TypeString,
+				Optional: true,
+				ForceNew: true,
+			},
 		},
 	}
 }
@@ -69,6 +75,10 @@ func resourceLxdPublishImageCreate(d *schema.ResourceData, meta interface{}) err
 	dstServer, err := p.GetInstanceServer(dstName)
 	if err != nil {
 		return err
+	}
+	if v, ok := d.GetOk("project"); ok && v != "" {
+		project := v.(string)
+		dstServer = dstServer.UseProject(project)
 	}
 
 	container := d.Get("container").(string)
@@ -153,6 +163,10 @@ func resourceLxdPublishImageUpdate(d *schema.ResourceData, meta interface{}) err
 	if err != nil {
 		return err
 	}
+	if v, ok := d.GetOk("project"); ok && v != "" {
+		project := v.(string)
+		server = server.UseProject(project)
+	}
 	id := newPublishImageIDFromResourceID(d.Id())
 
 	if d.HasChange("aliases") {
@@ -204,9 +218,14 @@ func resourceLxdPublishImageUpdate(d *schema.ResourceData, meta interface{}) err
 func resourceLxdPublishImageRead(d *schema.ResourceData, meta interface{}) error {
 	p := meta.(*lxdProvider)
 	remote := p.selectRemote(d)
-	server, err := p.GetImageServer(remote)
+	server, err := p.GetInstanceServer(remote)
 	if err != nil {
 		return err
+	}
+
+	if v, ok := d.GetOk("project"); ok && v != "" {
+		project := v.(string)
+		server = server.UseProject(project)
 	}
 
 	id := newPublishImageIDFromResourceID(d.Id())

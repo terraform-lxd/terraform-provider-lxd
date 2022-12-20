@@ -2,4 +2,33 @@
 
 Manages an LXD project.
 
-Not implemented yet. Please follow progress on [issue #279](https://github.com/terraform-lxd/terraform-provider-lxd/pull/279).
+## Example Usage
+
+```hcl
+resource "lxd_project" "project" {
+  name        = "project1"
+  description = "Terraform provider example project"
+  config = {
+	"features.storage.volumes" = false
+	"features.images" = false
+	"features.profiles" = false
+	"features.storage.buckets" = false
+  }
+}
+
+resource "lxd_container" "container" {
+  name = "container1"
+  image = "images:alpine/3.16/amd64"
+  project = lxd_project.project.name
+}
+```
+
+## Argument Reference
+
+* `name` - *Required* - Name of the project. 
+
+* `description` - *Optional* - Description of the project. 
+
+* `config` - *Optional* - Map of key/value pairs of [project config settings](https://github.com/lxc/lxd/blob/master/doc/projects.md).
+
+* `target` - *Optional* - Specify a target node in a cluster. 

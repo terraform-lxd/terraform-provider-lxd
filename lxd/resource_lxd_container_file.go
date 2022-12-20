@@ -76,6 +76,12 @@ func resourceLxdContainerFile() *schema.Resource {
 				ForceNew: true,
 				Optional: true,
 			},
+
+			"project": {
+				Type:     schema.TypeString,
+				Optional: true,
+				ForceNew: true,
+			},
 		},
 	}
 }
@@ -86,6 +92,11 @@ func resourceLxdContainerFileCreate(d *schema.ResourceData, meta interface{}) er
 	server, err := p.GetInstanceServer(remote)
 	if err != nil {
 		return err
+	}
+
+	if v, ok := d.GetOk("project"); ok && v != "" {
+		project := v.(string)
+		server = server.UseProject(project)
 	}
 
 	containerName := d.Get("container_name").(string)
@@ -127,6 +138,11 @@ func resourceLxdContainerFileRead(d *schema.ResourceData, meta interface{}) erro
 		return err
 	}
 
+	if v, ok := d.GetOk("project"); ok && v != "" {
+		project := v.(string)
+		server = server.UseProject(project)
+	}
+
 	_, _, err = server.GetContainer(containerName)
 	if err != nil {
 		return fmt.Errorf("unable to retrieve container %s: %s", containerName, err)
@@ -157,6 +173,11 @@ func resourceLxdContainerFileDelete(d *schema.ResourceData, meta interface{}) er
 		return err
 	}
 
+	if v, ok := d.GetOk("project"); ok && v != "" {
+		project := v.(string)
+		server = server.UseProject(project)
+	}
+
 	_, _, err = server.GetContainer(containerName)
 	if err != nil {
 		return fmt.Errorf("unable to retrieve container %s: %s", containerName, err)
@@ -182,6 +203,11 @@ func resourceLxdContainerFileExists(d *schema.ResourceData, meta interface{}) (e
 	server, err := p.GetInstanceServer(remote)
 	if err != nil {
 		return
+	}
+
+	if v, ok := d.GetOk("project"); ok && v != "" {
+		project := v.(string)
+		server = server.UseProject(project)
 	}
 
 	_, _, err = server.GetContainer(containerName)

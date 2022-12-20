@@ -54,6 +54,12 @@ func resourceLxdSnapshot() *schema.Resource {
 				Optional: true,
 				Default:  "",
 			},
+
+			"project": {
+				Type:     schema.TypeString,
+				Optional: true,
+				ForceNew: true,
+			},
 		},
 	}
 }
@@ -65,6 +71,11 @@ func resourceLxdSnapshotCreate(d *schema.ResourceData, meta interface{}) error {
 	server, err := p.GetInstanceServer(remote)
 	if err != nil {
 		return err
+	}
+
+	if v, ok := d.GetOk("project"); ok && v != "" {
+		project := v.(string)
+		server = server.UseProject(project)
 	}
 
 	ctrName := d.Get("container_name").(string)
@@ -116,6 +127,11 @@ func resourceLxdSnapshotRead(d *schema.ResourceData, meta interface{}) error {
 		return err
 	}
 
+	if v, ok := d.GetOk("project"); ok && v != "" {
+		project := v.(string)
+		server = server.UseProject(project)
+	}
+
 	snapID := newSnapshotIDFromResourceID(d.Id())
 
 	snap, _, err := server.GetInstanceSnapshot(snapID.container, snapID.snapshot)
@@ -142,6 +158,12 @@ func resourceLxdSnapshotDelete(d *schema.ResourceData, meta interface{}) error {
 	if err != nil {
 		return err
 	}
+
+	if v, ok := d.GetOk("project"); ok && v != "" {
+		project := v.(string)
+		server = server.UseProject(project)
+	}
+
 	snapID := newSnapshotIDFromResourceID(d.Id())
 
 	server.DeleteInstanceSnapshot(snapID.container, snapID.snapshot)
@@ -155,6 +177,12 @@ func resourceLxdSnapshotExists(d *schema.ResourceData, meta interface{}) (bool, 
 	if err != nil {
 		return false, err
 	}
+
+	if v, ok := d.GetOk("project"); ok && v != "" {
+		project := v.(string)
+		server = server.UseProject(project)
+	}
+
 	snapID := newSnapshotIDFromResourceID(d.Id())
 
 	snap, _, err := server.GetInstanceSnapshot(snapID.container, snapID.snapshot)

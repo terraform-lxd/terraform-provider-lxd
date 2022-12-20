@@ -60,6 +60,12 @@ func resourceLxdNetwork() *schema.Resource {
 				Type:     schema.TypeBool,
 				Computed: true,
 			},
+
+			"project": {
+				Type:     schema.TypeString,
+				Optional: true,
+				ForceNew: true,
+			},
 		},
 	}
 }
@@ -69,6 +75,11 @@ func resourceLxdNetworkCreate(d *schema.ResourceData, meta interface{}) error {
 	server, err := p.GetInstanceServer(p.selectRemote(d))
 	if err != nil {
 		return err
+	}
+
+	if v, ok := d.GetOk("project"); ok && v != "" {
+		project := v.(string)
+		server = server.UseProject(project)
 	}
 
 	name := d.Get("name").(string)
@@ -113,6 +124,12 @@ func resourceLxdNetworkRead(d *schema.ResourceData, meta interface{}) error {
 	if err != nil {
 		return err
 	}
+
+	if v, ok := d.GetOk("project"); ok && v != "" {
+		project := v.(string)
+		server = server.UseProject(project)
+	}
+
 	name := d.Id()
 
 	if v, ok := d.GetOk("target"); ok && v != "" {
@@ -156,6 +173,11 @@ func resourceLxdNetworkUpdate(d *schema.ResourceData, meta interface{}) error {
 		return err
 	}
 
+	if v, ok := d.GetOk("project"); ok && v != "" {
+		project := v.(string)
+		server = server.UseProject(project)
+	}
+
 	if v, ok := d.GetOk("target"); ok && v != "" {
 		target := v.(string)
 		server = server.UseTarget(target)
@@ -190,6 +212,11 @@ func resourceLxdNetworkDelete(d *schema.ResourceData, meta interface{}) (err err
 		return err
 	}
 
+	if v, ok := d.GetOk("project"); ok && v != "" {
+		project := v.(string)
+		server = server.UseProject(project)
+	}
+
 	if v, ok := d.GetOk("target"); ok && v != "" {
 		target := v.(string)
 		server = server.UseTarget(target)
@@ -210,6 +237,11 @@ func resourceLxdNetworkExists(d *schema.ResourceData, meta interface{}) (exists 
 	server, err := p.GetInstanceServer(p.selectRemote(d))
 	if err != nil {
 		return false, err
+	}
+
+	if v, ok := d.GetOk("project"); ok && v != "" {
+		project := v.(string)
+		server = server.UseProject(project)
 	}
 
 	name := d.Id()
@@ -244,6 +276,10 @@ func resourceLxdNetworkImport(d *schema.ResourceData, meta interface{}) ([]*sche
 	server, err := p.GetInstanceServer(p.selectRemote(d))
 	if err != nil {
 		return nil, err
+	}
+	if v, ok := d.GetOk("project"); ok && v != "" {
+		project := v.(string)
+		server = server.UseProject(project)
 	}
 
 	network, _, err := server.GetNetwork(name)
