@@ -1,5 +1,12 @@
 ## 1.10.0 (Unreleased)
 
+## 1.9.1 (February 26, 2023)
+
+OTHER
+
+* Updating dependencies [GH-284](https://github.com/terraform-lxd/terraform-provider-lxd/pull/284)
+* Updating dependencies [GH-284](https://github.com/terraform-lxd/terraform-provider-lxd/pull/286)
+
 ## 1.9.0 (December 19, 2022)
 
 IMPROVEMENTS
