@@ -126,34 +126,34 @@ func Provider() terraform.ResourceProvider {
 			},
 
 			"address": {
-				Type:     schema.TypeString,
-				Optional: true,
-				Removed:  "Use `lxd_remote.address` instead.",
+				Type:       schema.TypeString,
+				Optional:   true,
+				Deprecated: "Use `lxd_remote.address` instead.",
 			},
 
 			"scheme": {
-				Type:     schema.TypeString,
-				Optional: true,
-				Removed:  "Use `lxd_remote.scheme` instead.",
+				Type:       schema.TypeString,
+				Optional:   true,
+				Deprecated: "Use `lxd_remote.scheme` instead.",
 			},
 
 			"port": {
-				Type:     schema.TypeString,
-				Optional: true,
-				Removed:  "Use `lxd_remote.port` instead.",
+				Type:       schema.TypeString,
+				Optional:   true,
+				Deprecated: "Use `lxd_remote.port` instead.",
 			},
 
 			"remote": {
-				Type:     schema.TypeString,
-				Optional: true,
-				Removed:  "Use `lxd_remote.name` instead.",
+				Type:       schema.TypeString,
+				Optional:   true,
+				Deprecated: "Use `lxd_remote.name` instead.",
 			},
 
 			"remote_password": {
-				Type:      schema.TypeString,
-				Sensitive: true,
-				Optional:  true,
-				Removed:   "Use `lxd_remote.password` instead.",
+				Type:       schema.TypeString,
+				Sensitive:  true,
+				Optional:   true,
+				Deprecated: "Use `lxd_remote.password` instead.",
 			},
 
 			"config_dir": {
