@@ -11,7 +11,6 @@ import (
 	"time"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
 
 	lxd "github.com/lxc/lxd/client"
 	lxd_config "github.com/lxc/lxd/lxc/config"
@@ -69,7 +68,7 @@ type terraformLXDConfig struct {
 }
 
 // Provider returns a terraform.ResourceProvider
-func Provider() terraform.ResourceProvider {
+func Provider() *schema.Provider {
 	// The provider definition
 	return &schema.Provider{
 		Schema: map[string]*schema.Schema{
