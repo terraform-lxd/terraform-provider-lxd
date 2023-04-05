@@ -328,17 +328,6 @@ func resourceLxdContainerCreate(d *schema.ResourceData, meta interface{}) error 
 	// Container has been created, store ID
 	d.SetId(name)
 
-	d.SetPartial("name")
-	d.SetPartial("image")
-	d.SetPartial("profiles")
-	d.SetPartial("project")
-	d.SetPartial("ephemeral")
-	d.SetPartial("privileged")
-	d.SetPartial("config")
-	d.SetPartial("limits")
-	d.SetPartial("device")
-	d.SetPartial("remote")
-
 	// Upload any files, if specified,
 	// and set the contents to a hash in the State
 	if files, ok := d.GetOk("file"); ok {
@@ -366,7 +355,6 @@ func resourceLxdContainerCreate(d *schema.ResourceData, meta interface{}) error 
 		}
 	}
 
-	d.SetPartial("file")
 	d.Partial(false)
 
 	if d.Get("start_container").(bool) {
