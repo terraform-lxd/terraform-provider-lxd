@@ -31,10 +31,10 @@ terraform {
 ### Building from source
 
 1. Follow these [instructions](https://golang.org/doc/install) to setup a Golang development environment.
-2. Use `go get` to pull down this repository and compile the binary:
+2. Use `go install` to compile and install the binary the binary:
 
 ```
-go get -v -u github.com/terraform-lxd/terraform-provider-lxd
+go install github.com/terraform-lxd/terraform-provider-lxd@latest
 ```
 
 ## Documentation
