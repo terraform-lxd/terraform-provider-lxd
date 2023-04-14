@@ -47,6 +47,16 @@ resource "lxd_publish_image" "test1" {
 
 * `project` - *Optional* - Name of the project where the published image will be stored.
 
+## Attribute Reference
+
+The following attributes are exported:
+
+* `fingerprint` - The fingerprint of the published image
+
+* `architecture` - The architecture of the published image
+
+* `created_at` - The creation timestamp of the published image
+
 ## Notes
 
 * The container must be stopped

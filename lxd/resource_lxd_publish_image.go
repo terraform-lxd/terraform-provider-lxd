@@ -24,6 +24,21 @@ func resourceLxdPublishImage() *schema.Resource {
 				ForceNew: true,
 				Required: true,
 			},
+			"fingerprint": {
+				Type:     schema.TypeString,
+				ForceNew: false,
+				Computed: true,
+			},
+			"architecture": {
+				Type:     schema.TypeString,
+				ForceNew: false,
+				Computed: true,
+			},
+			"created_at": {
+				Type:     schema.TypeInt,
+				ForceNew: false,
+				Computed: true,
+			},
 			"aliases": {
 				Type:     schema.TypeList,
 				ForceNew: false,
