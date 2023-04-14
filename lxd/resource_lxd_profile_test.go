@@ -78,8 +78,7 @@ func TestAccProfile_device(t *testing.T) {
 				Config: testAccProfile_device_1(profileName),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("lxd_profile.profile1", "name", profileName),
-					resource.TestCheckResourceAttr("lxd_profile.profile1", "device.1834377448.properties.path", "/tmp/shared"),
-					testAccProfileRunning(t, "lxd_profile.profile1", &profile),
+					resource.TestCheckTypeSetElemNestedAttrs("lxd_profile.profile1", "device.*", map[string]string{"properties.path": "/tmp/shared"}), testAccProfileRunning(t, "lxd_profile.profile1", &profile),
 					testAccProfileDevice(&profile, "shared", device1),
 				),
 			},
@@ -87,7 +86,7 @@ func TestAccProfile_device(t *testing.T) {
 				Config: testAccProfile_device_2(profileName),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("lxd_profile.profile1", "name", profileName),
-					resource.TestCheckResourceAttr("lxd_profile.profile1", "device.2643642920.properties.path", "/tmp/shared2"),
+					resource.TestCheckTypeSetElemNestedAttrs("lxd_profile.profile1", "device.*", map[string]string{"properties.path": "/tmp/shared2"}),
 					testAccProfileRunning(t, "lxd_profile.profile1", &profile),
 					testAccProfileDevice(&profile, "shared", device2),
 				),
@@ -127,7 +126,7 @@ func TestAccProfile_addDevice(t *testing.T) {
 				Config: testAccProfile_addDevice_2(profileName),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("lxd_profile.profile1", "name", profileName),
-					resource.TestCheckResourceAttr("lxd_profile.profile1", "device.3028205791.properties.path", "/tmp/shared1"),
+					resource.TestCheckTypeSetElemNestedAttrs("lxd_profile.profile1", "device.*", map[string]string{"properties.path": "/tmp/shared1"}),
 					testAccProfileRunning(t, "lxd_profile.profile1", &profile),
 					testAccProfileDevice(&profile, "shared1", device1),
 				),
@@ -136,7 +135,7 @@ func TestAccProfile_addDevice(t *testing.T) {
 				Config: testAccProfile_addDevice_3(profileName),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("lxd_profile.profile1", "name", profileName),
-					resource.TestCheckResourceAttr("lxd_profile.profile1", "device.1620449630.properties.path", "/tmp/shared2"),
+					resource.TestCheckTypeSetElemNestedAttrs("lxd_profile.profile1", "device.*", map[string]string{"properties.path": "/tmp/shared2"}),
 					testAccProfileRunning(t, "lxd_profile.profile1", &profile),
 					testAccProfileDevice(&profile, "shared1", device1),
 					testAccProfileDevice(&profile, "shared2", device2),
@@ -164,7 +163,7 @@ func TestAccProfile_removeDevice(t *testing.T) {
 				Config: testAccProfile_removeDevice_1(profileName),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("lxd_profile.profile1", "name", profileName),
-					resource.TestCheckResourceAttr("lxd_profile.profile1", "device.1834377448.properties.path", "/tmp/shared"),
+					resource.TestCheckTypeSetElemNestedAttrs("lxd_profile.profile1", "device.*", map[string]string{"properties.path": "/tmp/shared"}),
 					testAccProfileRunning(t, "lxd_profile.profile1", &profile),
 					testAccProfileDevice(&profile, "shared", device),
 				),
@@ -228,7 +227,7 @@ func TestAccProfile_containerDevice(t *testing.T) {
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("lxd_profile.profile1", "name", profileName),
 					resource.TestCheckResourceAttr("lxd_container.container1", "name", containerName),
-					resource.TestCheckResourceAttr("lxd_profile.profile1", "device.1834377448.properties.path", "/tmp/shared"),
+					resource.TestCheckTypeSetElemNestedAttrs("lxd_profile.profile1", "device.*", map[string]string{"properties.path": "/tmp/shared"}),
 					testAccProfileRunning(t, "lxd_profile.profile1", &profile),
 					testAccContainerRunning(t, "lxd_container.container1", &container),
 					testAccProfileDevice(&profile, "shared", device),

@@ -262,7 +262,7 @@ func TestAccContainer_device(t *testing.T) {
 				Config: testAccContainer_device_1(containerName),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("lxd_container.container1", "name", containerName),
-					resource.TestCheckResourceAttr("lxd_container.container1", "device.1834377448.properties.path", "/tmp/shared"),
+					resource.TestCheckTypeSetElemNestedAttrs("lxd_container.container1", "device.*", map[string]string{"properties.path": "/tmp/shared"}),
 					testAccContainerRunning(t, "lxd_container.container1", &container),
 					testAccContainerDevice(&container, "shared", device1),
 				),
@@ -271,7 +271,7 @@ func TestAccContainer_device(t *testing.T) {
 				Config: testAccContainer_device_2(containerName),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("lxd_container.container1", "name", containerName),
-					resource.TestCheckResourceAttr("lxd_container.container1", "device.2643642920.properties.path", "/tmp/shared2"),
+					resource.TestCheckTypeSetElemNestedAttrs("lxd_container.container1", "device.*", map[string]string{"properties.path": "/tmp/shared2"}),
 					testAccContainerRunning(t, "lxd_container.container1", &container),
 					testAccContainerDevice(&container, "shared", device2),
 				),
@@ -305,7 +305,7 @@ func TestAccContainer_addDevice(t *testing.T) {
 				Config: testAccContainer_addDevice_2(containerName),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("lxd_container.container1", "name", containerName),
-					resource.TestCheckResourceAttr("lxd_container.container1", "device.1834377448.properties.path", "/tmp/shared"),
+					resource.TestCheckTypeSetElemNestedAttrs("lxd_container.container1", "device.*", map[string]string{"properties.path": "/tmp/shared"}),
 					testAccContainerRunning(t, "lxd_container.container1", &container),
 					testAccContainerDevice(&container, "shared", device),
 				),
@@ -332,7 +332,7 @@ func TestAccContainer_removeDevice(t *testing.T) {
 				Config: testAccContainer_removeDevice_1(containerName),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("lxd_container.container1", "name", containerName),
-					resource.TestCheckResourceAttr("lxd_container.container1", "device.1834377448.properties.path", "/tmp/shared"),
+					resource.TestCheckTypeSetElemNestedAttrs("lxd_container.container1", "device.*", map[string]string{"properties.path": "/tmp/shared"}),
 					testAccContainerRunning(t, "lxd_container.container1", &container),
 					testAccContainerDevice(&container, "shared", device),
 				),
