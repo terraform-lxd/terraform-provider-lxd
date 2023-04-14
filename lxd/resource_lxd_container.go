@@ -160,6 +160,7 @@ func resourceLxdContainer() *schema.Resource {
 						"mode": {
 							Type:     schema.TypeString,
 							Optional: true,
+							Default:  "0755",
 						},
 
 						"create_directories": {
