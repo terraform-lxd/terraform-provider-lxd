@@ -6,7 +6,7 @@ import (
 
 	"strings"
 
-	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/lxc/lxd/shared/api"
 )
 
@@ -23,6 +23,21 @@ func resourceLxdPublishImage() *schema.Resource {
 				Type:     schema.TypeString,
 				ForceNew: true,
 				Required: true,
+			},
+			"fingerprint": {
+				Type:     schema.TypeString,
+				ForceNew: false,
+				Computed: true,
+			},
+			"architecture": {
+				Type:     schema.TypeString,
+				ForceNew: false,
+				Computed: true,
+			},
+			"created_at": {
+				Type:     schema.TypeInt,
+				ForceNew: false,
+				Computed: true,
 			},
 			"aliases": {
 				Type:     schema.TypeList,

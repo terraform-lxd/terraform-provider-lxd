@@ -9,7 +9,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	lxd "github.com/lxc/lxd/client"
 	"github.com/mitchellh/go-homedir"
 )
@@ -229,23 +229,17 @@ func containerUploadFile(server lxd.ContainerServer, container string, file File
 		return fmt.Errorf("Target must be an absolute path with filename")
 	}
 
-	mode := os.FileMode(0755)
-	if len(file.Mode) != 3 {
-		file.Mode = "0" + file.Mode
-	}
-
-	m, err := strconv.ParseInt(file.Mode, 0, 0)
+	mode, err := strconv.ParseUint(file.Mode, 8, 32)
 	if err != nil {
-		return fmt.Errorf("Could not determine file mode %s", file.Mode)
+		return fmt.Errorf("Could not parse mode: %d", mode)
 	}
-
-	mode = os.FileMode(m)
+	fileMode := os.FileMode(mode)
 
 	// Build the file creation request, without the content.
 	uid := int64(file.UID)
 	gid := int64(file.GID)
 	args := lxd.ContainerFileArgs{
-		Mode: int(mode.Perm()),
+		Mode: int(mode),
 		UID:  int64(uid),
 		GID:  int64(gid),
 		Type: "file",
@@ -282,7 +276,7 @@ func containerUploadFile(server lxd.ContainerServer, container string, file File
 		targetFile, uid, gid, fmt.Sprintf("%04o", mode))
 
 	if file.CreateDirectories {
-		err := recursiveMkdir(server, container, path.Dir(targetFile), mode, uid, gid)
+		err := recursiveMkdir(server, container, path.Dir(targetFile), fileMode, uid, gid)
 		if err != nil {
 			return fmt.Errorf("Could not upload file %s: %s", targetFile, err)
 		}
