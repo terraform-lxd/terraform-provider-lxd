@@ -1,5 +1,9 @@
 ## 1.10.0 (Unreleased)
 
+IMPROVEMENTS
+
+* Provider is now based on Terraform Plugin SDK v2 [GH-289](https://github.com/terraform-lxd/terraform-provider-lxd/pull/289)
+
 ## 1.9.1 (February 26, 2023)
 
 OTHER
