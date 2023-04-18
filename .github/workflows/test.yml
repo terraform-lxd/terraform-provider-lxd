@@ -15,7 +15,7 @@ jobs:
     env:
       TF_ACC: "1"
       GO111MODULE: "on"
-      LXD_REMOTE: travis
+      LXD_REMOTE: local
       LXD_ADDR: localhost
       LXD_PORT: 8443
       LXD_GENERATE_CLIENT_CERTS: "true"
