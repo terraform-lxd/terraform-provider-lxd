@@ -5,7 +5,7 @@ import (
 	"testing"
 
 	"github.com/dustinkirkland/golang-petname"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
+	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
 )
 
 func TestLXDProfile_importBasic(t *testing.T) {

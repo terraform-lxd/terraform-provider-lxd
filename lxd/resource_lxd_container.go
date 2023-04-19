@@ -6,7 +6,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/retry"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 
 	lxd "github.com/lxc/lxd/client"
@@ -378,7 +378,7 @@ func resourceLxdContainerCreate(d *schema.ResourceData, meta interface{}) error 
 		// Even though op.Wait has completed,
 		// wait until we can see the container is running via a new API call.
 		// At a minimum, this adds some padding between API calls.
-		stateConf := &resource.StateChangeConf{
+		stateConf := &retry.StateChangeConf{
 			Target:     []string{"Running"},
 			Refresh:    resourceLxdContainerRefresh(server, name),
 			Timeout:    3 * time.Minute,
@@ -393,7 +393,7 @@ func resourceLxdContainerCreate(d *schema.ResourceData, meta interface{}) error 
 		if d.Get("wait_for_network").(bool) {
 			// Lxd will return "Running" even if "inet" has not yet been set.
 			// wait until we see an "inet" ip_address before reading the state.
-			networkConf := &resource.StateChangeConf{
+			networkConf := &retry.StateChangeConf{
 				Target:     []string{"OK"},
 				Refresh:    resourceLxdContainerWaitForNetwork(server, name),
 				Timeout:    3 * time.Minute,
@@ -724,7 +724,7 @@ func resourceLxdContainerDelete(d *schema.ResourceData, meta interface{}) (err e
 		// Even though op.Wait has completed,
 		// wait until we can see the container has stopped via a new API call.
 		// At a minimum, this adds some padding between API calls.
-		stateConf := &resource.StateChangeConf{
+		stateConf := &retry.StateChangeConf{
 			Target:     []string{"Stopped"},
 			Refresh:    resourceLxdContainerRefresh(server, name),
 			Timeout:    3 * time.Minute,
@@ -829,7 +829,7 @@ func resourceLxdContainerImport(d *schema.ResourceData, meta interface{}) ([]*sc
 	return []*schema.ResourceData{d}, err
 }
 
-func resourceLxdContainerRefresh(server lxd.ContainerServer, name string) resource.StateRefreshFunc {
+func resourceLxdContainerRefresh(server lxd.ContainerServer, name string) retry.StateRefreshFunc {
 	return func() (interface{}, string, error) {
 		st, _, err := server.GetInstanceState(name)
 		if err != nil {
@@ -840,7 +840,7 @@ func resourceLxdContainerRefresh(server lxd.ContainerServer, name string) resour
 	}
 }
 
-func resourceLxdContainerWaitForNetwork(server lxd.ContainerServer, name string) resource.StateRefreshFunc {
+func resourceLxdContainerWaitForNetwork(server lxd.ContainerServer, name string) retry.StateRefreshFunc {
 	return func() (interface{}, string, error) {
 		st, _, err := server.GetInstanceState(name)
 		if err != nil {
