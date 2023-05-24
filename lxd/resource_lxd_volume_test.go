@@ -102,7 +102,7 @@ func testAccVolumeExists(t *testing.T, n string, volume *api.StorageVolume) reso
 	return func(s *terraform.State) error {
 		rs, ok := s.RootModule().Resources[n]
 		if !ok {
-			return fmt.Errorf("Not found: %s", n)
+			return fmt.Errorf("Not found: %s, Resources: %v", n, s.RootModule().Resources)
 		}
 
 		if rs.Primary.ID == "" {

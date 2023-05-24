@@ -202,6 +202,7 @@ func Provider() *schema.Provider {
 			"lxd_snapshot":                resourceLxdSnapshot(),
 			"lxd_storage_pool":            resourceLxdStoragePool(),
 			"lxd_volume":                  resourceLxdVolume(),
+			"lxd_volume_copy":             resourceLxdVolumeCopy(),
 			"lxd_volume_container_attach": resourceLxdVolumeContainerAttach(),
 		},
 
