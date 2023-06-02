@@ -171,6 +171,10 @@ func resourceLxdContainerFileDelete(d *schema.ResourceData, meta interface{}) er
 	p := meta.(*lxdProvider)
 	v, targetFile := newFileIDFromResourceID(d.Id())
 	remote, containerName, err := p.LXDConfig.ParseRemote(v)
+	if err != nil {
+		return err
+	}
+
 	server, err := p.GetInstanceServer(remote)
 	if err != nil {
 		return err

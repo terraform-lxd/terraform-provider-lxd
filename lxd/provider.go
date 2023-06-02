@@ -241,7 +241,7 @@ func providerConfigure(d *schema.ResourceData) (interface{}, error) {
 	}
 
 	if config == nil {
-		config = &lxd_config.DefaultConfig
+		config = lxd_config.DefaultConfig()
 		config.ConfigDir = configDir
 	}
 
@@ -375,8 +375,10 @@ func (p *lxdProvider) createClient(remoteName string) error {
 		p.setLXDRemoteConfig(name, lxd_config.Remote{Addr: daemonAddr})
 
 		if scheme == "https" {
+			p.RLock()
 			// If the LXD remote's certificate does not exist on the client...
 			serverCertf := p.LXDConfig.ServerCertPath(name)
+			p.RUnlock()
 			if !shared.PathExists(serverCertf) {
 				// Try to obtain an early connection to the remote.
 				// If it succeeds, then either the certificates between
@@ -425,7 +427,7 @@ func (p *lxdProvider) createClient(remoteName string) error {
 // certificate and save it to the servercerts path.
 func (p *lxdProvider) getRemoteCertificate(remoteName string) error {
 	addr := p.getRemoteConfig(remoteName)
-	certificate, err := shared.GetRemoteCertificate(addr.Addr)
+	certificate, err := shared.GetRemoteCertificate(addr.Addr, "terraform-provider-lxd/2.0")
 	if err != nil {
 		return err
 	}
