@@ -375,8 +375,10 @@ func (p *lxdProvider) createClient(remoteName string) error {
 		p.setLXDRemoteConfig(name, lxd_config.Remote{Addr: daemonAddr})
 
 		if scheme == "https" {
+			p.RLock()
 			// If the LXD remote's certificate does not exist on the client...
 			serverCertf := p.LXDConfig.ServerCertPath(name)
+			p.RUnlock()
 			if !shared.PathExists(serverCertf) {
 				// Try to obtain an early connection to the remote.
 				// If it succeeds, then either the certificates between
