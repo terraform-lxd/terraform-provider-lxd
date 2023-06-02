@@ -39,6 +39,8 @@ resource "lxd_volume" "volume1" {
 
 * `project` - *Optional* - Name of the project where the volume will be stored.
 
+* `content_type` - *Optional* - Volume content type (filesystem or block)
+
 ## Attribute Reference
 
 The following attributes are exported:
