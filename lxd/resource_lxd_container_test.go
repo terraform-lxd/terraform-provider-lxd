@@ -508,6 +508,32 @@ func TestAccContainer_isStopped(t *testing.T) {
 	})
 }
 
+func TestAccContainer_stoppedToStarted(t *testing.T) {
+	var container api.Container
+	containerName := strings.ToLower(petname.Generate(2, "-"))
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:  func() { testAccPreCheck(t) },
+		Providers: testAccProviders,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccContainer_isStopped(containerName),
+				Check: resource.ComposeTestCheckFunc(
+					testAccContainerState(t, "lxd_container.container1", &container, api.Stopped),
+					resource.TestCheckResourceAttr("lxd_container.container1", "name", containerName),
+				),
+			},
+			{
+				Config: testAccContainer_basic(containerName),
+				Check: resource.ComposeTestCheckFunc(
+					testAccContainerState(t, "lxd_container.container1", &container, api.Running),
+					resource.TestCheckResourceAttr("lxd_container.container1", "name", containerName),
+				),
+			},
+		},
+	})
+}
+
 func TestAccContainer_target(t *testing.T) {
 	t.Skip("Test environment does not support clustering yet")
 

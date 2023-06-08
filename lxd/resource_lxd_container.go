@@ -359,51 +359,9 @@ func resourceLxdContainerCreate(d *schema.ResourceData, meta interface{}) error 
 	d.Partial(false)
 
 	if d.Get("start_container").(bool) {
-		// Start container
-		startReq := api.InstanceStatePut{
-			Action:  "start",
-			Timeout: updateTimeout,
-			Force:   false,
-		}
-		op2, err := server.UpdateInstanceState(name, startReq, "")
+		err := resourceLxdContainerStart(d, server, name, refreshInterval)
 		if err != nil {
-			// Container has been created, but daemon rejected start request
-			return fmt.Errorf("LXD server rejected request to start container (%s): %s", name, err)
-		}
-
-		if err = op2.Wait(); err != nil {
-			return fmt.Errorf("failed to start container (%s): %s", name, err)
-		}
-
-		// Even though op.Wait has completed,
-		// wait until we can see the container is running via a new API call.
-		// At a minimum, this adds some padding between API calls.
-		stateConf := &retry.StateChangeConf{
-			Target:     []string{"Running"},
-			Refresh:    resourceLxdContainerRefresh(server, name),
-			Timeout:    3 * time.Minute,
-			Delay:      refreshInterval,
-			MinTimeout: 3 * time.Second,
-		}
-
-		if _, err = stateConf.WaitForState(); err != nil {
-			return fmt.Errorf("Error waiting for container (%s) to become active: %s", name, err)
-		}
-
-		if d.Get("wait_for_network").(bool) {
-			// Lxd will return "Running" even if "inet" has not yet been set.
-			// wait until we see an "inet" ip_address before reading the state.
-			networkConf := &retry.StateChangeConf{
-				Target:     []string{"OK"},
-				Refresh:    resourceLxdContainerWaitForNetwork(server, name),
-				Timeout:    3 * time.Minute,
-				Delay:      refreshInterval,
-				MinTimeout: 3 * time.Second,
-			}
-
-			if _, err = networkConf.WaitForState(); err != nil {
-				return fmt.Errorf("Error waiting for container (%s) network information: %s", name, err)
-			}
+			return fmt.Errorf("Error starting container (%s): %s", name, err)
 		}
 	}
 
@@ -551,6 +509,7 @@ func resourceLxdContainerUpdate(d *schema.ResourceData, meta interface{}) error 
 	if err != nil {
 		return err
 	}
+	refreshInterval := meta.(*lxdProvider).RefreshInterval
 
 	if v, ok := d.GetOk("project"); ok && v != "" {
 		project := v.(string)
@@ -683,6 +642,18 @@ func resourceLxdContainerUpdate(d *schema.ResourceData, meta interface{}) error 
 
 			if err := containerUploadFile(server, name, newFile); err != nil {
 				return err
+			}
+		}
+	}
+
+	if d.HasChange("start_container") {
+		old, new := d.GetChange("start_container")
+
+		// when false -> true
+		if !old.(bool) && new.(bool) {
+			err := resourceLxdContainerStart(d, server, name, refreshInterval)
+			if err != nil {
+				return fmt.Errorf("Error starting container (%s): %s", name, err)
 			}
 		}
 	}
@@ -838,6 +809,57 @@ func resourceLxdContainerRefresh(server lxd.ContainerServer, name string) retry.
 
 		return st, st.Status, nil
 	}
+}
+
+func resourceLxdContainerStart(d *schema.ResourceData, server lxd.ContainerServer, name string, refreshInterval time.Duration) error {
+	// Start container
+	startReq := api.InstanceStatePut{
+		Action:  "start",
+		Timeout: updateTimeout,
+		Force:   false,
+	}
+	op2, err := server.UpdateInstanceState(name, startReq, "")
+	if err != nil {
+		// Container has been created, but daemon rejected start request
+		return fmt.Errorf("LXD server rejected request to start container (%s): %s", name, err)
+	}
+
+	if err = op2.Wait(); err != nil {
+		return fmt.Errorf("failed to start container (%s): %s", name, err)
+	}
+
+	// Even though op.Wait has completed,
+	// wait until we can see the container is running via a new API call.
+	// At a minimum, this adds some padding between API calls.
+	stateConf := &retry.StateChangeConf{
+		Target:     []string{"Running"},
+		Refresh:    resourceLxdContainerRefresh(server, name),
+		Timeout:    3 * time.Minute,
+		Delay:      refreshInterval,
+		MinTimeout: 3 * time.Second,
+	}
+
+	if _, err = stateConf.WaitForState(); err != nil {
+		return fmt.Errorf("Error waiting for container (%s) to become active: %s", name, err)
+	}
+
+	if d.Get("wait_for_network").(bool) {
+		// Lxd will return "Running" even if "inet" has not yet been set.
+		// wait until we see an "inet" ip_address before reading the state.
+		networkConf := &retry.StateChangeConf{
+			Target:     []string{"OK"},
+			Refresh:    resourceLxdContainerWaitForNetwork(server, name),
+			Timeout:    3 * time.Minute,
+			Delay:      refreshInterval,
+			MinTimeout: 3 * time.Second,
+		}
+
+		if _, err = networkConf.WaitForState(); err != nil {
+			return fmt.Errorf("Error waiting for container (%s) network information: %s", name, err)
+		}
+	}
+
+	return nil
 }
 
 func resourceLxdContainerWaitForNetwork(server lxd.ContainerServer, name string) retry.StateRefreshFunc {

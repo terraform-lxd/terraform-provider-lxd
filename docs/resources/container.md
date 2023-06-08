@@ -95,6 +95,10 @@ resource "lxd_container" "container1" {
 * `ephemeral` - *Optional* - Boolean indicating if this container is ephemeral.
 	Valid values are `true` and `false`. Defaults to `false`.
 
+* `start_container` - *Optional* - Boolean indicating if this container should be started
+  by the provider. The container will only be started on creation or when changing this value
+  from `false` to `true`. Defaults to `true`.
+
 * `config` - *Optional* - Map of key/value pairs of
 	[container config settings](https://github.com/lxc/lxd/blob/master/doc/configuration.md#container-configuration).
 
