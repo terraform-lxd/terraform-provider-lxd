@@ -24,7 +24,7 @@ resource "lxd_volume" "volume1" {
 * `remote` - *Optional* - The remote in which the resource will be created. If
 	it is not provided, the default provider remote is used.
 
-* `name` - *Required* - Name of the storage pool.
+* `name` - *Required* - Name of the storage volume.
 
 * `target` - *Optional* - Specify a target node in a cluster.
 
