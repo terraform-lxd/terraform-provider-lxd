@@ -168,14 +168,14 @@ func Provider() *schema.Provider {
 				Type:        schema.TypeBool,
 				Optional:    true,
 				Description: descriptions["lxd_generate_client_certs"],
-				DefaultFunc: schema.EnvDefaultFunc("LXD_GENERATE_CLIENT_CERTS", ""),
+				DefaultFunc: schema.EnvDefaultFunc("LXD_GENERATE_CLIENT_CERTS", "false"),
 			},
 
 			"accept_remote_certificate": {
 				Type:        schema.TypeBool,
 				Optional:    true,
 				Description: descriptions["lxd_accept_remote_certificate"],
-				DefaultFunc: schema.EnvDefaultFunc("LXD_ACCEPT_SERVER_CERTIFICATE", ""),
+				DefaultFunc: schema.EnvDefaultFunc("LXD_ACCEPT_SERVER_CERTIFICATE", "false"),
 			},
 
 			"refresh_interval": {

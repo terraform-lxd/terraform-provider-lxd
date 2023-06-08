@@ -69,12 +69,13 @@ The following arguments are supported:
 * `generate_client_certificates` - *Optional* - Automatically generate the LXD
 	client certificate if it does not exist. Valid values are `true` and `false`.
 	This can also be set with the `LXD_GENERATE_CLIENT_CERTS` Environment
-	variable.
+	variable. Defaults to `false`.
 
 * `accept_remote_certificate` - *Optional* - Automatically accept the LXD
 	remote's certificate. Valid values are `true` and `false`. If this is not set
 	to `true`, you must accept the certificate out of band of Terraform. This can
 	also be set with the `LXD_ACCEPT_SERVER_CERTIFICATE` environment variable.
+  Defaults to `false`
 
 * `refresh_interval` - *Optional* - How often to poll during state change.
 	Defaults to "10s", or 10 seconds. Valid values are a Go-style parsable time
