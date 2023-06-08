@@ -69,6 +69,13 @@ func resourceLxdVolume() *schema.Resource {
 				Optional: true,
 				ForceNew: true,
 			},
+
+			"content_type": {
+				Type:     schema.TypeString,
+				Optional: true,
+				ForceNew: true,
+				Default:  "filesystem",
+			},
 		},
 	}
 }
@@ -94,12 +101,14 @@ func resourceLxdVolumeCreate(d *schema.ResourceData, meta interface{}) error {
 	pool := d.Get("pool").(string)
 	volType := d.Get("type").(string)
 	config := resourceLxdConfigMap(d.Get("config"))
+	content_type := d.Get("content_type").(string)
 
 	log.Printf("Attempting to create volume %s", name)
 	volume := api.StorageVolumesPost{}
 	volume.Name = name
 	volume.Type = volType
 	volume.Config = config
+	volume.ContentType = content_type
 	if err := server.CreateStoragePoolVolume(pool, volume); err != nil {
 		return err
 	}

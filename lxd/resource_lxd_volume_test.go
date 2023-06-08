@@ -175,6 +175,27 @@ func testAccVolumeConfig(volume *api.StorageVolume, k, v string) resource.TestCh
 	}
 }
 
+func TestAccVolume_contentType(t *testing.T) {
+	var volume api.StorageVolume
+	poolName := strings.ToLower(petname.Generate(2, "-"))
+	volumeName := strings.ToLower(petname.Generate(2, "-"))
+	source := t.TempDir()
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:  func() { testAccPreCheck(t) },
+		Providers: testAccProviders,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccVolume_contentType(poolName, source, volumeName),
+				Check: resource.ComposeTestCheckFunc(
+					testAccVolumeExists(t, "lxd_volume.volume1", &volume),
+					resource.TestCheckResourceAttr("lxd_volume.volume1", "name", volumeName),
+				),
+			},
+		},
+	})
+}
+
 func testAccVolume_basic(poolName, source, volumeName string) string {
 	return fmt.Sprintf(`
 resource "lxd_storage_pool" "pool1" {
@@ -254,4 +275,22 @@ resource "lxd_volume" "volume1" {
   project = lxd_project.project1.name
 }
 	`, project, volumeName)
+}
+
+func testAccVolume_contentType(poolName, source, volumeName string) string {
+	return fmt.Sprintf(`
+resource "lxd_storage_pool" "pool1" {
+ 	name   = "%s"
+ 	driver = "dir"
+ 	config = {
+ 		source = "%s"
+ 	}
+}
+
+resource "lxd_volume" "volume1" {
+ 	name         = "%s"
+ 	pool         = "${lxd_storage_pool.pool1.name}"
+ 	content_type = "block"
+}
+	`, poolName, source, volumeName)
 }
