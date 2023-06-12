@@ -2,7 +2,15 @@
 
 IMPROVEMENTS
 
+* Added `lxd_volume_copy` resource [GH-293](https://github.com/terraform-lxd/terraform-provider-lxd/pull/293)
+* Added `content_type` to `lxd_volume` [GH-294](https://github.com/terraform-lxd/terraform-provider-lxd/pull/294)
 * Provider is now based on Terraform Plugin SDK v2 [GH-289](https://github.com/terraform-lxd/terraform-provider-lxd/pull/289)
+* Provider is now using Terraform Plugin Testing framework [GH-292](https://github.com/terraform-lxd/terraform-provider-lxd/pull/292)
+* Set defaults for provider certificate options to avoid unclear type warnings [GH-296](https://github.com/terraform-lxd/terraform-provider-lxd/pull/296)
+
+BUG FIXES
+
+* Fixed a bug where externally deleted instances caused a hard failure requiring manual state intervention [GH-298](https://github.com/terraform-lxd/terraform-provider-lxd/pull/298)
 
 ## 1.9.1 (February 26, 2023)
 
