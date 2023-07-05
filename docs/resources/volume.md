@@ -34,7 +34,7 @@ resource "lxd_volume" "volume1" {
 	which is the type to use for storage volumes attached to containers.
 
 * `config` - *Optional* - Map of key/value pairs of
-	[volume config settings](https://github.com/lxc/lxd/blob/master/doc/configuration.md).
+	[volume config settings](https://documentation.ubuntu.com/lxd/en/latest/reference/storage_drivers/).
 	Config settings vary depending on the Storage Pool used.
 
 * `project` - *Optional* - Name of the project where the volume will be stored.
