@@ -26,7 +26,7 @@ resource "lxd_container" "test1" {
 
 ```hcl
 resource "lxd_storage_pool" "pool1" {
-  name = "mypool"
+  name   = "mypool"
   driver = "dir"
   config = {
     source = "/var/lib/lxd/storage-pools/mypool"
@@ -35,21 +35,21 @@ resource "lxd_storage_pool" "pool1" {
 
 resource "lxd_volume" "volume1" {
   name = "myvolume"
-  pool = "${lxd_storage_pool.pool1.name}"
+  pool = lxd_storage_pool.pool1.name
 }
 
 resource "lxd_container" "container1" {
-  name = "%s"
-  image = "ubuntu"
+  name     = "test"
+  image    = "ubuntu"
   profiles = ["default"]
 
   device {
     name = "volume1"
     type = "disk"
     properties = {
-      path = "/mount/point/in/container"
+      path   = "/mount/point/in/container"
       source = "${lxd_volume.volume1.name}"
-      pool = "${lxd_storage_pool.pool1.name}"
+      pool   = "${lxd_storage_pool.pool1.name}"
     }
   }
 }
@@ -59,9 +59,9 @@ resource "lxd_container" "container1" {
 
 ```hcl
 resource "lxd_container" "container1" {
-  name = "test2"
-  image = "ubuntu"
-  profiles = ["default"]
+  name      = "test2"
+  image     = "ubuntu"
+  profiles  = ["default"]
   ephemeral = false
 
   device {
@@ -170,8 +170,8 @@ To specify an interface, do the following:
 
 ```hcl
 resource "lxd_container" "container1" {
-  name = "container1"
-  image = "images:alpine/3.5/amd64"
+  name     = "container1"
+  image    = "images:alpine/3.5/amd64"
   profiles = ["default"]
 
   config = {
