@@ -49,7 +49,7 @@ resource "lxd_container" "test1" {
 * `name` - *Required* - Name of the container.
 
 * `config` - *Optional* - Map of key/value pairs of
-	[container config settings](https://github.com/lxc/lxd/blob/master/doc/configuration.md).
+	[container config settings](https://documentation.ubuntu.com/lxd/en/latest/reference/instance_options/).
 
 * `device` - *Optional* - Device definition. See reference below.
 
@@ -63,7 +63,7 @@ The `device` block supports:
 	unix-char, unix-block, usb, gpu, infiniband, proxy.
 
 * `properties`- *Required* - Map of key/value pairs of
-	[device properties](https://github.com/lxc/lxd/blob/master/doc/configuration.md).
+	[device properties](https://documentation.ubuntu.com/lxd/en/latest/reference/devices/).
 
 ## Importing
 

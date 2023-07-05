@@ -2,7 +2,7 @@
 
 Manages an LXD container.
 
-A container can take a number of configuration and device options. A full reference can be found [here](https://github.com/lxc/lxd/blob/master/doc/configuration.md).
+A container can take a number of configuration and device options. A full reference can be found [here](https://documentation.ubuntu.com/lxd/en/latest/reference/instance_options/).
 
 ## Basic Example
 
@@ -96,10 +96,10 @@ resource "lxd_container" "container1" {
 	Valid values are `true` and `false`. Defaults to `false`.
 
 * `config` - *Optional* - Map of key/value pairs of
-	[container config settings](https://github.com/lxc/lxd/blob/master/doc/configuration.md#container-configuration).
+	[container config settings](https://documentation.ubuntu.com/lxd/en/latest/reference/instance_options/).
 
 * `limits` - *Optional* - Map of key/value pairs that define the
-	[container resources limits](https://github.com/lxc/lxd/blob/master/doc/containers.md).
+	[container resources limits](https://documentation.ubuntu.com/lxd/en/latest/reference/instance_options/#resource-limits).
 
 * `device` - *Optional* - Device definition. See reference below.
 
@@ -120,7 +120,7 @@ The `device` block supports:
 	unix-char, unix-block, usb, gpu, infiniband, proxy.
 
 * `properties`- *Required* - Map of key/value pairs of
-	[device properties](https://github.com/lxc/lxd/blob/master/doc/configuration.md#devices-configuration).
+	[device properties](https://documentation.ubuntu.com/lxd/en/latest/reference/devices/).
 
 The `file` block supports:
 

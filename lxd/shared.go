@@ -314,7 +314,7 @@ func containerDeleteFile(server lxd.ContainerServer, container string, targetFil
 	return nil
 }
 
-// recursiveMkdir was copied almost as-is from github.com/lxc/lxd/lxc/file.go
+// recursiveMkdir was copied almost as-is from github.com/canonical/lxd/blob/main/lxc/file.go
 func recursiveMkdir(d lxd.ContainerServer, container string, p string, mode os.FileMode, uid int64, gid int64) error {
 	/* special case, every container has a /, we don't need to do anything */
 	if p == "/" {

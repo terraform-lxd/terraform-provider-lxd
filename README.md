@@ -5,7 +5,7 @@ LXD Resource provider for Terraform
 ## Prerequisites
 
 * [Terraform](http://terraform.io)
-* [LXD](https://linuxcontainers.org/lxd)
+* [LXD](https://ubuntu.com/lxd)
 
 ## Installation
 
