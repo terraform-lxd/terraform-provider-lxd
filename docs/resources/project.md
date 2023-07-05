@@ -9,16 +9,16 @@ resource "lxd_project" "project" {
   name        = "project1"
   description = "Terraform provider example project"
   config = {
-	"features.storage.volumes" = false
-	"features.images" = false
-	"features.profiles" = false
-	"features.storage.buckets" = false
+    "features.storage.volumes" = false
+    "features.images"          = false
+    "features.profiles"        = false
+    "features.storage.buckets" = false
   }
 }
 
 resource "lxd_container" "container" {
-  name = "container1"
-  image = "images:alpine/3.16/amd64"
+  name    = "container1"
+  image   = "images:alpine/3.16/amd64"
   project = lxd_project.project.name
 }
 ```
