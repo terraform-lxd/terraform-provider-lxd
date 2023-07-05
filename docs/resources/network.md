@@ -151,12 +151,12 @@ the actual network:
 
 ```hcl
 resource "lxd_network" "my_network_node1" {
-  name = "my_network"
+  name   = "my_network"
   target = "node1"
 }
 
 resource "lxd_network" "my_network_node2" {
-  name = "my_network"
+  name   = "my_network"
   target = "node2"
 }
 
