@@ -29,6 +29,6 @@ resource "lxd_container" "container" {
 
 * `description` - *Optional* - Description of the project. 
 
-* `config` - *Optional* - Map of key/value pairs of [project config settings](https://github.com/lxc/lxd/blob/master/doc/projects.md).
+* `config` - *Optional* - Map of key/value pairs of [project config settings](https://documentation.ubuntu.com/lxd/en/latest/reference/projects/).
 
 * `target` - *Optional* - Specify a target node in a cluster. 
