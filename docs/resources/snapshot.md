@@ -6,7 +6,7 @@ Manages a snapshot of an LXD container.
 
 ```hcl
 resource "lxd_snapshot" "snap1" {
-  container_name = "${lxd_container.container1.name}"
+  container_name = lxd_container.container1.name
   name           = "snap1"
 }
 ```

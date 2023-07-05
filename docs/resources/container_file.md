@@ -16,7 +16,7 @@ resource "lxd_container" "test1" {
 }
 
 resource "lxd_container_file" "file1" {
-  container_name     = "${lxd_container.test1.name}"
+  container_name     = lxd_container.test1.name
   target_file        = "/foo/bar.txt"
   source             = "/path/to/local/file"
   create_directories = true

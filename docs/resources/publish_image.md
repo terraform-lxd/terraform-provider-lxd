@@ -11,20 +11,19 @@ resource "lxd_cached_image" "xenial" {
 }
 
 resource "lxd_container" "test1" {
-  name      = "test1"
-  image     = "${lxd_cached_image.xenial.fingerprint}"
-  profiles  = ["default"]
+  name     = "test1"
+  image    = lxd_cached_image.xenial.fingerprint
+  profiles = ["default"]
 
   start_container = false
 }
 
 resource "lxd_publish_image" "test1" {
-  depends_on = [ lxd_container.test1 ]
+  depends_on = [lxd_container.test1]
 
   container = "test1"
-  aliases   = [ "test1_img" ]
+  aliases   = ["test1_img"]
 }
-
 ```
 
 ## Argument Reference

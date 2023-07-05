@@ -20,7 +20,7 @@ resource "lxd_storage_pool" "pool1" {
 
 resource "lxd_volume" "volume1" {
   name = "myvolume"
-  pool = "${lxd_storage_pool.pool1.name}"
+  pool = lxd_storage_pool.pool1.name
 }
 
 resource "lxd_container" "container1" {
@@ -30,9 +30,9 @@ resource "lxd_container" "container1" {
 }
 
 resource "lxd_volume_container_attach" "attach1" {
-  pool           = "${lxd_storage_pool.pool1.name}"
-  volume_name    = "${lxd_volume.volume1.name}"
-  container_name = "${lxd_container.container1.name}"
+  pool           = lxd_storage_pool.pool1.name
+  volume_name    = lxd_volume.volume1.name
+  container_name = lxd_container.container1.name
   path           = "/tmp"
 }
 ```

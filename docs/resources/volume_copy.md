@@ -6,7 +6,7 @@ Copies an existing LXD volume.
 
 ```hcl
 resource "lxd_storage_pool" "pool1" {
-  name = "mypool"
+  name   = "mypool"
   driver = "dir"
   config = {
     source = "/var/lib/lxd/storage-pools/mypool"
@@ -15,14 +15,14 @@ resource "lxd_storage_pool" "pool1" {
 
 resource "lxd_volume" "volume1" {
   name = "myvolume"
-  pool = "${lxd_storage_pool.pool1.name}"
+  pool = lxd_storage_pool.pool1.name
 }
 
 resource "lxd_volume_copy" "volume1_copy" {
-  name = "myvolume_copy"
-  pool = "${lxd_storage_pool.pool1.name}"
-  source_pool = "${lxd_storage_pool.pool1.name}"
-  source_name = "${lxd_volume.volume1.name}"
+  name        = "myvolume_copy"
+  pool        = lxd_storage_pool.pool1.name
+  source_pool = lxd_storage_pool.pool1.name
+  source_name = lxd_volume.volume1.name
 }
 ```
 

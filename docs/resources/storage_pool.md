@@ -8,7 +8,7 @@ Manages an LXD storage pool.
 
 ```hcl
 resource "lxd_storage_pool" "pool1" {
-  name = "mypool"
+  name   = "mypool"
   driver = "dir"
   config = {
     source = "/var/lib/lxd/storage-pools/mypool"
@@ -26,7 +26,7 @@ actual pool
 resource "lxd_storage_pool" "mypool_node1" {
   target = "node1"
 
-  name = "mypool"
+  name   = "mypool"
   driver = "dir"
   config = {
     source = "/var/lib/lxd/storage-pools/mypool"
@@ -36,7 +36,7 @@ resource "lxd_storage_pool" "mypool_node1" {
 resource "lxd_storage_pool" "mypool_node2" {
   target = "node2"
 
-  name = "mypool"
+  name   = "mypool"
   driver = "dir"
   config = {
     source = "/var/lib/lxd/storage-pools/mypool"
@@ -45,11 +45,11 @@ resource "lxd_storage_pool" "mypool_node2" {
 
 resource "lxd_storage_pool" "mypool" {
   depends_on = [
-    "lxd_storage_pool.mypool_node1",
-    "lxd_storage_pool.mypool_node2",
+    lxd_storage_pool.mypool_node1,
+    lxd_storage_pool.mypool_node2,
   ]
 
-  name = "mypool"
+  name   = "mypool"
   driver = "dir"
 }
 ```

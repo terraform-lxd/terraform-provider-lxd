@@ -12,7 +12,7 @@ resource "lxd_cached_image" "xenial" {
 
 resource "lxd_container" "test1" {
   name      = "test1"
-  image     = "${lxd_cached_image.xenial.fingerprint}"
+  image     = lxd_cached_image.xenial.fingerprint
   ephemeral = false
 }
 ```
