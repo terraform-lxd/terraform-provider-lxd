@@ -425,7 +425,7 @@ func resourceLxdContainerRead(d *schema.ResourceData, meta interface{}) error {
 	}
 
 	name := d.Id()
-	// https://github.com/lxc/lxd/blob/master/client/lxd_instances.go
+	// https://github.com/canonical/lxd/blob/main/client/lxd_instances.go
 	container, _, err := server.GetInstance(name)
 	if err != nil {
 		return err
@@ -567,7 +567,7 @@ func resourceLxdContainerUpdate(d *schema.ResourceData, meta interface{}) error 
 	}
 
 	// Copy the current container configuration to the updatable container struct.
-	// https://github.com/lxc/lxd/blob/3df4aa84e8a86f5186b312243dc212ff8da06941/shared/api/instance.go#L136
+	// https://github.com/canonical/lxd/blob/3df4aa84e8a86f5186b312243dc212ff8da06941/shared/api/instance.go#L136
 	newContainer := api.InstancePut{
 		Architecture: ct.Architecture,
 		Config:       ct.Config,

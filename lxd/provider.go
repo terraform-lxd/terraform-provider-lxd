@@ -30,7 +30,7 @@ type lxdProvider struct {
 	// LXDConfig is the converted form of terraformLXDConfig
 	// in LXD's native data structure. This is lazy-loaded / created
 	// only when a connection to an LXD remote/server happens.
-	// https://github.com/lxc/lxd/blob/master/lxc/config/config.go
+	// https://github.com/canonical/lxd/blob/main/lxc/config/config.go
 	LXDConfig *lxd_config.Config
 
 	// lxdClientMap is a map of LXD client connections to LXD

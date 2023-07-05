@@ -59,12 +59,12 @@ func resourceLxdProjectCreate(d *schema.ResourceData, meta interface{}) error {
 	config := resourceLxdConfigMap(d.Get("config"))
 
 	log.Printf("Attempting to create project %s", name)
-	// https://github.com/lxc/lxd/blob/master/shared/api/project.go
+	// https://github.com/canonical/lxd/blob/main/shared/api/project.go
 	req := api.ProjectsPost{Name: name}
 	req.Config = config
 	req.Description = description
 
-	// NOTE: https://github.com/lxc/lxd/blob/master/client/interfaces.go
+	// NOTE: https://github.com/canonical/lxd/blob/main/client/interfaces.go
 	if err := server.CreateProject(req); err != nil {
 		return err
 	}
