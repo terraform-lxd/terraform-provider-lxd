@@ -66,8 +66,7 @@ for more details on how to create a storage pool in clustered mode.
 
 * `name`   - *Required* - Name of the storage pool.
 
-* `driver` - *Required* - Storage Pool driver. Must be one of `dir`, `lvm`,
-	`btrfs`, or `zfs`.
+* `driver` - *Required* - Storage Pool driver.
 
 * `config` - *Optional* - Map of key/value pairs of
 	[storage pool config settings](https://documentation.ubuntu.com/lxd/en/latest/reference/storage_drivers/).
