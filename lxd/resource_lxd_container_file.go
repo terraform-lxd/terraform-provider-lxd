@@ -9,10 +9,11 @@ import (
 
 func resourceLxdContainerFile() *schema.Resource {
 	return &schema.Resource{
-		Create: resourceLxdContainerFileCreate,
-		Exists: resourceLxdContainerFileExists,
-		Read:   resourceLxdContainerFileRead,
-		Delete: resourceLxdContainerFileDelete,
+		Create:             resourceLxdContainerFileCreate,
+		Exists:             resourceLxdContainerFileExists,
+		Read:               resourceLxdContainerFileRead,
+		Delete:             resourceLxdContainerFileDelete,
+		DeprecationMessage: "lxd_container_file has been deprecated and will be removed. Please use lxd_instance_file instead.",
 
 		Schema: map[string]*schema.Schema{
 			"container_name": {
@@ -110,7 +111,7 @@ func resourceLxdContainerFileCreate(d *schema.ResourceData, meta interface{}) er
 
 	file := File{
 		RemoteName:        remote,
-		ContainerName:     containerName,
+		InstanceName:      containerName,
 		TargetFile:        d.Get("target_file").(string),
 		Content:           d.Get("content").(string),
 		Source:            d.Get("source").(string),
@@ -121,7 +122,7 @@ func resourceLxdContainerFileCreate(d *schema.ResourceData, meta interface{}) er
 		Append:            d.Get("append").(bool),
 	}
 
-	err = containerUploadFile(server, containerName, file)
+	err = instanceUploadFile(server, containerName, file)
 	if err != nil {
 		return fmt.Errorf("unable to create file %s: %s", file.TargetFile, err)
 	}
@@ -190,7 +191,7 @@ func resourceLxdContainerFileDelete(d *schema.ResourceData, meta interface{}) er
 		return fmt.Errorf("unable to retrieve container %s: %s", containerName, err)
 	}
 
-	err = containerDeleteFile(server, containerName, targetFile)
+	err = instanceDeleteFile(server, containerName, targetFile)
 	if err != nil {
 		return fmt.Errorf("unable to delete file %s:%s: %s", containerName, targetFile, err)
 	}
