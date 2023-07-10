@@ -25,6 +25,7 @@ func resourceLxdContainer() *schema.Resource {
 		Importer: &schema.ResourceImporter{
 			State: resourceLxdContainerImport,
 		},
+		DeprecationMessage: "lxd_container has been deprecated and will be removed. Please use lxd_instance instead.",
 
 		Schema: map[string]*schema.Schema{
 			"name": {
@@ -335,7 +336,7 @@ func resourceLxdContainerCreate(d *schema.ResourceData, meta interface{}) error 
 		for _, v := range files.([]interface{}) {
 			f := v.(map[string]interface{})
 			file := File{
-				ContainerName:     name,
+				InstanceName:      name,
 				TargetFile:        f["target_file"].(string),
 				Content:           f["content"].(string),
 				Source:            f["source"].(string),
@@ -345,7 +346,7 @@ func resourceLxdContainerCreate(d *schema.ResourceData, meta interface{}) error 
 				CreateDirectories: f["create_directories"].(bool),
 			}
 
-			if err := containerUploadFile(server, name, file); err != nil {
+			if err := instanceUploadFile(server, name, file); err != nil {
 				return err
 			}
 		}
@@ -663,7 +664,7 @@ func resourceLxdContainerUpdate(d *schema.ResourceData, meta interface{}) error 
 			f := v.(map[string]interface{})
 			targetFile := f["target_file"].(string)
 
-			if err := containerDeleteFile(server, name, targetFile); err != nil {
+			if err := instanceDeleteFile(server, name, targetFile); err != nil {
 				return err
 			}
 		}
@@ -671,7 +672,7 @@ func resourceLxdContainerUpdate(d *schema.ResourceData, meta interface{}) error 
 		for _, v := range newFiles.([]interface{}) {
 			f := v.(map[string]interface{})
 			newFile := File{
-				ContainerName:     name,
+				InstanceName:      name,
 				TargetFile:        f["target_file"].(string),
 				Content:           f["content"].(string),
 				Source:            f["source"].(string),
@@ -681,7 +682,7 @@ func resourceLxdContainerUpdate(d *schema.ResourceData, meta interface{}) error 
 				CreateDirectories: f["create_directories"].(bool),
 			}
 
-			if err := containerUploadFile(server, name, newFile); err != nil {
+			if err := instanceUploadFile(server, name, newFile); err != nil {
 				return err
 			}
 		}
@@ -858,39 +859,4 @@ func resourceLxdContainerWaitForNetwork(server lxd.ContainerServer, name string)
 		}
 		return st, "NOT FOUND", nil
 	}
-}
-
-// Suppress Diff on empty name
-func suppressImageDifferences(k, old, new string, d *schema.ResourceData) bool {
-	log.Printf("[DEBUG] comparing old %#v and new %#v :: id %s status %#v", old, new, d.Id(), d.Get("Status"))
-	if old == "" && d.Id() != "" {
-		// special case for imports, empty image string is the result of nt knowing which base image name/alias was used to create this host
-		return true
-	}
-	return false
-}
-
-// Find last global IPv6 address or return any last IPv6 address
-// if there is no global address. This works analog to the IPv4 selection
-// mechanism but favors global addresses.
-func findIPv6Address(network *api.InstanceStateNetwork) (bool, string) {
-	var address string
-
-	for _, ip := range network.Addresses {
-		if ip.Family == "inet6" && ip.Scope == "global" {
-			address = ip.Address
-		}
-	}
-
-	if len(address) > 0 {
-		return true, address
-	}
-
-	for _, ip := range network.Addresses {
-		if ip.Family == "inet6" {
-			address = ip.Address
-		}
-	}
-
-	return len(address) > 0, address
 }
