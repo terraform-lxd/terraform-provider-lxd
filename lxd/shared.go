@@ -60,7 +60,7 @@ func newVolumeAttachmentIDFromResourceID(id string) volumeAttachmentID {
 
 type File struct {
 	RemoteName        string
-	ContainerName     string
+	InstanceName      string
 	TargetFile        string
 	Content           string
 	Source            string
@@ -72,7 +72,7 @@ type File struct {
 }
 
 func (f File) String() string {
-	return fmt.Sprintf("%s:%s%s", f.RemoteName, f.ContainerName, f.TargetFile)
+	return fmt.Sprintf("%s:%s%s", f.RemoteName, f.InstanceName, f.TargetFile)
 }
 
 func newFileIDFromResourceID(id string) (string, string) {
@@ -213,8 +213,8 @@ func resourceLxdValidateNetworkType(v interface{}, k string) (ws []string, error
 	return
 }
 
-// containerUploadFile will upload a file to a container.
-func containerUploadFile(server lxd.ContainerServer, container string, file File) error {
+// instanceUploadFile will upload a file to a instance.
+func instanceUploadFile(server lxd.InstanceServer, instance string, file File) error {
 	if file.Content != "" && file.Source != "" {
 		return fmt.Errorf("only one of content or source can be specified")
 	}
@@ -238,7 +238,7 @@ func containerUploadFile(server lxd.ContainerServer, container string, file File
 	// Build the file creation request, without the content.
 	uid := int64(file.UID)
 	gid := int64(file.GID)
-	args := lxd.ContainerFileArgs{
+	args := lxd.InstanceFileArgs{
 		Mode: int(mode),
 		UID:  int64(uid),
 		GID:  int64(gid),
@@ -276,13 +276,13 @@ func containerUploadFile(server lxd.ContainerServer, container string, file File
 		targetFile, uid, gid, fmt.Sprintf("%04o", mode))
 
 	if file.CreateDirectories {
-		err := recursiveMkdir(server, container, path.Dir(targetFile), fileMode, uid, gid)
+		err := recursiveMkdir(server, instance, path.Dir(targetFile), fileMode, uid, gid)
 		if err != nil {
 			return fmt.Errorf("Could not upload file %s: %s", targetFile, err)
 		}
 	}
 
-	if err := server.CreateContainerFile(container, targetFile, args); err != nil {
+	if err := server.CreateInstanceFile(instance, targetFile, args); err != nil {
 		return fmt.Errorf("Could not upload file %s: %s", targetFile, err)
 	}
 
@@ -291,8 +291,8 @@ func containerUploadFile(server lxd.ContainerServer, container string, file File
 	return nil
 }
 
-// containerDeleteFile will delete a file on a container.
-func containerDeleteFile(server lxd.ContainerServer, container string, targetFile string) error {
+// instanceDeleteFile will delete a file on a instance.
+func instanceDeleteFile(server lxd.InstanceServer, instance string, targetFile string) error {
 	targetFile, err := filepath.Abs(targetFile)
 	if err != nil {
 		return fmt.Errorf("Could not sanitize destination target %s", targetFile)
@@ -305,7 +305,7 @@ func containerDeleteFile(server lxd.ContainerServer, container string, targetFil
 
 	log.Printf("[DEBUG] Attempting to delete file %s", targetFile)
 
-	if err := server.DeleteContainerFile(container, targetFile); err != nil {
+	if err := server.DeleteInstanceFile(instance, targetFile); err != nil {
 		return fmt.Errorf("Could not delete file %s: %s", targetFile, err)
 	}
 
@@ -315,8 +315,8 @@ func containerDeleteFile(server lxd.ContainerServer, container string, targetFil
 }
 
 // recursiveMkdir was copied almost as-is from github.com/canonical/lxd/blob/main/lxc/file.go
-func recursiveMkdir(d lxd.ContainerServer, container string, p string, mode os.FileMode, uid int64, gid int64) error {
-	/* special case, every container has a /, we don't need to do anything */
+func recursiveMkdir(d lxd.InstanceServer, instance string, p string, mode os.FileMode, uid int64, gid int64) error {
+	/* special case, every instance has a /, we don't need to do anything */
 	if p == "/" {
 		return nil
 	}
@@ -329,7 +329,7 @@ func recursiveMkdir(d lxd.ContainerServer, container string, p string, mode os.F
 
 	for ; i >= 1; i-- {
 		cur := filepath.Join(parts[:i]...)
-		_, resp, err := d.GetContainerFile(container, cur)
+		_, resp, err := d.GetInstanceFile(instance, cur)
 		if err != nil {
 			continue
 		}
@@ -348,14 +348,14 @@ func recursiveMkdir(d lxd.ContainerServer, container string, p string, mode os.F
 			continue
 		}
 
-		args := lxd.ContainerFileArgs{
+		args := lxd.InstanceFileArgs{
 			UID:  uid,
 			GID:  gid,
 			Mode: int(mode.Perm()),
 			Type: "directory",
 		}
 
-		err := d.CreateContainerFile(container, cur, args)
+		err := d.CreateInstanceFile(instance, cur, args)
 		if err != nil {
 			return err
 		}
