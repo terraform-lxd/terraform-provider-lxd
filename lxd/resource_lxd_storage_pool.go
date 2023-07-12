@@ -46,9 +46,15 @@ func resourceLxdStoragePool() *schema.Resource {
 				Required: true,
 				ValidateFunc: func(v interface{}, k string) (ws []string, errors []error) {
 					value := v.(string)
-					if value != "dir" && value != "lvm" && value != "btrfs" && value != "zfs" {
+					if value != "btrfs" &&
+						value != "ceph" &&
+						value != "cephfs" &&
+						value != "cephobject" &&
+						value != "dir" &&
+						value != "lvm" &&
+						value != "zfs" {
 						errors = append(errors, fmt.Errorf(
-							"Only dir, lvm, btrfs, and zfs are supported values for 'driver'"))
+							"Only btrfs, ceph, cephfs, cephobject, dir, lvm, and zfs are supported values for 'driver'"))
 					}
 					return
 				},
