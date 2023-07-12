@@ -108,6 +108,9 @@ resource "lxd_container" "container1" {
 * `wait_for_network` - *Optional* - Boolean indicating if the provider should wait for the container's network address to become available during creation.
   Valid values are `true` and `false`. Defaults to `true`.
 
+* `start_container` - *Optional* - Boolean indicating if the provider should start the container during creation. It will not re-start on update runs.
+  Valid values are `true` and `false`. Defaults to `true`.
+
 * `target` - *Optional* - Specify a target node in a cluster.
 
 * `project` - *Optional* - Name of the project where the container will be spawned.
