@@ -155,6 +155,7 @@ func resourceLxdVolumeRead(d *schema.ResourceData, meta interface{}) error {
 	d.Set("config", newConfig)
 	d.Set("expanded_config", volume.Config)
 	d.Set("location", volume.Location)
+	d.Set("content_type", volume.ContentType)
 
 	return nil
 }
