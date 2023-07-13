@@ -1,4 +1,18 @@
-## 1.10.0
+## 1.10.1 (July 13, 2023)
+
+IMPROVEMENTS
+
+* Added ceph support to `lxd_storage_pool` [GH-308](https://github.com/terraform-lxd/terraform-provider-lxd/pull/308)
+
+BUG FIXES
+
+* Fix `lxd_volume` resources being replaced unnecessarily when upgrading from < 1.10.0 [GH-312](https://github.com/terraform-lxd/terraform-provider-lxd/pull/312)
+
+OTHER
+
+* Updated links for LXD migration from linuxcontainers to canonical [GH-303](https://github.com/terraform-lxd/terraform-provider-lxd/pull/303)
+
+## 1.10.0 (June 12, 2023)
 
 IMPROVEMENTS
 
