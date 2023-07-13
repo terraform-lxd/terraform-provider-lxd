@@ -76,6 +76,10 @@ func resourceLxdVolumeCopy() *schema.Resource {
 				Required:    true,
 				Description: "The name of the source volume.",
 			},
+			"content_type": {
+				Type:     schema.TypeString,
+				Computed: true,
+			},
 		},
 	}
 }
