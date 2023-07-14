@@ -13,19 +13,18 @@ import (
 	"github.com/lxc/lxd/shared/api"
 )
 
-var updateTimeout = int(time.Duration(time.Second * 300).Seconds())
+var instanceUpdateTimeout = int(time.Duration(time.Second * 300).Seconds())
 
-func resourceLxdContainer() *schema.Resource {
+func resourceLxdInstance() *schema.Resource {
 	return &schema.Resource{
-		Create: resourceLxdContainerCreate,
-		Update: resourceLxdContainerUpdate,
-		Delete: resourceLxdContainerDelete,
-		Exists: resourceLxdContainerExists,
-		Read:   resourceLxdContainerRead,
+		Create: resourceLxdInstanceCreate,
+		Update: resourceLxdInstanceUpdate,
+		Delete: resourceLxdInstanceDelete,
+		Exists: resourceLxdInstanceExists,
+		Read:   resourceLxdInstanceRead,
 		Importer: &schema.ResourceImporter{
-			State: resourceLxdContainerImport,
+			State: resourceLxdInstanceImport,
 		},
-		DeprecationMessage: "lxd_container has been deprecated and will be removed. Please use lxd_instance instead.",
 
 		Schema: map[string]*schema.Schema{
 			"name": {
@@ -200,7 +199,7 @@ func resourceLxdContainer() *schema.Resource {
 				Computed: true,
 			},
 
-			"start_container": {
+			"start_on_create": {
 				Type:     schema.TypeBool,
 				Optional: true,
 				Default:  true,
@@ -216,7 +215,7 @@ func resourceLxdContainer() *schema.Resource {
 	}
 }
 
-func resourceLxdContainerCreate(d *schema.ResourceData, meta interface{}) error {
+func resourceLxdInstanceCreate(d *schema.ResourceData, meta interface{}) error {
 	var err error
 
 	// Using Partial to resume uploading files if there was a previous error.
@@ -249,7 +248,7 @@ func resourceLxdContainerCreate(d *schema.ResourceData, meta interface{}) error 
 		server = server.UseProject(project)
 	}
 
-	// Prepare container config
+	// Prepare instance config
 	config := resourceLxdConfigMap(d.Get("config"))
 	config = resourceLxdConfigMapAppend(config, d.Get("limits"), "limits.")
 
@@ -315,19 +314,19 @@ func resourceLxdContainerCreate(d *schema.ResourceData, meta interface{}) error 
 		server = server.UseTarget(target.(string))
 	}
 
-	// Create container. It will not be running after this operation
+	// Create instance. It will not be running after this operation
 	op1, err := server.CreateInstanceFromImage(imgServer, *imgInfo, createReq)
 	if err != nil {
 		return err
 	}
 
-	// Wait for the container to be created
+	// Wait for the instance to be created
 	err = op1.Wait()
 	if err != nil {
-		return fmt.Errorf("failed to create container (%s): %s", name, err)
+		return fmt.Errorf("failed to create instance (%s): %s", name, err)
 	}
 
-	// Container has been created, store ID
+	// Instance has been created, store ID
 	d.SetId(name)
 
 	// Upload any files, if specified,
@@ -359,36 +358,36 @@ func resourceLxdContainerCreate(d *schema.ResourceData, meta interface{}) error 
 
 	d.Partial(false)
 
-	if d.Get("start_container").(bool) {
-		// Start container
+	if d.Get("start_on_create").(bool) {
+		// Start instance
 		startReq := api.InstanceStatePut{
 			Action:  "start",
-			Timeout: updateTimeout,
+			Timeout: instanceUpdateTimeout,
 			Force:   false,
 		}
 		op2, err := server.UpdateInstanceState(name, startReq, "")
 		if err != nil {
-			// Container has been created, but daemon rejected start request
-			return fmt.Errorf("LXD server rejected request to start container (%s): %s", name, err)
+			// Instance has been created, but daemon rejected start request
+			return fmt.Errorf("LXD server rejected request to start instance (%s): %s", name, err)
 		}
 
 		if err = op2.Wait(); err != nil {
-			return fmt.Errorf("failed to start container (%s): %s", name, err)
+			return fmt.Errorf("failed to start instance (%s): %s", name, err)
 		}
 
 		// Even though op.Wait has completed,
-		// wait until we can see the container is running via a new API call.
+		// wait until we can see the instance is running via a new API call.
 		// At a minimum, this adds some padding between API calls.
 		stateConf := &retry.StateChangeConf{
 			Target:     []string{"Running"},
-			Refresh:    resourceLxdContainerRefresh(server, name),
+			Refresh:    resourceLxdInstanceRefresh(server, name),
 			Timeout:    3 * time.Minute,
 			Delay:      refreshInterval,
 			MinTimeout: 3 * time.Second,
 		}
 
 		if _, err = stateConf.WaitForState(); err != nil {
-			return fmt.Errorf("Error waiting for container (%s) to become active: %s", name, err)
+			return fmt.Errorf("Error waiting for instance (%s) to become active: %s", name, err)
 		}
 
 		if d.Get("wait_for_network").(bool) {
@@ -396,22 +395,22 @@ func resourceLxdContainerCreate(d *schema.ResourceData, meta interface{}) error 
 			// wait until we see an "inet" ip_address before reading the state.
 			networkConf := &retry.StateChangeConf{
 				Target:     []string{"OK"},
-				Refresh:    resourceLxdContainerWaitForNetwork(server, name),
+				Refresh:    resourceLxdInstanceWaitForNetwork(server, name),
 				Timeout:    3 * time.Minute,
 				Delay:      refreshInterval,
 				MinTimeout: 3 * time.Second,
 			}
 
 			if _, err = networkConf.WaitForState(); err != nil {
-				return fmt.Errorf("Error waiting for container (%s) network information: %s", name, err)
+				return fmt.Errorf("Error waiting for instance (%s) network information: %s", name, err)
 			}
 		}
 	}
 
-	return resourceLxdContainerRead(d, meta)
+	return resourceLxdInstanceRead(d, meta)
 }
 
-func resourceLxdContainerRead(d *schema.ResourceData, meta interface{}) error {
+func resourceLxdInstanceRead(d *schema.ResourceData, meta interface{}) error {
 	p := meta.(*lxdProvider)
 
 	remote := p.selectRemote(d)
@@ -427,35 +426,35 @@ func resourceLxdContainerRead(d *schema.ResourceData, meta interface{}) error {
 
 	name := d.Id()
 	// https://github.com/canonical/lxd/blob/main/client/lxd_instances.go
-	container, _, err := server.GetInstance(name)
+	instance, _, err := server.GetInstance(name)
 	if err != nil {
 		return err
 	}
-	log.Printf("[DEBUG] Retrieved container %s: %#v", name, container)
+	log.Printf("[DEBUG] Retrieved instance %s: %#v", name, instance)
 
 	state, _, err := server.GetInstanceState(name)
 	if err != nil {
 		return err
 	}
-	log.Printf("[DEBUG] Retrieved container state %s:\n%#v", name, state)
+	log.Printf("[DEBUG] Retrieved instance state %s:\n%#v", name, state)
 
-	if container.Type == "" {
+	if instance.Type == "" {
 		// If the LXD server does not support virtualization (e.g. because not
-		// supported) or the instances API is not available `container.Type`
+		// supported) or the instances API is not available `instance.Type`
 		// might be a blank string. In that case we fall back to `"container"`
 		// to avoid constant changes to the resource definition.
 		d.Set("type", "container")
 	} else {
-		d.Set("type", container.Type)
+		d.Set("type", instance.Type)
 	}
 
-	d.Set("ephemeral", container.Ephemeral)
+	d.Set("ephemeral", instance.Ephemeral)
 	d.Set("privileged", false) // Create has no handling for it yet
-	d.Set("target", container.Location)
+	d.Set("target", instance.Location)
 
 	config := make(map[string]string)
 	limits := make(map[string]string)
-	for k, v := range container.Config {
+	for k, v := range instance.Config {
 		switch {
 		case strings.Contains(k, "limits."):
 			limits[strings.TrimPrefix(k, "limits.")] = v
@@ -476,13 +475,13 @@ func resourceLxdContainerRead(d *schema.ResourceData, meta interface{}) error {
 	d.Set("config", config)
 	d.Set("limits", limits)
 
-	d.Set("status", container.Status)
+	d.Set("status", instance.Status)
 
 	sshIP := ""
 	// First see if there was an access_interface set.
 	// If there was, base ip_address and mac_address off of it.
 	var aiFound bool
-	if ai, ok := container.Config["user.access_interface"]; ok {
+	if ai, ok := instance.Config["user.access_interface"]; ok {
 		net := state.Network[ai]
 		for _, ip := range net.Addresses {
 			if ip.Family == "inet" {
@@ -526,12 +525,12 @@ func resourceLxdContainerRead(d *schema.ResourceData, meta interface{}) error {
 		"host": sshIP,
 	})
 
-	// Set the profiles used by the container
-	d.Set("profiles", container.Profiles)
+	// Set the profiles used by the instance
+	d.Set("profiles", instance.Profiles)
 
-	// Set the devices used by the container
+	// Set the devices used by the instance
 	devices := make([]map[string]interface{}, 0)
-	for name, lxddevice := range container.Devices {
+	for name, lxddevice := range instance.Devices {
 		device := make(map[string]interface{})
 		device["name"] = name
 		device["type"] = lxddevice["type"]
@@ -544,7 +543,7 @@ func resourceLxdContainerRead(d *schema.ResourceData, meta interface{}) error {
 	return nil
 }
 
-func resourceLxdContainerUpdate(d *schema.ResourceData, meta interface{}) error {
+func resourceLxdInstanceUpdate(d *schema.ResourceData, meta interface{}) error {
 	p := meta.(*lxdProvider)
 
 	remote := p.selectRemote(d)
@@ -567,9 +566,9 @@ func resourceLxdContainerUpdate(d *schema.ResourceData, meta interface{}) error 
 		return err
 	}
 
-	// Copy the current container configuration to the updatable container struct.
+	// Copy the current instance configuration to the updatable instance struct.
 	// https://github.com/canonical/lxd/blob/3df4aa84e8a86f5186b312243dc212ff8da06941/shared/api/instance.go#L136
-	newContainer := api.InstancePut{
+	newInstance := api.InstancePut{
 		Architecture: ct.Architecture,
 		Config:       ct.Config,
 		Devices:      ct.Devices,
@@ -585,17 +584,17 @@ func resourceLxdContainerUpdate(d *schema.ResourceData, meta interface{}) error 
 
 		for key := range oldConfigMap {
 			if _, inNew := newConfigMap[key]; !inNew {
-				if _, exists := newContainer.Config[key]; exists {
+				if _, exists := newInstance.Config[key]; exists {
 					changed = true
-					delete(newContainer.Config, key)
+					delete(newInstance.Config, key)
 				}
 			}
 		}
 
 		for key, value := range newConfigMap {
-			if val, exists := newContainer.Config[key]; !exists || val != value {
+			if val, exists := newInstance.Config[key]; !exists || val != value {
 				changed = true
-				newContainer.Config[key] = value
+				newInstance.Config[key] = value
 			}
 		}
 	}
@@ -609,9 +608,9 @@ func resourceLxdContainerUpdate(d *schema.ResourceData, meta interface{}) error 
 				profiles = append(profiles, p.(string))
 			}
 
-			newContainer.Profiles = profiles
+			newInstance.Profiles = profiles
 
-			log.Printf("[DEBUG] Updated profiles: %#v", newContainer.Profiles)
+			log.Printf("[DEBUG] Updated profiles: %#v", newInstance.Profiles)
 		}
 	}
 
@@ -622,16 +621,16 @@ func resourceLxdContainerUpdate(d *schema.ResourceData, meta interface{}) error 
 		newDevices := resourceLxdDevices(new)
 
 		for n := range oldDevices {
-			delete(newContainer.Devices, n)
+			delete(newInstance.Devices, n)
 		}
 
 		for n, d := range newDevices {
 			if n != "" {
-				newContainer.Devices[n] = d
+				newInstance.Devices[n] = d
 			}
 		}
 
-		log.Printf("[DEBUG] Updated device list: %#v", newContainer.Devices)
+		log.Printf("[DEBUG] Updated device list: %#v", newInstance.Devices)
 	}
 
 	if d.HasChange("limits") {
@@ -639,17 +638,17 @@ func resourceLxdContainerUpdate(d *schema.ResourceData, meta interface{}) error 
 		oldLimits, newLimits := d.GetChange("limits")
 
 		for k := range oldLimits.(map[string]interface{}) {
-			delete(newContainer.Config, k)
+			delete(newInstance.Config, k)
 		}
 
 		for k, v := range newLimits.(map[string]interface{}) {
-			newContainer.Config[fmt.Sprintf("limits.%s", k)] = v.(string)
+			newInstance.Config[fmt.Sprintf("limits.%s", k)] = v.(string)
 		}
 	}
 
 	if changed {
-		log.Printf("[DEBUG] Updating container %s: %#v", name, newContainer)
-		op, err := server.UpdateInstance(name, newContainer, etag)
+		log.Printf("[DEBUG] Updating instance %s: %#v", name, newInstance)
+		op, err := server.UpdateInstance(name, newInstance, etag)
 		if err != nil {
 			return err
 		}
@@ -688,10 +687,10 @@ func resourceLxdContainerUpdate(d *schema.ResourceData, meta interface{}) error 
 		}
 	}
 
-	return resourceLxdContainerRead(d, meta)
+	return resourceLxdInstanceRead(d, meta)
 }
 
-func resourceLxdContainerDelete(d *schema.ResourceData, meta interface{}) (err error) {
+func resourceLxdInstanceDelete(d *schema.ResourceData, meta interface{}) (err error) {
 	p := meta.(*lxdProvider)
 
 	remote := p.selectRemote(d)
@@ -711,7 +710,7 @@ func resourceLxdContainerDelete(d *schema.ResourceData, meta interface{}) (err e
 	if ct.Status == "Running" {
 		stopReq := api.InstanceStatePut{
 			Action:  "stop",
-			Timeout: updateTimeout,
+			Timeout: instanceUpdateTimeout,
 		}
 
 		op, err := server.UpdateInstanceState(name, stopReq, etag)
@@ -719,15 +718,15 @@ func resourceLxdContainerDelete(d *schema.ResourceData, meta interface{}) (err e
 			return err
 		}
 		if err = op.Wait(); err != nil {
-			return fmt.Errorf("Error waiting for container (%s) to stop: %s", name, err)
+			return fmt.Errorf("Error waiting for instance (%s) to stop: %s", name, err)
 		}
 
 		// Even though op.Wait has completed,
-		// wait until we can see the container has stopped via a new API call.
+		// wait until we can see the instance has stopped via a new API call.
 		// At a minimum, this adds some padding between API calls.
 		stateConf := &retry.StateChangeConf{
 			Target:     []string{"Stopped"},
-			Refresh:    resourceLxdContainerRefresh(server, name),
+			Refresh:    resourceLxdInstanceRefresh(server, name),
 			Timeout:    3 * time.Minute,
 			Delay:      refreshInterval,
 			MinTimeout: 3 * time.Second,
@@ -735,12 +734,12 @@ func resourceLxdContainerDelete(d *schema.ResourceData, meta interface{}) (err e
 
 		if _, err = stateConf.WaitForState(); err != nil {
 			if strings.Contains(strings.ToLower(err.Error()), "not found") {
-				// Ephemeral containers will be deleted when they are stopped
+				// Ephemeral instances will be deleted when they are stopped
 				// so we can just return nil here and end the Delete call early.
 				return nil
 			}
 
-			return fmt.Errorf("Error waiting for container (%s) to stop: %s", name, err)
+			return fmt.Errorf("Error waiting for instance (%s) to stop: %s", name, err)
 		}
 	}
 
@@ -749,7 +748,7 @@ func resourceLxdContainerDelete(d *schema.ResourceData, meta interface{}) (err e
 		return err
 	}
 
-	// Wait for the LXC container to be deleted
+	// Wait for the LXD instance to be deleted
 	err = op.Wait()
 	if err != nil {
 		return err
@@ -758,7 +757,7 @@ func resourceLxdContainerDelete(d *schema.ResourceData, meta interface{}) (err e
 	return nil
 }
 
-func resourceLxdContainerExists(d *schema.ResourceData, meta interface{}) (exists bool, err error) {
+func resourceLxdInstanceExists(d *schema.ResourceData, meta interface{}) (exists bool, err error) {
 	p := meta.(*lxdProvider)
 
 	remote := p.selectRemote(d)
@@ -785,7 +784,7 @@ func resourceLxdContainerExists(d *schema.ResourceData, meta interface{}) (exist
 	return exists, nil
 }
 
-func resourceLxdContainerImport(d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
+func resourceLxdInstanceImport(d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
 	p := meta.(*lxdProvider)
 
 	log.Printf("[DEBUG] Starting import for %s", d.Id())
@@ -816,10 +815,10 @@ func resourceLxdContainerImport(d *schema.ResourceData, meta interface{}) ([]*sc
 	}
 
 	if ct == nil {
-		return nil, fmt.Errorf("Unable to get container state")
+		return nil, fmt.Errorf("Unable to get instance state")
 	}
 
-	log.Printf("[DEBUG] Import container state %#v", ct)
+	log.Printf("[DEBUG] Import instance state %#v", ct)
 	d.SetId(name)
 	d.Set("name", name)
 
@@ -830,7 +829,7 @@ func resourceLxdContainerImport(d *schema.ResourceData, meta interface{}) ([]*sc
 	return []*schema.ResourceData{d}, err
 }
 
-func resourceLxdContainerRefresh(server lxd.ContainerServer, name string) retry.StateRefreshFunc {
+func resourceLxdInstanceRefresh(server lxd.InstanceServer, name string) retry.StateRefreshFunc {
 	return func() (interface{}, string, error) {
 		st, _, err := server.GetInstanceState(name)
 		if err != nil {
@@ -841,7 +840,7 @@ func resourceLxdContainerRefresh(server lxd.ContainerServer, name string) retry.
 	}
 }
 
-func resourceLxdContainerWaitForNetwork(server lxd.ContainerServer, name string) retry.StateRefreshFunc {
+func resourceLxdInstanceWaitForNetwork(server lxd.InstanceServer, name string) retry.StateRefreshFunc {
 	return func() (interface{}, string, error) {
 		st, _, err := server.GetInstanceState(name)
 		if err != nil {
@@ -859,4 +858,39 @@ func resourceLxdContainerWaitForNetwork(server lxd.ContainerServer, name string)
 		}
 		return st, "NOT FOUND", nil
 	}
+}
+
+// Suppress Diff on empty name
+func suppressImageDifferences(k, old, new string, d *schema.ResourceData) bool {
+	log.Printf("[DEBUG] comparing old %#v and new %#v :: id %s status %#v", old, new, d.Id(), d.Get("Status"))
+	if old == "" && d.Id() != "" {
+		// special case for imports, empty image string is the result of nt knowing which base image name/alias was used to create this host
+		return true
+	}
+	return false
+}
+
+// Find last global IPv6 address or return any last IPv6 address
+// if there is no global address. This works analog to the IPv4 selection
+// mechanism but favors global addresses.
+func findIPv6Address(network *api.InstanceStateNetwork) (bool, string) {
+	var address string
+
+	for _, ip := range network.Addresses {
+		if ip.Family == "inet6" && ip.Scope == "global" {
+			address = ip.Address
+		}
+	}
+
+	if len(address) > 0 {
+		return true, address
+	}
+
+	for _, ip := range network.Addresses {
+		if ip.Family == "inet6" {
+			address = ip.Address
+		}
+	}
+
+	return len(address) > 0, address
 }

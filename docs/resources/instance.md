@@ -1,16 +1,14 @@
-# lxd_container
+# lxd_instance
 
-!> Resource `lxd_container` has been deprecated and will be removed. Please use `lxd_instance` instead.
+Manages an LXD instance that can be either a container or virtual machine.
 
-Manages an LXD container.
-
-A container can take a number of configuration and device options. A full reference can be found [here](https://documentation.ubuntu.com/lxd/en/latest/reference/instance_options/).
+An instance can take a number of configuration and device options. A full reference can be found [here](https://documentation.ubuntu.com/lxd/en/latest/reference/instance_options/).
 
 ## Basic Example
 
 ```hcl
-resource "lxd_container" "test1" {
-  name      = "test1"
+resource "lxd_instance" "container1" {
+  name      = "container1"
   image     = "images:ubuntu/22.04"
   ephemeral = false
 
@@ -28,7 +26,7 @@ resource "lxd_container" "test1" {
 
 ```hcl
 resource "lxd_storage_pool" "pool1" {
-  name   = "mypool"
+  name = "mypool"
   driver = "dir"
   config = {
     source = "/var/lib/lxd/storage-pools/mypool"
@@ -37,21 +35,21 @@ resource "lxd_storage_pool" "pool1" {
 
 resource "lxd_volume" "volume1" {
   name = "myvolume"
-  pool = lxd_storage_pool.pool1.name
+  pool = "${lxd_storage_pool.pool1.name}"
 }
 
-resource "lxd_container" "container1" {
-  name     = "test"
-  image    = "ubuntu"
+resource "lxd_instance" "container1" {
+  name = "%s"
+  image = "ubuntu"
   profiles = ["default"]
 
   device {
     name = "volume1"
     type = "disk"
     properties = {
-      path   = "/mount/point/in/container"
+      path = "/mount/point/in/instance"
       source = "${lxd_volume.volume1.name}"
-      pool   = "${lxd_storage_pool.pool1.name}"
+      pool = "${lxd_storage_pool.pool1.name}"
     }
   }
 }
@@ -60,10 +58,10 @@ resource "lxd_container" "container1" {
 ## Example to proxy/forward ports
 
 ```hcl
-resource "lxd_container" "container1" {
-  name      = "test2"
-  image     = "ubuntu"
-  profiles  = ["default"]
+resource "lxd_instance" "container2" {
+  name = "container2"
+  image = "ubuntu"
+  profiles = ["default"]
   ephemeral = false
 
   device {
@@ -72,7 +70,7 @@ resource "lxd_container" "container1" {
     properties = {
       # Listen on LXD host's TCP port 80
       listen = "tcp:0.0.0.0:80"
-      # And connect to the container's TCP port 80
+      # And connect to the instance's TCP port 80
       connect = "tcp:127.0.0.1:80"
     }
   }
@@ -84,38 +82,38 @@ resource "lxd_container" "container1" {
 * `remote` - *Optional* - The remote in which the resource will be created. If
 	it is not provided, the default provider remote is used.
 
-* `name` - *Required* - Name of the container.
+* `name` - *Required* - Name of the instance.
 
-* `image` - *Required* - Base image from which the container will be created. Must
+* `image` - *Required* - Base image from which the instance will be created. Must
 *       specify [an image accessible from the provider remote](https://documentation.ubuntu.com/lxd/en/latest/reference/remote_image_servers/).
 
-* `type` - *Optional* -  Instance type. Can be `"container"`, or `"virtual-machine"`.
+* `type` - *Optional* -  Instance type. Can be `container`, or `virtual-machine`. Defaults to `container`.
 
 * `profiles` - *Optional* - List of LXD config profiles to apply to the new
-	container.
+	instance.
 
-* `ephemeral` - *Optional* - Boolean indicating if this container is ephemeral.
+* `ephemeral` - *Optional* - Boolean indicating if this instance is ephemeral.
 	Valid values are `true` and `false`. Defaults to `false`.
 
 * `config` - *Optional* - Map of key/value pairs of
-	[container config settings](https://documentation.ubuntu.com/lxd/en/latest/reference/instance_options/).
+	[instance config settings](https://documentation.ubuntu.com/lxd/en/latest/reference/instance_options/).
 
 * `limits` - *Optional* - Map of key/value pairs that define the
-	[container resources limits](https://documentation.ubuntu.com/lxd/en/latest/reference/instance_options/#resource-limits).
+	[instance resources limits](https://documentation.ubuntu.com/lxd/en/latest/reference/instance_options/#resource-limits).
 
 * `device` - *Optional* - Device definition. See reference below.
 
-* `file` - *Optional* - File to upload to the container. See reference below.
+* `file` - *Optional* - File to upload to the instance. See reference below.
 
-* `wait_for_network` - *Optional* - Boolean indicating if the provider should wait for the container's network address to become available during creation.
+* `wait_for_network` - *Optional* - Boolean indicating if the provider should wait for the instance's network address to become available during creation.
   Valid values are `true` and `false`. Defaults to `true`.
 
-* `start_container` - *Optional* - Boolean indicating if the provider should start the container during creation. It will not re-start on update runs.
+* `start_on_create` - *Optional* - Boolean indicating if the provider should start the instance during creation. It will not re-start on update runs.
   Valid values are `true` and `false`. Defaults to `true`.
 
 * `target` - *Optional* - Specify a target node in a cluster.
 
-* `project` - *Optional* - Name of the project where the container will be spawned.
+* `project` - *Optional* - Name of the project where the instance will be spawned.
 
 The `device` block supports:
 
@@ -133,9 +131,9 @@ The `file` block supports:
 	Use the `file()` function to read in the content of a file from disk.
 
 * `source` - *Required unless content is used* The source path to a file to
-	copy to the container.
+	copy to the instance.
 
-* `target_file` - *Required* - The absolute path of the file on the container,
+* `target_file` - *Required* - The absolute path of the file on the instance,
 	including the filename.
 
 * `uid` - *Optional* - The UID of the file. Must be an unquoted integer.
@@ -151,32 +149,32 @@ The `file` block supports:
 
 The following attributes are exported:
 
-* `ip_address` - The IPv4 Address of the container. See Container Network Access
+* `ip_address` - The IPv4 Address of the instance. See Instance Network Access
   for more details.
 
-* `ipv4_address` - The IPv4 Address of the container. See Container Network
+* `ipv4_address` - The IPv4 Address of the instance. See Instance Network
   Access for more details.
 
-* `ipv6_address` - The IPv6 Address of the container. See Container Network
+* `ipv6_address` - The IPv6 Address of the instance. See Instance Network
   Access for more details.
 
-* `mac_address` - The MAC address of the detected NIC. See Container Network
+* `mac_address` - The MAC address of the detected NIC. See Instance Network
   Access for more details.
 
-* `status` - The status of the container.
+* `status` - The status of the instance.
 
-## Container Network Access
+## Instance Network Access
 
-If your container has multiple network interfaces, you can specify which one
+If your instance has multiple network interfaces, you can specify which one
 Terraform should report the IP addresses of. If you do not specify an interface,
 Terraform will use the _last_ address detected. Global IPv6 address will be favored if present.
 
 To specify an interface, do the following:
 
 ```hcl
-resource "lxd_container" "container1" {
-  name     = "container1"
-  image    = "images:alpine/3.5/amd64"
+resource "lxd_instance" "instance1" {
+  name = "instance1"
+  image = "images:alpine/3.5/amd64"
   profiles = ["default"]
 
   config = {
@@ -187,20 +185,20 @@ resource "lxd_container" "container1" {
 
 ## Importing
 
-Existing containers can be imported with the following syntax:
+Existing instances can be imported with the following syntax:
 
 ```shell
-$ terraform import lxd_container.my_container [remote:]name[/images:alpine/3.5]
+$ terraform import lxd_instance.my_instance [remote:]name[/images:alpine/3.5]
 ```
 
 Where:
 
-* remote - *Optional* - The name of the remote to import the container from.
-* name - *Required* - The name of the container.
+* remote - *Optional* - The name of the remote to import the instance from.
+* name - *Required* - The name of the instance.
 * /images:alpine/3.5 - *Optional* - Translates to `image = images:alpine/3.5`
   in the resource configuration.
 
 ## Notes
 
 * The `config` attributes cannot be changed without destroying and re-creating
-	the container. However, values in `limits` can be changed on the fly.
+	the instance. However, values in `limits` can be changed on the fly.

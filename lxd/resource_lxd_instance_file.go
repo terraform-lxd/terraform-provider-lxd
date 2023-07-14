@@ -7,16 +7,15 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
-func resourceLxdContainerFile() *schema.Resource {
+func resourceLxdInstanceFile() *schema.Resource {
 	return &schema.Resource{
-		Create:             resourceLxdContainerFileCreate,
-		Exists:             resourceLxdContainerFileExists,
-		Read:               resourceLxdContainerFileRead,
-		Delete:             resourceLxdContainerFileDelete,
-		DeprecationMessage: "lxd_container_file has been deprecated and will be removed. Please use lxd_instance_file instead.",
+		Create: resourceLxdInstanceFileCreate,
+		Exists: resourceLxdInstanceFileExists,
+		Read:   resourceLxdInstanceFileRead,
+		Delete: resourceLxdInstanceFileDelete,
 
 		Schema: map[string]*schema.Schema{
-			"container_name": {
+			"instance_name": {
 				Type:     schema.TypeString,
 				ForceNew: true,
 				Required: true,
@@ -90,7 +89,7 @@ func resourceLxdContainerFile() *schema.Resource {
 	}
 }
 
-func resourceLxdContainerFileCreate(d *schema.ResourceData, meta interface{}) error {
+func resourceLxdInstanceFileCreate(d *schema.ResourceData, meta interface{}) error {
 	p := meta.(*lxdProvider)
 	remote := p.selectRemote(d)
 	server, err := p.GetInstanceServer(remote)
@@ -103,15 +102,15 @@ func resourceLxdContainerFileCreate(d *schema.ResourceData, meta interface{}) er
 		server = server.UseProject(project)
 	}
 
-	containerName := d.Get("container_name").(string)
-	_, _, err = server.GetContainer(containerName)
+	instanceName := d.Get("instance_name").(string)
+	_, _, err = server.GetInstance(instanceName)
 	if err != nil {
-		return fmt.Errorf("unable to retrieve container %s: %s", containerName, err)
+		return fmt.Errorf("unable to retrieve instance %s: %s", instanceName, err)
 	}
 
 	file := File{
 		RemoteName:        remote,
-		InstanceName:      containerName,
+		InstanceName:      instanceName,
 		TargetFile:        d.Get("target_file").(string),
 		Content:           d.Get("content").(string),
 		Source:            d.Get("source").(string),
@@ -122,7 +121,7 @@ func resourceLxdContainerFileCreate(d *schema.ResourceData, meta interface{}) er
 		Append:            d.Get("append").(bool),
 	}
 
-	err = instanceUploadFile(server, containerName, file)
+	err = instanceUploadFile(server, instanceName, file)
 	if err != nil {
 		return fmt.Errorf("unable to create file %s: %s", file.TargetFile, err)
 	}
@@ -131,10 +130,10 @@ func resourceLxdContainerFileCreate(d *schema.ResourceData, meta interface{}) er
 	return nil
 }
 
-func resourceLxdContainerFileRead(d *schema.ResourceData, meta interface{}) error {
+func resourceLxdInstanceFileRead(d *schema.ResourceData, meta interface{}) error {
 	p := meta.(*lxdProvider)
 	v, targetFile := newFileIDFromResourceID(d.Id())
-	remote, containerName, err := p.LXDConfig.ParseRemote(v)
+	remote, instanceName, err := p.LXDConfig.ParseRemote(v)
 
 	remote = p.selectRemote(d)
 	server, err := p.GetInstanceServer(remote)
@@ -147,19 +146,19 @@ func resourceLxdContainerFileRead(d *schema.ResourceData, meta interface{}) erro
 		server = server.UseProject(project)
 	}
 
-	_, _, err = server.GetContainer(containerName)
+	_, _, err = server.GetInstance(instanceName)
 	if err != nil {
-		return fmt.Errorf("unable to retrieve container %s: %s", containerName, err)
+		return fmt.Errorf("unable to retrieve instance %s: %s", instanceName, err)
 	}
 
-	_, file, err := server.GetContainerFile(containerName, targetFile)
+	_, file, err := server.GetInstanceFile(instanceName, targetFile)
 	if err != nil {
-		return fmt.Errorf("unable to retrieve file %s:%s: %s", containerName, targetFile, err)
+		return fmt.Errorf("unable to retrieve file %s:%s: %s", instanceName, targetFile, err)
 	}
 
 	log.Printf("[DEBUG] Retrieved file: %#v", file)
 
-	d.Set("container_name", containerName)
+	d.Set("instance_name", instanceName)
 	d.Set("target_file", targetFile)
 	d.Set("uid", file.UID)
 	d.Set("gid", file.GID)
@@ -168,10 +167,10 @@ func resourceLxdContainerFileRead(d *schema.ResourceData, meta interface{}) erro
 	return nil
 }
 
-func resourceLxdContainerFileDelete(d *schema.ResourceData, meta interface{}) error {
+func resourceLxdInstanceFileDelete(d *schema.ResourceData, meta interface{}) error {
 	p := meta.(*lxdProvider)
 	v, targetFile := newFileIDFromResourceID(d.Id())
-	remote, containerName, err := p.LXDConfig.ParseRemote(v)
+	remote, instanceName, err := p.LXDConfig.ParseRemote(v)
 	if err != nil {
 		return err
 	}
@@ -186,23 +185,23 @@ func resourceLxdContainerFileDelete(d *schema.ResourceData, meta interface{}) er
 		server = server.UseProject(project)
 	}
 
-	_, _, err = server.GetContainer(containerName)
+	_, _, err = server.GetInstance(instanceName)
 	if err != nil {
-		return fmt.Errorf("unable to retrieve container %s: %s", containerName, err)
+		return fmt.Errorf("unable to retrieve instance %s: %s", instanceName, err)
 	}
 
-	err = instanceDeleteFile(server, containerName, targetFile)
+	err = instanceDeleteFile(server, instanceName, targetFile)
 	if err != nil {
-		return fmt.Errorf("unable to delete file %s:%s: %s", containerName, targetFile, err)
+		return fmt.Errorf("unable to delete file %s:%s: %s", instanceName, targetFile, err)
 	}
 
 	return nil
 }
 
-func resourceLxdContainerFileExists(d *schema.ResourceData, meta interface{}) (exists bool, err error) {
+func resourceLxdInstanceFileExists(d *schema.ResourceData, meta interface{}) (exists bool, err error) {
 	p := meta.(*lxdProvider)
 	v, targetFile := newFileIDFromResourceID(d.Id())
-	remote, containerName, err := p.LXDConfig.ParseRemote(v)
+	remote, instanceName, err := p.LXDConfig.ParseRemote(v)
 	if err != nil {
 		err = fmt.Errorf("unable to determine remote: %s", err)
 		return
@@ -218,9 +217,9 @@ func resourceLxdContainerFileExists(d *schema.ResourceData, meta interface{}) (e
 		server = server.UseProject(project)
 	}
 
-	_, _, err = server.GetContainer(containerName)
+	_, _, err = server.GetInstance(instanceName)
 	if err != nil {
-		// If the container could not be found, then the file
+		// If the instance could not be found, then the file
 		// can't exist. Ignore the error and return with exists
 		// set to false.
 		if err.Error() == "not found" {
@@ -228,11 +227,11 @@ func resourceLxdContainerFileExists(d *schema.ResourceData, meta interface{}) (e
 			return
 		}
 
-		err = fmt.Errorf("unable to retrieve container %s: %s", containerName, err)
+		err = fmt.Errorf("unable to retrieve instance %s: %s", instanceName, err)
 		return
 	}
 
-	_, _, err = server.GetContainerFile(containerName, targetFile)
+	_, _, err = server.GetInstanceFile(instanceName, targetFile)
 	if err != nil {
 		// If the file could not be found, then it doesn't exist.
 		// Ignore the error and return with exists set to false.

@@ -196,6 +196,8 @@ func Provider() *schema.Provider {
 			"lxd_publish_image":           resourceLxdPublishImage(),
 			"lxd_container":               resourceLxdContainer(),
 			"lxd_container_file":          resourceLxdContainerFile(),
+			"lxd_instance":                resourceLxdInstance(),
+			"lxd_instance_file":           resourceLxdInstanceFile(),
 			"lxd_network":                 resourceLxdNetwork(),
 			"lxd_profile":                 resourceLxdProfile(),
 			"lxd_project":                 resourceLxdProject(),
@@ -385,7 +387,7 @@ func (p *lxdProvider) createClient(remoteName string) error {
 				// If it succeeds, then either the certificates between
 				// the remote and the client have already been exchanged
 				// or PKI is being used.
-				rclient, _ := p.getLXDContainerClient(name)
+				rclient, _ := p.getLXDInstanceClient(name)
 				if err := validateClient(rclient); err != nil {
 					// Either PKI isn't being used or certificates haven't been
 					// exchanged. Try to add the remote certificate.
@@ -451,8 +453,8 @@ func (p *lxdProvider) getRemoteCertificate(remoteName string) error {
 }
 
 // GetInstanceServer returns a client for the named remote.
-// It returns an error if the remote is not a ContainerServer.
-func (p *lxdProvider) GetInstanceServer(remoteName string) (lxd.ContainerServer, error) {
+// It returns an error if the remote is not a InstanceServer.
+func (p *lxdProvider) GetInstanceServer(remoteName string) (lxd.InstanceServer, error) {
 	s, err := p.GetServer(remoteName)
 	if err != nil {
 		return nil, err
@@ -464,10 +466,10 @@ func (p *lxdProvider) GetInstanceServer(remoteName string) (lxd.ContainerServer,
 	}
 
 	if ci.Protocol == "lxd" {
-		return s.(lxd.ContainerServer), nil
+		return s.(lxd.InstanceServer), nil
 	}
 
-	err = fmt.Errorf("remote (%s / %s) is not a ContainerServer", remoteName, ci.Protocol)
+	err = fmt.Errorf("remote (%s / %s) is not a InstanceServer", remoteName, ci.Protocol)
 	return nil, err
 }
 
@@ -496,7 +498,7 @@ func (p *lxdProvider) GetImageServer(remoteName string) (lxd.ImageServer, error)
 }
 
 // GetServer returns a client for the named remote.
-// The returned client could be for an ImageServer or ContainerServer
+// The returned client could be for an ImageServer or InstanceServer
 func (p *lxdProvider) GetServer(remoteName string) (lxd.Server, error) {
 	if remoteName == "" {
 		remoteName = p.LXDConfig.DefaultRemote
@@ -524,7 +526,7 @@ func (p *lxdProvider) GetServer(remoteName string) (lxd.Server, error) {
 	case "simplestreams":
 		client, err = p.getLXDImageClient(remoteName)
 	default:
-		client, err = p.getLXDContainerClient(remoteName)
+		client, err = p.getLXDInstanceClient(remoteName)
 	}
 
 	if err != nil {
@@ -541,7 +543,7 @@ func (p *lxdProvider) GetServer(remoteName string) (lxd.Server, error) {
 			os.Setenv("LXD_SOCKET", "/var/snap/lxd/common/lxd/unix.socket")
 			defer os.Setenv("LXD_SOCKET", v)
 
-			client, err = p.getLXDContainerClient(remoteName)
+			client, err = p.getLXDInstanceClient(remoteName)
 			if err != nil {
 				return nil, err
 			}
@@ -584,8 +586,8 @@ func (p *lxdProvider) getRemoteConfig(remoteName string) lxd_config.Remote {
 	return p.LXDConfig.Remotes[remoteName]
 }
 
-// getLXDContainerClient will retrieve an LXD Container client in a conncurrent-safe way.
-func (p *lxdProvider) getLXDContainerClient(remoteName string) (lxd.ContainerServer, error) {
+// getLXDInstanceClient will retrieve an LXD Instance client in a conncurrent-safe way.
+func (p *lxdProvider) getLXDInstanceClient(remoteName string) (lxd.InstanceServer, error) {
 	p.RLock()
 	defer p.RUnlock()
 
@@ -651,7 +653,7 @@ func getLXDServerConnectionInfo(server lxd.Server) (*lxd.ConnectionInfo, error) 
 }
 
 // validateClient makes a simple GET request to the servers API.
-func validateClient(client lxd.ContainerServer) error {
+func validateClient(client lxd.InstanceServer) error {
 	if client == nil {
 		return fmt.Errorf("client is nil")
 	}
@@ -666,7 +668,7 @@ func validateClient(client lxd.ContainerServer) error {
 // authenticateToLXDServer authenticates to a given remote LXD server.
 // If successful, the LXD server becomes trusted to the LXD client,
 // and vice-versa.
-func authenticateToLXDServer(client lxd.ContainerServer, password string) error {
+func authenticateToLXDServer(client lxd.InstanceServer, password string) error {
 	mutex.Lock()
 	defer mutex.Unlock()
 
