@@ -4,9 +4,9 @@ import (
 	"context"
 	"log"
 
+	lxd "github.com/canonical/lxd/client"
+	"github.com/canonical/lxd/shared/api"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
-	lxd "github.com/lxc/lxd/client"
-	"github.com/lxc/lxd/shared/api"
 )
 
 func resourceLxdVolumeCopy() *schema.Resource {

@@ -5,10 +5,10 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/canonical/lxd/shared/api"
 	"github.com/dustinkirkland/golang-petname"
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
 	"github.com/hashicorp/terraform-plugin-testing/terraform"
-	"github.com/lxc/lxd/shared/api"
 )
 
 func TestAccSnapshot_stateless(t *testing.T) {

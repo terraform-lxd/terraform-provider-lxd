@@ -5,8 +5,8 @@ import (
 	"log"
 	"strings"
 
+	"github.com/canonical/lxd/shared/api"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
-	"github.com/lxc/lxd/shared/api"
 )
 
 func resourceLxdStoragePool() *schema.Resource {
