@@ -33,7 +33,7 @@ resource "lxd_profile" "profile1" {
   }
 }
 
-resource "lxd_container" "test1" {
+resource "lxd_instance" "test1" {
   name      = "test1"
   image     = "ubuntu"
   ephemeral = false

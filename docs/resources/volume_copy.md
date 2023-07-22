@@ -47,4 +47,4 @@ resource "lxd_volume_copy" "volume1_copy" {
 
 ## Notes
 
-[LXD move/copy documentation](https://linuxcontainers.org/lxd/docs/master/howto/storage_move_volume/).
+[LXD move/copy documentation](https://documentation.ubuntu.com/lxd/en/latest/howto/storage_move_volume/).

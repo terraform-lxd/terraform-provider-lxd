@@ -10,7 +10,7 @@ resource "lxd_cached_image" "xenial" {
   source_image  = "xenial/amd64"
 }
 
-resource "lxd_container" "test1" {
+resource "lxd_instance" "test1" {
   name      = "test1"
   image     = lxd_cached_image.xenial.fingerprint
   ephemeral = false
@@ -50,4 +50,4 @@ The following attributes are exported:
 
 ## Notes
 
-* See the LXD [documentation](https://linuxcontainers.org/lxd/getting-started-cli/#using-the-built-in-image-remotes) for more info on default image remotes.
+* See the LXD [documentation](https://documentation.ubuntu.com/lxd/en/latest/howto/images_remote) for more info on default image remotes.

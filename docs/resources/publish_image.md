@@ -10,16 +10,16 @@ resource "lxd_cached_image" "xenial" {
   source_image  = "xenial/amd64"
 }
 
-resource "lxd_container" "test1" {
+resource "lxd_instance" "test1" {
   name     = "test1"
   image    = lxd_cached_image.xenial.fingerprint
   profiles = ["default"]
 
-  start_container = false
+  start_on_create = false
 }
 
 resource "lxd_publish_image" "test1" {
-  depends_on = [lxd_container.test1]
+  depends_on = [lxd_instance.test1]
 
   container = "test1"
   aliases   = ["test1_img"]

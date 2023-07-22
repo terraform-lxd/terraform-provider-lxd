@@ -101,7 +101,7 @@ func TestAccSnapshot_project(t *testing.T) {
 				Config: testAccSnapshot_project(projectName, containerName, snapName),
 				Check: resource.ComposeTestCheckFunc(
 					testAccProjectRunning(t, "lxd_project.project1", &project),
-					testAccContainerRunningInProject(t, "lxd_container.container1", &container, projectName),
+					testAccContainerRunningInProject(t, "lxd_instance.container1", &container, projectName),
 					testAccSnapshotExistsInProject(t, "lxd_snapshot.snapshot1", &snap, projectName),
 				),
 			},
@@ -201,14 +201,14 @@ func TestSnapshotId_LxdID(t *testing.T) {
 
 func testAccSnapshot_basic(cName, sName string, stateful bool) string {
 	return fmt.Sprintf(`
-resource "lxd_container" "container1" {
+resource "lxd_instance" "container1" {
   name = "%s"
   image = "images:alpine/3.16"
   profiles = ["default"]
 }
 
 resource "lxd_snapshot" "snapshot1" {
-  container_name = "${lxd_container.container1.name}"
+  container_name = "${lxd_instance.container1.name}"
   name = "%s"
   stateful = "%v"
 }
@@ -217,14 +217,14 @@ resource "lxd_snapshot" "snapshot1" {
 
 func testAccSnapshot_multiple1(cName, sName string) string {
 	return fmt.Sprintf(`
-resource "lxd_container" "container1" {
+resource "lxd_instance" "container1" {
   name = "%s"
   image = "images:alpine/3.16"
   profiles = ["default"]
 }
 
 resource "lxd_snapshot" "snapshot1" {
-  container_name = "${lxd_container.container1.name}"
+  container_name = "${lxd_instance.container1.name}"
   name = "%s"
   stateful = "false"
 }
@@ -233,20 +233,20 @@ resource "lxd_snapshot" "snapshot1" {
 
 func testAccSnapshot_multiple2(cName, sName1, sName2 string) string {
 	return fmt.Sprintf(`
-resource "lxd_container" "container1" {
+resource "lxd_instance" "container1" {
   name = "%s"
   image = "images:alpine/3.16"
   profiles = ["default"]
 }
 
 resource "lxd_snapshot" "snapshot1" {
-  container_name = "${lxd_container.container1.name}"
+  container_name = "${lxd_instance.container1.name}"
   name = "%s"
   stateful = "false"
 }
 
 resource "lxd_snapshot" "snapshot2" {
-  container_name = "${lxd_container.container1.name}"
+  container_name = "${lxd_instance.container1.name}"
   name = "%s"
   stateful = "false"
 }
@@ -264,14 +264,14 @@ resource "lxd_project" "project1" {
 	"features.storage.buckets" = false
   }
 }
-resource "lxd_container" "container1" {
+resource "lxd_instance" "container1" {
   name = "%s"
   image = "images:alpine/3.16"
   project = lxd_project.project1.name
 }
 
 resource "lxd_snapshot" "snapshot1" {
-  container_name = "${lxd_container.container1.name}"
+  container_name = "${lxd_instance.container1.name}"
   name = "%s"
   stateful = "false"
   project = lxd_project.project1.name

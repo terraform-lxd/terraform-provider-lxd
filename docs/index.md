@@ -11,7 +11,7 @@ currently looks in `~/.config/lxc/` for `client.crt` and `client.key` files to
 authenticate against the LXD daemon.
 
 To generate these files and store them in the LXD client config, follow these
-[steps](https://linuxcontainers.org/lxd/getting-started-cli/#multiple-hosts).
+[steps](https://documentation.ubuntu.com/lxd/en/latest/howto/server_expose/#server-authenticate).
 Alternatively, the LXD Terraform provider can generate them on demand if
 `generate_client_certificates` is set to true.
 
