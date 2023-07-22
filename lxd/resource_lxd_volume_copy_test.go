@@ -5,10 +5,10 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/canonical/lxd/shared/api"
 	petname "github.com/dustinkirkland/golang-petname"
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
 	"github.com/hashicorp/terraform-plugin-testing/plancheck"
-	"github.com/lxc/lxd/shared/api"
 )
 
 func TestAccVolumeCopyBasic(t *testing.T) {

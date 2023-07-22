@@ -7,11 +7,11 @@ import (
 
 	petname "github.com/dustinkirkland/golang-petname"
 
+	"github.com/canonical/lxd/shared/api"
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
 	"github.com/hashicorp/terraform-plugin-testing/terraform"
-	"github.com/lxc/lxd/shared/api"
 
-	lxd "github.com/lxc/lxd/client"
+	lxd "github.com/canonical/lxd/client"
 )
 
 func TestAccInstanceFile_content(t *testing.T) {

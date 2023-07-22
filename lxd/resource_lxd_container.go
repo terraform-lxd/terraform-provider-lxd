@@ -9,8 +9,8 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/retry"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 
-	lxd "github.com/lxc/lxd/client"
-	"github.com/lxc/lxd/shared/api"
+	lxd "github.com/canonical/lxd/client"
+	"github.com/canonical/lxd/shared/api"
 )
 
 var updateTimeout = int(time.Duration(time.Second * 300).Seconds())

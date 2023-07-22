@@ -6,7 +6,7 @@ import (
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 
-	lxd "github.com/lxc/lxd/client"
+	lxd "github.com/canonical/lxd/client"
 )
 
 func resourceLxdVolumeContainerAttach() *schema.Resource {
