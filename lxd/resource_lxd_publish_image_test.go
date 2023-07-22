@@ -25,8 +25,8 @@ func TestAccPublishImage_basic(t *testing.T) {
 			{
 				Config: testAccPublishImage_basic(containerName),
 				Check: resource.ComposeTestCheckFunc(
-					testAccContainerState(t, "lxd_container.container1", &container, api.Stopped),
-					resource.TestCheckResourceAttr("lxd_container.container1", "name", containerName),
+					testAccContainerState(t, "lxd_instance.container1", &container, api.Stopped),
+					resource.TestCheckResourceAttr("lxd_instance.container1", "name", containerName),
 					testAccCachedImageExists(t, "lxd_publish_image.test_basic", &img),
 				),
 			},
@@ -48,8 +48,8 @@ func TestAccPublishImage_aliases(t *testing.T) {
 			{
 				Config: testAccPublishImage_aliases(containerName, aliases),
 				Check: resource.ComposeTestCheckFunc(
-					testAccContainerState(t, "lxd_container.container1", &container, api.Stopped),
-					resource.TestCheckResourceAttr("lxd_container.container1", "name", containerName),
+					testAccContainerState(t, "lxd_instance.container1", &container, api.Stopped),
+					resource.TestCheckResourceAttr("lxd_instance.container1", "name", containerName),
 					testAccCachedImageExists(t, "lxd_publish_image.test_basic", &img),
 					testAccPublishImageHasAliases(&img, aliases),
 				),
@@ -72,8 +72,8 @@ func TestAccPublishImage_properties(t *testing.T) {
 			{
 				Config: testAccPublishImage_properties(containerName, properties),
 				Check: resource.ComposeTestCheckFunc(
-					testAccContainerState(t, "lxd_container.container1", &container, api.Stopped),
-					resource.TestCheckResourceAttr("lxd_container.container1", "name", containerName),
+					testAccContainerState(t, "lxd_instance.container1", &container, api.Stopped),
+					resource.TestCheckResourceAttr("lxd_instance.container1", "name", containerName),
 					testAccCachedImageExists(t, "lxd_publish_image.test_basic", &img),
 					testAccPublishImageHasProperties(&img, properties),
 				),
@@ -97,7 +97,7 @@ func TestAccPublishImage_project(t *testing.T) {
 				Config: testAccPublishImage_project(projectName, containerName),
 				Check: resource.ComposeTestCheckFunc(
 					testAccProjectRunning(t, "lxd_project.project1", &project),
-					testAccContainerRunningInProject(t, "lxd_container.container1", &container, projectName),
+					testAccContainerRunningInProject(t, "lxd_instance.container1", &container, projectName),
 					testAccPublishImageExistsInProject(t, "lxd_publish_image.test_basic", &img, projectName),
 				),
 			},
@@ -107,16 +107,16 @@ func TestAccPublishImage_project(t *testing.T) {
 
 func testAccPublishImage_basic(name string) string {
 	return fmt.Sprintf(`
-resource "lxd_container" "container1" {
+resource "lxd_instance" "container1" {
   name = "%s"
   image = "images:alpine/3.16/amd64"
   profiles = ["default"]
 
-  start_container = false
+  start_on_create = false
 }
 
 resource "lxd_publish_image" "test_basic" {
-  depends_on = [ lxd_container.container1 ]
+  depends_on = [ lxd_instance.container1 ]
 
   container = "%s"
   aliases = [ "test_basic" ]
@@ -126,16 +126,16 @@ resource "lxd_publish_image" "test_basic" {
 
 func testAccPublishImage_aliases(name string, aliases []interface{}) string {
 	return fmt.Sprintf(`
-resource "lxd_container" "container1" {
+resource "lxd_instance" "container1" {
   name = "%s"
   image = "images:alpine/3.16/amd64"
   profiles = ["default"]
 
-  start_container = false
+  start_on_create = false
 }
 
 resource "lxd_publish_image" "test_basic" {
-  depends_on = [ lxd_container.container1 ]
+  depends_on = [ lxd_instance.container1 ]
 
   container = "%s"
   aliases = [ "%s" ]
@@ -145,16 +145,16 @@ resource "lxd_publish_image" "test_basic" {
 
 func testAccPublishImage_properties(name string, properties map[string]string) string {
 	return fmt.Sprintf(`
-resource "lxd_container" "container1" {
+resource "lxd_instance" "container1" {
   name = "%s"
   image = "images:alpine/3.16/amd64"
   profiles = ["default"]
 
-  start_container = false
+  start_on_create = false
 }
 
 resource "lxd_publish_image" "test_basic" {
-  depends_on = [ lxd_container.container1 ]
+  depends_on = [ lxd_instance.container1 ]
 
   container = "%s"
   properties = {
@@ -176,16 +176,16 @@ resource "lxd_project" "project1" {
 	"features.storage.buckets" = false
   }
 }
-resource "lxd_container" "container1" {
+resource "lxd_instance" "container1" {
   name = "%s"
   image = "images:alpine/3.16/amd64"
   profiles = ["default"]
   project = lxd_project.project1.name
-  start_container = false
+  start_on_create = false
 }
 
 resource "lxd_publish_image" "test_basic" {
-  depends_on = [ lxd_container.container1 ]
+  depends_on = [ lxd_instance.container1 ]
   project = lxd_project.project1.name
   container = "%s"
 }

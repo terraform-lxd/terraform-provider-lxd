@@ -194,10 +194,10 @@ func TestAccProfile_containerConfig(t *testing.T) {
 				Config: testAccProfile_containerConfig(profileName, containerName),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("lxd_profile.profile1", "name", profileName),
-					resource.TestCheckResourceAttr("lxd_container.container1", "name", containerName),
+					resource.TestCheckResourceAttr("lxd_instance.container1", "name", containerName),
 					resource.TestCheckResourceAttr("lxd_profile.profile1", "config.limits.cpu", "2"),
 					testAccProfileRunning(t, "lxd_profile.profile1", &profile),
-					testAccContainerRunning(t, "lxd_container.container1", &container),
+					testAccContainerRunning(t, "lxd_instance.container1", &container),
 					testAccProfileConfig(&profile, "limits.cpu", "2"),
 					testAccContainerExpandedConfig(&container, "limits.cpu", "2"),
 				),
@@ -226,10 +226,10 @@ func TestAccProfile_containerDevice(t *testing.T) {
 				Config: testAccProfile_containerDevice(profileName, containerName),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("lxd_profile.profile1", "name", profileName),
-					resource.TestCheckResourceAttr("lxd_container.container1", "name", containerName),
+					resource.TestCheckResourceAttr("lxd_instance.container1", "name", containerName),
 					resource.TestCheckTypeSetElemNestedAttrs("lxd_profile.profile1", "device.*", map[string]string{"properties.path": "/tmp/shared"}),
 					testAccProfileRunning(t, "lxd_profile.profile1", &profile),
-					testAccContainerRunning(t, "lxd_container.container1", &container),
+					testAccContainerRunning(t, "lxd_instance.container1", &container),
 					testAccProfileDevice(&profile, "shared", device),
 					testAccContainerExpandedDevice(&container, "shared", device),
 				),
@@ -261,9 +261,9 @@ func TestAccProfile_containerDevice_2(t *testing.T) {
 				Config: testAccProfile_containerDevice_2(profileName, containerName),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("lxd_profile.profile1", "name", profileName),
-					resource.TestCheckResourceAttr("lxd_container.container1", "name", containerName),
+					resource.TestCheckResourceAttr("lxd_instance.container1", "name", containerName),
 					testAccProfileRunning(t, "lxd_profile.profile1", &profile),
-					testAccContainerRunning(t, "lxd_container.container1", &container),
+					testAccContainerRunning(t, "lxd_instance.container1", &container),
 					testAccProfileDevice(&profile, "foo", device),
 					testAccContainerExpandedDevice(&container, "foo", device),
 				),
@@ -542,7 +542,7 @@ resource "lxd_profile" "profile1" {
   }
 }
 
-resource "lxd_container" "container1" {
+resource "lxd_instance" "container1" {
   name = "%s"
   image = "images:alpine/3.16"
   profiles = ["default", "${lxd_profile.profile1.name}"]
@@ -564,7 +564,7 @@ resource "lxd_profile" "profile1" {
   }
 }
 
-resource "lxd_container" "container1" {
+resource "lxd_instance" "container1" {
   name = "%s"
   image = "images:alpine/3.16"
   profiles = ["default", "${lxd_profile.profile1.name}"]
@@ -588,7 +588,7 @@ resource "lxd_profile" "profile1" {
   }
 }
 
-resource "lxd_container" "container1" {
+resource "lxd_instance" "container1" {
   name = "%s"
   image = "images:alpine/3.16"
   profiles = ["default", "${lxd_profile.profile1.name}"]

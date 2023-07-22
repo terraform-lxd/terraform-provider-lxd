@@ -72,7 +72,7 @@ func TestAccNetwork_attach(t *testing.T) {
 				Check: resource.ComposeTestCheckFunc(
 					testAccNetworkExists(t, "lxd_network.eth1", &network),
 					testAccProfileRunning(t, "lxd_profile.profile1", &profile),
-					testAccContainerRunning(t, "lxd_container.container1", &container),
+					testAccContainerRunning(t, "lxd_instance.container1", &container),
 					resource.TestCheckResourceAttr("lxd_network.eth1", "name", "eth1"),
 					testAccProfileDevice(&profile, "eth1", device),
 					testAccContainerExpandedDevice(&container, "eth1", device),
@@ -304,7 +304,7 @@ resource "lxd_profile" "profile1" {
   }
 }
 
-resource "lxd_container" "container1" {
+resource "lxd_instance" "container1" {
   name = "%s"
   image = "images:alpine/3.16"
   profiles = ["default", "${lxd_profile.profile1.name}"]
@@ -327,7 +327,7 @@ resource "lxd_network" "eth1" {
 
 # We do need a container here to ensure the network cannot
 # be deleted, but must be updated in-place.
-resource "lxd_container" "c1" {
+resource "lxd_instance" "c1" {
   name             = "%s"
   image            = "images:alpine/3.16"
   wait_for_network = false
@@ -359,7 +359,7 @@ resource "lxd_network" "eth1" {
 
 # We do need a container here to ensure the network cannot
 # be deleted, but must be updated in-place.
-resource "lxd_container" "c1" {
+resource "lxd_instance" "c1" {
   name             = "%s"
   image            = "images:alpine/3.16"
   wait_for_network = false

@@ -4,7 +4,7 @@ provider "lxd" {
   address = "192.168.1.8"
 }
 
-resource "lxd_container" "test2" {
+resource "lxd_instance" "test2" {
   provider = "lxd.https"
   name     = "test2"
   image    = "ubuntu"
@@ -12,5 +12,5 @@ resource "lxd_container" "test2" {
 }
 
 output "test2_ip_address" {
-  value = "${lxd_container.test2.ipv4}"
+  value = lxd_instance.test2.ipv4
 }

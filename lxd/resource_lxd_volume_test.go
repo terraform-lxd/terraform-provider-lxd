@@ -228,7 +228,7 @@ resource "lxd_volume" "volume1" {
   pool = "${lxd_storage_pool.pool1.name}"
 }
 
-resource "lxd_container" "container1" {
+resource "lxd_instance" "container1" {
   name = "%s"
   image = "images:alpine/3.16/amd64"
   profiles = ["default"]
