@@ -329,36 +329,23 @@ func resourceLxdInstanceCreate(d *schema.ResourceData, meta interface{}) error {
 	// Instance has been created, store ID
 	d.SetId(name)
 
-	// Upload any files, if specified,
-	// and set the contents to a hash in the State
-	if files, ok := d.GetOk("file"); ok {
-		for _, v := range files.([]interface{}) {
-			f := v.(map[string]interface{})
-			file := File{
-				InstanceName:      name,
-				TargetFile:        f["target_file"].(string),
-				Content:           f["content"].(string),
-				Source:            f["source"].(string),
-				UID:               f["uid"].(int),
-				GID:               f["gid"].(int),
-				Mode:              f["mode"].(string),
-				CreateDirectories: f["create_directories"].(bool),
-			}
-
-			if err := instanceUploadFile(server, name, file); err != nil {
+	forceWaitForUpload := false
+	files, hasFiles := d.GetOk("file")
+	if hasFiles {
+		if createReq.Type == api.InstanceTypeVM {
+			forceWaitForUpload = true
+		} else {
+			// Only upload files before starting if the instance is not a vm
+			err := uploadFiles(d, server, name, files)
+			if err != nil {
 				return err
 			}
-		}
-
-		err := d.Set("file", files)
-		if err != nil {
-			return fmt.Errorf("unable to set file in state: %s", err)
 		}
 	}
 
 	d.Partial(false)
 
-	if d.Get("start_on_create").(bool) {
+	if d.Get("start_on_create").(bool) || forceWaitForUpload {
 		// Start instance
 		startReq := api.InstanceStatePut{
 			Action:  "start",
@@ -390,7 +377,7 @@ func resourceLxdInstanceCreate(d *schema.ResourceData, meta interface{}) error {
 			return fmt.Errorf("Error waiting for instance (%s) to become active: %s", name, err)
 		}
 
-		if d.Get("wait_for_network").(bool) {
+		if d.Get("wait_for_network").(bool) || forceWaitForUpload {
 			// Lxd will return "Running" even if "inet" has not yet been set.
 			// wait until we see an "inet" ip_address before reading the state.
 			networkConf := &retry.StateChangeConf{
@@ -404,6 +391,15 @@ func resourceLxdInstanceCreate(d *schema.ResourceData, meta interface{}) error {
 			if _, err = networkConf.WaitForState(); err != nil {
 				return fmt.Errorf("Error waiting for instance (%s) network information: %s", name, err)
 			}
+		}
+	}
+
+	if forceWaitForUpload {
+		// If LXD knows about the VM ip, then the agent must be running.
+		// Should be safe to upload now
+		err := uploadFiles(d, server, name, files)
+		if err != nil {
+			return err
 		}
 	}
 
@@ -893,4 +889,31 @@ func findIPv6Address(network *api.InstanceStateNetwork) (bool, string) {
 	}
 
 	return len(address) > 0, address
+}
+
+func uploadFiles(d *schema.ResourceData, server lxd.InstanceServer, name string, files interface{}) error {
+	for _, v := range files.([]interface{}) {
+		f := v.(map[string]interface{})
+		file := File{
+			InstanceName:      name,
+			TargetFile:        f["target_file"].(string),
+			Content:           f["content"].(string),
+			Source:            f["source"].(string),
+			UID:               f["uid"].(int),
+			GID:               f["gid"].(int),
+			Mode:              f["mode"].(string),
+			CreateDirectories: f["create_directories"].(bool),
+		}
+
+		if err := instanceUploadFile(server, name, file); err != nil {
+			return err
+		}
+	}
+
+	err := d.Set("file", files)
+	if err != nil {
+		return fmt.Errorf("unable to set file in state: %s", err)
+	}
+
+	return nil
 }

@@ -145,6 +145,21 @@ The `file` block supports:
 * `create_directories` - *Optional* - Whether to create the directories leading
 	to the target if they do not exist.
 
+Note that the way file upload is handled differs if the instance is a virtual machine:
+
+With containers, the file is copied directly to the container filesystem by
+LXD, and this can happen even if the container is not running.
+
+With virtual machines, the LXD agent must be running which requires the VM to
+be booted.
+
+For this reason, specifying `file` on instances of type "virtual-machine" will
+force the instance to be booted on creation, and the upload waits until the LXD
+agent is running.
+
+When updating an instance, the user must ensure the VM is running before
+invoking `terraform apply`.
+
 ## Attribute Reference
 
 The following attributes are exported:
