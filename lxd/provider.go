@@ -198,6 +198,7 @@ func Provider() *schema.Provider {
 			"lxd_container_file":          resourceLxdContainerFile(),
 			"lxd_instance":                resourceLxdInstance(),
 			"lxd_instance_file":           resourceLxdInstanceFile(),
+			"lxd_instance_created_file":   resourceLxdInstanceCreatedFile(),
 			"lxd_network":                 resourceLxdNetwork(),
 			"lxd_profile":                 resourceLxdProfile(),
 			"lxd_project":                 resourceLxdProject(),
