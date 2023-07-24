@@ -4,11 +4,11 @@ import (
 	"fmt"
 	"io"
 	"log"
-	"path/filepath"
 	"strings"
 	"time"
 
 	lxd "github.com/canonical/lxd/client"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/retry"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
@@ -96,9 +96,9 @@ func resourceLxdInstanceCreatedFileCreate(d *schema.ResourceData, meta interface
 		TargetFile:   d.Get("target_file").(string),
 	}
 
-	err = waitInstanceCreatedFile(server, instanceName, file.TargetFile, d)
+	err = waitInstanceCreatedFile(p, server, instanceName, file.TargetFile, d)
 	if err != nil {
-		return fmt.Errorf("timed out waiting for file %s: %s", file.TargetFile, err)
+		return err
 	}
 
 	d.SetId(file.String())
@@ -204,41 +204,42 @@ func resourceLxdInstanceCreatedFileExists(d *schema.ResourceData, meta interface
 	return
 }
 
-func waitInstanceCreatedFile(server lxd.InstanceServer, instanceName string, targetFile string, d *schema.ResourceData) error {
-	targetFile, err := filepath.Abs(targetFile)
+func waitInstanceCreatedFile(p *lxdProvider, server lxd.InstanceServer, instanceName string, targetFile string, d *schema.ResourceData) error {
+	type readerFile struct {
+		reader io.ReadCloser
+		file   *lxd.InstanceFileResponse
+	}
+
+	conf := &retry.StateChangeConf{
+		Target: []string{"Ready"},
+		Refresh: func() (interface{}, string, error) {
+			reader, file, err := server.GetInstanceFile(instanceName, targetFile)
+			if err != nil {
+				return nil, "NotReady", nil
+			}
+			return &readerFile{reader, file}, "Ready", nil
+		},
+		Timeout:    3 * time.Minute,
+		Delay:      p.RefreshInterval,
+		MinTimeout: 3 * time.Second,
+	}
+
+	st, err := conf.WaitForState()
 	if err != nil {
-		return fmt.Errorf("Could not determine destination target %s", targetFile)
+		return fmt.Errorf("Error out waiting for file %s: %s", targetFile, err)
 	}
 
-	targetIsDir := strings.HasSuffix(targetFile, "/")
-	if targetIsDir {
-		return fmt.Errorf("Target must be an absolute path with filename")
+	rf := st.(*readerFile)
+	buf := &strings.Builder{}
+	_, err = io.Copy(buf, rf.reader)
+	if err != nil {
+		return fmt.Errorf("failure reading file %s:%s: %s", instanceName, targetFile, err)
 	}
 
-	remainingTries := 60 * 3 // wait approximately 3 minutes
-	for {
-		if remainingTries == 0 {
-			return fmt.Errorf("timed out waiting for file %s:%s: %s", instanceName, targetFile, err)
-		}
-
-		reader, f, err := server.GetInstanceFile(instanceName, targetFile)
-		if err != nil {
-			<-time.After(time.Second)
-			remainingTries--
-			continue
-		}
-
-		buf := &strings.Builder{}
-		_, err = io.Copy(buf, reader)
-		if err != nil {
-			return fmt.Errorf("failure reading file %s:%s: %s", instanceName, targetFile, err)
-		}
-
-		d.Set("content", buf.String())
-		d.Set("mode", fmt.Sprintf("%04o", f.Mode))
-		d.Set("uid", int(f.UID))
-		d.Set("gid", int(f.GID))
-		reader.Close()
-		return nil
-	}
+	d.Set("content", buf.String())
+	d.Set("mode", fmt.Sprintf("%04o", rf.file.Mode))
+	d.Set("uid", int(rf.file.UID))
+	d.Set("gid", int(rf.file.GID))
+	rf.reader.Close()
+	return nil
 }
