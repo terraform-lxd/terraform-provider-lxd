@@ -11,6 +11,8 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
+const DEFAULT_TIMEOUT = 180
+
 func dataLxdInstanceFile() *schema.Resource {
 	return &schema.Resource{
 		Read: dataLxdInstanceFileRead,
@@ -63,6 +65,13 @@ func dataLxdInstanceFile() *schema.Resource {
 				Optional: true,
 				ForceNew: true,
 			},
+
+			"timeout": {
+				Type:     schema.TypeInt,
+				ForceNew: false,
+				Optional: true,
+				Default:  DEFAULT_TIMEOUT,
+			},
 		},
 	}
 }
@@ -92,7 +101,12 @@ func dataLxdInstanceFileRead(d *schema.ResourceData, meta interface{}) error {
 		TargetFile:   d.Get("target_file").(string),
 	}
 
-	err = waitInstanceCreatedFile(p, server, instanceName, file.TargetFile, d)
+	timeout := d.Get("timeout").(int)
+	if timeout <= 0 {
+		timeout = DEFAULT_TIMEOUT
+	}
+
+	err = waitInstanceCreatedFile(p, server, instanceName, file.TargetFile, d, timeout)
 	if err != nil {
 		return err
 	}
@@ -101,7 +115,7 @@ func dataLxdInstanceFileRead(d *schema.ResourceData, meta interface{}) error {
 	return nil
 }
 
-func waitInstanceCreatedFile(p *lxdProvider, server lxd.InstanceServer, instanceName string, targetFile string, d *schema.ResourceData) error {
+func waitInstanceCreatedFile(p *lxdProvider, server lxd.InstanceServer, instanceName string, targetFile string, d *schema.ResourceData, timeout int) error {
 	type readerFile struct {
 		reader io.ReadCloser
 		file   *lxd.InstanceFileResponse
@@ -119,7 +133,7 @@ func waitInstanceCreatedFile(p *lxdProvider, server lxd.InstanceServer, instance
 				}
 				return &readerFile{reader, file}, "Ready", nil
 			},
-			Timeout:    3 * time.Minute,
+			Timeout:    time.Duration(timeout) * time.Second,
 			Delay:      p.RefreshInterval,
 			MinTimeout: 3 * time.Second,
 		}

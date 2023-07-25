@@ -19,6 +19,10 @@ Alternatively, the LXD Terraform provider can generate them on demand if
 
 A list of supported resources can be found [here](resources).
 
+## Data Sources
+
+A list of supported data sources can be found [here](data-sources).
+
 ## Basic Example
 
 This is all that is needed if the LXD remotes have been defined out of band via
