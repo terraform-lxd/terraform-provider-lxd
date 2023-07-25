@@ -106,7 +106,7 @@ func dataLxdInstanceFileRead(d *schema.ResourceData, meta interface{}) error {
 		timeout = DEFAULT_TIMEOUT
 	}
 
-	err = waitInstanceCreatedFile(p, server, instanceName, file.TargetFile, d, timeout)
+	err = waitInstanceFile(p, server, instanceName, file.TargetFile, d, timeout)
 	if err != nil {
 		return err
 	}
@@ -115,7 +115,7 @@ func dataLxdInstanceFileRead(d *schema.ResourceData, meta interface{}) error {
 	return nil
 }
 
-func waitInstanceCreatedFile(p *lxdProvider, server lxd.InstanceServer, instanceName string, targetFile string, d *schema.ResourceData, timeout int) error {
+func waitInstanceFile(p *lxdProvider, server lxd.InstanceServer, instanceName string, targetFile string, d *schema.ResourceData, timeout int) error {
 	type readerFile struct {
 		reader io.ReadCloser
 		file   *lxd.InstanceFileResponse
