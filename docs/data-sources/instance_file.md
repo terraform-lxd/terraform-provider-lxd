@@ -29,7 +29,7 @@ data "lxd_instance_file" "index_txt" {
 }
 
 resource "lxd_instance" "c1" {
-  name = "c2"
+  name = "c1"
   image = "ubuntu:20.04"
   config = {
     "user.user-data": <<-EOF
@@ -44,7 +44,7 @@ resource "lxd_instance" "c1" {
 }
 
 resource "lxd_instance" "c2" {
-  name = "c1"
+  name = "c2"
   image = "ubuntu:20.04"
   config = {
     "user.user-data": <<-EOF
