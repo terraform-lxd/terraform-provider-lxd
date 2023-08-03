@@ -28,13 +28,26 @@ terraform {
 }
 ```
 
-### Building from source
+### Using the terraform-provider-lxd from source
 
 1. Follow these [instructions](https://golang.org/doc/install) to setup a Golang development environment.
-2. Use `go install` to compile and install the binary the binary:
+2. Checkout the repository `git clone ...`
+3. Compile from sources to a development binary:
 
+```shell
+cd terraform-provider-lxd
+go build -v
 ```
-go install github.com/terraform-lxd/terraform-provider-lxd@latest
+
+4. Configure Terraform (`~/.terraformrc`) to use the development binary provider:
+
+```shell
+$ cat ~/.terraformrc
+provider_installation {
+  dev_overrides {
+    "terraform-lxd/lxd" = "/home/<REPLACE_ME>/git/terraform-provider-lxd"
+  }
+}
 ```
 
 ## Documentation
