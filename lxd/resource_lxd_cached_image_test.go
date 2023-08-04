@@ -45,6 +45,7 @@ func TestAccCachedImage_basicVM(t *testing.T) {
 				Check: resource.ComposeTestCheckFunc(
 					testAccCachedImageExists(t, "lxd_cached_image.img1vm", &img),
 					resourceAccCachedImageCheckAttributes("lxd_cached_image.img1vm", &img),
+					testAccCachedImageIsVM(&img),
 				),
 			},
 		},
@@ -304,6 +305,16 @@ func resourceAccCachedImageCheckAttributes(n string, img *api.Image) resource.Te
 
 		return nil
 
+	}
+}
+
+func testAccCachedImageIsVM(img *api.Image) resource.TestCheckFunc {
+	return func(s *terraform.State) error {
+		if img.Type != "virtual-machine" {
+			return fmt.Errorf("Cached image is not a virtual-machine as requested")
+		}
+
+		return nil
 	}
 }
 
