@@ -160,6 +160,15 @@ func Provider() *schema.Provider {
 				Optional:    true,
 				Description: descriptions["lxd_config_dir"],
 				DefaultFunc: func() (interface{}, error) {
+					// Check for the presence of the /var/snap/lxd directory. If the
+					// directory exists, return snap's config path, otherwise return
+					// the fallback path.
+
+					_, err := os.Stat("/var/snap/lxd")
+					if err == nil || os.IsExist(err) {
+						return os.ExpandEnv("$HOME/snap/lxd/common/config"), nil
+					}
+
 					return os.ExpandEnv("$HOME/.config/lxc"), nil
 				},
 			},
@@ -217,7 +226,7 @@ var descriptions map[string]string
 func init() {
 	descriptions = map[string]string{
 		"lxd_accept_remote_certificate":    "Accept the server certificate",
-		"lxd_config_dir":                   "The directory to look for existing LXD configuration. default = $HOME/.config/lxc",
+		"lxd_config_dir":                   "The directory to look for existing LXD configuration. default = $HOME/snap/lxd/common/config:$HOME/.config/lxc",
 		"lxd_generate_client_certificates": "Automatically generate the LXD client certificates if they don't exist.",
 		"lxd_refresh_interval":             "How often to poll during state changes (default 10s)",
 		"lxd_remote_address":               "The FQDN or IP where the LXD daemon can be contacted. default = empty (read from lxc config)",
