@@ -459,6 +459,8 @@ func resourceLxdInstanceRead(d *schema.ResourceData, meta interface{}) error {
 			limits[strings.TrimPrefix(k, "limits.")] = v
 		case strings.HasPrefix(k, "boot."):
 			config[k] = v
+		case strings.HasPrefix(k, "cloud-init."):
+			config[k] = v
 		case strings.HasPrefix(k, "environment."):
 			config[k] = v
 		case strings.HasPrefix(k, "raw."):
