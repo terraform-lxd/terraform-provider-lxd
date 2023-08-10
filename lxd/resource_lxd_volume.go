@@ -244,6 +244,8 @@ func resourceLxdVolumeExists(d *schema.ResourceData, meta interface{}) (exists b
 	_, _, err = server.GetStoragePoolVolume(v.pool, v.volType, v.name)
 	if err == nil {
 		exists = true
+	} else if isNotFoundError(err) {
+		err = nil
 	}
 
 	return
