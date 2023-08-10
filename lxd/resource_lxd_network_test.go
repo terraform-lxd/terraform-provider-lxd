@@ -246,7 +246,7 @@ func testAccNetworkConfig(network *api.Network, k, v string) resource.TestCheckF
 }
 
 func testAccNetwork_basic() string {
-	return fmt.Sprintf(`
+	return `
 resource "lxd_network" "eth1" {
   name = "eth1"
 
@@ -257,11 +257,11 @@ resource "lxd_network" "eth1" {
     "ipv6.nat" = "true"
   }
 }
-`)
+`
 }
 
 func testAccNetwork_desc() string {
-	return fmt.Sprintf(`
+	return `
 resource "lxd_network" "eth1" {
   name        = "eth1"
   description = "descriptive"
@@ -273,7 +273,7 @@ resource "lxd_network" "eth1" {
     "ipv6.nat" = "true"
   }
 }
-`)
+`
 }
 
 func testAccNetwork_attach(profileName, containerName string) string {
@@ -375,7 +375,7 @@ resource "lxd_instance" "c1" {
 }
 
 func testAccNetwork_typeMacvlan() string {
-	return fmt.Sprintf(`
+	return `
 resource "lxd_network" "eth1" {
   name = "eth1"
   type = "macvlan"
@@ -384,11 +384,11 @@ resource "lxd_network" "eth1" {
     "parent" = "lxdbr0"
   }
 }
-`)
+`
 }
 
 func testAccNetwork_target() string {
-	return fmt.Sprintf(`
+	return `
 resource "lxd_network" "cluster_network_node1" {
   name = "cluster_network"
   target = "node1"
@@ -422,7 +422,7 @@ resource "lxd_network" "cluster_network" {
     "ipv6.nat" = "true"
   }
 }
-`)
+`
 }
 
 func testAccNetwork_project(project string) string {
