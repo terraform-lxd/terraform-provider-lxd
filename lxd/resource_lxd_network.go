@@ -139,7 +139,7 @@ func resourceLxdNetworkRead(d *schema.ResourceData, meta interface{}) error {
 
 	network, _, err := server.GetNetwork(name)
 	if err != nil {
-		if err.Error() == "not found" {
+		if isNotFoundError(err) {
 			d.SetId("")
 			return nil
 		}
@@ -225,7 +225,7 @@ func resourceLxdNetworkDelete(d *schema.ResourceData, meta interface{}) (err err
 	name := d.Id()
 
 	err = server.DeleteNetwork(name)
-	if err != nil && err.Error() == "not found" {
+	if err != nil && isNotFoundError(err) {
 		err = nil
 	}
 
@@ -249,7 +249,7 @@ func resourceLxdNetworkExists(d *schema.ResourceData, meta interface{}) (exists 
 	exists = false
 
 	v, _, err := server.GetNetwork(name)
-	if err != nil && err.Error() == "not found" {
+	if err != nil && isNotFoundError(err) {
 		err = nil
 	}
 	if err == nil && v != nil {
