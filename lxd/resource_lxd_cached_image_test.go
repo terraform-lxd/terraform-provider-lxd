@@ -319,18 +319,18 @@ func testAccCachedImageIsVM(img *api.Image) resource.TestCheckFunc {
 }
 
 func testAccCachedImage_basic() string {
-	return fmt.Sprintf(`
+	return `
 resource "lxd_cached_image" "img1" {
   source_remote = "images"
   source_image = "alpine/3.16"
 
   copy_aliases = true
 }
-	`)
+	`
 }
 
 func testAccCachedImage_basicVM() string {
-	return fmt.Sprintf(`
+	return `
 resource "lxd_cached_image" "img1vm" {
   source_remote = "images"
   source_image = "alpine/3.16"
@@ -338,7 +338,7 @@ resource "lxd_cached_image" "img1vm" {
 
   copy_aliases = true
 }
-	`)
+	`
 }
 
 func testAccCachedImage_aliases(aliases ...string) string {
@@ -398,7 +398,7 @@ resource "lxd_cached_image" "img3" {
 }
 
 func testAccCachedImage_aliasCollision() string {
-	return fmt.Sprintf(`
+	return `
 resource "lxd_cached_image" "img4" {
   source_remote = "images"
   source_image = "alpine/3.16"
@@ -406,7 +406,7 @@ resource "lxd_cached_image" "img4" {
   aliases = ["alpine/3.16/amd64"]
   copy_aliases = true
 }
-	`)
+	`
 }
 
 func testAccCachedImage_project(project string) string {
