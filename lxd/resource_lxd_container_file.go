@@ -223,7 +223,7 @@ func resourceLxdContainerFileExists(d *schema.ResourceData, meta interface{}) (e
 		// If the container could not be found, then the file
 		// can't exist. Ignore the error and return with exists
 		// set to false.
-		if err.Error() == "not found" {
+		if isNotFoundError(err) {
 			err = nil
 			return
 		}
@@ -236,7 +236,7 @@ func resourceLxdContainerFileExists(d *schema.ResourceData, meta interface{}) (e
 	if err != nil {
 		// If the file could not be found, then it doesn't exist.
 		// Ignore the error and return with exists set to false.
-		if err.Error() == "not found" {
+		if isNotFoundError(err) {
 			err = nil
 			return
 		}
