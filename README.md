@@ -4,8 +4,8 @@ LXD Resource provider for Terraform
 
 ## Prerequisites
 
-* [Terraform](http://terraform.io)
-* [LXD](https://ubuntu.com/lxd)
+- [Terraform](http://terraform.io)
+- [LXD](https://ubuntu.com/lxd)
 
 ## Installation
 
@@ -28,7 +28,9 @@ terraform {
 }
 ```
 
-### Using the terraform-provider-lxd from source
+### Development
+
+#### Setup
 
 1. Follow these [instructions](https://golang.org/doc/install) to setup a Golang development environment.
 2. Checkout the repository `git clone ...`
@@ -50,6 +52,27 @@ provider_installation {
 }
 ```
 
+#### Testing
+
+There are two test suites, unit and acceptance. By default the acceptance tests are not run as they require a functional
+LXD environment.
+
+##### Unit tests
+
+```shell
+make
+```
+
+##### Acceptance tests
+
+```shell
+make acc
+# or run an individual test
+TESTARGS="-run TestAccCachedImage_basicVM" make testacc
+# increase test verbosity. options are trace, debug, info, warn, or error (default)
+TF_LOG=info make testacc
+```
+
 ## Documentation
 
 Full documentation can be found in the [`docs`](docs) directory.
@@ -65,8 +88,8 @@ includes SSH.
 
 Some recognition for great contributors to this project:
 
-  * [jgraichen](https://github.com/jgraichen)
-  * [jtopjian](https://github.com/jtopjian)
-  * [mjrider](https://github.com/mjrider)
-  * [sl1pm4t](https://github.com/sl1pm4t)
-  * [yobert](https://github.com/yobert)
+- [jgraichen](https://github.com/jgraichen)
+- [jtopjian](https://github.com/jtopjian)
+- [mjrider](https://github.com/mjrider)
+- [sl1pm4t](https://github.com/sl1pm4t)
+- [yobert](https://github.com/yobert)

@@ -1,5 +1,6 @@
 GOFMT_FILES?=$$(find . -name '*.go' |grep -v vendor)
 TARGETS=darwin/amd64 freebsd/386 freebsd/amd64 freebsd/arm linux/386 linux/amd64 linux/arm openbsd/386 openbsd/amd64 windows/386 windows/amd64
+TF_LOG?=error
 
 default: build
 
@@ -8,7 +9,7 @@ test:
 	go test -parallel 4 -race -timeout 60m -v ./lxd
 
 testacc:
-	TF_LOG=debug TF_ACC=1 go test -parallel 4 -v -race $(TESTARGS) -timeout 60m ./lxd
+	TF_LOG=$(TF_LOG) TF_ACC=1 go test -parallel 4 -v -race $(TESTARGS) -timeout 60m ./lxd
 
 build:
 	go build -v
