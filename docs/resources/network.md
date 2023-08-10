@@ -177,7 +177,7 @@ resource "lxd_network" "my_network" {
 }
 ```
 
-Please see the [LXD Clustering documentation](https://lxd.readthedocs.io/en/latest/clustering/)
+Please see the [LXD Clustering documentation](https://documentation.ubuntu.com/lxd/en/latest/howto/cluster_config_networks/)
 for more details on how to create a network in clustered mode.
 
 
