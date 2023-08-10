@@ -773,11 +773,12 @@ func resourceLxdInstanceExists(d *schema.ResourceData, meta interface{}) (exists
 
 	exists = false
 	name := d.Id()
-	ct, _, err := server.GetInstanceState(name)
-	if err != nil && err.Error() == "not found" {
+	state, _, err := server.GetInstanceState(name)
+	if err != nil && isNotFoundError(err) {
 		err = nil
 	}
-	if err == nil && ct != nil {
+
+	if err == nil && state != nil {
 		exists = true
 	}
 
@@ -809,16 +810,16 @@ func resourceLxdInstanceImport(d *schema.ResourceData, meta interface{}) ([]*sch
 		server = server.UseProject(project)
 	}
 
-	ct, _, err := server.GetInstanceState(name)
+	state, _, err := server.GetInstanceState(name)
 	if err != nil {
 		return nil, err
 	}
 
-	if ct == nil {
+	if state == nil {
 		return nil, fmt.Errorf("Unable to get instance state")
 	}
 
-	log.Printf("[DEBUG] Import instance state %#v", ct)
+	log.Printf("[DEBUG] Import instance state %#v", state)
 	d.SetId(name)
 	d.Set("name", name)
 
