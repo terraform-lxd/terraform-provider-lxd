@@ -282,7 +282,7 @@ func resourceLxdCachedImageExists(d *schema.ResourceData, meta interface{}) (boo
 
 	_, _, err = server.GetImage(id.fingerprint)
 	if err != nil {
-		if err.Error() == "not found" {
+		if isNotFoundError(err) {
 			return false, nil
 		}
 		return false, err
@@ -307,7 +307,7 @@ func resourceLxdCachedImageRead(d *schema.ResourceData, meta interface{}) error 
 
 	img, _, err := server.GetImage(id.fingerprint)
 	if err != nil {
-		if err.Error() == "not found" {
+		if isNotFoundError(err) {
 			d.SetId("")
 			return nil
 		}

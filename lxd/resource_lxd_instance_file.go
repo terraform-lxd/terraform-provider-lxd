@@ -222,7 +222,7 @@ func resourceLxdInstanceFileExists(d *schema.ResourceData, meta interface{}) (ex
 		// If the instance could not be found, then the file
 		// can't exist. Ignore the error and return with exists
 		// set to false.
-		if err.Error() == "not found" {
+		if isNotFoundError(err) {
 			err = nil
 			return
 		}
@@ -235,7 +235,7 @@ func resourceLxdInstanceFileExists(d *schema.ResourceData, meta interface{}) (ex
 	if err != nil {
 		// If the file could not be found, then it doesn't exist.
 		// Ignore the error and return with exists set to false.
-		if err.Error() == "not found" {
+		if isNotFoundError(err) {
 			err = nil
 			return
 		}

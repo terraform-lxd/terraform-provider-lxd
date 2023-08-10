@@ -775,7 +775,7 @@ func resourceLxdContainerExists(d *schema.ResourceData, meta interface{}) (exist
 	exists = false
 	name := d.Id()
 	ct, _, err := server.GetInstanceState(name)
-	if err != nil && err.Error() == "not found" {
+	if err != nil && isNotFoundError(err) {
 		err = nil
 	}
 	if err == nil && ct != nil {

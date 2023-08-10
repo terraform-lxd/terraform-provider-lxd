@@ -98,7 +98,7 @@ func resourceLxdPublishImageCreate(d *schema.ResourceData, meta interface{}) err
 
 	container := d.Get("container").(string)
 	ct, _, err := dstServer.GetInstanceState(container)
-	if err != nil && err.Error() == "not found" {
+	if err != nil && isNotFoundError(err) {
 		return err
 	}
 
@@ -247,7 +247,7 @@ func resourceLxdPublishImageRead(d *schema.ResourceData, meta interface{}) error
 
 	img, _, err := server.GetImage(id.fingerprint)
 	if err != nil {
-		if err.Error() == "not found" {
+		if isNotFoundError(err) {
 			d.SetId("")
 			return nil
 		}

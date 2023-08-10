@@ -136,7 +136,7 @@ func resourceLxdSnapshotRead(d *schema.ResourceData, meta interface{}) error {
 
 	snap, _, err := server.GetInstanceSnapshot(snapID.container, snapID.snapshot)
 	if err != nil {
-		if err.Error() == "not found" {
+		if isNotFoundError(err) {
 			d.SetId("")
 			return nil
 		}
@@ -187,7 +187,7 @@ func resourceLxdSnapshotExists(d *schema.ResourceData, meta interface{}) (bool, 
 
 	snap, _, err := server.GetInstanceSnapshot(snapID.container, snapID.snapshot)
 
-	if err != nil && err.Error() == "not found" {
+	if err != nil && isNotFoundError(err) {
 		err = nil
 	}
 	if err == nil && snap != nil {
