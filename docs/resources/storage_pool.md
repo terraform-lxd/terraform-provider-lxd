@@ -54,7 +54,7 @@ resource "lxd_storage_pool" "mypool" {
 }
 ```
 
-Please see the [LXD Clustering documentation](https://lxd.readthedocs.io/en/latest/clustering/)
+Please see the [LXD Clustering documentation](https://documentation.ubuntu.com/lxd/en/latest/howto/cluster_config_storage/)
 for more details on how to create a storage pool in clustered mode.
 
 ## Argument Reference
