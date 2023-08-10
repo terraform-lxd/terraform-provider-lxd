@@ -736,7 +736,7 @@ func authenticateToLXDServer(client lxd.InstanceServer, password string) error {
 		return fmt.Errorf("Unable to authenticate with remote server: %s", err)
 	}
 
-	srv, _, err = client.GetServer()
+	_, _, err = client.GetServer()
 	if err != nil {
 		return err
 	}
