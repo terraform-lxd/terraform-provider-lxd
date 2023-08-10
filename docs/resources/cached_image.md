@@ -27,6 +27,9 @@ resource "lxd_instance" "test1" {
 
 * `source_image` - *Required* - Fingerprint or alias of image to pull.
 
+* `type` - *Optional* - Type of image to cache. Must be one of `container` or `virtual-machine`.
+  Defaults to `container`.
+
 * `aliases` - *Optional* - A list of aliases to assign to the image after
 	pulling.
 

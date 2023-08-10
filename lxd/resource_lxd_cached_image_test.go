@@ -6,8 +6,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/dustinkirkland/golang-petname"
-
+	petname "github.com/dustinkirkland/golang-petname"
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
 	"github.com/hashicorp/terraform-plugin-testing/terraform"
 
@@ -28,6 +27,25 @@ func TestAccCachedImage_basic(t *testing.T) {
 				Check: resource.ComposeTestCheckFunc(
 					testAccCachedImageExists(t, "lxd_cached_image.img1", &img),
 					resourceAccCachedImageCheckAttributes("lxd_cached_image.img1", &img),
+				),
+			},
+		},
+	})
+}
+
+func TestAccCachedImage_basicVM(t *testing.T) {
+	var img api.Image
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:  func() { testAccPreCheck(t) },
+		Providers: testAccProviders,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccCachedImage_basicVM(),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCachedImageExists(t, "lxd_cached_image.img1vm", &img),
+					resourceAccCachedImageCheckAttributes("lxd_cached_image.img1vm", &img),
+					testAccCachedImageIsVM(&img),
 				),
 			},
 		},
@@ -290,11 +308,33 @@ func resourceAccCachedImageCheckAttributes(n string, img *api.Image) resource.Te
 	}
 }
 
+func testAccCachedImageIsVM(img *api.Image) resource.TestCheckFunc {
+	return func(s *terraform.State) error {
+		if img.Type != "virtual-machine" {
+			return fmt.Errorf("Cached image is not a virtual-machine as requested")
+		}
+
+		return nil
+	}
+}
+
 func testAccCachedImage_basic() string {
 	return fmt.Sprintf(`
 resource "lxd_cached_image" "img1" {
   source_remote = "images"
   source_image = "alpine/3.16"
+
+  copy_aliases = true
+}
+	`)
+}
+
+func testAccCachedImage_basicVM() string {
+	return fmt.Sprintf(`
+resource "lxd_cached_image" "img1vm" {
+  source_remote = "images"
+  source_image = "alpine/3.16"
+  type = "virtual-machine"
 
   copy_aliases = true
 }
@@ -377,7 +417,7 @@ resource "lxd_project" "project1" {
   config = {
 	"features.storage.volumes" = false
 	"features.images" = false
-	"features.storage.buckets" = false 
+	"features.storage.buckets" = false
 	"features.profiles" = false
   }
 }

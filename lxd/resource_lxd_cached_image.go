@@ -54,6 +54,21 @@ func resourceLxdCachedImage() *schema.Resource {
 				Default:  "",
 			},
 
+			"type": {
+				Type:     schema.TypeString,
+				ForceNew: true,
+				Optional: true,
+				Default:  "container",
+				ValidateFunc: func(v interface{}, k string) (ws []string, errors []error) {
+					value := v.(string)
+					if value != "container" && value != "virtual-machine" {
+						errors = append(errors, fmt.Errorf(
+							"Only container and virtual-machine are supported values for 'type'"))
+					}
+					return
+				},
+			},
+
 			// Computed attributes
 
 			"architecture": {
@@ -105,9 +120,16 @@ func resourceLxdCachedImageCreate(d *schema.ResourceData, meta interface{}) erro
 		return err
 	}
 
+	var imageType string
+	if v, ok := d.GetOk("type"); ok && v != "" {
+		imageType = v.(string)
+	} else {
+		return fmt.Errorf("Missing image type")
+	}
+
 	image := d.Get("source_image").(string)
 	// has the user provided an fingerprint or alias?
-	aliasTarget, _, _ := imgServer.GetImageAlias(image)
+	aliasTarget, _, _ := imgServer.GetImageAliasType(imageType, image)
 	if aliasTarget != nil {
 		image = aliasTarget.Target
 	}
