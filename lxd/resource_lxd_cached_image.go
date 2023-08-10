@@ -193,10 +193,6 @@ func resourceLxdCachedImageCreate(d *schema.ResourceData, meta interface{}) erro
 	return resourceLxdCachedImageRead(d, meta)
 }
 
-func resourceLxdCachedImageCopyProgressHandler(prog string) {
-	log.Println("[DEBUG] - image copy progress: ", prog)
-}
-
 func resourceLxdCachedImageUpdate(d *schema.ResourceData, meta interface{}) error {
 	p := meta.(*lxdProvider)
 	remote := p.selectRemote(d)
