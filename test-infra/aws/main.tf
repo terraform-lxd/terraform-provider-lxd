@@ -39,13 +39,13 @@ resource "aws_security_group" "lxd_acc_tests" {
 }
 
 resource "aws_spot_instance_request" "lxd_acc_tests" {
-  ami                  = "${var.ami}"
+  ami                  = var.ami
   spot_price           = "0.0221"
   instance_type        = "c3.large"
   wait_for_fulfillment = true
   spot_type            = "one-time"
 
-  key_name = "${var.key_name}"
+  key_name = var.key_name
 
   security_groups = ["${aws_security_group.lxd_acc_tests.name}"]
 
@@ -63,8 +63,8 @@ resource "null_resource" "lxd_acc_tests" {
   connection {
     type        = "ssh"
     user        = "ubuntu"
-    host        = "${aws_spot_instance_request.lxd_acc_tests.public_ip}"
-    private_key = "${file(var.private_key)}"
+    host        = aws_spot_instance_request.lxd_acc_tests.public_ip
+    private_key = file(var.private_key)
   }
 
   provisioner "remote-exec" {
@@ -73,5 +73,5 @@ resource "null_resource" "lxd_acc_tests" {
 }
 
 output "public_ip" {
-  value = "${aws_spot_instance_request.lxd_acc_tests.public_ip}"
+  value = aws_spot_instance_request.lxd_acc_tests.public_ip
 }
