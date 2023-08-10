@@ -131,7 +131,7 @@ func resourceLxdStoragePoolRead(d *schema.ResourceData, meta interface{}) error 
 
 	pool, _, err := server.GetStoragePool(name)
 	if err != nil {
-		if err.Error() == "No such object" {
+		if isNotFoundError(err) {
 			d.SetId("")
 			return nil
 		}
@@ -229,7 +229,7 @@ func resourceLxdStoragePoolDelete(d *schema.ResourceData, meta interface{}) (err
 	name := d.Id()
 
 	err = server.DeleteStoragePool(name)
-	if err != nil && err.Error() == "No such object" {
+	if err != nil && isNotFoundError(err) {
 		err = nil
 	}
 
@@ -257,7 +257,7 @@ func resourceLxdStoragePoolExists(d *schema.ResourceData, meta interface{}) (exi
 	exists = false
 
 	v, _, err := server.GetStoragePool(name)
-	if err != nil && err.Error() == "No such object" {
+	if err != nil && isNotFoundError(err) {
 		err = nil
 	}
 
