@@ -5,13 +5,13 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/dustinkirkland/golang-petname"
+	petname "github.com/dustinkirkland/golang-petname"
 
 	"github.com/canonical/lxd/shared/api"
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
 	"github.com/hashicorp/terraform-plugin-testing/terraform"
 
-	"github.com/canonical/lxd/client"
+	lxd "github.com/canonical/lxd/client"
 )
 
 func TestAccContainerFile_content(t *testing.T) {
