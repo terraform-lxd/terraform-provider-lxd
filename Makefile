@@ -46,4 +46,13 @@ fmtcheck:
 		exit 1; \
 	fi
 
+.PHONY: static-analysis
+static-analysis:
+	@if command -v golangci-lint > /dev/null; then \
+		echo "==> Running golangci-lint"; \
+		golangci-lint run --timeout 5m; \
+	else \
+		echo "Missing \"golangci-lint\" command, not linting .go" >&2; \
+	fi
+
 .PHONY: build test testacc dev vet fmt fmtcheck targets
