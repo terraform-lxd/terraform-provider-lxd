@@ -15,7 +15,7 @@ import (
 func TestAccPublishImage_basic(t *testing.T) {
 	var container api.Container
 	var img api.Image
-	containerName := strings.ToLower(petname.Generate(2, "-"))
+	containerName := petname.Generate(2, "-")
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:  func() { testAccPreCheck(t) },
@@ -36,7 +36,7 @@ func TestAccPublishImage_basic(t *testing.T) {
 func TestAccPublishImage_aliases(t *testing.T) {
 	var container api.Container
 	var img api.Image
-	containerName := strings.ToLower(petname.Generate(2, "-"))
+	containerName := petname.Generate(2, "-")
 
 	aliases := []interface{}{"alias1", "alias2"}
 
@@ -60,7 +60,7 @@ func TestAccPublishImage_aliases(t *testing.T) {
 func TestAccPublishImage_properties(t *testing.T) {
 	var container api.Container
 	var img api.Image
-	containerName := strings.ToLower(petname.Generate(2, "-"))
+	containerName := petname.Generate(2, "-")
 
 	properties := map[string]string{"os": "Alpine", "version": "4"}
 
@@ -85,8 +85,8 @@ func TestAccPublishImage_project(t *testing.T) {
 	var img api.Image
 	var container api.Container
 	var project api.Project
-	projectName := strings.ToLower(petname.Name())
-	containerName := strings.ToLower(petname.Generate(2, "-"))
+	projectName := petname.Name()
+	containerName := petname.Generate(2, "-")
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:  func() { testAccPreCheck(t) },

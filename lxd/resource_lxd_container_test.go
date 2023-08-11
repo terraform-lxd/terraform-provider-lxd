@@ -3,7 +3,6 @@ package lxd
 import (
 	"fmt"
 	"reflect"
-	"strings"
 	"testing"
 
 	"github.com/canonical/lxd/shared/api"
@@ -14,7 +13,7 @@ import (
 
 func TestAccContainer_basic(t *testing.T) {
 	var container api.Container
-	containerName := strings.ToLower(petname.Generate(2, "-"))
+	containerName := petname.Generate(2, "-")
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:  func() { testAccPreCheck(t) },
@@ -33,7 +32,7 @@ func TestAccContainer_basic(t *testing.T) {
 
 func TestAccContainer_basicEphemeral(t *testing.T) {
 	var container api.Container
-	containerName := strings.ToLower(petname.Generate(2, "-"))
+	containerName := petname.Generate(2, "-")
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:  func() { testAccPreCheck(t) },
@@ -52,7 +51,7 @@ func TestAccContainer_basicEphemeral(t *testing.T) {
 
 func TestAccContainer_typeContainer(t *testing.T) {
 	var container api.Container
-	containerName := strings.ToLower(petname.Generate(2, "-"))
+	containerName := petname.Generate(2, "-")
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:  func() { testAccPreCheck(t) },
@@ -71,7 +70,7 @@ func TestAccContainer_typeContainer(t *testing.T) {
 
 func TestAccContainer_typeVirtualMachine(t *testing.T) {
 	var container api.Container
-	containerName := strings.ToLower(petname.Generate(2, "-"))
+	containerName := petname.Generate(2, "-")
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:  func() { testAccPreCheckVirtualization(t) },
@@ -90,7 +89,7 @@ func TestAccContainer_typeVirtualMachine(t *testing.T) {
 
 func TestAccContainer_remoteImage(t *testing.T) {
 	var container api.Container
-	containerName := strings.ToLower(petname.Generate(2, "-"))
+	containerName := petname.Generate(2, "-")
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:  func() { testAccPreCheck(t) },
@@ -109,7 +108,7 @@ func TestAccContainer_remoteImage(t *testing.T) {
 
 func TestAccContainer_config(t *testing.T) {
 	var container api.Container
-	containerName := strings.ToLower(petname.Generate(2, "-"))
+	containerName := petname.Generate(2, "-")
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:  func() { testAccPreCheck(t) },
@@ -130,7 +129,7 @@ func TestAccContainer_config(t *testing.T) {
 
 func TestAccContainer_updateConfig(t *testing.T) {
 	var container api.Container
-	containerName := strings.ToLower(petname.Generate(2, "-"))
+	containerName := petname.Generate(2, "-")
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:  func() { testAccPreCheck(t) },
@@ -167,8 +166,8 @@ func TestAccContainer_updateConfig(t *testing.T) {
 func TestAccContainer_addProfile(t *testing.T) {
 	var profile api.Profile
 	var container api.Container
-	profileName := strings.ToLower(petname.Generate(2, "-"))
-	containerName := strings.ToLower(petname.Generate(2, "-"))
+	profileName := petname.Generate(2, "-")
+	containerName := petname.Generate(2, "-")
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:  func() { testAccPreCheck(t) },
@@ -202,8 +201,8 @@ func TestAccContainer_addProfile(t *testing.T) {
 func TestAccContainer_removeProfile(t *testing.T) {
 	var profile api.Profile
 	var container api.Container
-	profileName := strings.ToLower(petname.Generate(2, "-"))
-	containerName := strings.ToLower(petname.Generate(2, "-"))
+	profileName := petname.Generate(2, "-")
+	containerName := petname.Generate(2, "-")
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:  func() { testAccPreCheck(t) },
@@ -237,7 +236,7 @@ func TestAccContainer_removeProfile(t *testing.T) {
 
 func TestAccContainer_device(t *testing.T) {
 	var container api.Container
-	containerName := strings.ToLower(petname.Generate(2, "-"))
+	containerName := petname.Generate(2, "-")
 
 	device1 := map[string]string{
 		"type":   "disk",
@@ -279,7 +278,7 @@ func TestAccContainer_device(t *testing.T) {
 
 func TestAccContainer_addDevice(t *testing.T) {
 	var container api.Container
-	containerName := strings.ToLower(petname.Generate(2, "-"))
+	containerName := petname.Generate(2, "-")
 
 	device := map[string]string{
 		"type":   "disk",
@@ -313,7 +312,7 @@ func TestAccContainer_addDevice(t *testing.T) {
 
 func TestAccContainer_removeDevice(t *testing.T) {
 	var container api.Container
-	containerName := strings.ToLower(petname.Generate(2, "-"))
+	containerName := petname.Generate(2, "-")
 
 	device := map[string]string{
 		"type":   "disk",
@@ -348,7 +347,7 @@ func TestAccContainer_removeDevice(t *testing.T) {
 
 func TestAccContainer_fileUploadContent(t *testing.T) {
 	var container api.Container
-	containerName := strings.ToLower(petname.Generate(2, "-"))
+	containerName := petname.Generate(2, "-")
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:  func() { testAccPreCheck(t) },
@@ -372,7 +371,7 @@ func TestAccContainer_fileUploadContent(t *testing.T) {
 
 func TestAccContainer_fileUploadSource(t *testing.T) {
 	var container api.Container
-	containerName := strings.ToLower(petname.Generate(2, "-"))
+	containerName := petname.Generate(2, "-")
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:  func() { testAccPreCheck(t) },
@@ -390,7 +389,7 @@ func TestAccContainer_fileUploadSource(t *testing.T) {
 
 func TestAccContainer_defaultProfile(t *testing.T) {
 	var container api.Container
-	containerName := strings.ToLower(petname.Generate(2, "-"))
+	containerName := petname.Generate(2, "-")
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:  func() { testAccPreCheck(t) },
@@ -410,7 +409,7 @@ func TestAccContainer_defaultProfile(t *testing.T) {
 
 func TestAccContainer_configLimits(t *testing.T) {
 	var container api.Container
-	containerName := strings.ToLower(petname.Generate(2, "-"))
+	containerName := petname.Generate(2, "-")
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:  func() { testAccPreCheck(t) },
@@ -436,8 +435,8 @@ func TestAccContainer_configLimits(t *testing.T) {
 
 func TestAccContainer_accessInterface(t *testing.T) {
 	var container api.Container
-	networkName1 := strings.ToLower(petname.Generate(1, "-"))
-	containerName := strings.ToLower(petname.Generate(2, "-"))
+	networkName1 := petname.Generate(1, "-")
+	containerName := petname.Generate(2, "-")
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:  func() { testAccPreCheck(t) },
@@ -461,7 +460,7 @@ func TestAccContainer_withDevice(t *testing.T) {
 	t.Skip("Test is failing in CI but passing locally")
 
 	var container api.Container
-	containerName := strings.ToLower(petname.Generate(2, "-"))
+	containerName := petname.Generate(2, "-")
 
 	device := map[string]string{
 		"type":    "nic",
@@ -488,7 +487,7 @@ func TestAccContainer_withDevice(t *testing.T) {
 
 func TestAccContainer_isStopped(t *testing.T) {
 	var container api.Container
-	containerName := strings.ToLower(petname.Generate(2, "-"))
+	containerName := petname.Generate(2, "-")
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:  func() { testAccPreCheck(t) },
@@ -507,7 +506,7 @@ func TestAccContainer_isStopped(t *testing.T) {
 
 func TestAccContainer_target(t *testing.T) {
 	var container api.Container
-	containerName := strings.ToLower(petname.Generate(2, "-"))
+	containerName := petname.Generate(2, "-")
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:  func() { testAccPreCheckClustering(t) },
@@ -529,8 +528,8 @@ func TestAccContainer_target(t *testing.T) {
 func TestAccContainer_createProject(t *testing.T) {
 	var container api.Container
 	var project api.Project
-	containerName := strings.ToLower(petname.Generate(2, "-"))
-	projectName := strings.ToLower(petname.Name())
+	containerName := petname.Generate(2, "-")
+	projectName := petname.Name()
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:  func() { testAccPreCheck(t) },
@@ -552,8 +551,8 @@ func TestAccContainer_createProject(t *testing.T) {
 func TestAccContainer_removeProject(t *testing.T) {
 	var project api.Project
 	var container api.Container
-	projectName := strings.ToLower(petname.Generate(2, "-"))
-	containerName := strings.ToLower(petname.Generate(2, "-"))
+	projectName := petname.Generate(2, "-")
+	containerName := petname.Generate(2, "-")
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:  func() { testAccPreCheck(t) },

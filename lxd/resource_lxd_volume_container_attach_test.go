@@ -2,7 +2,6 @@ package lxd
 
 import (
 	"fmt"
-	"strings"
 	"testing"
 
 	petname "github.com/dustinkirkland/golang-petname"
@@ -13,9 +12,9 @@ import (
 func TestAccVolumeContainerAttach_basic(t *testing.T) {
 	t.Skip("lxd_volume_container_attach is deprecated and will be removed in the future")
 
-	poolName := strings.ToLower(petname.Generate(2, "-"))
-	volumeName := strings.ToLower(petname.Generate(2, "-"))
-	containerName := strings.ToLower(petname.Generate(2, "-"))
+	poolName := petname.Generate(2, "-")
+	volumeName := petname.Generate(2, "-")
+	containerName := petname.Generate(2, "-")
 	source := t.TempDir()
 
 	resource.Test(t, resource.TestCase{
@@ -38,9 +37,9 @@ func TestAccVolumeContainerAttach_basic(t *testing.T) {
 func TestAccVolumeContainerAttach_deviceName(t *testing.T) {
 	t.Skip("lxd_volume_container_attach is deprecated and will be removed in the future")
 
-	poolName := strings.ToLower(petname.Generate(2, "-"))
-	volumeName := strings.ToLower(petname.Generate(2, "-"))
-	containerName := strings.ToLower(petname.Generate(2, "-"))
+	poolName := petname.Generate(2, "-")
+	volumeName := petname.Generate(2, "-")
+	containerName := petname.Generate(2, "-")
 	source := t.TempDir()
 
 	resource.Test(t, resource.TestCase{

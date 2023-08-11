@@ -2,7 +2,6 @@ package lxd
 
 import (
 	"fmt"
-	"strings"
 	"testing"
 
 	"github.com/canonical/lxd/shared/api"
@@ -53,8 +52,8 @@ func TestAccNetwork_attach(t *testing.T) {
 	var network api.Network
 	var profile api.Profile
 	var container api.Container
-	profileName := strings.ToLower(petname.Generate(2, "-"))
-	containerName := strings.ToLower(petname.Generate(2, "-"))
+	profileName := petname.Generate(2, "-")
+	containerName := petname.Generate(2, "-")
 
 	device := map[string]string{
 		"type":    "nic",
@@ -83,7 +82,7 @@ func TestAccNetwork_attach(t *testing.T) {
 
 func TestAccNetwork_updateConfig(t *testing.T) {
 	var network api.Network
-	containerName := strings.ToLower(petname.Generate(2, "-"))
+	containerName := petname.Generate(2, "-")
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:  func() { testAccPreCheck(t) },
@@ -152,7 +151,7 @@ func TestAccNetwork_target(t *testing.T) {
 func TestAccNetwork_project(t *testing.T) {
 	var network api.Network
 	var project api.Project
-	projectName := strings.ToLower(petname.Name())
+	projectName := petname.Name()
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:  func() { testAccPreCheck(t) },

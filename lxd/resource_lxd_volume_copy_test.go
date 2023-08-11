@@ -2,7 +2,6 @@ package lxd
 
 import (
 	"fmt"
-	"strings"
 	"testing"
 
 	"github.com/canonical/lxd/shared/api"
@@ -13,8 +12,8 @@ import (
 
 func TestAccVolumeCopyBasic(t *testing.T) {
 	var volume api.StorageVolume
-	poolName := strings.ToLower(petname.Generate(2, "-"))
-	volumeName := strings.ToLower(petname.Generate(2, "-"))
+	poolName := petname.Generate(2, "-")
+	volumeName := petname.Generate(2, "-")
 	source := t.TempDir()
 
 	resource.Test(t, resource.TestCase{

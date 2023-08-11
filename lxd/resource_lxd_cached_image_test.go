@@ -52,8 +52,8 @@ func TestAccCachedImage_basicVM(t *testing.T) {
 
 func TestAccCachedImage_alias(t *testing.T) {
 	var img api.Image
-	alias1 := strings.ToLower(petname.Generate(2, "-"))
-	alias2 := strings.ToLower(petname.Generate(2, "-"))
+	alias1 := petname.Generate(2, "-")
+	alias2 := petname.Generate(2, "-")
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:  func() { testAccPreCheck(t) },
@@ -74,8 +74,8 @@ func TestAccCachedImage_alias(t *testing.T) {
 
 func TestAccCachedImage_copiedAlias(t *testing.T) {
 	var img api.Image
-	alias1 := strings.ToLower(petname.Generate(2, "-"))
-	alias2 := strings.ToLower(petname.Generate(2, "-"))
+	alias1 := petname.Generate(2, "-")
+	alias2 := petname.Generate(2, "-")
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:  func() { testAccPreCheck(t) },
@@ -116,7 +116,7 @@ func TestAccCachedImage_aliasCollision(t *testing.T) {
 
 func TestAccCachedImage_aliasAlreadyExists(t *testing.T) {
 	var img api.Image
-	alias := strings.ToLower(petname.Generate(2, "-"))
+	alias := petname.Generate(2, "-")
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:  func() { testAccPreCheck(t) },
@@ -145,8 +145,8 @@ func TestAccCachedImage_aliasAlreadyExists(t *testing.T) {
 
 func TestAccCachedImage_addRemoveAlias(t *testing.T) {
 	var img api.Image
-	alias1 := strings.ToLower(petname.Generate(2, "-"))
-	alias2 := strings.ToLower(petname.Generate(2, "-"))
+	alias1 := petname.Generate(2, "-")
+	alias2 := petname.Generate(2, "-")
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:  func() { testAccPreCheck(t) },
@@ -184,7 +184,7 @@ func TestAccCachedImage_addRemoveAlias(t *testing.T) {
 func TestAccCachedImage_project(t *testing.T) {
 	var img api.Image
 	var project api.Project
-	projectName := strings.ToLower(petname.Name())
+	projectName := petname.Name()
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:  func() { testAccPreCheck(t) },

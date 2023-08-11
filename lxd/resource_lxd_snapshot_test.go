@@ -2,7 +2,6 @@ package lxd
 
 import (
 	"fmt"
-	"strings"
 	"testing"
 
 	"github.com/canonical/lxd/shared/api"
@@ -12,8 +11,8 @@ import (
 )
 
 func TestAccSnapshot_stateless(t *testing.T) {
-	containerName := strings.ToLower(petname.Generate(2, "-"))
-	snapshotName := strings.ToLower(petname.Generate(2, "-"))
+	containerName := petname.Generate(2, "-")
+	snapshotName := petname.Generate(2, "-")
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:  func() { testAccPreCheck(t) },
@@ -40,8 +39,8 @@ e.g.
 (00.762251) Error (criu/cr-dump.c:1628): Dumping FAILED.
 */
 // func TestAccSnapshot_stateful(t *testing.T) {
-// 	containerName := strings.ToLower(petname.Generate(2, "-"))
-// 	snapshotName := strings.ToLower(petname.Generate(2, "-"))
+// 	containerName := petname.Generate(2, "-")
+// 	snapshotName := petname.Generate(2, "-")
 
 // 	resource.Test(t, resource.TestCase{
 // 		PreCheck:  func() { testAccPreCheck(t) },
@@ -59,9 +58,9 @@ e.g.
 // }
 
 func TestAccSnapshot_multiple(t *testing.T) {
-	containerName := strings.ToLower(petname.Generate(2, "-"))
-	snap1Name := strings.ToLower(petname.Generate(2, "-"))
-	snap2Name := strings.ToLower(petname.Generate(2, "-"))
+	containerName := petname.Generate(2, "-")
+	snap1Name := petname.Generate(2, "-")
+	snap2Name := petname.Generate(2, "-")
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:  func() { testAccPreCheck(t) },
@@ -88,9 +87,9 @@ func TestAccSnapshot_project(t *testing.T) {
 	var project api.Project
 	var container api.Container
 	var snap api.InstanceSnapshot
-	projectName := strings.ToLower(petname.Name())
-	containerName := strings.ToLower(petname.Generate(2, "-"))
-	snapName := strings.ToLower(petname.Generate(2, "-"))
+	projectName := petname.Name()
+	containerName := petname.Generate(2, "-")
+	snapName := petname.Generate(2, "-")
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:  func() { testAccPreCheck(t) },

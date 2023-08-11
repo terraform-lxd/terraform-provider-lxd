@@ -2,7 +2,6 @@ package lxd
 
 import (
 	"fmt"
-	"strings"
 	"testing"
 
 	lxd "github.com/canonical/lxd/client"
@@ -15,7 +14,7 @@ import (
 func TestAccContainerFile_content(t *testing.T) {
 	var file lxd.ContainerFileResponse
 
-	containerName := strings.ToLower(petname.Generate(2, "-"))
+	containerName := petname.Generate(2, "-")
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:  func() { testAccPreCheck(t) },
@@ -35,7 +34,7 @@ func TestAccContainerFile_content(t *testing.T) {
 func TestAccContainerFile_source(t *testing.T) {
 	var file lxd.ContainerFileResponse
 
-	containerName := strings.ToLower(petname.Generate(2, "-"))
+	containerName := petname.Generate(2, "-")
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:  func() { testAccPreCheck(t) },
@@ -56,8 +55,8 @@ func TestAccContainerFile_project(t *testing.T) {
 	var file lxd.ContainerFileResponse
 	var project api.Project
 	var container api.Container
-	projectName := strings.ToLower(petname.Name())
-	containerName := strings.ToLower(petname.Generate(2, "-"))
+	projectName := petname.Name()
+	containerName := petname.Generate(2, "-")
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:  func() { testAccPreCheck(t) },

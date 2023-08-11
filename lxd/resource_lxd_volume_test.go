@@ -2,7 +2,6 @@ package lxd
 
 import (
 	"fmt"
-	"strings"
 	"testing"
 
 	"github.com/canonical/lxd/shared/api"
@@ -13,8 +12,8 @@ import (
 
 func TestAccVolume_basic(t *testing.T) {
 	var volume api.StorageVolume
-	poolName := strings.ToLower(petname.Generate(2, "-"))
-	volumeName := strings.ToLower(petname.Generate(2, "-"))
+	poolName := petname.Generate(2, "-")
+	volumeName := petname.Generate(2, "-")
 	source := t.TempDir()
 
 	resource.Test(t, resource.TestCase{
@@ -34,9 +33,9 @@ func TestAccVolume_basic(t *testing.T) {
 
 func TestAccVolume_containerAttach(t *testing.T) {
 	var volume api.StorageVolume
-	containerName := strings.ToLower(petname.Generate(2, "-"))
-	poolName := strings.ToLower(petname.Generate(2, "-"))
-	volumeName := strings.ToLower(petname.Generate(2, "-"))
+	containerName := petname.Generate(2, "-")
+	poolName := petname.Generate(2, "-")
+	volumeName := petname.Generate(2, "-")
 	source := t.TempDir()
 
 	resource.Test(t, resource.TestCase{
@@ -56,7 +55,7 @@ func TestAccVolume_containerAttach(t *testing.T) {
 
 func TestAccVolume_target(t *testing.T) {
 	var volume api.StorageVolume
-	volumeName := strings.ToLower(petname.Generate(2, "-"))
+	volumeName := petname.Generate(2, "-")
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:  func() { testAccPreCheckClustering(t) },
@@ -77,8 +76,8 @@ func TestAccVolume_project(t *testing.T) {
 	var project api.Project
 	var volume api.StorageVolume
 
-	volumeName := strings.ToLower(petname.Generate(2, "-"))
-	projectName := strings.ToLower(petname.Name())
+	volumeName := petname.Generate(2, "-")
+	projectName := petname.Name()
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:  func() { testAccPreCheck(t) },
@@ -174,8 +173,8 @@ func testAccVolumeConfig(volume *api.StorageVolume, k, v string) resource.TestCh
 
 func TestAccVolume_contentType(t *testing.T) {
 	var volume api.StorageVolume
-	poolName := strings.ToLower(petname.Generate(2, "-"))
-	volumeName := strings.ToLower(petname.Generate(2, "-"))
+	poolName := petname.Generate(2, "-")
+	volumeName := petname.Generate(2, "-")
 	source := t.TempDir()
 
 	resource.Test(t, resource.TestCase{

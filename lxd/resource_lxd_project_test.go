@@ -2,7 +2,6 @@ package lxd
 
 import (
 	"fmt"
-	"strings"
 	"testing"
 
 	"github.com/canonical/lxd/shared/api"
@@ -19,7 +18,7 @@ import (
 
 func TestAccProject_basic(t *testing.T) {
 	var project api.Project
-	projectName := strings.ToLower(petname.Generate(2, "-"))
+	projectName := petname.Generate(2, "-")
 
 	// https://github.com/hashicorp/terraform-plugin-sdk/blob/main/helper/resource/testing.go
 	// https://developer.hashicorp.com/terraform/plugin/sdkv2/testing/acceptance-tests/testcase
@@ -48,7 +47,7 @@ func TestAccProject_basic(t *testing.T) {
 
 func TestAccProject_config(t *testing.T) {
 	var project api.Project
-	projectName := strings.ToLower(petname.Generate(2, "-"))
+	projectName := petname.Generate(2, "-")
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:  func() { testAccPreCheck(t) },
