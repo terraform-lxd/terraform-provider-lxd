@@ -10,12 +10,11 @@ import (
 	"sync"
 	"time"
 
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
-
 	lxd "github.com/canonical/lxd/client"
 	lxd_config "github.com/canonical/lxd/lxc/config"
 	"github.com/canonical/lxd/shared"
 	lxd_api "github.com/canonical/lxd/shared/api"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
 // A global mutex.
