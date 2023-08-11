@@ -3,16 +3,14 @@ package lxd
 import (
 	"fmt"
 	"regexp"
+	"strconv"
 	"strings"
 	"testing"
 
+	"github.com/canonical/lxd/shared/api"
 	petname "github.com/dustinkirkland/golang-petname"
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
 	"github.com/hashicorp/terraform-plugin-testing/terraform"
-
-	"strconv"
-
-	"github.com/canonical/lxd/shared/api"
 )
 
 func TestAccCachedImage_basic(t *testing.T) {
