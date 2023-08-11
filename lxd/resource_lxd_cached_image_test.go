@@ -302,7 +302,6 @@ func resourceAccCachedImageCheckAttributes(n string, img *api.Image) resource.Te
 		}
 
 		return nil
-
 	}
 }
 
