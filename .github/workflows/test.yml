@@ -36,6 +36,10 @@ jobs:
           sudo lxd init --auto --trust-password="$LXD_PASSWORD" --network-port=8443 --network-address='[::]'
           sudo chmod 777 /var/snap/lxd/common/lxd/unix.socket
 
+      - name: Install dependencies
+        run: |
+          curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(go env GOPATH)/bin
+
       - uses: actions/checkout@v3
       - run: make fmtcheck
       - run: make vet
