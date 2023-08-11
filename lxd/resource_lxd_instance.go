@@ -860,7 +860,7 @@ func resourceLxdInstanceWaitForNetwork(server lxd.InstanceServer, name string) r
 	}
 }
 
-// Suppress Diff on empty name
+// Suppress Diff on empty name.
 func suppressImageDifferences(k, old, new string, d *schema.ResourceData) bool {
 	log.Printf("[DEBUG] comparing old %#v and new %#v :: id %s status %#v", old, new, d.Id(), d.Get("Status"))
 	if old == "" && d.Id() != "" {
