@@ -59,7 +59,6 @@ e.g.
 // }
 
 func TestAccSnapshot_multiple(t *testing.T) {
-
 	containerName := strings.ToLower(petname.Generate(2, "-"))
 	snap1Name := strings.ToLower(petname.Generate(2, "-"))
 	snap2Name := strings.ToLower(petname.Generate(2, "-"))
