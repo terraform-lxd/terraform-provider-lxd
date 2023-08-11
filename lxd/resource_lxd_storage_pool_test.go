@@ -5,11 +5,10 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/canonical/lxd/shared/api"
 	petname "github.com/dustinkirkland/golang-petname"
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
 	"github.com/hashicorp/terraform-plugin-testing/terraform"
-
-	"github.com/canonical/lxd/shared/api"
 )
 
 func TestAccStoragePool_basic(t *testing.T) {
