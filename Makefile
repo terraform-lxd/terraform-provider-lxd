@@ -54,5 +54,11 @@ static-analysis:
 	else \
 		echo "Missing \"golangci-lint\" command, not linting .go" >&2; \
 	fi
+	@if command -v terraform > /dev/null; then \
+		echo "==> Running terraform fmt"; \
+		terraform fmt -recursive -check -diff; \
+	else \
+		echo "Missing \"terraform\" command, not checking .tf format" >&2; \
+	fi
 
 .PHONY: build test testacc dev vet fmt fmtcheck targets
