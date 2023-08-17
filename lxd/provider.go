@@ -118,7 +118,7 @@ func Provider() *schema.Provider {
 							Optional:     true,
 							Description:  descriptions["lxd_remote_scheme"],
 							ValidateFunc: validateLxdRemoteScheme,
-							Default:      "https",
+							Default:      "unix",
 						},
 					},
 				},
