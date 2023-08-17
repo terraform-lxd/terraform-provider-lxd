@@ -1,12 +1,16 @@
 package lxd
 
 import (
+	"context"
 	"os"
+	"strings"
 	"testing"
 
 	"fmt"
 
+	lxd "github.com/canonical/lxd/client"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
 )
 
@@ -81,10 +85,6 @@ func TestAccLxdProvider_imageRemotes(t *testing.T) {
 	})
 }
 
-func testAccPreCheck(t *testing.T) {
-	// NoOp
-}
-
 func testAccLxdProvider_basic(remote string) string {
 	return fmt.Sprintf(`
 resource "lxd_noop" "noop1" {
@@ -146,5 +146,87 @@ func resourceLxdNoOp() *schema.Resource {
 				Computed: true,
 			},
 		},
+	}
+}
+
+// getTestLXDInstanceClient retrievs the client from the LXD server or stops the test execution
+// otherwise.
+func getTestLXDInstanceClient(t *testing.T) lxd.InstanceServer {
+	testAccProvider.Configure(context.Background(), terraform.NewResourceConfigRaw(nil))
+	client, err := testAccProvider.Meta().(*lxdProvider).GetInstanceServer("")
+	if err != nil {
+		t.Fatalf("Failed to retrieve test client: %v", err)
+	}
+
+	return client
+}
+
+func testAccPreCheck(t *testing.T) {
+	// NoOp
+}
+
+// testAccPreCheckLxdVersion skips the test if the server's version does not satisfy the provided
+// version constraints. The version constraints are detailed at:
+// https://pkg.go.dev/github.com/hashicorp/go-version#readme-version-constraints
+func testAccPreCheckLxdVersion(t *testing.T, versionConstraint string) {
+	server, _, err := getTestLXDInstanceClient(t).GetServer()
+	if err != nil {
+		t.Fatalf("Failed to retrieve the server: %v", err)
+	}
+
+	serverVersion := server.Environment.ServerVersion
+	ok, err := CheckVersion(serverVersion, versionConstraint)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if !ok {
+		t.Skipf("Test %q skipped. LXD version %q does not satisfy the version constraint %q", t.Name(), serverVersion, versionConstraint)
+	}
+}
+
+// testAccPreCheckAPIExtensions skips the test if the LXD server does not support the required
+// extensions.
+func testAccPreCheckAPIExtensions(t *testing.T, extensions []string) {
+	client := getTestLXDInstanceClient(t)
+
+	missing := []string{}
+	for _, e := range extensions {
+		if !client.HasExtension(e) {
+			missing = append(missing, e)
+		}
+	}
+
+	if len(missing) > 0 {
+		t.Skipf("Test %q skipped. Missing required extensions: %v", t.Name(), missing)
+	}
+}
+
+// testAccPreCheckVirtualization skips the test if the LXD server does not support virtualization.
+func testAccPreCheckVirtualization(t *testing.T) {
+	client := getTestLXDInstanceClient(t)
+
+	// Ensure that LXD server has virtual-machines extension.
+	vmExt := "virtual-machines"
+	if !client.HasExtension(vmExt) {
+		t.Skipf("Test %q skipped. Server does not support %q extension.", t.Name(), vmExt)
+	}
+
+	server, _, err := getTestLXDInstanceClient(t).GetServer()
+	if err != nil {
+		t.Fatalf("Failed to retrieve the server: %v", err)
+	}
+
+	// Ensure that LXD server supports qemu driver which is required for virtualization.
+	if !strings.Contains(server.Environment.Driver, "qemu") {
+		t.Skipf("Test %q skipped. Server does not support virtualization.", t.Name())
+	}
+}
+
+// testAccPreCheckClustering skips the test if LXD is not running in clustered mode.
+func testAccPreCheckClustering(t *testing.T) {
+	client := getTestLXDInstanceClient(t)
+	if !client.IsClustered() {
+		t.Skipf("Test %q skipped. Server is not running in clustered mode.", t.Name())
 	}
 }

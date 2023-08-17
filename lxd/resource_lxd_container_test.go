@@ -71,13 +71,11 @@ func TestAccContainer_typeContainer(t *testing.T) {
 }
 
 func TestAccContainer_typeVirtualMachine(t *testing.T) {
-	t.Skip("Travis CI environment does not support virtualization")
-
 	var container api.Container
 	containerName := strings.ToLower(petname.Generate(2, "-"))
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:  func() { testAccPreCheck(t) },
+		PreCheck:  func() { testAccPreCheckVirtualization(t) },
 		Providers: testAccProviders,
 		Steps: []resource.TestStep{
 			{
@@ -509,13 +507,11 @@ func TestAccContainer_isStopped(t *testing.T) {
 }
 
 func TestAccContainer_target(t *testing.T) {
-	t.Skip("Test environment does not support clustering yet")
-
 	var container api.Container
 	containerName := strings.ToLower(petname.Generate(2, "-"))
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:  func() { testAccPreCheck(t) },
+		PreCheck:  func() { testAccPreCheckClustering(t) },
 		Providers: testAccProviders,
 		Steps: []resource.TestStep{
 			{

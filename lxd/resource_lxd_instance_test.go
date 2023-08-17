@@ -71,13 +71,11 @@ func TestAccInstance_typeInstance(t *testing.T) {
 }
 
 func TestAccInstance_typeVirtualMachine(t *testing.T) {
-	t.Skip("Travis CI environment does not support virtualization")
-
 	var instance api.Instance
 	instanceName := strings.ToLower(petname.Generate(2, "-"))
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:  func() { testAccPreCheck(t) },
+		PreCheck:  func() { testAccPreCheckVirtualization(t) },
 		Providers: testAccProviders,
 		Steps: []resource.TestStep{
 			{
@@ -515,7 +513,7 @@ func TestAccInstance_target(t *testing.T) {
 	instanceName := strings.ToLower(petname.Generate(2, "-"))
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:  func() { testAccPreCheck(t) },
+		PreCheck:  func() { testAccPreCheckClustering(t) },
 		Providers: testAccProviders,
 		Steps: []resource.TestStep{
 			{
