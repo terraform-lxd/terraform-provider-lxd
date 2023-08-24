@@ -7,13 +7,15 @@ Use Terraform to manage LXD resources.
 This provider connects to the LXD daemon over local Unix socket or HTTPS.
 
 It makes use of the [LXD client library](https://github.com/canonical/lxd), which
-currently looks in `~/snap/lxd/common/config` (and `~/.config/lxc`) for `client.crt` 
+currently looks in `~/snap/lxd/common/config` (and `~/.config/lxc`) for `client.crt`
 and `client.key` files to authenticate against the LXD daemon.
 
 To generate these files and store them in the LXD client config, follow these
 [steps](https://documentation.ubuntu.com/lxd/en/latest/howto/server_expose/#server-authenticate).
 Alternatively, the LXD Terraform provider can generate them on demand if
 `generate_client_certificates` is set to true.
+
+Minimum required LXD version is **`3.0`**.
 
 ## Resources
 
@@ -85,7 +87,7 @@ The `lxd_remote` block supports:
 
 * `address` - *Optional* - The address of the LXD remote.
 
-* `default` - *Optional* - Whether this should be the default remote. 
+* `default` - *Optional* - Whether this should be the default remote.
 	This remote will then be used when one is not specified in a resource.
 	Valid values are `true` and `false`.
 	If you choose to _not_ set default=true on an `lxd_remote` and do not specify
