@@ -21,6 +21,9 @@ import (
 // A global mutex
 var mutex sync.RWMutex
 
+// supportedLXDVersions defines LXD versions that are supported by the provider.
+const supportedLXDVersions = ">= 3.0.0"
+
 // lxdProvider contains the Provider configuration and initialized remote clients.
 type lxdProvider struct {
 	// terraformLXDConfigMap is a map of LXD remotes
@@ -353,7 +356,13 @@ func providerConfigure(d *schema.ResourceData) (interface{}, error) {
 		if lxdRemote.isDefault {
 			lxdProv.LXDConfig.DefaultRemote = lxdRemote.name
 		}
+	}
 
+	// Ensure that LXD version meets the provider's version constraint.
+	// Currenlty, only the default remote is verified.
+	err = lxdProv.verifyLXDVersion(lxdProv.LXDConfig.DefaultRemote)
+	if err != nil {
+		return nil, err
 	}
 
 	log.Printf("[DEBUG] LXD Provider: %#v", &lxdProv)
@@ -649,6 +658,32 @@ func (p *lxdProvider) getLXDClient(remoteName string) (lxd.Server, bool) {
 
 	lxdClient, ok := p.lxdClientMap[remoteName]
 	return lxdClient, ok
+}
+
+// verifyLXDVersion verifies whether the version of target LXD server matches the
+// provider's required version contraint.
+func (p *lxdProvider) verifyLXDVersion(remoteName string) error {
+	client, err := p.GetInstanceServer(remoteName)
+	if err != nil {
+		return err
+	}
+
+	server, _, err := client.GetServer()
+	if err != nil {
+		return err
+	}
+
+	serverVersion := server.Environment.ServerVersion
+	ok, err := CheckVersion(serverVersion, supportedLXDVersions)
+	if err != nil {
+		return err
+	}
+
+	if !ok {
+		return fmt.Errorf("LXD server %q with version %q does not meet the required version constraint: %q", remoteName, serverVersion, supportedLXDVersions)
+	}
+
+	return nil
 }
 
 // getLXDServerConnectionInfo returns an LXD server's connection info in a
