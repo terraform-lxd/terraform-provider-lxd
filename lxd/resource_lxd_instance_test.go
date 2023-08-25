@@ -507,8 +507,6 @@ func TestAccInstance_isStopped(t *testing.T) {
 }
 
 func TestAccInstance_target(t *testing.T) {
-	t.Skip("Test environment does not support clustering yet")
-
 	var instance api.Instance
 	instanceName := strings.ToLower(petname.Generate(2, "-"))
 

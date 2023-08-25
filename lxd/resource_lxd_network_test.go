@@ -129,12 +129,10 @@ func TestAccNetwork_typeMacvlan(t *testing.T) {
 }
 
 func TestAccNetwork_target(t *testing.T) {
-	t.Skip("Test environment does not support clustering yet")
-
 	var network api.Network
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:  func() { testAccPreCheck(t) },
+		PreCheck:  func() { testAccPreCheckClustering(t) },
 		Providers: testAccProviders,
 		Steps: []resource.TestStep{
 			{

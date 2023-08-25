@@ -33,8 +33,6 @@ func TestAccStoragePool_basic(t *testing.T) {
 }
 
 func TestAccStoragePool_target(t *testing.T) {
-	t.Skip("Test environment does not support clustering yet")
-
 	var pool api.StoragePool
 	poolName := strings.ToLower(petname.Generate(2, "-"))
 
@@ -44,7 +42,7 @@ func TestAccStoragePool_target(t *testing.T) {
 	source := "/mnt"
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:  func() { testAccPreCheck(t) },
+		PreCheck:  func() { testAccPreCheckClustering(t) },
 		Providers: testAccProviders,
 		Steps: []resource.TestStep{
 			{
