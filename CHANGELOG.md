@@ -1,3 +1,31 @@
+## 1.10.2 (August 24, 2023)
+
+### New Features 🎉
+* Add lxd_instance/lxd_instance_file and deprecate lxd_container/lxd_container_file by @MusicDin in https://github.com/terraform-lxd/terraform-provider-lxd/pull/306
+* cached_image: add virtual-machine image alias support by @adamcstephens in https://github.com/terraform-lxd/terraform-provider-lxd/pull/325
+* Search for certificates in snap's config directory by @MusicDin in https://github.com/terraform-lxd/terraform-provider-lxd/pull/324
+* Use unix as default remote scheme instead of https by @MusicDin in https://github.com/terraform-lxd/terraform-provider-lxd/pull/337
+### Bug Fixes 🐝
+* Fix not found error checks by @MusicDin in https://github.com/terraform-lxd/terraform-provider-lxd/pull/327
+* lxd_volume: fix not found error check by @adamcstephens in https://github.com/terraform-lxd/terraform-provider-lxd/pull/331
+### Maintenance and Chores 🛠
+* Update dependencies and lxd client rename by @adamcstephens in https://github.com/terraform-lxd/terraform-provider-lxd/pull/317
+* fix broken links and update docs for lxd_instance by @adamcstephens in https://github.com/terraform-lxd/terraform-provider-lxd/pull/316
+* README: explain how to use the provider built from sources by @simondeziel in https://github.com/terraform-lxd/terraform-provider-lxd/pull/323
+* Update links to clustering docs by @simondeziel in https://github.com/terraform-lxd/terraform-provider-lxd/pull/329
+* Update actions, go modules, and enable dependabot by @adamcstephens in https://github.com/terraform-lxd/terraform-provider-lxd/pull/314
+* update readme and make for testing by @adamcstephens in https://github.com/terraform-lxd/terraform-provider-lxd/pull/332
+* Bump the hashicorp group with 1 update by @dependabot in https://github.com/terraform-lxd/terraform-provider-lxd/pull/330
+* Update Go and Ubuntu CI targets by @simondeziel in https://github.com/terraform-lxd/terraform-provider-lxd/pull/334
+* Add acceptance test prechecks  by @MusicDin in https://github.com/terraform-lxd/terraform-provider-lxd/pull/335
+* Add LXD version constraint by @MusicDin in https://github.com/terraform-lxd/terraform-provider-lxd/pull/338
+* Use test precheck to detect if LXD is in clustered mode by @MusicDin in https://github.com/terraform-lxd/terraform-provider-lxd/pull/339
+
+### New Contributors
+* @simondeziel made their first contribution in https://github.com/terraform-lxd/terraform-provider-lxd/pull/323
+
+**Full Changelog**: https://github.com/terraform-lxd/terraform-provider-lxd/compare/v1.10.1...v1.10.2
+
 ## 1.10.1 (July 13, 2023)
 
 IMPROVEMENTS
