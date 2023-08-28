@@ -437,7 +437,6 @@ func (p *lxdProvider) createClient(remoteName string) error {
 			if err := authenticateToLXDServer(rclient, password); err != nil {
 				return err
 			}
-
 		}
 	}
 
