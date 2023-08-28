@@ -359,7 +359,7 @@ func providerConfigure(d *schema.ResourceData) (interface{}, error) {
 	}
 
 	// Ensure that LXD version meets the provider's version constraint.
-	// Currenlty, only the default remote is verified.
+	// Currently, only the default remote is verified.
 	err = lxdProv.verifyLXDVersion(lxdProv.LXDConfig.DefaultRemote)
 	if err != nil {
 		return nil, err
