@@ -4,9 +4,8 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
-
 	lxd "github.com/canonical/lxd/client"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
 func resourceLxdVolumeContainerAttach() *schema.Resource {

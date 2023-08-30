@@ -2,14 +2,12 @@ package lxd
 
 import (
 	"fmt"
-	"strings"
 	"testing"
 
+	"github.com/canonical/lxd/shared/api"
 	petname "github.com/dustinkirkland/golang-petname"
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
 	"github.com/hashicorp/terraform-plugin-testing/terraform"
-
-	"github.com/canonical/lxd/shared/api"
 )
 
 func TestAccNetwork_basic(t *testing.T) {
@@ -54,8 +52,8 @@ func TestAccNetwork_attach(t *testing.T) {
 	var network api.Network
 	var profile api.Profile
 	var container api.Container
-	profileName := strings.ToLower(petname.Generate(2, "-"))
-	containerName := strings.ToLower(petname.Generate(2, "-"))
+	profileName := petname.Generate(2, "-")
+	containerName := petname.Generate(2, "-")
 
 	device := map[string]string{
 		"type":    "nic",
@@ -84,7 +82,7 @@ func TestAccNetwork_attach(t *testing.T) {
 
 func TestAccNetwork_updateConfig(t *testing.T) {
 	var network api.Network
-	containerName := strings.ToLower(petname.Generate(2, "-"))
+	containerName := petname.Generate(2, "-")
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:  func() { testAccPreCheck(t) },
@@ -153,7 +151,7 @@ func TestAccNetwork_target(t *testing.T) {
 func TestAccNetwork_project(t *testing.T) {
 	var network api.Network
 	var project api.Project
-	projectName := strings.ToLower(petname.Name())
+	projectName := petname.Name()
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:  func() { testAccPreCheck(t) },
@@ -246,7 +244,7 @@ func testAccNetworkConfig(network *api.Network, k, v string) resource.TestCheckF
 }
 
 func testAccNetwork_basic() string {
-	return fmt.Sprintf(`
+	return `
 resource "lxd_network" "eth1" {
   name = "eth1"
 
@@ -257,11 +255,11 @@ resource "lxd_network" "eth1" {
     "ipv6.nat" = "true"
   }
 }
-`)
+`
 }
 
 func testAccNetwork_desc() string {
-	return fmt.Sprintf(`
+	return `
 resource "lxd_network" "eth1" {
   name        = "eth1"
   description = "descriptive"
@@ -273,7 +271,7 @@ resource "lxd_network" "eth1" {
     "ipv6.nat" = "true"
   }
 }
-`)
+`
 }
 
 func testAccNetwork_attach(profileName, containerName string) string {
@@ -375,7 +373,7 @@ resource "lxd_instance" "c1" {
 }
 
 func testAccNetwork_typeMacvlan() string {
-	return fmt.Sprintf(`
+	return `
 resource "lxd_network" "eth1" {
   name = "eth1"
   type = "macvlan"
@@ -384,11 +382,11 @@ resource "lxd_network" "eth1" {
     "parent" = "lxdbr0"
   }
 }
-`)
+`
 }
 
 func testAccNetwork_target() string {
-	return fmt.Sprintf(`
+	return `
 resource "lxd_network" "cluster_network_node1" {
   name = "cluster_network"
   target = "node1"
@@ -422,7 +420,7 @@ resource "lxd_network" "cluster_network" {
     "ipv6.nat" = "true"
   }
 }
-`)
+`
 }
 
 func testAccNetwork_project(project string) string {

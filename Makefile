@@ -6,7 +6,7 @@ default: build
 
 test:
 	go get -d -t ./...
-	go test -parallel 4 -race -timeout 60m -v ./lxd
+	go test -parallel $$(nproc) -race -timeout 60m -v ./lxd
 
 testacc:
 	TF_LOG=$(TF_LOG) TF_ACC=1 go test -parallel 4 -v -race $(TESTARGS) -timeout 60m ./lxd
@@ -44,6 +44,21 @@ fmtcheck:
 		echo "$$gofmt_files"; \
 		echo "You can use the command: \`make fmt\` to reformat code."; \
 		exit 1; \
+	fi
+
+.PHONY: static-analysis
+static-analysis:
+	@if command -v golangci-lint > /dev/null; then \
+		echo "==> Running golangci-lint"; \
+		golangci-lint run --timeout 5m; \
+	else \
+		echo "Missing \"golangci-lint\" command, not linting .go" >&2; \
+	fi
+	@if command -v terraform > /dev/null; then \
+		echo "==> Running terraform fmt"; \
+		terraform fmt -recursive -check -diff; \
+	else \
+		echo "Missing \"terraform\" command, not checking .tf format" >&2; \
 	fi
 
 .PHONY: build test testacc dev vet fmt fmtcheck targets

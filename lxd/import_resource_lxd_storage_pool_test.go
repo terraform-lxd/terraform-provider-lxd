@@ -1,7 +1,6 @@
 package lxd
 
 import (
-	"strings"
 	"testing"
 
 	petname "github.com/dustinkirkland/golang-petname"
@@ -9,7 +8,7 @@ import (
 )
 
 func TestAccLxdStoragePool_importBasic(t *testing.T) {
-	poolName := strings.ToLower(petname.Generate(2, "-"))
+	poolName := petname.Generate(2, "-")
 	resourceName := "lxd_storage_pool.storage_pool1"
 	source := t.TempDir()
 

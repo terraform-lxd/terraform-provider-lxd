@@ -3,7 +3,6 @@ package lxd
 import (
 	"fmt"
 	"log"
-
 	"strings"
 
 	"github.com/canonical/lxd/shared/api"

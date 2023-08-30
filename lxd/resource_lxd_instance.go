@@ -6,11 +6,10 @@ import (
 	"strings"
 	"time"
 
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/retry"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
-
 	lxd "github.com/canonical/lxd/client"
 	"github.com/canonical/lxd/shared/api"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/retry"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
 var instanceUpdateTimeout = int(time.Duration(time.Second * 300).Seconds())
@@ -861,7 +860,7 @@ func resourceLxdInstanceWaitForNetwork(server lxd.InstanceServer, name string) r
 	}
 }
 
-// Suppress Diff on empty name
+// Suppress Diff on empty name.
 func suppressImageDifferences(k, old, new string, d *schema.ResourceData) bool {
 	log.Printf("[DEBUG] comparing old %#v and new %#v :: id %s status %#v", old, new, d.Id(), d.Get("Status"))
 	if old == "" && d.Id() != "" {

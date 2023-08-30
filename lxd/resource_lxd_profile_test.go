@@ -3,20 +3,17 @@ package lxd
 import (
 	"fmt"
 	"reflect"
-	"strings"
 	"testing"
 
-	"github.com/dustinkirkland/golang-petname"
-
+	"github.com/canonical/lxd/shared/api"
+	petname "github.com/dustinkirkland/golang-petname"
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
 	"github.com/hashicorp/terraform-plugin-testing/terraform"
-
-	"github.com/canonical/lxd/shared/api"
 )
 
 func TestAccProfile_basic(t *testing.T) {
 	var profile api.Profile
-	profileName := strings.ToLower(petname.Generate(2, "-"))
+	profileName := petname.Generate(2, "-")
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:  func() { testAccPreCheck(t) },
@@ -35,7 +32,7 @@ func TestAccProfile_basic(t *testing.T) {
 
 func TestAccProfile_config(t *testing.T) {
 	var profile api.Profile
-	profileName := strings.ToLower(petname.Generate(2, "-"))
+	profileName := petname.Generate(2, "-")
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:  func() { testAccPreCheck(t) },
@@ -56,7 +53,7 @@ func TestAccProfile_config(t *testing.T) {
 
 func TestAccProfile_device(t *testing.T) {
 	var profile api.Profile
-	profileName := strings.ToLower(petname.Generate(2, "-"))
+	profileName := petname.Generate(2, "-")
 
 	device1 := map[string]string{
 		"type":   "disk",
@@ -97,7 +94,7 @@ func TestAccProfile_device(t *testing.T) {
 
 func TestAccProfile_addDevice(t *testing.T) {
 	var profile api.Profile
-	profileName := strings.ToLower(petname.Generate(2, "-"))
+	profileName := petname.Generate(2, "-")
 
 	device1 := map[string]string{
 		"type":   "disk",
@@ -147,7 +144,7 @@ func TestAccProfile_addDevice(t *testing.T) {
 
 func TestAccProfile_removeDevice(t *testing.T) {
 	var profile api.Profile
-	profileName := strings.ToLower(petname.Generate(2, "-"))
+	profileName := petname.Generate(2, "-")
 
 	device := map[string]string{
 		"type":   "disk",
@@ -183,8 +180,8 @@ func TestAccProfile_removeDevice(t *testing.T) {
 func TestAccProfile_containerConfig(t *testing.T) {
 	var profile api.Profile
 	var container api.Container
-	profileName := strings.ToLower(petname.Generate(2, "-"))
-	containerName := strings.ToLower(petname.Generate(2, "-"))
+	profileName := petname.Generate(2, "-")
+	containerName := petname.Generate(2, "-")
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:  func() { testAccPreCheck(t) },
@@ -209,8 +206,8 @@ func TestAccProfile_containerConfig(t *testing.T) {
 func TestAccProfile_containerDevice(t *testing.T) {
 	var profile api.Profile
 	var container api.Container
-	profileName := strings.ToLower(petname.Generate(2, "-"))
-	containerName := strings.ToLower(petname.Generate(2, "-"))
+	profileName := petname.Generate(2, "-")
+	containerName := petname.Generate(2, "-")
 
 	device := map[string]string{
 		"type":   "disk",
@@ -243,8 +240,8 @@ func TestAccProfile_containerDevice_2(t *testing.T) {
 
 	var profile api.Profile
 	var container api.Container
-	profileName := strings.ToLower(petname.Generate(2, "-"))
-	containerName := strings.ToLower(petname.Generate(2, "-"))
+	profileName := petname.Generate(2, "-")
+	containerName := petname.Generate(2, "-")
 
 	device := map[string]string{
 		"type":    "nic",
@@ -275,8 +272,8 @@ func TestAccProfile_containerDevice_2(t *testing.T) {
 func TestAccProfile_project(t *testing.T) {
 	var profile api.Profile
 	var project api.Project
-	profileName := strings.ToLower(petname.Generate(2, "-"))
-	projectName := strings.ToLower(petname.Name())
+	profileName := petname.Generate(2, "-")
+	projectName := petname.Name()
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:  func() { testAccPreCheck(t) },

@@ -3,7 +3,6 @@ package lxd
 import (
 	"fmt"
 	"log"
-
 	"strings"
 
 	lxd "github.com/canonical/lxd/client"
@@ -191,10 +190,6 @@ func resourceLxdCachedImageCreate(d *schema.ResourceData, meta interface{}) erro
 	d.Set("copied_aliases", copied)
 
 	return resourceLxdCachedImageRead(d, meta)
-}
-
-func resourceLxdCachedImageCopyProgressHandler(prog string) {
-	log.Println("[DEBUG] - image copy progress: ", prog)
 }
 
 func resourceLxdCachedImageUpdate(d *schema.ResourceData, meta interface{}) error {

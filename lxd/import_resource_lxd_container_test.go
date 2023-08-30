@@ -1,15 +1,14 @@
 package lxd
 
 import (
-	"strings"
 	"testing"
 
-	"github.com/dustinkirkland/golang-petname"
+	petname "github.com/dustinkirkland/golang-petname"
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
 )
 
 func TestAccContainer_importBasic(t *testing.T) {
-	containerName := strings.ToLower(petname.Generate(2, "-"))
+	containerName := petname.Generate(2, "-")
 	resourceName := "lxd_container.container1"
 
 	resource.Test(t, resource.TestCase{
@@ -35,7 +34,7 @@ func TestAccContainer_importBasic(t *testing.T) {
 }
 
 func TestAccContainer_importConfig(t *testing.T) {
-	containerName := strings.ToLower(petname.Generate(2, "-"))
+	containerName := petname.Generate(2, "-")
 	resourceName := "lxd_container.container1"
 
 	resource.Test(t, resource.TestCase{

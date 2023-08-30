@@ -88,7 +88,6 @@ func resourceLxdSnapshotCreate(d *schema.ResourceData, meta interface{}) error {
 	// add a retry loop for creating snapshots
 	var i int
 	for i = 0; i < 5; i++ {
-
 		op, err := server.CreateInstanceSnapshot(ctrName, snapPost)
 		if err != nil {
 			return err

@@ -3,16 +3,14 @@ package lxd
 import (
 	"fmt"
 	"regexp"
+	"strconv"
 	"strings"
 	"testing"
 
+	"github.com/canonical/lxd/shared/api"
 	petname "github.com/dustinkirkland/golang-petname"
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
 	"github.com/hashicorp/terraform-plugin-testing/terraform"
-
-	"strconv"
-
-	"github.com/canonical/lxd/shared/api"
 )
 
 func TestAccCachedImage_basic(t *testing.T) {
@@ -54,8 +52,8 @@ func TestAccCachedImage_basicVM(t *testing.T) {
 
 func TestAccCachedImage_alias(t *testing.T) {
 	var img api.Image
-	alias1 := strings.ToLower(petname.Generate(2, "-"))
-	alias2 := strings.ToLower(petname.Generate(2, "-"))
+	alias1 := petname.Generate(2, "-")
+	alias2 := petname.Generate(2, "-")
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:  func() { testAccPreCheck(t) },
@@ -76,8 +74,8 @@ func TestAccCachedImage_alias(t *testing.T) {
 
 func TestAccCachedImage_copiedAlias(t *testing.T) {
 	var img api.Image
-	alias1 := strings.ToLower(petname.Generate(2, "-"))
-	alias2 := strings.ToLower(petname.Generate(2, "-"))
+	alias1 := petname.Generate(2, "-")
+	alias2 := petname.Generate(2, "-")
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:  func() { testAccPreCheck(t) },
@@ -118,7 +116,7 @@ func TestAccCachedImage_aliasCollision(t *testing.T) {
 
 func TestAccCachedImage_aliasAlreadyExists(t *testing.T) {
 	var img api.Image
-	alias := strings.ToLower(petname.Generate(2, "-"))
+	alias := petname.Generate(2, "-")
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:  func() { testAccPreCheck(t) },
@@ -147,8 +145,8 @@ func TestAccCachedImage_aliasAlreadyExists(t *testing.T) {
 
 func TestAccCachedImage_addRemoveAlias(t *testing.T) {
 	var img api.Image
-	alias1 := strings.ToLower(petname.Generate(2, "-"))
-	alias2 := strings.ToLower(petname.Generate(2, "-"))
+	alias1 := petname.Generate(2, "-")
+	alias2 := petname.Generate(2, "-")
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:  func() { testAccPreCheck(t) },
@@ -186,7 +184,7 @@ func TestAccCachedImage_addRemoveAlias(t *testing.T) {
 func TestAccCachedImage_project(t *testing.T) {
 	var img api.Image
 	var project api.Project
-	projectName := strings.ToLower(petname.Name())
+	projectName := petname.Name()
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:  func() { testAccPreCheck(t) },
@@ -304,7 +302,6 @@ func resourceAccCachedImageCheckAttributes(n string, img *api.Image) resource.Te
 		}
 
 		return nil
-
 	}
 }
 
@@ -319,18 +316,18 @@ func testAccCachedImageIsVM(img *api.Image) resource.TestCheckFunc {
 }
 
 func testAccCachedImage_basic() string {
-	return fmt.Sprintf(`
+	return `
 resource "lxd_cached_image" "img1" {
   source_remote = "images"
   source_image = "alpine/3.16"
 
   copy_aliases = true
 }
-	`)
+	`
 }
 
 func testAccCachedImage_basicVM() string {
-	return fmt.Sprintf(`
+	return `
 resource "lxd_cached_image" "img1vm" {
   source_remote = "images"
   source_image = "alpine/3.16"
@@ -338,7 +335,7 @@ resource "lxd_cached_image" "img1vm" {
 
   copy_aliases = true
 }
-	`)
+	`
 }
 
 func testAccCachedImage_aliases(aliases ...string) string {
@@ -398,7 +395,7 @@ resource "lxd_cached_image" "img3" {
 }
 
 func testAccCachedImage_aliasCollision() string {
-	return fmt.Sprintf(`
+	return `
 resource "lxd_cached_image" "img4" {
   source_remote = "images"
   source_image = "alpine/3.16"
@@ -406,7 +403,7 @@ resource "lxd_cached_image" "img4" {
   aliases = ["alpine/3.16/amd64"]
   copy_aliases = true
 }
-	`)
+	`
 }
 
 func testAccCachedImage_project(project string) string {

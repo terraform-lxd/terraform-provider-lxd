@@ -2,19 +2,17 @@ package lxd
 
 import (
 	"fmt"
-	"strings"
 	"testing"
 
+	"github.com/canonical/lxd/shared/api"
 	petname "github.com/dustinkirkland/golang-petname"
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
 	"github.com/hashicorp/terraform-plugin-testing/terraform"
-
-	"github.com/canonical/lxd/shared/api"
 )
 
 func TestAccStoragePool_basic(t *testing.T) {
 	var pool api.StoragePool
-	poolName := strings.ToLower(petname.Generate(2, "-"))
+	poolName := petname.Generate(2, "-")
 	source := t.TempDir()
 
 	resource.Test(t, resource.TestCase{
@@ -34,7 +32,7 @@ func TestAccStoragePool_basic(t *testing.T) {
 
 func TestAccStoragePool_target(t *testing.T) {
 	var pool api.StoragePool
-	poolName := strings.ToLower(petname.Generate(2, "-"))
+	poolName := petname.Generate(2, "-")
 
 	// t.TempDir cannot be used here as the temp directory
 	// is only created on the node running the test - not any
@@ -63,8 +61,8 @@ func TestAccStoragePool_project(t *testing.T) {
 	var project api.Project
 
 	source := t.TempDir()
-	projectName := strings.ToLower(petname.Name())
-	poolName := strings.ToLower(petname.Generate(2, "-"))
+	projectName := petname.Name()
+	poolName := petname.Generate(2, "-")
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:  func() { testAccPreCheck(t) },

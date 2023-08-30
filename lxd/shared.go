@@ -14,7 +14,7 @@ import (
 	"github.com/mitchellh/go-homedir"
 )
 
-// Complex resource ID types
+// Complex resource ID types.
 type volumeID struct {
 	pool    string
 	name    string
@@ -80,7 +80,7 @@ func newFileIDFromResourceID(id string) (string, string) {
 	return pieces[0], fmt.Sprintf("/%s", pieces[1])
 }
 
-// Helper functions
+// Helper functions.
 func resourceLxdConfigMap(c interface{}) map[string]string {
 	config := make(map[string]string)
 	if v, ok := c.(map[string]interface{}); ok {
@@ -314,7 +314,7 @@ func instanceDeleteFile(server lxd.InstanceServer, instance string, targetFile s
 	return nil
 }
 
-// recursiveMkdir was copied almost as-is from github.com/canonical/lxd/blob/main/lxc/file.go
+// recursiveMkdir was copied almost as-is from github.com/canonical/lxd/blob/main/lxc/file.go.
 func recursiveMkdir(d lxd.InstanceServer, instance string, p string, mode os.FileMode, uid int64, gid int64) error {
 	/* special case, every instance has a /, we don't need to do anything */
 	if p == "/" {

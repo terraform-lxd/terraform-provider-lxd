@@ -2,11 +2,10 @@ package lxd
 
 import (
 	"context"
+	"fmt"
 	"os"
 	"strings"
 	"testing"
-
-	"fmt"
 
 	lxd "github.com/canonical/lxd/client"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"

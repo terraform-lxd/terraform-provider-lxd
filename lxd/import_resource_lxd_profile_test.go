@@ -1,15 +1,14 @@
 package lxd
 
 import (
-	"strings"
 	"testing"
 
-	"github.com/dustinkirkland/golang-petname"
+	petname "github.com/dustinkirkland/golang-petname"
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
 )
 
 func TestLXDProfile_importBasic(t *testing.T) {
-	profileName := strings.ToLower(petname.Generate(2, "-"))
+	profileName := petname.Generate(2, "-")
 	resourceName := "lxd_profile.profile1"
 
 	resource.Test(t, resource.TestCase{
@@ -30,7 +29,7 @@ func TestLXDProfile_importBasic(t *testing.T) {
 }
 
 func TestLXDProfile_importConfig(t *testing.T) {
-	profileName := strings.ToLower(petname.Generate(2, "-"))
+	profileName := petname.Generate(2, "-")
 	resourceName := "lxd_profile.profile1"
 
 	resource.Test(t, resource.TestCase{
@@ -50,7 +49,7 @@ func TestLXDProfile_importConfig(t *testing.T) {
 }
 
 func TestLXDProfile_importDevice(t *testing.T) {
-	profileName := strings.ToLower(petname.Generate(2, "-"))
+	profileName := petname.Generate(2, "-")
 	resourceName := "lxd_profile.profile1"
 
 	resource.Test(t, resource.TestCase{

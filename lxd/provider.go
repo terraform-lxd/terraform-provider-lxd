@@ -10,15 +10,14 @@ import (
 	"sync"
 	"time"
 
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
-
 	lxd "github.com/canonical/lxd/client"
 	lxd_config "github.com/canonical/lxd/lxc/config"
 	"github.com/canonical/lxd/shared"
 	lxd_api "github.com/canonical/lxd/shared/api"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
-// A global mutex
+// A global mutex.
 var mutex sync.RWMutex
 
 // supportedLXDVersions defines LXD versions that are supported by the provider.
@@ -70,7 +69,7 @@ type terraformLXDConfig struct {
 	bootstrapped bool
 }
 
-// Provider returns a terraform.ResourceProvider
+// Provider returns a terraform.ResourceProvider.
 func Provider() *schema.Provider {
 	// The provider definition
 	return &schema.Provider{
@@ -359,7 +358,7 @@ func providerConfigure(d *schema.ResourceData) (interface{}, error) {
 	}
 
 	// Ensure that LXD version meets the provider's version constraint.
-	// Currenlty, only the default remote is verified.
+	// Currently, only the default remote is verified.
 	err = lxdProv.verifyLXDVersion(lxdProv.LXDConfig.DefaultRemote)
 	if err != nil {
 		return nil, err
@@ -437,7 +436,6 @@ func (p *lxdProvider) createClient(remoteName string) error {
 			if err := authenticateToLXDServer(rclient, password); err != nil {
 				return err
 			}
-
 		}
 	}
 
@@ -492,7 +490,7 @@ func (p *lxdProvider) GetInstanceServer(remoteName string) (lxd.InstanceServer, 
 }
 
 // GetImageServer returns a client for the named image server
-// It returns an error if the named remote is not an ImageServer
+// It returns an error if the named remote is not an ImageServer.
 func (p *lxdProvider) GetImageServer(remoteName string) (lxd.ImageServer, error) {
 	s, err := p.GetServer(remoteName)
 	if err != nil {
@@ -516,7 +514,7 @@ func (p *lxdProvider) GetImageServer(remoteName string) (lxd.ImageServer, error)
 }
 
 // GetServer returns a client for the named remote.
-// The returned client could be for an ImageServer or InstanceServer
+// The returned client could be for an ImageServer or InstanceServer.
 func (p *lxdProvider) GetServer(remoteName string) (lxd.Server, error) {
 	if remoteName == "" {
 		remoteName = p.LXDConfig.DefaultRemote
@@ -736,7 +734,7 @@ func authenticateToLXDServer(client lxd.InstanceServer, password string) error {
 		return fmt.Errorf("Unable to authenticate with remote server: %s", err)
 	}
 
-	srv, _, err = client.GetServer()
+	_, _, err = client.GetServer()
 	if err != nil {
 		return err
 	}
