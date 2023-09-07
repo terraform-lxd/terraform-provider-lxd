@@ -110,8 +110,19 @@ func testAccNetworkZoneRecordConfig(
 
 func testAccNetworkZoneRecord_basic() string {
 	return `
-resource "lxd_network_record" "record" {
+resource "lxd_network_zone" "zone" {
+  name = "custom.example.org"
+  description = "descriptive"
+
+  config = {
+    "dns.nameservers" = "ns.custom.example.org"
+    "peers.ns.address" = "127.0.0.1"
+  }
+}
+
+resource "lxd_network_zone_record" "record" {
   name = "ns"
+  zone = lxd_network_record.zone.id
 
   config = {}
 
@@ -125,14 +136,11 @@ resource "lxd_network_record" "record" {
 
 func testAccNetworkZoneRecord_desc() string {
 	return `
-resource "lxd_network_zone" "zone" {
-  name = "custom.example.org"
+resource "lxd_network_zone_record" "record" {
+  name = "ns"
   description = "descriptive"
 
-  config = {
-    "dns.nameservers" = "ns.custom.example.org"
-    "peers.ns.address" = "127.0.0.1"
-  }
+  config = {}
 }
 `
 }
