@@ -142,6 +142,21 @@ func resourceLxdDevices(d interface{}) map[string]map[string]string {
 	return devices
 }
 
+func resourceLxdNetworkZoneRecordEntries(r interface{}) []api.NetworkZoneRecordEntry {
+	entries := make([]api.NetworkZoneRecordEntry, 0)
+
+	rawEntries := r.([]interface{})
+	for _, v := range rawEntries {
+		entry := api.NetworkZoneRecordEntry{}
+		e := v.(map[string]interface{})
+		entry.Type = e["type"].(string)
+		entry.Value = e["value"].(string)
+		entries = append(entries, entry)
+	}
+
+	return entries
+}
+
 func resourceLxdValidateDeviceType(v interface{}, k string) (ws []string, errors []error) {
 	validTypes := []string{
 		"none", "disk", "nic", "unix-char", "unix-block", "usb", "gpu", "infiniband", "proxy",
