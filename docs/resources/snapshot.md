@@ -22,7 +22,7 @@ resource "lxd_snapshot" "snap1" {
 
 * `stateful` - *Optional* - Set to `true` to create a stateful snapshot,
 	`false` for stateless. Stateful snapshots include runtime state. Defaults to
-	`true`.
+	`false`.
 
 * `project` - *Optional* - Name of the project where the snapshot will be stored.
 
