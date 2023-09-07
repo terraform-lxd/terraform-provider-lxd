@@ -32,6 +32,13 @@ func resourceLxdProject() *schema.Resource {
 				Optional: true,
 			},
 
+			"remote": {
+				Type:     schema.TypeString,
+				ForceNew: true,
+				Optional: true,
+				Default:  "",
+			},
+
 			"target": {
 				Type:       schema.TypeString,
 				Optional:   true,
