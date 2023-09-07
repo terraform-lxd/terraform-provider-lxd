@@ -10,6 +10,7 @@ import (
 	"strings"
 
 	lxd "github.com/canonical/lxd/client"
+	"github.com/canonical/lxd/shared/api"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/mitchellh/go-homedir"
 )
@@ -140,6 +141,21 @@ func resourceLxdDevices(d interface{}) map[string]map[string]string {
 	log.Printf("[DEBUG] LXD Devices: %#v", devices)
 
 	return devices
+}
+
+func resourceLxdNetworkZoneRecordEntries(r interface{}) []api.NetworkZoneRecordEntry {
+	entries := make([]api.NetworkZoneRecordEntry, 0)
+
+	rawEntries := r.([]interface{})
+	for _, v := range rawEntries {
+		entry := api.NetworkZoneRecordEntry{}
+		e := v.(map[string]interface{})
+		entry.Type = e["type"].(string)
+		entry.Value = e["value"].(string)
+		entries = append(entries, entry)
+	}
+
+	return entries
 }
 
 func resourceLxdValidateDeviceType(v interface{}, k string) (ws []string, errors []error) {
