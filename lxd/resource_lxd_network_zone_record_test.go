@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/canonical/lxd/shared/api"
+	petname "github.com/dustinkirkland/golang-petname"
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
 	"github.com/hashicorp/terraform-plugin-testing/terraform"
 )
@@ -12,19 +13,19 @@ import (
 func TestAccNetworkZoneRecord_basic(t *testing.T) {
 	var record api.NetworkZoneRecord
 
+	recordName := petname.Name()
+	zoneName := petname.Generate(3, ".")
+
 	resource.Test(t, resource.TestCase{
 		PreCheck:  func() { testAccPreCheck(t) },
 		Providers: testAccProviders,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccNetworkZoneRecord_basic(),
+				Config: testAccNetworkZoneRecord(zoneName, recordName),
 				Check: resource.ComposeTestCheckFunc(
 					testAccNetworkZoneRecordExists(t, "lxd_network_zone_record.record", &record),
 					resource.TestCheckResourceAttr(
-						"lxd_network_zone_record.record",
-						"name",
-						"ns",
-					),
+						"lxd_network_zone_record.record", "name", recordName),
 				),
 			},
 		},
@@ -34,18 +35,69 @@ func TestAccNetworkZoneRecord_basic(t *testing.T) {
 func TestAccNetworkZoneRecord_description(t *testing.T) {
 	var record api.NetworkZoneRecord
 
+	recordName := petname.Name()
+	zoneName := petname.Generate(3, ".")
+
 	resource.Test(t, resource.TestCase{
 		PreCheck:  func() { testAccPreCheck(t) },
 		Providers: testAccProviders,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccNetworkZoneRecord_desc(),
+				Config: testAccNetworkZoneRecord(zoneName, recordName),
 				Check: resource.ComposeTestCheckFunc(
-					testAccNetworkZoneRecordExists(t, "lxd_network_record.record", &record),
-					resource.TestCheckResourceAttr(
-						"lxd_network_record.record",
+					testAccNetworkZoneRecordExists(t, "lxd_network_zone_record.record", &record),
+					resource.TestCheckResourceAttr("lxd_network_zone_record.record",
 						"description",
 						"descriptive",
+					),
+				),
+			},
+		},
+	})
+}
+
+func TestAccNetworkZoneRecord_entry(t *testing.T) {
+	var record api.NetworkZoneRecord
+
+	recordName := petname.Name()
+	zoneName := petname.Generate(3, ".")
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:  func() { testAccPreCheck(t) },
+		Providers: testAccProviders,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccNetworkZoneRecord(zoneName, recordName),
+				Check: resource.ComposeTestCheckFunc(
+					testAccNetworkZoneRecordExists(t, "lxd_network_zone_record.record", &record),
+					resource.TestCheckTypeSetElemNestedAttrs(
+						"lxd_network_zone_record.record",
+						"entry.*",
+						map[string]string{"type": "CNAME", "value": "another", "ttl": "3600"},
+					),
+				),
+			},
+		},
+	})
+}
+
+func TestAccNetworkZoneRecord_zone(t *testing.T) {
+	var record api.NetworkZoneRecord
+
+	recordName := petname.Name()
+	zoneName := petname.Generate(3, ".")
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:  func() { testAccPreCheck(t) },
+		Providers: testAccProviders,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccNetworkZoneRecord(zoneName, recordName),
+				Check: resource.ComposeTestCheckFunc(
+					testAccNetworkZoneRecordExists(t, "lxd_network_zone_record.record", &record),
+					resource.TestCheckResourceAttr("lxd_network_zone_record.record",
+						"zone",
+						zoneName,
 					),
 				),
 			},
@@ -83,64 +135,29 @@ func testAccNetworkZoneRecordExists(
 	}
 }
 
-func testAccNetworkZoneRecordConfig(
-	record *api.NetworkZoneRecord,
-	k, v string,
-) resource.TestCheckFunc {
-	return func(s *terraform.State) error {
-		if record.Config == nil {
-			return fmt.Errorf("No config")
-		}
-
-		for key, value := range record.Config {
-			if k != key {
-				continue
-			}
-
-			if v == value {
-				return nil
-			}
-
-			return fmt.Errorf("Bad value for %s: %s", k, value)
-		}
-
-		return fmt.Errorf("Config not found: %s", k)
-	}
-}
-
-func testAccNetworkZoneRecord_basic() string {
-	return `
+func testAccNetworkZoneRecord(zoneName, recordName string) string {
+	return fmt.Sprintf(`
 resource "lxd_network_zone" "zone" {
-  name = "custom.example.org"
-  description = "descriptive"
+  name = "%[1]s"
 
   config = {
-    "dns.nameservers" = "ns.custom.example.org"
+    "dns.nameservers" = "ns.%[1]s"
     "peers.ns.address" = "127.0.0.1"
   }
 }
 
 resource "lxd_network_zone_record" "record" {
-  name = "ns"
-  zone = lxd_network_record.zone.id
+  name = "%[2]s"
+  zone = lxd_network_zone.zone.id
+  description = "descriptive"
 
   config = {}
 
   entry {
     type = "CNAME"
     value = "another"
+    ttl = 3600
   }
 }
-`
-}
-
-func testAccNetworkZoneRecord_desc() string {
-	return `
-resource "lxd_network_zone_record" "record" {
-  name = "ns"
-  description = "descriptive"
-
-  config = {}
-}
-`
+`, zoneName, recordName)
 }
