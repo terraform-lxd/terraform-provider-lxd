@@ -152,6 +152,7 @@ func resourceLxdNetworkZoneRecordEntries(r interface{}) []api.NetworkZoneRecordE
 		e := v.(map[string]interface{})
 		entry.Type = e["type"].(string)
 		entry.Value = e["value"].(string)
+		entry.TTL = uint64(e["ttl"].(int))
 		entries = append(entries, entry)
 	}
 

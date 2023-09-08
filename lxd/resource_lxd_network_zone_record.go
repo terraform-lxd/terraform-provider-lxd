@@ -55,11 +55,14 @@ func resourceLxdNetworkZoneRecord() *schema.Resource {
 						"type": {
 							Type:     schema.TypeString,
 							Required: true,
-							// ValidateFunc: resourceLxdValidateDeviceType,
 						},
 						"value": {
 							Type:     schema.TypeString,
 							Required: true,
+						},
+						"ttl": {
+							Type:     schema.TypeInt,
+							Optional: true,
 						},
 					},
 				},
@@ -140,7 +143,17 @@ func resourceLxdNetworkZoneRecordRead(d *schema.ResourceData, meta interface{}) 
 
 	d.Set("config", record.Config)
 	d.Set("description", record.Description)
-	d.Set("entry", record.Entries)
+
+	// Set the entries in the record
+	entries := make([]map[string]interface{}, 0)
+	for _, lxdentry := range record.Entries {
+		entry := make(map[string]interface{})
+		entry["type"] = lxdentry.Type
+		entry["value"] = lxdentry.Value
+		entry["ttl"] = lxdentry.TTL
+		entries = append(entries, entry)
+	}
+	d.Set("entry", entries)
 
 	return nil
 }
