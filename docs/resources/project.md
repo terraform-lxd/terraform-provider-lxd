@@ -31,4 +31,5 @@ resource "lxd_instance" "container" {
 
 * `config` - *Optional* - Map of key/value pairs of [project config settings](https://documentation.ubuntu.com/lxd/en/latest/reference/projects/).
 
-* `target` - *Optional* - Specify a target node in a cluster. 
+* `remote` - *Optional* - The remote in which the resource will be created. If
+    it is not provided, the default provider remote is used.

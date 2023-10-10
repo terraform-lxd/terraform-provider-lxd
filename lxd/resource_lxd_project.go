@@ -32,10 +32,18 @@ func resourceLxdProject() *schema.Resource {
 				Optional: true,
 			},
 
-			"target": {
+			"remote": {
 				Type:     schema.TypeString,
-				Optional: true,
 				ForceNew: true,
+				Optional: true,
+				Default:  "",
+			},
+
+			"target": {
+				Type:       schema.TypeString,
+				Optional:   true,
+				ForceNew:   false,
+				Deprecated: "This attribute is ignored",
 			},
 		},
 	}
@@ -46,11 +54,6 @@ func resourceLxdProjectCreate(d *schema.ResourceData, meta interface{}) error {
 	server, err := p.GetInstanceServer(p.selectRemote(d))
 	if err != nil {
 		return err
-	}
-
-	if v, ok := d.GetOk("target"); ok && v != "" {
-		target := v.(string)
-		server = server.UseTarget(target)
 	}
 
 	name := d.Get("name").(string)
@@ -80,11 +83,6 @@ func resourceLxdProjectRead(d *schema.ResourceData, meta interface{}) error {
 		return err
 	}
 
-	if v, ok := d.GetOk("target"); ok && v != "" {
-		target := v.(string)
-		server = server.UseTarget(target)
-	}
-
 	name := d.Id()
 	server = server.UseProject(name)
 	project, _, err := server.GetProject(name)
@@ -106,11 +104,6 @@ func resourceLxdProjectUpdate(d *schema.ResourceData, meta interface{}) error {
 	server, err := p.GetInstanceServer(p.selectRemote(d))
 	if err != nil {
 		return err
-	}
-
-	if v, ok := d.GetOk("target"); ok && v != "" {
-		target := v.(string)
-		server = server.UseTarget(target)
 	}
 
 	name := d.Id()
@@ -159,11 +152,6 @@ func resourceLxdProjectDelete(d *schema.ResourceData, meta interface{}) (err err
 
 	name := d.Id()
 	server = server.UseProject(name)
-
-	if v, ok := d.GetOk("target"); ok && v != "" {
-		target := v.(string)
-		server = server.UseTarget(target)
-	}
 
 	return server.DeleteProject(name)
 }
