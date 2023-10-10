@@ -1,6 +1,7 @@
 package lxd
 
 import (
+	"fmt"
 	"log"
 
 	"github.com/canonical/lxd/shared/api"
@@ -58,6 +59,14 @@ func resourceLxdNetworkZoneCreate(d *schema.ResourceData, meta interface{}) erro
 		return err
 	}
 
+	netZoneExt := "projects_networks_zones"
+	if !server.HasExtension(netZoneExt) {
+		return fmt.Errorf(
+			"Network zones cannot be used because LXD server does not support %q extension",
+			netZoneExt,
+		)
+	}
+
 	if v, ok := d.GetOk("project"); ok && v != "" {
 		project := v.(string)
 		server = server.UseProject(project)
@@ -90,6 +99,14 @@ func resourceLxdNetworkZoneRead(d *schema.ResourceData, meta interface{}) error 
 	server, err := p.GetInstanceServer(p.selectRemote(d))
 	if err != nil {
 		return err
+	}
+
+	netZoneExt := "projects_networks_zones"
+	if !server.HasExtension(netZoneExt) {
+		return fmt.Errorf(
+			"Network zones cannot be used because LXD server does not support %q extension",
+			netZoneExt,
+		)
 	}
 
 	if v, ok := d.GetOk("project"); ok && v != "" {
