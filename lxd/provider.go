@@ -6,7 +6,6 @@ import (
 	"log"
 	"os"
 	"path"
-	"strings"
 	"sync"
 	"time"
 
@@ -15,6 +14,7 @@ import (
 	"github.com/canonical/lxd/shared"
 	lxd_api "github.com/canonical/lxd/shared/api"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+	"golang.org/x/sys/unix"
 )
 
 // A global mutex.
@@ -521,24 +521,34 @@ func (p *lxdProvider) GetServer(remoteName string) (lxd.Server, error) {
 	}
 
 	// Check and see if a client was already created and cached.
-	if client, ok := p.getLXDClient(remoteName); ok {
+	client, ok := p.getLXDClient(remoteName)
+	if ok {
 		return client, nil
 	}
 
 	// If a client was not already created, create a new one.
-	if v, ok := p.getTerraformLXDConfig(remoteName); ok && !v.bootstrapped {
+	remote, ok := p.getTerraformLXDConfig(remoteName)
+	if ok && !remote.bootstrapped {
 		err := p.createClient(remoteName)
 		if err != nil {
-			return nil, fmt.Errorf("Unable to create client for remote [%s]: %s",
-				remoteName, err)
+			return nil, fmt.Errorf("Unable to create client for remote [%s]: %s", remoteName, err)
 		}
 	}
 
-	var client lxd.Server
+	// If scheme is set to unix, but address (socket path) is not provided
+	// then determine which LXD directory contains a writable unix socket.
+	if (remote.scheme == "" || remote.scheme == "unix") && remote.address == "" {
+		lxdDir, err := determineLxdDir()
+		if err != nil {
+			return nil, err
+		}
+
+		_ = os.Setenv("LXD_DIR", lxdDir)
+	}
+
 	var err error
 
-	remoteConfig := p.getRemoteConfig(remoteName)
-	switch remoteConfig.Protocol {
+	switch p.getRemoteConfig(remoteName).Protocol {
 	case "simplestreams":
 		client, err = p.getLXDImageClient(remoteName)
 	default:
@@ -546,26 +556,7 @@ func (p *lxdProvider) GetServer(remoteName string) (lxd.Server, error) {
 	}
 
 	if err != nil {
-		// If the reported error contained the path /var/lib/lxd/unix.socket,
-		// it's possible that the user did not define any remotes in order to
-		// use the implicit "local" remote which connects via a unix socket.
-		//
-		// When LXD is installed via a snap package, this path no longer works.
-		// Therefore, we try to retry using the laziest method possible:
-		// set the LXD_SOCKET environment variable to the snap path and see if
-		// the connection works again.
-		if strings.Contains(err.Error(), "/var/lib/lxd/unix.socket") {
-			v := os.Getenv("LXD_SOCKET")
-			os.Setenv("LXD_SOCKET", "/var/snap/lxd/common/lxd/unix.socket")
-			defer os.Setenv("LXD_SOCKET", v)
-
-			client, err = p.getLXDInstanceClient(remoteName)
-			if err != nil {
-				return nil, err
-			}
-		} else {
-			return nil, err
-		}
+		return nil, err
 	}
 
 	// Add the client to the clientMap cache.
@@ -765,4 +756,54 @@ func determineDaemonAddr(lxdRemote terraformLXDConfig) (string, error) {
 	}
 
 	return daemonAddr, nil
+}
+
+// determineLxdDir determines which standard LXD directory contains a writable UNIX socket.
+// If environment variable LXD_DIR or LXD_SOCKET is set, the function will return LXD directory
+// based on the value from any of those variables.
+func determineLxdDir() (string, error) {
+	lxdSocket, ok := os.LookupEnv("LXD_SOCKET")
+	if ok {
+		if isSocketWritable(lxdSocket) {
+			return path.Dir(lxdSocket), nil
+		}
+
+		return "", fmt.Errorf("Environment variable LXD_SOCKET points to either a non-existing or non-writable unix socket")
+	}
+
+	lxdDir, ok := os.LookupEnv("LXD_DIR")
+	if ok {
+		socketPath := path.Join(lxdDir, "unix.socket")
+		if isSocketWritable(socketPath) {
+			return lxdDir, nil
+		}
+
+		return "", fmt.Errorf("Environment variable LXD_DIR points to a LXD directory that does not contain a writable unix socket")
+	}
+
+	lxdDirs := []string{
+		"/var/lib/lxd",
+		"/var/snap/lxd/common/lxd",
+	}
+
+	// Iterate over LXD directories and find a writable unix socket.
+	for _, lxdDir := range lxdDirs {
+		socketPath := path.Join(lxdDir, "unix.socket")
+		if isSocketWritable(socketPath) {
+			return lxdDir, nil
+		}
+	}
+
+	return "", fmt.Errorf("LXD socket with write permissions not found. Searched LXD directories: %v", lxdDirs)
+}
+
+// isSocketWritable returns true if user has write permissions for socket on the given path.
+func isSocketWritable(socketPath string) bool {
+	err := unix.Access(socketPath, unix.W_OK)
+	if err != nil {
+		log.Printf("[DEBUG] Unix socket %q: %v", socketPath, err)
+		return false
+	}
+
+	return true
 }
