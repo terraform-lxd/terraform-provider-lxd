@@ -17,10 +17,6 @@ Alternatively, the LXD Terraform provider can generate them on demand if
 
 Minimum required LXD version is **`3.0`**.
 
-## Resources
-
-A list of supported resources can be found [here](resources).
-
 ## Basic Example
 
 This is all that is needed if the LXD remotes have been defined out of band via
