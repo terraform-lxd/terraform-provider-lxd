@@ -537,9 +537,12 @@ func (p *lxdProvider) GetServer(remoteName string) (lxd.Server, error) {
 		}
 	}
 
-	// If scheme is set to unix, but address (socket path) is not provided
-	// then determine which LXD directory contains a writable unix socket.
-	if (remote.scheme == "" || remote.scheme == "unix") && remote.address == "" {
+	remoteConfig := p.getRemoteConfig(remoteName)
+
+	// If remote address is not provided or is only set to the prefix for
+	// Unix sockets (`unix://`) then determine which LXD directory
+	// contains a writable unix socket.
+	if remoteConfig.Addr == "" || remoteConfig.Addr == "unix://" {
 		lxdDir, err := determineLxdDir()
 		if err != nil {
 			return nil, err
@@ -550,7 +553,7 @@ func (p *lxdProvider) GetServer(remoteName string) (lxd.Server, error) {
 
 	var err error
 
-	switch p.getRemoteConfig(remoteName).Protocol {
+	switch remoteConfig.Protocol {
 	case "simplestreams":
 		client, err = p.getLXDImageClient(remoteName)
 	default:
