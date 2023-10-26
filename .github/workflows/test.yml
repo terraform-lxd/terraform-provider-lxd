@@ -45,6 +45,19 @@ jobs:
           sudo lxd init --auto --trust-password="$LXD_PASSWORD" --network-port=8443 --network-address='[::]'
           sudo chmod 777 /var/snap/lxd/common/lxd/unix.socket
 
+      - name: Configure OVN
+        run: |
+          sudo apt-get install --no-install-recommends --yes \
+            ovn-host \
+            ovn-central \
+            bind9-dnsutils \
+            jq
+
+          sudo ovs-vsctl set open_vswitch . \
+            external_ids:ovn-remote=unix:/var/run/ovn/ovnsb_db.sock \
+            external_ids:ovn-encap-type=geneve \
+            external_ids:ovn-encap-ip=127.0.0.1
+
       - name: Install dependencies
         run: |
           curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(go env GOPATH)/bin
