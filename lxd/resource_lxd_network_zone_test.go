@@ -80,11 +80,7 @@ func TestAccNetworkZone_project(t *testing.T) {
 	})
 }
 
-func testAccNetworkZoneExists(
-	t *testing.T,
-	n string,
-	zone *api.NetworkZone,
-) resource.TestCheckFunc {
+func testAccNetworkZoneExists(t *testing.T, n string, zone *api.NetworkZone) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		rs, ok := s.RootModule().Resources[n]
 		if !ok {
@@ -99,6 +95,7 @@ func testAccNetworkZoneExists(
 		if err != nil {
 			return err
 		}
+
 		z, _, err := client.GetNetworkZone(rs.Primary.ID)
 		if err != nil {
 			return err
@@ -110,12 +107,7 @@ func testAccNetworkZoneExists(
 	}
 }
 
-func testAccNetworkZoneExistsInProject(
-	t *testing.T,
-	n string,
-	zone *api.NetworkZone,
-	project string,
-) resource.TestCheckFunc {
+func testAccNetworkZoneExistsInProject(t *testing.T, n string, zone *api.NetworkZone, project string) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		rs, ok := s.RootModule().Resources[n]
 		if !ok {
@@ -130,7 +122,9 @@ func testAccNetworkZoneExistsInProject(
 		if err != nil {
 			return err
 		}
+
 		client = client.UseProject(project)
+
 		z, _, err := client.GetNetworkZone(rs.Primary.ID)
 		if err != nil {
 			return err
@@ -142,25 +136,22 @@ func testAccNetworkZoneExistsInProject(
 	}
 }
 
-func testAccNetworkZoneConfig(zone *api.NetworkZone, k, v string) resource.TestCheckFunc {
+func testAccNetworkZoneConfig(zone *api.NetworkZone, key, value string) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		if zone.Config == nil {
 			return fmt.Errorf("No config")
 		}
 
-		for key, value := range zone.Config {
-			if k != key {
-				continue
-			}
-
-			if v == value {
-				return nil
-			}
-
-			return fmt.Errorf("Bad value for %s: %s", k, value)
+		v, ok := zone.Config[key]
+		if !ok {
+			return fmt.Errorf("Config not found: %s", key)
 		}
 
-		return fmt.Errorf("Config not found: %s", k)
+		if v != value {
+			return fmt.Errorf("Bad value for %s: %s", key, v)
+		}
+
+		return nil
 	}
 }
 

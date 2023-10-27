@@ -1,7 +1,6 @@
 package lxd
 
 import (
-	"fmt"
 	"log"
 
 	"github.com/canonical/lxd/shared/api"
@@ -59,14 +58,6 @@ func resourceLxdNetworkZoneCreate(d *schema.ResourceData, meta interface{}) erro
 		return err
 	}
 
-	netZoneExt := "projects_networks_zones"
-	if !server.HasExtension(netZoneExt) {
-		return fmt.Errorf(
-			"Network zones cannot be used because LXD server does not support %q extension",
-			netZoneExt,
-		)
-	}
-
 	if v, ok := d.GetOk("project"); ok && v != "" {
 		project := v.(string)
 		server = server.UseProject(project)
@@ -77,7 +68,9 @@ func resourceLxdNetworkZoneCreate(d *schema.ResourceData, meta interface{}) erro
 	config := resourceLxdConfigMap(d.Get("config"))
 
 	log.Printf("[DEBUG] Creating network zone %s with config: %#v", name, config)
-	req := api.NetworkZonesPost{Name: name}
+
+	req := api.NetworkZonesPost{}
+	req.Name = name
 	req.Config = config
 	req.Description = desc
 
@@ -99,14 +92,6 @@ func resourceLxdNetworkZoneRead(d *schema.ResourceData, meta interface{}) error 
 	server, err := p.GetInstanceServer(p.selectRemote(d))
 	if err != nil {
 		return err
-	}
-
-	netZoneExt := "projects_networks_zones"
-	if !server.HasExtension(netZoneExt) {
-		return fmt.Errorf(
-			"Network zones cannot be used because LXD server does not support %q extension",
-			netZoneExt,
-		)
 	}
 
 	if v, ok := d.GetOk("project"); ok && v != "" {
@@ -147,6 +132,7 @@ func resourceLxdNetworkZoneUpdate(d *schema.ResourceData, meta interface{}) erro
 	}
 
 	name := d.Id()
+
 	_, etag, err := server.GetNetworkZone(name)
 	if err != nil {
 		return err
@@ -155,10 +141,9 @@ func resourceLxdNetworkZoneUpdate(d *schema.ResourceData, meta interface{}) erro
 	config := resourceLxdConfigMap(d.Get("config"))
 	desc := d.Get("description").(string)
 
-	req := api.NetworkZonePut{
-		Config:      config,
-		Description: desc,
-	}
+	req := api.NetworkZonePut{}
+	req.Config = config
+	req.Description = desc
 
 	err = server.UpdateNetworkZone(name, req, etag)
 	if err != nil {
@@ -190,10 +175,7 @@ func resourceLxdNetworkZoneDelete(d *schema.ResourceData, meta interface{}) (err
 	return err
 }
 
-func resourceLxdNetworkZoneExists(
-	d *schema.ResourceData,
-	meta interface{},
-) (exists bool, err error) {
+func resourceLxdNetworkZoneExists(d *schema.ResourceData, meta interface{}) (exists bool, err error) {
 	p := meta.(*lxdProvider)
 	server, err := p.GetInstanceServer(p.selectRemote(d))
 	if err != nil {
@@ -213,6 +195,7 @@ func resourceLxdNetworkZoneExists(
 	if err != nil && isNotFoundError(err) {
 		err = nil
 	}
+
 	if err == nil && v != nil {
 		exists = true
 	}
@@ -220,13 +203,9 @@ func resourceLxdNetworkZoneExists(
 	return
 }
 
-func resourceLxdNetworkZoneImport(
-	d *schema.ResourceData,
-	meta interface{},
-) ([]*schema.ResourceData, error) {
+func resourceLxdNetworkZoneImport(d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
 	p := meta.(*lxdProvider)
 	remote, name, err := p.LXDConfig.ParseRemote(d.Id())
-
 	if err != nil {
 		return nil, err
 	}
@@ -241,6 +220,7 @@ func resourceLxdNetworkZoneImport(
 	if err != nil {
 		return nil, err
 	}
+
 	if v, ok := d.GetOk("project"); ok && v != "" {
 		project := v.(string)
 		server = server.UseProject(project)

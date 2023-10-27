@@ -105,11 +105,7 @@ func TestAccNetworkZoneRecord_zone(t *testing.T) {
 	})
 }
 
-func testAccNetworkZoneRecordExists(
-	t *testing.T,
-	n string,
-	record *api.NetworkZoneRecord,
-) resource.TestCheckFunc {
+func testAccNetworkZoneRecordExists(t *testing.T, n string, record *api.NetworkZoneRecord) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		rs, ok := s.RootModule().Resources[n]
 		if !ok {
