@@ -781,7 +781,7 @@ func resourceLxdContainerExists(d *schema.ResourceData, meta interface{}) (exist
 		exists = true
 	}
 
-	return exists, nil
+	return
 }
 
 func resourceLxdContainerImport(d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
