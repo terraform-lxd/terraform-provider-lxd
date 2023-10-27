@@ -96,7 +96,9 @@ func resourceLxdNetworkZoneRecordCreate(d *schema.ResourceData, meta interface{}
 	config := resourceLxdConfigMap(d.Get("config"))
 
 	log.Printf("[DEBUG] Creating network zone record %s with config: %#v", name, config)
-	req := api.NetworkZoneRecordsPost{Name: name}
+
+	req := api.NetworkZoneRecordsPost{}
+	req.Name = name
 	req.Config = config
 	req.Entries = entries
 	req.Description = desc
@@ -218,10 +220,7 @@ func resourceLxdNetworkZoneRecordDelete(d *schema.ResourceData, meta interface{}
 	return err
 }
 
-func resourceLxdNetworkZoneRecordExists(
-	d *schema.ResourceData,
-	meta interface{},
-) (exists bool, err error) {
+func resourceLxdNetworkZoneRecordExists(d *schema.ResourceData, meta interface{}) (exists bool, err error) {
 	p := meta.(*lxdProvider)
 	server, err := p.GetInstanceServer(p.selectRemote(d))
 	if err != nil {
@@ -249,19 +248,14 @@ func resourceLxdNetworkZoneRecordExists(
 	return
 }
 
-func resourceLxdNetworkZoneRecordImport(
-	d *schema.ResourceData,
-	meta interface{},
-) ([]*schema.ResourceData, error) {
+func resourceLxdNetworkZoneRecordImport(d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
 	p := meta.(*lxdProvider)
 	remote, name, err := p.LXDConfig.ParseRemote(d.Id())
-
 	if err != nil {
 		return nil, err
 	}
 
 	d.SetId(name)
-	zone := d.Get("zone").(string)
 
 	if p.LXDConfig.DefaultRemote != remote {
 		d.Set("remote", remote)
@@ -271,10 +265,13 @@ func resourceLxdNetworkZoneRecordImport(
 	if err != nil {
 		return nil, err
 	}
+
 	if v, ok := d.GetOk("project"); ok && v != "" {
 		project := v.(string)
 		server = server.UseProject(project)
 	}
+
+	zone := d.Get("zone").(string)
 
 	record, _, err := server.GetNetworkZoneRecord(zone, name)
 	if err != nil {
