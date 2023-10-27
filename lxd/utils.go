@@ -20,3 +20,14 @@ func CheckVersion(versionString string, versionConstraint string) (bool, error) 
 
 	return constraint.Check(ver), nil
 }
+
+// ValueInSlice checks whether a value is present in the given slice.
+func ValueInSlice[T comparable](value T, slice []T) bool {
+	for _, v := range slice {
+		if v == value {
+			return true
+		}
+	}
+
+	return false
+}
