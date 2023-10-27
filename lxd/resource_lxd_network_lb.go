@@ -25,6 +25,12 @@ func resourceLxdNetworkLB() *schema.Resource {
 				Default:  "",
 			},
 
+			"project": {
+				Type:     schema.TypeString,
+				Optional: true,
+				ForceNew: true,
+			},
+
 			"listen_address": {
 				Type:     schema.TypeString,
 				Required: true,
