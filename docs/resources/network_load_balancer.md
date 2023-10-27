@@ -1,0 +1,97 @@
+# lxd_network_load_balancer
+
+LXD load balancer resource forwards ports from external IPs to internal ones within its network,
+distributing traffic among multiple backends.
+
+-> The load balancer resource is exclusively compatible with OVN (Open Virtual Network).
+
+For more information, please refer to [How to configuration network load balancers](https://documentation.ubuntu.com/lxd/en/latest/howto/network_load_balancers/)
+in the official LXD documentation.
+
+## Example Usage
+
+```hcl
+resource "lxd_network" "network" {
+  name = "ovn"
+  type = "ovn"
+
+  config = {
+    ...
+  }
+}
+
+resource "lxd_network_lb" "load_balancer" {
+  network        = lxd_network.network.name
+  description    = "My Load Balancer"
+  listen_address = "10.10.10.200"
+
+  config = {
+    "key" = "value"
+  }
+
+  backend {
+    name           = "instance-1"
+    description    = "Load Balancer Backend"
+    target_address = "10.0.0.10"
+    target_port    = "80"
+  }
+
+  backend {
+    name           = "instance-2"
+    description    = "Load Balancer Backend"
+    target_address = "10.0.0.11"
+    target_port    = "80"
+  }
+
+  port {
+    description    = "Port 8080/tcp"
+    protocol       = "tcp"
+    listen_port    = "8080"
+    target_backend = [
+      "instance-1",
+      "instance-2",
+    ]
+  }
+}
+
+```
+
+## Argument Reference
+
+* `network` - *Required* - Name of the uplink network.
+
+* `listen_address` - *Required* - IP address to listen on. Also, see the [Requirements for listen address](https://documentation.ubuntu.com/lxd/en/latest/howto/network_load_balancers/#requirements-for-listen-addresses) in the official LXD documentation.
+
+* `description` - *Optional* - Description of the network load balancer.
+
+* `config` - *Optional* - Map of key/value pairs (load balancer's currently support only `user.*` keys).
+
+* `backend` - *Optional* - Load balancer's backend definition. See reference below.
+
+* `port` - *Optional* - Load balancer's port definition. See reference below.
+
+The `backend` block supports:
+
+* `name` - *Required* - Name of the load balancer's backend.
+
+* `target_address` - *Required* - IP address to forward to.
+
+* `target_port` - *Optional* - Target port(s) (e.g. `80`, `80,32000-32080`). Default: *`listen_port` of the corresponding `port` block*
+
+* `description` - *Optional* - Description of the load balancer's backend.
+
+The `port` block supports:
+
+* `listen_port` - *Required* - Listen port(s) (e.g. `80`, `80,32000-32080`).
+
+* `target_backend` - *Required* - Backend name(s) to forward to.
+
+* `protocol` - *Optional* - Protocol of the port(s). Can be either `tcp` or `udp`. Default: `tcp`
+
+* `description` - *Optional* - Description of the load balancer's port.
+
+## Attribute Reference
+
+No attributes are exported.
+
+
