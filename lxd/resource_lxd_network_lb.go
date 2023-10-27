@@ -18,6 +18,13 @@ func resourceLxdNetworkLB() *schema.Resource {
 		Exists: resourceLxdNetworkLBExists,
 
 		Schema: map[string]*schema.Schema{
+			"remote": {
+				Type:     schema.TypeString,
+				ForceNew: true,
+				Optional: true,
+				Default:  "",
+			},
+
 			"listen_address": {
 				Type:     schema.TypeString,
 				Required: true,
