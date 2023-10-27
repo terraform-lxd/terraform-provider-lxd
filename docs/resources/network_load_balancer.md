@@ -58,6 +58,9 @@ resource "lxd_network_lb" "load_balancer" {
 
 ## Argument Reference
 
+* `remote` - *Optional* - The remote in which the resource will be created. If
+	it is not provided, the default provider remote is used.
+
 * `network` - *Required* - Name of the uplink network.
 
 * `listen_address` - *Required* - IP address to listen on. Also, see the [Requirements for listen address](https://documentation.ubuntu.com/lxd/en/latest/howto/network_load_balancers/#requirements-for-listen-addresses) in the official LXD documentation.
