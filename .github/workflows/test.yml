@@ -9,13 +9,13 @@ permissions:
 
 name: Test
 jobs:
-  test:
+  acceptance-tests:
     runs-on: ubuntu-22.04
     strategy:
       fail-fast: false
       matrix:
         go-version:
-          - '1.21'
+          - "1.21"
         channel:
           - latest/stable
           - latest/candidate
@@ -65,8 +65,44 @@ jobs:
       - uses: hashicorp/setup-terraform@v2
         with:
           terraform_wrapper: false
+      - run: make test
+
+  build-platforms:
+    runs-on: ubuntu-22.04
+    strategy:
+      fail-fast: false
+      matrix:
+        go-version:
+          - "1.21"
+
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup Go ${{ matrix.go-version }}
+        uses: actions/setup-go@v4
+        with:
+          go-version: ${{ matrix.go-version }}
+
+      - name: Run GoReleaser in build mode to test all release platforms
+        uses: goreleaser/goreleaser-action@v4
+        with:
+          version: latest
+          args: build --snapshot
+
+  check-lint:
+    runs-on: ubuntu-22.04
+    strategy:
+      fail-fast: false
+      matrix:
+        go-version:
+          - "1.21"
+
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup Go ${{ matrix.go-version }}
+        uses: actions/setup-go@v4
+        with:
+          go-version: ${{ matrix.go-version }}
 
       - run: make fmtcheck
       - run: make vet
       - run: make static-analysis
-      - run: make test
