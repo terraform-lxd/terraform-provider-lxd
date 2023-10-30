@@ -1,4 +1,9 @@
-on: [push, pull_request]
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    types: [opened, reopened, synchronize, converted_to_draft, ready_for_review]
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
