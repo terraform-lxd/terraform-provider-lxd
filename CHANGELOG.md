@@ -1,3 +1,29 @@
+## 1.10.3 (October 30, 2023)
+
+### New Features 🎉
+* Add load balancer resource by @MusicDin in https://github.com/terraform-lxd/terraform-provider-lxd/pull/360
+### Maintenance and Chores 🛠
+* build(deps): bump the hashicorp group with 1 update by @dependabot in https://github.com/terraform-lxd/terraform-provider-lxd/pull/341
+* build(deps): bump the hashicorp group with 1 update by @dependabot in https://github.com/terraform-lxd/terraform-provider-lxd/pull/345
+* build(deps): bump the hashicorp group with 1 update by @dependabot in https://github.com/terraform-lxd/terraform-provider-lxd/pull/350
+* build(deps): bump actions/checkout from 3 to 4 by @dependabot in https://github.com/terraform-lxd/terraform-provider-lxd/pull/352
+* build(deps): bump crazy-max/ghaction-import-gpg from 5 to 6 by @dependabot in https://github.com/terraform-lxd/terraform-provider-lxd/pull/351
+* build(deps): bump goreleaser/goreleaser-action from 4 to 5 by @dependabot in https://github.com/terraform-lxd/terraform-provider-lxd/pull/354
+* build(deps): bump golang.org/x/net from 0.13.0 to 0.17.0 by @dependabot in https://github.com/terraform-lxd/terraform-provider-lxd/pull/357
+* build(deps): bump google.golang.org/grpc from 1.57.0 to 1.57.1 by @dependabot in https://github.com/terraform-lxd/terraform-provider-lxd/pull/359
+### Other Changes ❓
+* Static analysis by @simondeziel in https://github.com/terraform-lxd/terraform-provider-lxd/pull/343
+* docs/snapshot: stateful defaults to false by @simondeziel in https://github.com/terraform-lxd/terraform-provider-lxd/pull/347
+* Add `remote` attribute to `lxd_project` and deprecate `target` by @simondeziel in https://github.com/terraform-lxd/terraform-provider-lxd/pull/349
+* docs: Remove resources section by @MusicDin in https://github.com/terraform-lxd/terraform-provider-lxd/pull/356
+* Determine LXD socket before retrieving a client by @MusicDin in https://github.com/terraform-lxd/terraform-provider-lxd/pull/355
+* Add support for network zones by @mandrav in https://github.com/terraform-lxd/terraform-provider-lxd/pull/346
+* Skip determining unix socket if a remote config address is set by @MusicDin in https://github.com/terraform-lxd/terraform-provider-lxd/pull/358
+* Remove extension check from network zones by @MusicDin in https://github.com/terraform-lxd/terraform-provider-lxd/pull/361
+
+## New Contributors
+* @mandrav made their first contribution in https://github.com/terraform-lxd/terraform-provider-lxd/pull/346
+
 ## 1.10.2 (August 24, 2023)
 
 ### New Features 🎉
