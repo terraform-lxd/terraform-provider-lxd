@@ -14,7 +14,6 @@ import (
 	"github.com/canonical/lxd/shared"
 	lxd_api "github.com/canonical/lxd/shared/api"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
-	"golang.org/x/sys/unix"
 )
 
 // A global mutex.
@@ -770,7 +769,7 @@ func determineDaemonAddr(lxdRemote terraformLXDConfig) (string, error) {
 func determineLxdDir() (string, error) {
 	lxdSocket, ok := os.LookupEnv("LXD_SOCKET")
 	if ok {
-		if isSocketWritable(lxdSocket) {
+		if IsSocketWritable(lxdSocket) {
 			return path.Dir(lxdSocket), nil
 		}
 
@@ -780,7 +779,7 @@ func determineLxdDir() (string, error) {
 	lxdDir, ok := os.LookupEnv("LXD_DIR")
 	if ok {
 		socketPath := path.Join(lxdDir, "unix.socket")
-		if isSocketWritable(socketPath) {
+		if IsSocketWritable(socketPath) {
 			return lxdDir, nil
 		}
 
@@ -795,21 +794,10 @@ func determineLxdDir() (string, error) {
 	// Iterate over LXD directories and find a writable unix socket.
 	for _, lxdDir := range lxdDirs {
 		socketPath := path.Join(lxdDir, "unix.socket")
-		if isSocketWritable(socketPath) {
+		if IsSocketWritable(socketPath) {
 			return lxdDir, nil
 		}
 	}
 
 	return "", fmt.Errorf("LXD socket with write permissions not found. Searched LXD directories: %v", lxdDirs)
-}
-
-// isSocketWritable returns true if user has write permissions for socket on the given path.
-func isSocketWritable(socketPath string) bool {
-	err := unix.Access(socketPath, unix.W_OK)
-	if err != nil {
-		log.Printf("[DEBUG] Unix socket %q: %v", socketPath, err)
-		return false
-	}
-
-	return true
 }
