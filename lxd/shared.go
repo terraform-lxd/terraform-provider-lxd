@@ -161,7 +161,7 @@ func resourceLxdNetworkZoneRecordEntries(r interface{}) []api.NetworkZoneRecordE
 
 func resourceLxdValidateDeviceType(v interface{}, k string) (ws []string, errors []error) {
 	validTypes := []string{
-		"none", "disk", "nic", "unix-char", "unix-block", "usb", "gpu", "infiniband", "proxy", "tpm",
+		"none", "disk", "nic", "unix-char", "unix-block", "usb", "gpu", "infiniband", "proxy", "unix-hotplug", "tpm",
 	}
 
 	if v == nil {
