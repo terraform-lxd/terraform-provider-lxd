@@ -60,7 +60,7 @@ The `device` block supports:
 * `name` - *Required* - Name of the device.
 
 * `type` - *Required* - Type of the device Must be one of none, disk, nic,
-	unix-char, unix-block, usb, gpu, infiniband, proxy, unix-hotplug, tpm.
+	unix-char, unix-block, usb, gpu, infiniband, proxy, unix-hotplug, tpm, pci.
 
 * `properties`- *Required* - Map of key/value pairs of
 	[device properties](https://documentation.ubuntu.com/lxd/en/latest/reference/devices/).
