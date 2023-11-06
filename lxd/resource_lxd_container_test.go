@@ -58,7 +58,7 @@ func TestAccContainer_typeContainer(t *testing.T) {
 		Providers: testAccProviders,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccContainer_type(containerName, "container"),
+				Config: testAccContainer_container(containerName),
 				Check: resource.ComposeTestCheckFunc(
 					testAccContainerRunning(t, "lxd_container.container1", &container),
 					resource.TestCheckResourceAttr("lxd_container.container1", "type", "container"),
@@ -77,7 +77,7 @@ func TestAccContainer_typeVirtualMachine(t *testing.T) {
 		Providers: testAccProviders,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccContainer_type(containerName, "virtual-machine"),
+				Config: testAccContainer_virtualmachine(containerName),
 				Check: resource.ComposeTestCheckFunc(
 					testAccContainerRunning(t, "lxd_container.container1", &container),
 					resource.TestCheckResourceAttr("lxd_container.container1", "type", "virtual-machine"),
@@ -833,15 +833,30 @@ resource "lxd_container" "container1" {
 	`, name)
 }
 
-func testAccContainer_type(name string, cType string) string {
+func testAccContainer_container(name string) string {
 	return fmt.Sprintf(`
 resource "lxd_container" "container1" {
   name = "%s"
-  type = "%s"
+  type = "container"
   image = "images:alpine/3.18/amd64"
   profiles = ["default"]
 }
-	`, name, cType)
+	`, name)
+}
+
+func testAccContainer_virtualmachine(name string) string {
+	return fmt.Sprintf(`
+resource "lxd_container" "container1" {
+  name = "%s"
+  type = "virtual-machine"
+  image = "images:alpine/3.18/amd64"
+  # alpine images do not support secureboot
+  config = {
+    "security.secureboot" = false
+  }
+  profiles = ["default"]
+}
+	`, name)
 }
 
 func testAccContainer_config(name string) string {

@@ -49,7 +49,7 @@ func TestAccInstance_basicEphemeral(t *testing.T) {
 	})
 }
 
-func TestAccInstance_typeInstance(t *testing.T) {
+func TestAccInstance_typeContainer(t *testing.T) {
 	var instance api.Instance
 	instanceName := petname.Generate(2, "-")
 
@@ -58,7 +58,7 @@ func TestAccInstance_typeInstance(t *testing.T) {
 		Providers: testAccProviders,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccInstance_type(instanceName, "container"),
+				Config: testAccInstance_container(instanceName),
 				Check: resource.ComposeTestCheckFunc(
 					testAccInstanceRunning(t, "lxd_instance.instance1", &instance),
 					resource.TestCheckResourceAttr("lxd_instance.instance1", "type", "container"),
@@ -77,7 +77,7 @@ func TestAccInstance_typeVirtualMachine(t *testing.T) {
 		Providers: testAccProviders,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccInstance_type(instanceName, "virtual-machine"),
+				Config: testAccInstance_virtualmachine(instanceName),
 				Check: resource.ComposeTestCheckFunc(
 					testAccInstanceRunning(t, "instance.instance1", &instance),
 					resource.TestCheckResourceAttr("lxd_instance.instance1", "type", "virtual-machine"),
@@ -834,15 +834,30 @@ resource "lxd_instance" "instance1" {
 	`, name)
 }
 
-func testAccInstance_type(name string, cType string) string {
+func testAccInstance_container(name string) string {
 	return fmt.Sprintf(`
 resource "lxd_instance" "instance1" {
   name = "%s"
-  type = "%s"
+  type = "container"
   image = "images:alpine/3.18/amd64"
   profiles = ["default"]
 }
-	`, name, cType)
+	`, name)
+}
+
+func testAccInstance_virtualmachine(name string) string {
+	return fmt.Sprintf(`
+resource "lxd_instance" "instance1" {
+  name = "%s"
+  type = "virtual-machine"
+  image = "images:alpine/3.18/amd64"
+  # alpine images do not support secureboot
+  config = {
+    "security.secureboot" = false
+  }
+  profiles = ["default"]
+}
+	`, name)
 }
 
 func testAccInstance_config(name string) string {
