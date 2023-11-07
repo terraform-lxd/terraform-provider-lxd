@@ -228,7 +228,7 @@ func testAccNetworkLB_withBackendAndPort(backend api.NetworkLoadBalancerBackend,
 	lbRes := fmt.Sprintf(`
 resource "lxd_instance" "instance" {
   name      = "c1"
-  image     = "images:alpine/3.16"
+  image     = "images:alpine/3.18"
   ephemeral = false
 
   device {

@@ -58,7 +58,7 @@ func TestAccContainer_typeContainer(t *testing.T) {
 		Providers: testAccProviders,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccContainer_type(containerName, "container"),
+				Config: testAccContainer_container(containerName),
 				Check: resource.ComposeTestCheckFunc(
 					testAccContainerRunning(t, "lxd_container.container1", &container),
 					resource.TestCheckResourceAttr("lxd_container.container1", "type", "container"),
@@ -77,7 +77,7 @@ func TestAccContainer_typeVirtualMachine(t *testing.T) {
 		Providers: testAccProviders,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccContainer_type(containerName, "virtual-machine"),
+				Config: testAccContainer_virtualmachine(containerName),
 				Check: resource.ComposeTestCheckFunc(
 					testAccContainerRunning(t, "lxd_container.container1", &container),
 					resource.TestCheckResourceAttr("lxd_container.container1", "type", "virtual-machine"),
@@ -816,7 +816,7 @@ func testAccContainer_basic(name string) string {
 	return fmt.Sprintf(`
 resource "lxd_container" "container1" {
   name = "%s"
-  image = "images:alpine/3.16/amd64"
+  image = "images:alpine/3.18/amd64"
   profiles = ["default"]
 }
 	`, name)
@@ -826,29 +826,44 @@ func testAccContainer_basicEphemeral(name string) string {
 	return fmt.Sprintf(`
 resource "lxd_container" "container1" {
   name = "%s"
-  image = "images:alpine/3.16/amd64"
+  image = "images:alpine/3.18/amd64"
   profiles = ["default"]
   ephemeral = true
 }
 	`, name)
 }
 
-func testAccContainer_type(name string, cType string) string {
+func testAccContainer_container(name string) string {
 	return fmt.Sprintf(`
 resource "lxd_container" "container1" {
   name = "%s"
-  type = "%s"
-  image = "images:alpine/3.16/amd64"
+  type = "container"
+  image = "images:alpine/3.18/amd64"
   profiles = ["default"]
 }
-	`, name, cType)
+	`, name)
+}
+
+func testAccContainer_virtualmachine(name string) string {
+	return fmt.Sprintf(`
+resource "lxd_container" "container1" {
+  name = "%s"
+  type = "virtual-machine"
+  image = "images:alpine/3.18/amd64"
+  # alpine images do not support secureboot
+  config = {
+    "security.secureboot" = false
+  }
+  profiles = ["default"]
+}
+	`, name)
 }
 
 func testAccContainer_config(name string) string {
 	return fmt.Sprintf(`
 resource "lxd_container" "container1" {
   name = "%s"
-  image = "images:alpine/3.16/amd64"
+  image = "images:alpine/3.18/amd64"
   profiles = ["default"]
   config = {
     "boot.autostart" = 1
@@ -861,7 +876,7 @@ func testAccContainer_updateConfig1(name string) string {
 	return fmt.Sprintf(`
 resource "lxd_container" "container1" {
   name = "%s"
-  image = "images:alpine/3.16"
+  image = "images:alpine/3.18"
   profiles = ["default"]
   config = {
     "boot.autostart" = 1
@@ -875,7 +890,7 @@ func testAccContainer_updateConfig2(name string) string {
 	return fmt.Sprintf(`
 resource "lxd_container" "container1" {
   name = "%s"
-  image = "images:alpine/3.16"
+  image = "images:alpine/3.18"
   profiles = ["default"]
   config = {
 	"user.dummy" = 5
@@ -893,7 +908,7 @@ resource "lxd_profile" "profile1" {
 
 resource "lxd_container" "container1" {
   name = "%s"
-  image = "images:alpine/3.16"
+  image = "images:alpine/3.18"
   profiles = ["default"]
 }
 	`, profileName, containerName)
@@ -907,7 +922,7 @@ resource "lxd_profile" "profile1" {
 
 resource "lxd_container" "container1" {
   name = "%s"
-  image = "images:alpine/3.16"
+  image = "images:alpine/3.18"
   profiles = ["default", "${lxd_profile.profile1.name}"]
 }
 	`, profileName, containerName)
@@ -921,7 +936,7 @@ resource "lxd_profile" "profile1" {
 
 resource "lxd_container" "container1" {
   name = "%s"
-  image = "images:alpine/3.16"
+  image = "images:alpine/3.18"
   profiles = ["default", "${lxd_profile.profile1.name}"]
 }
 	`, profileName, containerName)
@@ -935,7 +950,7 @@ resource "lxd_profile" "profile1" {
 
 resource "lxd_container" "container1" {
   name = "%s"
-  image = "images:alpine/3.16"
+  image = "images:alpine/3.18"
   profiles = ["default"]
 }
 	`, profileName, containerName)
@@ -945,7 +960,7 @@ func testAccContainer_device_1(name string) string {
 	return fmt.Sprintf(`
 resource "lxd_container" "container1" {
   name = "%s"
-  image = "images:alpine/3.16/amd64"
+  image = "images:alpine/3.18/amd64"
   profiles = ["default"]
 
   device {
@@ -964,7 +979,7 @@ func testAccContainer_device_2(name string) string {
 	return fmt.Sprintf(`
 resource "lxd_container" "container1" {
   name = "%s"
-  image = "images:alpine/3.16/amd64"
+  image = "images:alpine/3.18/amd64"
   profiles = ["default"]
 
   device {
@@ -983,7 +998,7 @@ func testAccContainer_addDevice_1(name string) string {
 	return fmt.Sprintf(`
 resource "lxd_container" "container1" {
   name = "%s"
-  image = "images:alpine/3.16/amd64"
+  image = "images:alpine/3.18/amd64"
   profiles = ["default"]
 }
 	`, name)
@@ -993,7 +1008,7 @@ func testAccContainer_addDevice_2(name string) string {
 	return fmt.Sprintf(`
 resource "lxd_container" "container1" {
   name = "%s"
-  image = "images:alpine/3.16/amd64"
+  image = "images:alpine/3.18/amd64"
   profiles = ["default"]
 
   device {
@@ -1012,7 +1027,7 @@ func testAccContainer_removeDevice_1(name string) string {
 	return fmt.Sprintf(`
 resource "lxd_container" "container1" {
   name = "%s"
-  image = "images:alpine/3.16/amd64"
+  image = "images:alpine/3.18/amd64"
   profiles = ["default"]
 
   device {
@@ -1031,7 +1046,7 @@ func testAccContainer_removeDevice_2(name string) string {
 	return fmt.Sprintf(`
 resource "lxd_container" "container1" {
   name = "%s"
-  image = "images:alpine/3.16/amd64"
+  image = "images:alpine/3.18/amd64"
   profiles = ["default"]
 }
 	`, name)
@@ -1041,7 +1056,7 @@ func testAccContainer_fileUploadContent_1(name string) string {
 	return fmt.Sprintf(`
 resource "lxd_container" "container1" {
   name = "%s"
-  image = "images:alpine/3.16/amd64"
+  image = "images:alpine/3.18/amd64"
   profiles = ["default"]
 
   file {
@@ -1058,7 +1073,7 @@ func testAccContainer_fileUploadContent_2(name string) string {
 	return fmt.Sprintf(`
 resource "lxd_container" "container1" {
   name = "%s"
-  image = "images:alpine/3.16/amd64"
+  image = "images:alpine/3.18/amd64"
   profiles = ["default"]
 
   file {
@@ -1075,7 +1090,7 @@ func testAccContainer_fileUploadSource(name string) string {
 	return fmt.Sprintf(`
 resource "lxd_container" "container1" {
   name = "%s"
-  image = "images:alpine/3.16/amd64"
+  image = "images:alpine/3.18/amd64"
   profiles = ["default"]
 
   file {
@@ -1092,7 +1107,7 @@ func testAccContainer_remoteImage(name string) string {
 	return fmt.Sprintf(`
 resource "lxd_container" "container1" {
   name = "%s"
-  image = "images:alpine/3.16/amd64"
+  image = "images:alpine/3.18/amd64"
   profiles = ["default"]
 }
 	`, name)
@@ -1102,7 +1117,7 @@ func testAccContainer_defaultProfile(name string) string {
 	return fmt.Sprintf(`
 resource "lxd_container" "container1" {
   name = "%s"
-  image = "images:alpine/3.16"
+  image = "images:alpine/3.18"
 }
 	`, name)
 }
@@ -1111,7 +1126,7 @@ func testAccContainer_configLimits_1(name string) string {
 	return fmt.Sprintf(`
 resource "lxd_container" "container1" {
   name = "%s"
-  image = "images:alpine/3.16/amd64"
+  image = "images:alpine/3.18/amd64"
   profiles = ["default"]
 
   limits = {
@@ -1125,7 +1140,7 @@ func testAccContainer_configLimits_2(name string) string {
 	return fmt.Sprintf(`
 resource "lxd_container" "container1" {
   name = "%s"
-  image = "images:alpine/3.16/amd64"
+  image = "images:alpine/3.18/amd64"
   profiles = ["default"]
 
   limits = {
@@ -1150,7 +1165,7 @@ resource "lxd_network" "network_1" {
 
 resource "lxd_container" "container1" {
   name = "%s"
-  image = "images:alpine/3.16/amd64"
+  image = "images:alpine/3.18/amd64"
   profiles = ["default"]
 
   config = {
@@ -1176,7 +1191,7 @@ func testAccContainer_withDevice(name string) string {
 	return fmt.Sprintf(`
 resource "lxd_container" "container1" {
   name = "%s"
-  image = "images:alpine/3.16/amd64"
+  image = "images:alpine/3.18/amd64"
   profiles = ["default"]
 
   device {
@@ -1196,7 +1211,7 @@ func testAccContainer_isStopped(name string) string {
 	return fmt.Sprintf(`
 resource "lxd_container" "container1" {
   name = "%s"
-  image = "images:alpine/3.16/amd64"
+  image = "images:alpine/3.18/amd64"
   profiles = ["default"]
 
   start_container = false
@@ -1208,14 +1223,14 @@ func testAccContainer_target(name string, target string) string {
 	return fmt.Sprintf(`
 resource "lxd_container" "container1" {
   name = "%s-1"
-  image = "images:alpine/3.16/amd64"
+  image = "images:alpine/3.18/amd64"
   profiles = ["default"]
   target = "%s"
 }
 
 resource "lxd_container" "container2" {
   name = "%s-2"
-  image = "images:alpine/3.16/amd64"
+  image = "images:alpine/3.18/amd64"
   profiles = ["default"]
   target = "%s"
 }
@@ -1236,7 +1251,7 @@ resource "lxd_project" "project1" {
 }
 resource "lxd_container" "container1" {
   name = "%s"
-  image = "images:alpine/3.16/amd64"
+  image = "images:alpine/3.18/amd64"
   project = lxd_project.project1.name
 }
 	`, projectName, containerName)
@@ -1256,7 +1271,7 @@ resource "lxd_project" "project1" {
 }
 resource "lxd_container" "container1" {
   name = "%s"
-  image = "images:alpine/3.16/amd64"
+  image = "images:alpine/3.18/amd64"
   project = lxd_project.project1.name
 }
 	`, projectName, containerName)
@@ -1276,7 +1291,7 @@ resource "lxd_project" "project1" {
 }
 resource "lxd_container" "container1" {
   name = "%s"
-  image = "images:alpine/3.16/amd64"
+  image = "images:alpine/3.18/amd64"
 }
 	`, projectName, containerName)
 }

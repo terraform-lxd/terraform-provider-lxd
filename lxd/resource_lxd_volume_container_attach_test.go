@@ -101,7 +101,7 @@ resource "lxd_volume" "volume1" {
 
 resource "lxd_container" "container1" {
   name = "%s"
-  image = "images:alpine/3.16"
+  image = "images:alpine/3.18"
   profiles = ["default"]
 }
 
@@ -131,7 +131,7 @@ resource "lxd_volume" "volume1" {
 
 resource "lxd_container" "container1" {
   name = "%s"
-  image = "images:alpine/3.16"
+  image = "images:alpine/3.18"
   profiles = ["default"]
 }
 

@@ -302,7 +302,7 @@ resource "lxd_profile" "profile1" {
 
 resource "lxd_instance" "container1" {
   name = "%s"
-  image = "images:alpine/3.16"
+  image = "images:alpine/3.18"
   profiles = ["default", "${lxd_profile.profile1.name}"]
 }
 `, profileName, containerName)
@@ -325,7 +325,7 @@ resource "lxd_network" "eth1" {
 # be deleted, but must be updated in-place.
 resource "lxd_instance" "c1" {
   name             = "%s"
-  image            = "images:alpine/3.16"
+  image            = "images:alpine/3.18"
   wait_for_network = false
 
   device {
@@ -357,7 +357,7 @@ resource "lxd_network" "eth1" {
 # be deleted, but must be updated in-place.
 resource "lxd_instance" "c1" {
   name             = "%s"
-  image            = "images:alpine/3.16"
+  image            = "images:alpine/3.18"
   wait_for_network = false
 
   device {

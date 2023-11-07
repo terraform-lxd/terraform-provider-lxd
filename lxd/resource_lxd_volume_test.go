@@ -226,7 +226,7 @@ resource "lxd_volume" "volume1" {
 
 resource "lxd_instance" "container1" {
   name = "%s"
-  image = "images:alpine/3.16/amd64"
+  image = "images:alpine/3.18/amd64"
   profiles = ["default"]
 
   device {

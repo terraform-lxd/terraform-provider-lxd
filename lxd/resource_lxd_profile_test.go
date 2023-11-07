@@ -541,7 +541,7 @@ resource "lxd_profile" "profile1" {
 
 resource "lxd_instance" "container1" {
   name = "%s"
-  image = "images:alpine/3.16"
+  image = "images:alpine/3.18"
   profiles = ["default", "${lxd_profile.profile1.name}"]
 }
 	`, profileName, containerName)
@@ -563,7 +563,7 @@ resource "lxd_profile" "profile1" {
 
 resource "lxd_instance" "container1" {
   name = "%s"
-  image = "images:alpine/3.16"
+  image = "images:alpine/3.18"
   profiles = ["default", "${lxd_profile.profile1.name}"]
 }
 	`, profileName, containerName)
@@ -587,7 +587,7 @@ resource "lxd_profile" "profile1" {
 
 resource "lxd_instance" "container1" {
   name = "%s"
-  image = "images:alpine/3.16"
+  image = "images:alpine/3.18"
   profiles = ["default", "${lxd_profile.profile1.name}"]
 }
 	`, profileName, containerName)
