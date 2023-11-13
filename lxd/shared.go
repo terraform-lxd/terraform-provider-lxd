@@ -256,7 +256,7 @@ func instanceUploadFile(server lxd.InstanceServer, instance string, file File) e
 	uid := int64(file.UID)
 	gid := int64(file.GID)
 	args := lxd.InstanceFileArgs{
-		Mode: int(mode),
+		Mode: uint32(mode),
 		UID:  int64(uid),
 		GID:  int64(gid),
 		Type: "file",
@@ -368,7 +368,7 @@ func recursiveMkdir(d lxd.InstanceServer, instance string, p string, mode os.Fil
 		args := lxd.InstanceFileArgs{
 			UID:  uid,
 			GID:  gid,
-			Mode: int(mode.Perm()),
+			Mode: uint32(mode.Perm()),
 			Type: "directory",
 		}
 
