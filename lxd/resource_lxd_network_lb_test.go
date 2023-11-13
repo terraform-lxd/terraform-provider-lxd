@@ -15,7 +15,7 @@ func TestAccNetworkLB_basic(t *testing.T) {
 	var lb api.NetworkLoadBalancer
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:  func() { testAccPreCheck(t) },
+		PreCheck:  func() { testAccPreCheckAPIExtensions(t, []string{"network_load_balancer"}) },
 		Providers: testAccProviders,
 		Steps: []resource.TestStep{
 			{
@@ -39,7 +39,7 @@ func TestAccNetworkLB_withConfig(t *testing.T) {
 	}
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:  func() { testAccPreCheck(t) },
+		PreCheck:  func() { testAccPreCheckAPIExtensions(t, []string{"network_load_balancer"}) },
 		Providers: testAccProviders,
 		Steps: []resource.TestStep{
 			{
@@ -71,7 +71,7 @@ func TestAccNetworkLB_withBackend(t *testing.T) {
 	}
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:  func() { testAccPreCheck(t) },
+		PreCheck:  func() { testAccPreCheckAPIExtensions(t, []string{"network_load_balancer"}) },
 		Providers: testAccProviders,
 		Steps: []resource.TestStep{
 			{
