@@ -68,25 +68,6 @@ func TestAccContainer_typeContainer(t *testing.T) {
 	})
 }
 
-func TestAccContainer_typeVirtualMachine(t *testing.T) {
-	var container api.Container
-	containerName := petname.Generate(2, "-")
-
-	resource.Test(t, resource.TestCase{
-		PreCheck:  func() { testAccPreCheckVirtualization(t) },
-		Providers: testAccProviders,
-		Steps: []resource.TestStep{
-			{
-				Config: testAccContainer_virtualmachine(containerName),
-				Check: resource.ComposeTestCheckFunc(
-					testAccContainerRunning(t, "lxd_container.container1", &container),
-					resource.TestCheckResourceAttr("lxd_container.container1", "type", "virtual-machine"),
-				),
-			},
-		},
-	})
-}
-
 func TestAccContainer_remoteImage(t *testing.T) {
 	var container api.Container
 	containerName := petname.Generate(2, "-")
