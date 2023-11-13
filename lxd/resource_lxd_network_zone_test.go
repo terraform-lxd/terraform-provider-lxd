@@ -61,7 +61,7 @@ func TestAccNetworkZone_project(t *testing.T) {
 	projectName := petname.Name()
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:  func() { testAccPreCheck(t) },
+		PreCheck:  func() { testAccPreCheckAPIExtensions(t, []string{"projects_networks_zones"}) },
 		Providers: testAccProviders,
 		Steps: []resource.TestStep{
 			{
