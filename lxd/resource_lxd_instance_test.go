@@ -79,7 +79,7 @@ func TestAccInstance_typeVirtualMachine(t *testing.T) {
 			{
 				Config: testAccInstance_virtualmachine(instanceName),
 				Check: resource.ComposeTestCheckFunc(
-					testAccInstanceRunning(t, "instance.instance1", &instance),
+					testAccInstanceRunning(t, "lxd_instance.instance1", &instance),
 					resource.TestCheckResourceAttr("lxd_instance.instance1", "type", "virtual-machine"),
 				),
 			},
