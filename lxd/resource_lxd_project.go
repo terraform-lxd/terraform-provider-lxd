@@ -28,8 +28,10 @@ func resourceLxdProject() *schema.Resource {
 			},
 
 			"config": {
-				Type:     schema.TypeMap,
-				Optional: true,
+				Type:                  schema.TypeMap,
+				Optional:              true,
+				DiffSuppressOnRefresh: true,
+				DiffSuppressFunc:      SuppressComputedConfigDiff(ConfigTypeProject),
 			},
 
 			"remote": {
@@ -113,24 +115,24 @@ func resourceLxdProjectUpdate(d *schema.ResourceData, meta interface{}) error {
 		return err
 	}
 
-	// Copy the current project config into the updatable project struct.
-	newProject := api.ProjectPut{
-		Config:      project.Config,
-		Description: project.Description,
-	}
-
 	var changed bool
+	var newProject api.ProjectPut
 
 	if d.HasChange("description") {
 		changed = true
-		_, newDescription := d.GetChange("description")
+		newDescription := d.Get("description")
 		newProject.Description = newDescription.(string)
+	} else {
+		newProject.Description = project.Description
 	}
 
-	if d.HasChange("config") {
+	newConfig := resourceLxdConfigMap(d.Get("config"))
+
+	if HasComputeConfigChanged(ConfigTypeProject, d, project.Config, newConfig) {
 		changed = true
-		_, newConfig := d.GetChange("config")
-		newProject.Config = resourceLxdConfigMap(newConfig)
+		newProject.Config = ComputeConfig(ConfigTypeProject, d, project.Config, newConfig)
+	} else {
+		newProject.Config = project.Config
 	}
 
 	if changed {
