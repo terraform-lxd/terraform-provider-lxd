@@ -11,7 +11,7 @@ import (
 )
 
 func TestAccSnapshot_stateless(t *testing.T) {
-	containerName := petname.Generate(2, "-")
+	instanceName := petname.Generate(2, "-")
 	snapshotName := petname.Generate(2, "-")
 
 	resource.Test(t, resource.TestCase{
@@ -19,7 +19,7 @@ func TestAccSnapshot_stateless(t *testing.T) {
 		Providers: testAccProviders,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccSnapshot_basic(containerName, snapshotName, false),
+				Config: testAccSnapshot_basic(instanceName, snapshotName, false),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("lxd_snapshot.snapshot1", "name", snapshotName),
 				),
@@ -39,7 +39,7 @@ e.g.
 (00.762251) Error (criu/cr-dump.c:1628): Dumping FAILED.
 */
 // func TestAccSnapshot_stateful(t *testing.T) {
-// 	containerName := petname.Generate(2, "-")
+// 	instanceName := petname.Generate(2, "-")
 // 	snapshotName := petname.Generate(2, "-")
 
 // 	resource.Test(t, resource.TestCase{
@@ -47,7 +47,7 @@ e.g.
 // 		Providers: testAccProviders,
 // 		Steps: []resource.TestStep{
 // 			resource.TestStep{
-// 				Config: testAccSnapshot_basic(containerName, snapshotName, true),
+// 				Config: testAccSnapshot_basic(instanceName, snapshotName, true),
 // 				Check: resource.ComposeTestCheckFunc(
 // 					resource.TestCheckResourceAttr("lxd_snapshot.snapshot1", "name", snapshotName),
 // 					resource.TestCheckResourceAttr("lxd_snapshot.snapshot1", "stateful", "true"),
@@ -58,7 +58,7 @@ e.g.
 // }
 
 func TestAccSnapshot_multiple(t *testing.T) {
-	containerName := petname.Generate(2, "-")
+	instanceName := petname.Generate(2, "-")
 	snap1Name := petname.Generate(2, "-")
 	snap2Name := petname.Generate(2, "-")
 
@@ -67,13 +67,13 @@ func TestAccSnapshot_multiple(t *testing.T) {
 		Providers: testAccProviders,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccSnapshot_multiple1(containerName, snap1Name),
+				Config: testAccSnapshot_multiple1(instanceName, snap1Name),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("lxd_snapshot.snapshot1", "name", snap1Name),
 				),
 			},
 			{
-				Config: testAccSnapshot_multiple2(containerName, snap1Name, snap2Name),
+				Config: testAccSnapshot_multiple2(instanceName, snap1Name, snap2Name),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("lxd_snapshot.snapshot1", "name", snap1Name),
 					resource.TestCheckResourceAttr("lxd_snapshot.snapshot2", "name", snap2Name),
@@ -85,10 +85,10 @@ func TestAccSnapshot_multiple(t *testing.T) {
 
 func TestAccSnapshot_project(t *testing.T) {
 	var project api.Project
-	var container api.Container
+	var instance api.Instance
 	var snap api.InstanceSnapshot
 	projectName := petname.Name()
-	containerName := petname.Generate(2, "-")
+	instanceName := petname.Generate(2, "-")
 	snapName := petname.Generate(2, "-")
 
 	resource.Test(t, resource.TestCase{
@@ -96,10 +96,10 @@ func TestAccSnapshot_project(t *testing.T) {
 		Providers: testAccProviders,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccSnapshot_project(projectName, containerName, snapName),
+				Config: testAccSnapshot_project(projectName, instanceName, snapName),
 				Check: resource.ComposeTestCheckFunc(
 					testAccProjectRunning(t, "lxd_project.project1", &project),
-					testAccInstanceRunningInProject(t, "lxd_instance.container1", &container, projectName),
+					testAccInstanceRunningInProject(t, "lxd_instance.instance1", &instance, projectName),
 					testAccSnapshotExistsInProject(t, "lxd_snapshot.snapshot1", &snap, projectName),
 				),
 			},
@@ -199,14 +199,14 @@ func TestSnapshotId_LxdID(t *testing.T) {
 
 func testAccSnapshot_basic(cName, sName string, stateful bool) string {
 	return fmt.Sprintf(`
-resource "lxd_instance" "container1" {
+resource "lxd_instance" "instance1" {
   name = "%s"
   image = "images:alpine/3.18"
   profiles = ["default"]
 }
 
 resource "lxd_snapshot" "snapshot1" {
-  container_name = "${lxd_instance.container1.name}"
+  container_name = "${lxd_instance.instance1.name}"
   name = "%s"
   stateful = "%v"
 }
@@ -215,14 +215,14 @@ resource "lxd_snapshot" "snapshot1" {
 
 func testAccSnapshot_multiple1(cName, sName string) string {
 	return fmt.Sprintf(`
-resource "lxd_instance" "container1" {
+resource "lxd_instance" "instance1" {
   name = "%s"
   image = "images:alpine/3.18"
   profiles = ["default"]
 }
 
 resource "lxd_snapshot" "snapshot1" {
-  container_name = "${lxd_instance.container1.name}"
+  container_name = "${lxd_instance.instance1.name}"
   name = "%s"
   stateful = "false"
 }
@@ -231,26 +231,26 @@ resource "lxd_snapshot" "snapshot1" {
 
 func testAccSnapshot_multiple2(cName, sName1, sName2 string) string {
 	return fmt.Sprintf(`
-resource "lxd_instance" "container1" {
+resource "lxd_instance" "instance1" {
   name = "%s"
   image = "images:alpine/3.18"
   profiles = ["default"]
 }
 
 resource "lxd_snapshot" "snapshot1" {
-  container_name = "${lxd_instance.container1.name}"
+  container_name = "${lxd_instance.instance1.name}"
   name = "%s"
   stateful = "false"
 }
 
 resource "lxd_snapshot" "snapshot2" {
-  container_name = "${lxd_instance.container1.name}"
+  container_name = "${lxd_instance.instance1.name}"
   name = "%s"
   stateful = "false"
 }
 	`, cName, sName1, sName2)
 }
-func testAccSnapshot_project(project, container, snapshot string) string {
+func testAccSnapshot_project(project, instance, snapshot string) string {
 	return fmt.Sprintf(`
 resource "lxd_project" "project1" {
   name        = "%s"
@@ -262,17 +262,17 @@ resource "lxd_project" "project1" {
 	"features.storage.buckets" = false
   }
 }
-resource "lxd_instance" "container1" {
+resource "lxd_instance" "instance1" {
   name = "%s"
   image = "images:alpine/3.18"
   project = lxd_project.project1.name
 }
 
 resource "lxd_snapshot" "snapshot1" {
-  container_name = "${lxd_instance.container1.name}"
+  container_name = "${lxd_instance.instance1.name}"
   name = "%s"
   stateful = "false"
   project = lxd_project.project1.name
 }
-	`, project, container, snapshot)
+	`, project, instance, snapshot)
 }
