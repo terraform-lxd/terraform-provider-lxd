@@ -203,14 +203,6 @@ func testAccPreCheckAPIExtensions(t *testing.T, extensions []string) {
 
 // testAccPreCheckVirtualization skips the test if the LXD server does not support virtualization.
 func testAccPreCheckVirtualization(t *testing.T) {
-	client := getTestLXDInstanceClient(t)
-
-	// Ensure that LXD server has virtual-machines extension.
-	vmExt := "virtual-machines"
-	if !client.HasExtension(vmExt) {
-		t.Skipf("Test %q skipped. Server does not support %q extension.", t.Name(), vmExt)
-	}
-
 	server, _, err := getTestLXDInstanceClient(t).GetServer()
 	if err != nil {
 		t.Fatalf("Failed to retrieve the server: %v", err)
