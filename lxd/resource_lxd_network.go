@@ -52,8 +52,10 @@ func resourceLxdNetwork() *schema.Resource {
 			},
 
 			"config": {
-				Type:     schema.TypeMap,
-				Optional: true,
+				Type:                  schema.TypeMap,
+				Optional:              true,
+				DiffSuppressOnRefresh: true,
+				DiffSuppressFunc:      SuppressComputedConfigDiff(ConfigTypeNetwork),
 			},
 
 			"managed": {
@@ -156,6 +158,9 @@ func resourceLxdNetworkRead(d *schema.ResourceData, meta interface{}) error {
 	// of reconcilling data defined in Terraform versus what LXD
 	// is returning.
 	if v := d.Get("target"); v == "" {
+		// computedKeys := resourceLxdNetworkComputedKeys()
+		// newConfig := resourceLxdConfigMap(d.Get("config"))
+		// d.Set("config", ComputeConfigDiff(network.Config, newConfig, computedKeys))
 		d.Set("config", network.Config)
 	}
 
@@ -184,7 +189,7 @@ func resourceLxdNetworkUpdate(d *schema.ResourceData, meta interface{}) error {
 	}
 
 	name := d.Id()
-	_, etag, err := server.GetNetwork(name)
+	network, etag, err := server.GetNetwork(name)
 	if err != nil {
 		return err
 	}
@@ -193,7 +198,7 @@ func resourceLxdNetworkUpdate(d *schema.ResourceData, meta interface{}) error {
 	desc := d.Get("description").(string)
 
 	req := api.NetworkPut{
-		Config:      config,
+		Config:      ComputeConfig(ConfigTypeNetwork, d, network.Config, config),
 		Description: desc,
 	}
 
