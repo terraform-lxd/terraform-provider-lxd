@@ -177,37 +177,37 @@ func TestAccProfile_removeDevice(t *testing.T) {
 	})
 }
 
-func TestAccProfile_containerConfig(t *testing.T) {
+func TestAccProfile_instanceConfig(t *testing.T) {
 	var profile api.Profile
-	var container api.Container
+	var instance api.Instance
 	profileName := petname.Generate(2, "-")
-	containerName := petname.Generate(2, "-")
+	instanceName := petname.Generate(2, "-")
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:  func() { testAccPreCheck(t) },
 		Providers: testAccProviders,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccProfile_containerConfig(profileName, containerName),
+				Config: testAccProfile_instanceConfig(profileName, instanceName),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("lxd_profile.profile1", "name", profileName),
-					resource.TestCheckResourceAttr("lxd_instance.container1", "name", containerName),
+					resource.TestCheckResourceAttr("lxd_instance.instance1", "name", instanceName),
 					resource.TestCheckResourceAttr("lxd_profile.profile1", "config.limits.cpu", "2"),
 					testAccProfileRunning(t, "lxd_profile.profile1", &profile),
-					testAccInstanceRunning(t, "lxd_instance.container1", &container),
+					testAccInstanceRunning(t, "lxd_instance.instance1", &instance),
 					testAccProfileConfig(&profile, "limits.cpu", "2"),
-					testAccContainerExpandedConfig(&container, "limits.cpu", "2"),
+					testAccInstanceExpandedConfig(&instance, "limits.cpu", "2"),
 				),
 			},
 		},
 	})
 }
 
-func TestAccProfile_containerDevice(t *testing.T) {
+func TestAccProfile_instanceDevice(t *testing.T) {
 	var profile api.Profile
-	var container api.Container
+	var instance api.Instance
 	profileName := petname.Generate(2, "-")
-	containerName := petname.Generate(2, "-")
+	instanceName := petname.Generate(2, "-")
 
 	device := map[string]string{
 		"type":   "disk",
@@ -220,28 +220,28 @@ func TestAccProfile_containerDevice(t *testing.T) {
 		Providers: testAccProviders,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccProfile_containerDevice(profileName, containerName),
+				Config: testAccProfile_instanceDevice(profileName, instanceName),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("lxd_profile.profile1", "name", profileName),
-					resource.TestCheckResourceAttr("lxd_instance.container1", "name", containerName),
+					resource.TestCheckResourceAttr("lxd_instance.instance1", "name", instanceName),
 					resource.TestCheckTypeSetElemNestedAttrs("lxd_profile.profile1", "device.*", map[string]string{"properties.path": "/tmp/shared"}),
 					testAccProfileRunning(t, "lxd_profile.profile1", &profile),
-					testAccInstanceRunning(t, "lxd_instance.container1", &container),
+					testAccInstanceRunning(t, "lxd_instance.instance1", &instance),
 					testAccProfileDevice(&profile, "shared", device),
-					testAccInstanceExpandedDevice(&container, "shared", device),
+					testAccInstanceExpandedDevice(&instance, "shared", device),
 				),
 			},
 		},
 	})
 }
 
-func TestAccProfile_containerDevice_2(t *testing.T) {
+func TestAccProfile_instanceDevice_2(t *testing.T) {
 	t.Skip("Test is failing in CI but passing locally")
 
 	var profile api.Profile
-	var container api.Container
+	var instance api.Instance
 	profileName := petname.Generate(2, "-")
-	containerName := petname.Generate(2, "-")
+	instanceName := petname.Generate(2, "-")
 
 	device := map[string]string{
 		"type":    "nic",
@@ -255,14 +255,14 @@ func TestAccProfile_containerDevice_2(t *testing.T) {
 		Providers: testAccProviders,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccProfile_containerDevice_2(profileName, containerName),
+				Config: testAccProfile_instanceDevice_2(profileName, instanceName),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("lxd_profile.profile1", "name", profileName),
-					resource.TestCheckResourceAttr("lxd_instance.container1", "name", containerName),
+					resource.TestCheckResourceAttr("lxd_instance.instance1", "name", instanceName),
 					testAccProfileRunning(t, "lxd_profile.profile1", &profile),
-					testAccInstanceRunning(t, "lxd_instance.container1", &container),
+					testAccInstanceRunning(t, "lxd_instance.instance1", &instance),
 					testAccProfileDevice(&profile, "foo", device),
-					testAccInstanceExpandedDevice(&container, "foo", device),
+					testAccInstanceExpandedDevice(&instance, "foo", device),
 				),
 			},
 		},
@@ -530,7 +530,7 @@ resource "lxd_profile" "profile1" {
 `, name)
 }
 
-func testAccProfile_containerConfig(profileName, containerName string) string {
+func testAccProfile_instanceConfig(profileName, instanceName string) string {
 	return fmt.Sprintf(`
 resource "lxd_profile" "profile1" {
   name = "%s"
@@ -539,15 +539,15 @@ resource "lxd_profile" "profile1" {
   }
 }
 
-resource "lxd_instance" "container1" {
+resource "lxd_instance" "instance1" {
   name = "%s"
   image = "images:alpine/3.18"
   profiles = ["default", "${lxd_profile.profile1.name}"]
 }
-	`, profileName, containerName)
+	`, profileName, instanceName)
 }
 
-func testAccProfile_containerDevice(profileName, containerName string) string {
+func testAccProfile_instanceDevice(profileName, instanceName string) string {
 	return fmt.Sprintf(`
 resource "lxd_profile" "profile1" {
   name = "%s"
@@ -561,15 +561,15 @@ resource "lxd_profile" "profile1" {
   }
 }
 
-resource "lxd_instance" "container1" {
+resource "lxd_instance" "instance1" {
   name = "%s"
   image = "images:alpine/3.18"
   profiles = ["default", "${lxd_profile.profile1.name}"]
 }
-	`, profileName, containerName)
+	`, profileName, instanceName)
 }
 
-func testAccProfile_containerDevice_2(profileName, containerName string) string {
+func testAccProfile_instanceDevice_2(profileName, instanceName string) string {
 	return fmt.Sprintf(`
 resource "lxd_profile" "profile1" {
   name = "%s"
@@ -585,12 +585,12 @@ resource "lxd_profile" "profile1" {
   }
 }
 
-resource "lxd_instance" "container1" {
+resource "lxd_instance" "instance1" {
   name = "%s"
   image = "images:alpine/3.18"
   profiles = ["default", "${lxd_profile.profile1.name}"]
 }
-	`, profileName, containerName)
+	`, profileName, instanceName)
 }
 
 func testAccProfile_project(projectName, profileName string) string {
