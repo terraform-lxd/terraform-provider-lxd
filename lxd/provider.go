@@ -91,7 +91,7 @@ func Provider() *schema.Provider {
 						"default": {
 							Type:        schema.TypeBool,
 							Optional:    true,
-							Description: descriptions["lxd_remote_default"],
+							Description: "Whether the remote is the default one or not.",
 						},
 
 						"name": {
