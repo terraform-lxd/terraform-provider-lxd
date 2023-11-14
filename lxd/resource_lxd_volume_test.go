@@ -31,9 +31,9 @@ func TestAccVolume_basic(t *testing.T) {
 	})
 }
 
-func TestAccVolume_containerAttach(t *testing.T) {
+func TestAccVolume_instanceAttach(t *testing.T) {
 	var volume api.StorageVolume
-	containerName := petname.Generate(2, "-")
+	instanceName := petname.Generate(2, "-")
 	poolName := petname.Generate(2, "-")
 	volumeName := petname.Generate(2, "-")
 	source := t.TempDir()
@@ -43,7 +43,7 @@ func TestAccVolume_containerAttach(t *testing.T) {
 		Providers: testAccProviders,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccVolume_containerAttach(poolName, source, volumeName, containerName),
+				Config: testAccVolume_instanceAttach(poolName, source, volumeName, instanceName),
 				Check: resource.ComposeTestCheckFunc(
 					testAccVolumeExists(t, "lxd_volume.volume1", &volume),
 					resource.TestCheckResourceAttr("lxd_volume.volume1", "name", volumeName),
@@ -209,7 +209,7 @@ resource "lxd_volume" "volume1" {
 	`, poolName, source, volumeName)
 }
 
-func testAccVolume_containerAttach(poolName, source, volumeName, containerName string) string {
+func testAccVolume_instanceAttach(poolName, source, volumeName, instanceName string) string {
 	return fmt.Sprintf(`
 resource "lxd_storage_pool" "pool1" {
   name = "%s"
@@ -224,7 +224,7 @@ resource "lxd_volume" "volume1" {
   pool = "${lxd_storage_pool.pool1.name}"
 }
 
-resource "lxd_instance" "container1" {
+resource "lxd_instance" "instance1" {
   name = "%s"
   image = "images:alpine/3.18/amd64"
   profiles = ["default"]
@@ -239,7 +239,7 @@ resource "lxd_instance" "container1" {
     }
   }
 }
-	`, poolName, source, volumeName, containerName)
+	`, poolName, source, volumeName, instanceName)
 }
 
 func testAccVolume_target(volumeName string) string {
