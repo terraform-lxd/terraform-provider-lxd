@@ -13,19 +13,19 @@ import (
 )
 
 func TestAccPublishImage_basic(t *testing.T) {
-	var container api.Container
+	var instance api.Instance
 	var img api.Image
-	containerName := petname.Generate(2, "-")
+	instanceName := petname.Generate(2, "-")
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:  func() { testAccPreCheck(t) },
 		Providers: testAccProviders,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccPublishImage_basic(containerName),
+				Config: testAccPublishImage_basic(instanceName),
 				Check: resource.ComposeTestCheckFunc(
-					testAccContainerState(t, "lxd_instance.container1", &container, api.Stopped),
-					resource.TestCheckResourceAttr("lxd_instance.container1", "name", containerName),
+					testAccInstanceState(t, "lxd_instance.instance1", &instance, api.Stopped),
+					resource.TestCheckResourceAttr("lxd_instance.instance1", "name", instanceName),
 					testAccCachedImageExists(t, "lxd_publish_image.test_basic", &img),
 				),
 			},
@@ -34,9 +34,9 @@ func TestAccPublishImage_basic(t *testing.T) {
 }
 
 func TestAccPublishImage_aliases(t *testing.T) {
-	var container api.Container
+	var instance api.Instance
 	var img api.Image
-	containerName := petname.Generate(2, "-")
+	instanceName := petname.Generate(2, "-")
 
 	aliases := []interface{}{"alias1", "alias2"}
 
@@ -45,10 +45,10 @@ func TestAccPublishImage_aliases(t *testing.T) {
 		Providers: testAccProviders,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccPublishImage_aliases(containerName, aliases),
+				Config: testAccPublishImage_aliases(instanceName, aliases),
 				Check: resource.ComposeTestCheckFunc(
-					testAccContainerState(t, "lxd_instance.container1", &container, api.Stopped),
-					resource.TestCheckResourceAttr("lxd_instance.container1", "name", containerName),
+					testAccInstanceState(t, "lxd_instance.instance1", &instance, api.Stopped),
+					resource.TestCheckResourceAttr("lxd_instance.instance1", "name", instanceName),
 					testAccCachedImageExists(t, "lxd_publish_image.test_basic", &img),
 					testAccPublishImageHasAliases(&img, aliases),
 				),
@@ -58,9 +58,9 @@ func TestAccPublishImage_aliases(t *testing.T) {
 }
 
 func TestAccPublishImage_properties(t *testing.T) {
-	var container api.Container
+	var instance api.Instance
 	var img api.Image
-	containerName := petname.Generate(2, "-")
+	instanceName := petname.Generate(2, "-")
 
 	properties := map[string]string{"os": "Alpine", "version": "4"}
 
@@ -69,10 +69,10 @@ func TestAccPublishImage_properties(t *testing.T) {
 		Providers: testAccProviders,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccPublishImage_properties(containerName, properties),
+				Config: testAccPublishImage_properties(instanceName, properties),
 				Check: resource.ComposeTestCheckFunc(
-					testAccContainerState(t, "lxd_instance.container1", &container, api.Stopped),
-					resource.TestCheckResourceAttr("lxd_instance.container1", "name", containerName),
+					testAccInstanceState(t, "lxd_instance.instance1", &instance, api.Stopped),
+					resource.TestCheckResourceAttr("lxd_instance.instance1", "name", instanceName),
 					testAccCachedImageExists(t, "lxd_publish_image.test_basic", &img),
 					testAccPublishImageHasProperties(&img, properties),
 				),
@@ -83,20 +83,20 @@ func TestAccPublishImage_properties(t *testing.T) {
 
 func TestAccPublishImage_project(t *testing.T) {
 	var img api.Image
-	var container api.Container
+	var instance api.Instance
 	var project api.Project
 	projectName := petname.Name()
-	containerName := petname.Generate(2, "-")
+	instanceName := petname.Generate(2, "-")
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:  func() { testAccPreCheck(t) },
 		Providers: testAccProviders,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccPublishImage_project(projectName, containerName),
+				Config: testAccPublishImage_project(projectName, instanceName),
 				Check: resource.ComposeTestCheckFunc(
 					testAccProjectRunning(t, "lxd_project.project1", &project),
-					testAccInstanceRunningInProject(t, "lxd_instance.container1", &container, projectName),
+					testAccInstanceRunningInProject(t, "lxd_instance.instance1", &instance, projectName),
 					testAccPublishImageExistsInProject(t, "lxd_publish_image.test_basic", &img, projectName),
 				),
 			},
@@ -106,7 +106,7 @@ func TestAccPublishImage_project(t *testing.T) {
 
 func testAccPublishImage_basic(name string) string {
 	return fmt.Sprintf(`
-resource "lxd_instance" "container1" {
+resource "lxd_instance" "instance1" {
   name = "%s"
   image = "images:alpine/3.18/amd64"
   profiles = ["default"]
@@ -115,7 +115,7 @@ resource "lxd_instance" "container1" {
 }
 
 resource "lxd_publish_image" "test_basic" {
-  depends_on = [ lxd_instance.container1 ]
+  depends_on = [ lxd_instance.instance1 ]
 
   container = "%s"
   aliases = [ "test_basic" ]
@@ -125,7 +125,7 @@ resource "lxd_publish_image" "test_basic" {
 
 func testAccPublishImage_aliases(name string, aliases []interface{}) string {
 	return fmt.Sprintf(`
-resource "lxd_instance" "container1" {
+resource "lxd_instance" "instance1" {
   name = "%s"
   image = "images:alpine/3.18/amd64"
   profiles = ["default"]
@@ -134,7 +134,7 @@ resource "lxd_instance" "container1" {
 }
 
 resource "lxd_publish_image" "test_basic" {
-  depends_on = [ lxd_instance.container1 ]
+  depends_on = [ lxd_instance.instance1 ]
 
   container = "%s"
   aliases = [ "%s" ]
@@ -144,7 +144,7 @@ resource "lxd_publish_image" "test_basic" {
 
 func testAccPublishImage_properties(name string, properties map[string]string) string {
 	return fmt.Sprintf(`
-resource "lxd_instance" "container1" {
+resource "lxd_instance" "instance1" {
   name = "%s"
   image = "images:alpine/3.18/amd64"
   profiles = ["default"]
@@ -153,7 +153,7 @@ resource "lxd_instance" "container1" {
 }
 
 resource "lxd_publish_image" "test_basic" {
-  depends_on = [ lxd_instance.container1 ]
+  depends_on = [ lxd_instance.instance1 ]
 
   container = "%s"
   properties = {
@@ -163,7 +163,7 @@ resource "lxd_publish_image" "test_basic" {
 	`, name, name, strings.Join(formatProperties(properties), "\n"))
 }
 
-func testAccPublishImage_project(project, container string) string {
+func testAccPublishImage_project(project, instance string) string {
 	return fmt.Sprintf(`
 resource "lxd_project" "project1" {
   name        = "%s"
@@ -175,7 +175,7 @@ resource "lxd_project" "project1" {
 	"features.storage.buckets" = false
   }
 }
-resource "lxd_instance" "container1" {
+resource "lxd_instance" "instance1" {
   name = "%s"
   image = "images:alpine/3.18/amd64"
   profiles = ["default"]
@@ -184,11 +184,11 @@ resource "lxd_instance" "container1" {
 }
 
 resource "lxd_publish_image" "test_basic" {
-  depends_on = [ lxd_instance.container1 ]
+  depends_on = [ lxd_instance.instance1 ]
   project = lxd_project.project1.name
   container = "%s"
 }
-	`, project, container, container)
+	`, project, instance, instance)
 }
 
 func testAccPublishImageExists(t *testing.T, n string, image *api.Image) resource.TestCheckFunc {
