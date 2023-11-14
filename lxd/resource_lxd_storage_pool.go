@@ -61,8 +61,9 @@ func resourceLxdStoragePool() *schema.Resource {
 			},
 
 			"config": {
-				Type:     schema.TypeMap,
-				Optional: true,
+				Type:             schema.TypeMap,
+				Optional:         true,
+				DiffSuppressFunc: SuppressComputedConfigDiff(ConfigTypeStoragePool),
 			},
 
 			"project": {
@@ -187,26 +188,26 @@ func resourceLxdStoragePoolUpdate(d *schema.ResourceData, meta interface{}) erro
 	}
 
 	name := d.Id()
+	config := resourceLxdConfigMap(d.Get("config"))
 
-	if d.HasChange("config") {
-		pool, etag, err := server.GetStoragePool(name)
+	pool, etag, err := server.GetStoragePool(name)
+	if err != nil {
+		return err
+	}
+
+	if HasComputeConfigChanged(ConfigTypeStoragePool, d, pool.Config, config) {
+		post := api.StoragePoolPut{}
+		post.Config = ComputeConfig(ConfigTypeStoragePool, d, pool.Config, config)
+
+		err = server.UpdateStoragePool(name, post, etag)
 		if err != nil {
 			return err
 		}
 
-		config := resourceLxdConfigMap(d.Get("config"))
-		pool.Config = config
-
-		log.Printf("[DEBUG] Updated storage pool %s config: %#v", name, pool)
-
-		post := api.StoragePoolPut{}
-		post.Config = config
-		if err := server.UpdateStoragePool(name, post, etag); err != nil {
-			return err
-		}
+		log.Printf("[DEBUG] Updated storage pool %s config: %#v", name, post.Config)
 	}
 
-	return nil
+	return resourceLxdStoragePoolRead(d, meta)
 }
 
 func resourceLxdStoragePoolDelete(d *schema.ResourceData, meta interface{}) (err error) {
