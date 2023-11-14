@@ -73,7 +73,7 @@ func TestAccNetwork_attach(t *testing.T) {
 					testAccInstanceRunning(t, "lxd_instance.instance1", &instance),
 					resource.TestCheckResourceAttr("lxd_network.eth1", "name", "eth1"),
 					testAccProfileDevice(&profile, "eth1", device),
-					testAccContainerExpandedDevice(&instance, "eth1", device),
+					testAccInstanceExpandedDevice(&instance, "eth1", device),
 				),
 			},
 		},
