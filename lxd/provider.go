@@ -173,8 +173,6 @@ func Provider() *schema.Provider {
 		ResourcesMap: map[string]*schema.Resource{
 			"lxd_cached_image":        resourceLxdCachedImage(),
 			"lxd_publish_image":       resourceLxdPublishImage(),
-			"lxd_container":           resourceLxdContainer(),
-			"lxd_container_file":      resourceLxdContainerFile(),
 			"lxd_instance":            resourceLxdInstance(),
 			"lxd_instance_file":       resourceLxdInstanceFile(),
 			"lxd_network":             resourceLxdNetwork(),
