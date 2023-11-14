@@ -106,10 +106,6 @@ func resourceLxdNetworkCreate(d *schema.ResourceData, meta interface{}) error {
 	mutex.Unlock()
 
 	if err != nil {
-		if err.Error() == "not implemented" {
-			err = errNetworksNotImplemented
-		}
-
 		return err
 	}
 
