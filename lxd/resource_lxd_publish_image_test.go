@@ -96,7 +96,7 @@ func TestAccPublishImage_project(t *testing.T) {
 				Config: testAccPublishImage_project(projectName, containerName),
 				Check: resource.ComposeTestCheckFunc(
 					testAccProjectRunning(t, "lxd_project.project1", &project),
-					testAccContainerRunningInProject(t, "lxd_instance.container1", &container, projectName),
+					testAccInstanceRunningInProject(t, "lxd_instance.container1", &container, projectName),
 					testAccPublishImageExistsInProject(t, "lxd_publish_image.test_basic", &img, projectName),
 				),
 			},

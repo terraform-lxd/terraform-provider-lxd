@@ -99,7 +99,7 @@ func TestAccSnapshot_project(t *testing.T) {
 				Config: testAccSnapshot_project(projectName, containerName, snapName),
 				Check: resource.ComposeTestCheckFunc(
 					testAccProjectRunning(t, "lxd_project.project1", &project),
-					testAccContainerRunningInProject(t, "lxd_instance.container1", &container, projectName),
+					testAccInstanceRunningInProject(t, "lxd_instance.container1", &container, projectName),
 					testAccSnapshotExistsInProject(t, "lxd_snapshot.snapshot1", &snap, projectName),
 				),
 			},

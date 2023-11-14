@@ -70,7 +70,7 @@ func TestAccNetwork_attach(t *testing.T) {
 				Check: resource.ComposeTestCheckFunc(
 					testAccNetworkExists(t, "lxd_network.eth1", &network),
 					testAccProfileRunning(t, "lxd_profile.profile1", &profile),
-					testAccContainerRunning(t, "lxd_instance.container1", &container),
+					testAccInstanceRunning(t, "lxd_instance.container1", &container),
 					resource.TestCheckResourceAttr("lxd_network.eth1", "name", "eth1"),
 					testAccProfileDevice(&profile, "eth1", device),
 					testAccContainerExpandedDevice(&container, "eth1", device),
