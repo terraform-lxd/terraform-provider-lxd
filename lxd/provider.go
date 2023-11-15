@@ -84,40 +84,40 @@ func Provider() *schema.Provider {
 						"address": {
 							Type:        schema.TypeString,
 							Optional:    true,
-							Description: descriptions["lxd_remote_address"],
+							Description: "The FQDN or IP where the LXD daemon can be contacted. default = empty (read from lxc config).",
 							Default:     "",
 						},
 
 						"default": {
 							Type:        schema.TypeBool,
 							Optional:    true,
-							Description: descriptions["lxd_remote_default"],
+							Description: "Whether the remote is the default one or not.",
 						},
 
 						"name": {
 							Type:        schema.TypeString,
 							Required:    true,
-							Description: descriptions["lxd_remote_name"],
+							Description: "Name of the LXD remote. Required when lxd_scheme set to https, to enable locating server certificate.",
 						},
 
 						"password": {
 							Type:        schema.TypeString,
 							Optional:    true,
 							Sensitive:   true,
-							Description: descriptions["lxd_remote_password"],
+							Description: "The password for the remote.",
 						},
 
 						"port": {
 							Type:        schema.TypeString,
 							Optional:    true,
-							Description: descriptions["lxd_remote_port"],
+							Description: "Port LXD Daemon API is listening on. default = 8443.",
 							Default:     "8443",
 						},
 
 						"scheme": {
 							Type:         schema.TypeString,
 							Optional:     true,
-							Description:  descriptions["lxd_remote_scheme"],
+							Description:  "unix or https. default = unix.",
 							ValidateFunc: validateLxdRemoteScheme,
 							Default:      "unix",
 						},
@@ -125,41 +125,10 @@ func Provider() *schema.Provider {
 				},
 			},
 
-			"address": {
-				Type:       schema.TypeString,
-				Optional:   true,
-				Deprecated: "Use `lxd_remote.address` instead.",
-			},
-
-			"scheme": {
-				Type:       schema.TypeString,
-				Optional:   true,
-				Deprecated: "Use `lxd_remote.scheme` instead.",
-			},
-
-			"port": {
-				Type:       schema.TypeString,
-				Optional:   true,
-				Deprecated: "Use `lxd_remote.port` instead.",
-			},
-
-			"remote": {
-				Type:       schema.TypeString,
-				Optional:   true,
-				Deprecated: "Use `lxd_remote.name` instead.",
-			},
-
-			"remote_password": {
-				Type:       schema.TypeString,
-				Sensitive:  true,
-				Optional:   true,
-				Deprecated: "Use `lxd_remote.password` instead.",
-			},
-
 			"config_dir": {
 				Type:        schema.TypeString,
 				Optional:    true,
-				Description: descriptions["lxd_config_dir"],
+				Description: "The directory to look for existing LXD configuration. default = $HOME/snap/lxd/common/config:$HOME/.config/lxc.",
 				DefaultFunc: func() (interface{}, error) {
 					// Check for the presence of the /var/snap/lxd directory. If the
 					// directory exists, return snap's config path, otherwise return
@@ -177,27 +146,27 @@ func Provider() *schema.Provider {
 			"generate_client_certificates": {
 				Type:        schema.TypeBool,
 				Optional:    true,
-				Description: descriptions["lxd_generate_client_certs"],
+				Description: "Automatically generate the LXD client certificates if they don't exist.",
 				DefaultFunc: schema.EnvDefaultFunc("LXD_GENERATE_CLIENT_CERTS", "false"),
 			},
 
 			"accept_remote_certificate": {
 				Type:        schema.TypeBool,
 				Optional:    true,
-				Description: descriptions["lxd_accept_remote_certificate"],
+				Description: "Accept the server certificate.",
 				DefaultFunc: schema.EnvDefaultFunc("LXD_ACCEPT_SERVER_CERTIFICATE", "false"),
 			},
 
 			"refresh_interval": {
 				Type:        schema.TypeString,
 				Optional:    true,
-				Description: descriptions["lxd_refresh_interval"],
+				Description: "How often to poll during state changes (default 10s).",
 				Default:     "10s",
 			},
 			"project": {
 				Type:        schema.TypeString,
 				Optional:    true,
-				Description: descriptions["lxd_project"],
+				Description: "The project where project-scoped resources will be created. Can be overridden in individual resources. default = default.",
 			},
 		},
 
@@ -221,23 +190,6 @@ func Provider() *schema.Provider {
 		},
 
 		ConfigureFunc: providerConfigure,
-	}
-}
-
-var descriptions map[string]string
-
-func init() {
-	descriptions = map[string]string{
-		"lxd_accept_remote_certificate":    "Accept the server certificate",
-		"lxd_config_dir":                   "The directory to look for existing LXD configuration. default = $HOME/snap/lxd/common/config:$HOME/.config/lxc",
-		"lxd_generate_client_certificates": "Automatically generate the LXD client certificates if they don't exist.",
-		"lxd_refresh_interval":             "How often to poll during state changes (default 10s)",
-		"lxd_remote_address":               "The FQDN or IP where the LXD daemon can be contacted. default = empty (read from lxc config)",
-		"lxd_remote_scheme":                "unix or https. default = unix",
-		"lxd_remote_port":                  "Port LXD Daemon API is listening on. default = 8443.",
-		"lxd_remote_name":                  "Name of the LXD remote. Required when lxd_scheme set to https, to enable locating server certificate.",
-		"lxd_remote_password":              "The password for the remote.",
-		"lxd_project":                      "The project where project-scoped resources will be created. Can be overridden in individual resources. default = default",
 	}
 }
 
