@@ -132,7 +132,7 @@ func TestAccInstance_updateConfig(t *testing.T) {
 	instanceName := petname.Generate(2, "-")
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:  func() { testAccPreCheck(t) },
+		PreCheck:  func() { testAccPreCheckAPIExtensions(t, []string{"cloud_init"}) },
 		Providers: testAccProviders,
 		Steps: []resource.TestStep{
 			{
