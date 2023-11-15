@@ -132,7 +132,7 @@ func TestAccInstance_updateConfig(t *testing.T) {
 	instanceName := petname.Generate(2, "-")
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:  func() { testAccPreCheck(t) },
+		PreCheck:  func() { testAccPreCheckAPIExtensions(t, []string{"cloud_init"}) },
 		Providers: testAccProviders,
 		Steps: []resource.TestStep{
 			{
@@ -155,6 +155,20 @@ func TestAccInstance_updateConfig(t *testing.T) {
 					resource.TestCheckResourceAttr("lxd_instance.instance1", "config.user.dummy", "5"),
 					resource.TestCheckResourceAttr("lxd_instance.instance1", "config.user.user-data", "#cloud-config"),
 					testAccInstanceConfigAbsent(&instance, "boot.autostart"),
+					testAccInstanceConfig(&instance, "user.dummy", "5"),
+					testAccInstanceConfig(&instance, "user.user-data", "#cloud-config"),
+				),
+			},
+			{
+				Config: testAccInstance_updateConfig3(instanceName),
+				Check: resource.ComposeTestCheckFunc(
+					testAccInstanceRunning(t, "lxd_instance.instance1", &instance),
+					resource.TestCheckResourceAttr("lxd_instance.instance1", "name", instanceName),
+					resource.TestCheckResourceAttr("lxd_instance.instance1", "config.cloud-init.vendor-data", "#cloud-config"),
+					resource.TestCheckResourceAttr("lxd_instance.instance1", "config.user.dummy", "5"),
+					resource.TestCheckResourceAttr("lxd_instance.instance1", "config.user.user-data", "#cloud-config"),
+					testAccInstanceConfigAbsent(&instance, "boot.autostart"),
+					testAccInstanceConfig(&instance, "cloud-init.vendor-data", "#cloud-config"),
 					testAccInstanceConfig(&instance, "user.dummy", "5"),
 					testAccInstanceConfig(&instance, "user.user-data", "#cloud-config"),
 				),
@@ -895,6 +909,21 @@ resource "lxd_instance" "instance1" {
   profiles = ["default"]
   config = {
 	"user.dummy" = 5
+    "user.user-data" = "#cloud-config"
+  }
+}
+	`, name)
+}
+
+func testAccInstance_updateConfig3(name string) string {
+	return fmt.Sprintf(`
+resource "lxd_instance" "instance1" {
+  name = "%s"
+  image = "images:alpine/3.18"
+  profiles = ["default"]
+  config = {
+    "cloud-init.vendor-data" = "#cloud-config"
+    "user.dummy" = 5
     "user.user-data" = "#cloud-config"
   }
 }
