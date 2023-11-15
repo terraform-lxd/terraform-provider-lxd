@@ -51,9 +51,9 @@ func TestAccNetwork_description(t *testing.T) {
 func TestAccNetwork_attach(t *testing.T) {
 	var network api.Network
 	var profile api.Profile
-	var container api.Container
+	var instance api.Instance
 	profileName := petname.Generate(2, "-")
-	containerName := petname.Generate(2, "-")
+	instanceName := petname.Generate(2, "-")
 
 	device := map[string]string{
 		"type":    "nic",
@@ -66,14 +66,14 @@ func TestAccNetwork_attach(t *testing.T) {
 		Providers: testAccProviders,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccNetwork_attach(profileName, containerName),
+				Config: testAccNetwork_attach(profileName, instanceName),
 				Check: resource.ComposeTestCheckFunc(
 					testAccNetworkExists(t, "lxd_network.eth1", &network),
 					testAccProfileRunning(t, "lxd_profile.profile1", &profile),
-					testAccContainerRunning(t, "lxd_instance.container1", &container),
+					testAccInstanceRunning(t, "lxd_instance.instance1", &instance),
 					resource.TestCheckResourceAttr("lxd_network.eth1", "name", "eth1"),
 					testAccProfileDevice(&profile, "eth1", device),
-					testAccContainerExpandedDevice(&container, "eth1", device),
+					testAccInstanceExpandedDevice(&instance, "eth1", device),
 				),
 			},
 		},
@@ -82,14 +82,14 @@ func TestAccNetwork_attach(t *testing.T) {
 
 func TestAccNetwork_updateConfig(t *testing.T) {
 	var network api.Network
-	containerName := petname.Generate(2, "-")
+	instanceName := petname.Generate(2, "-")
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:  func() { testAccPreCheck(t) },
 		Providers: testAccProviders,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccNetwork_updateConfig_1(containerName),
+				Config: testAccNetwork_updateConfig_1(instanceName),
 				Check: resource.ComposeTestCheckFunc(
 					testAccNetworkExists(t, "lxd_network.eth1", &network),
 					resource.TestCheckResourceAttr("lxd_network.eth1", "config.ipv4.address", "10.150.19.1/24"),
@@ -97,7 +97,7 @@ func TestAccNetwork_updateConfig(t *testing.T) {
 				),
 			},
 			{
-				Config: testAccNetwork_updateConfig_2(containerName),
+				Config: testAccNetwork_updateConfig_2(instanceName),
 				Check: resource.ComposeTestCheckFunc(
 					testAccNetworkExists(t, "lxd_network.eth1", &network),
 					resource.TestCheckResourceAttr("lxd_network.eth1", "config.ipv4.address", "10.150.21.1/24"),
@@ -274,7 +274,7 @@ resource "lxd_network" "eth1" {
 `
 }
 
-func testAccNetwork_attach(profileName, containerName string) string {
+func testAccNetwork_attach(profileName, instanceName string) string {
 	return fmt.Sprintf(`
 resource "lxd_network" "eth1" {
   name = "eth1"
@@ -300,12 +300,12 @@ resource "lxd_profile" "profile1" {
   }
 }
 
-resource "lxd_instance" "container1" {
+resource "lxd_instance" "instance1" {
   name = "%s"
   image = "images:alpine/3.18"
   profiles = ["default", "${lxd_profile.profile1.name}"]
 }
-`, profileName, containerName)
+`, profileName, instanceName)
 }
 
 func testAccNetwork_updateConfig_1(name string) string {
@@ -321,7 +321,7 @@ resource "lxd_network" "eth1" {
   }
 }
 
-# We do need a container here to ensure the network cannot
+# We do need a instance here to ensure the network cannot
 # be deleted, but must be updated in-place.
 resource "lxd_instance" "c1" {
   name             = "%s"
@@ -353,7 +353,7 @@ resource "lxd_network" "eth1" {
   }
 }
 
-# We do need a container here to ensure the network cannot
+# We do need a instance here to ensure the network cannot
 # be deleted, but must be updated in-place.
 resource "lxd_instance" "c1" {
   name             = "%s"
