@@ -20,7 +20,7 @@ import (
 var mutex sync.RWMutex
 
 // supportedLXDVersions defines LXD versions that are supported by the provider.
-const supportedLXDVersions = ">= 3.0.0"
+const supportedLXDVersions = ">= 4.0.0"
 
 // lxdProvider contains the Provider configuration and initialized remote clients.
 type lxdProvider struct {
