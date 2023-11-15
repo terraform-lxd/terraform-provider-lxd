@@ -47,7 +47,7 @@ type LxdProviderConfig struct {
 	// in LXD's native data structure. This is lazy-loaded / created
 	// only when a connection to an LXD remote/server happens.
 	// https://github.com/canonical/lxd/blob/main/lxc/config/config.go
-	lxdConfig lxd_config.Config
+	lxdConfig *lxd_config.Config
 
 	// remotes is a map of LXD remotes which the user has defined in
 	// the Terraform schema/configuration.
@@ -69,7 +69,7 @@ type LxdProviderConfig struct {
 // NewLxdProvider returns initialized LXD provider structure. This struct is
 // used to store information about this Terraform provider's configuration for
 // reference throughout the lifecycle.
-func NewLxdProvider(lxdConfig lxd_config.Config, refreshInterval time.Duration, acceptServerCert bool) *LxdProviderConfig {
+func NewLxdProvider(lxdConfig *lxd_config.Config, refreshInterval time.Duration, acceptServerCert bool) *LxdProviderConfig {
 	return &LxdProviderConfig{
 		acceptServerCertificate: acceptServerCert,
 		refreshInterval:         refreshInterval,
@@ -86,10 +86,10 @@ func (p *LxdProviderConfig) Remote(name string) *LxdProviderRemoteConfig {
 	defer p.mux.RUnlock()
 
 	remote, ok := p.remotes[name]
-	if !ok || name == "" {
+	if !ok {
 		remote, ok = p.remotes[p.lxdConfig.DefaultRemote]
 		if !ok {
-			panic(fmt.Errorf("Remote %q not found (default: %q)", name, p.lxdConfig.DefaultRemote))
+			return nil
 		}
 	}
 
@@ -157,12 +157,11 @@ func (p *LxdProviderConfig) InstanceServer(remoteName string) (lxd.InstanceServe
 		return nil, err
 	}
 
-	protocol := connInfo.Protocol
-	if protocol == "lxd" {
+	if connInfo.Protocol == "lxd" {
 		return server.(lxd.InstanceServer), nil
 	}
 
-	err = fmt.Errorf("Remote (%s / %s) is not an InstanceServer", remoteName, protocol)
+	err = fmt.Errorf("Remote %q (%s) is not an InstanceServer", remoteName, connInfo.Protocol)
 	return nil, err
 }
 
@@ -183,35 +182,36 @@ func (p *LxdProviderConfig) ImageServer(remoteName string) (lxd.ImageServer, err
 		return server.(lxd.ImageServer), nil
 	}
 
-	err = fmt.Errorf("Remote (%s / %s / %s) is not an ImageServer", remoteName, connInfo.Addresses[0], connInfo.Protocol)
+	err = fmt.Errorf("Remote %q (%s / %s) is not an ImageServer", remoteName, connInfo.Protocol, connInfo.Addresses[0])
 	return nil, err
 }
 
 // getServer returns a server for the named remote. The returned server
 // can be either of type ImageServer or InstanceServer.
 func (p *LxdProviderConfig) server(remoteName string) (lxd.Server, error) {
-	remote := p.Remote(remoteName)
-	if remote == nil {
-		return nil, fmt.Errorf("LXD remote %q is not defined", remoteName)
+	// If remoteName is empty, use default LXD remote (most likely "local").
+	if remoteName == "" {
+		remoteName = p.lxdConfig.DefaultRemote
 	}
 
 	// Check if there is an already initialized LXD server.
 	p.mux.Lock()
-	server, ok := p.servers[remote.Name]
+	server, ok := p.servers[remoteName]
 	p.mux.Unlock()
 	if ok {
 		return server, nil
 	}
 
-	// If a client was not already created, create a new one.
+	// If the server is not already created, create a new one.
+	remote := p.Remote(remoteName)
 	if remote != nil && !remote.Bootstrapped {
-		err := p.createServer(*remote)
+		err := p.createLxdServerClient(*remote)
 		if err != nil {
-			return nil, fmt.Errorf("Unable to create client for remote [%s]: %s", remoteName, err)
+			return nil, fmt.Errorf("Unable to create server client for remote %q: %v", remoteName, err)
 		}
 	}
 
-	lxdRemoteConfig := p.getLxdConfigRemote(remote.Name)
+	lxdRemoteConfig := p.getLxdConfigRemote(remoteName)
 
 	// If remote address is not provided or is only set to the prefix for
 	// Unix sockets (`unix://`) then determine which LXD directory
@@ -229,12 +229,12 @@ func (p *LxdProviderConfig) server(remoteName string) (lxd.Server, error) {
 
 	switch lxdRemoteConfig.Protocol {
 	case "simplestreams":
-		server, err = p.getLxdConfigImageServer(remote.Name)
+		server, err = p.getLxdConfigImageServer(remoteName)
 		if err != nil {
 			return nil, err
 		}
 	default:
-		server, err = p.getLxdConfigInstanceServer(remote.Name)
+		server, err = p.getLxdConfigInstanceServer(remoteName)
 		if err != nil {
 			return nil, err
 		}
@@ -242,7 +242,7 @@ func (p *LxdProviderConfig) server(remoteName string) (lxd.Server, error) {
 		// Ensure that LXD version meets the provider's version constraint.
 		err := verifyLxdServerVersion(server.(lxd.InstanceServer))
 		if err != nil {
-			return nil, fmt.Errorf("Remote %q: %v", remote.Name, err)
+			return nil, fmt.Errorf("Remote %q: %v", remoteName, err)
 		}
 	}
 
@@ -250,21 +250,21 @@ func (p *LxdProviderConfig) server(remoteName string) (lxd.Server, error) {
 	p.mux.Lock()
 	defer p.mux.Unlock()
 
-	p.servers[remote.Name] = server
+	p.servers[remoteName] = server
 
 	return server, nil
 }
 
-// createClient will create an LXD client for a given remote.
+// createLxdServerClient will create an LXD client for a given remote.
 // The client is then stored in the lxdProvider.Config collection of clients.
-func (p *LxdProviderConfig) createServer(remote LxdProviderRemoteConfig) error {
+func (p *LxdProviderConfig) createLxdServerClient(remote LxdProviderRemoteConfig) error {
 	if remote.Address == "" {
 		return nil
 	}
 
 	daemonAddr, err := determineLxdDaemonAddr(remote)
 	if err != nil {
-		return fmt.Errorf("Unable to determine daemon address for remote %q: %s", remote.Name, err)
+		return fmt.Errorf("Unable to determine daemon address for remote %q: %v", remote.Name, err)
 	}
 
 	lxdRemote := lxd_config.Remote{Addr: daemonAddr}
@@ -288,9 +288,9 @@ func (p *LxdProviderConfig) createServer(remote LxdProviderRemoteConfig) error {
 				// Either PKI isn't being used or certificates haven't been
 				// exchanged. Try to add the remote server certificate.
 				if p.acceptServerCertificate {
-					err := fetchLxdServerCertificate(lxdRemote, certPath)
+					err := fetchLxdServerCertificate(lxdRemote.Addr, certPath)
 					if err != nil {
-						return fmt.Errorf("Failed to get remote server certificate: %s", err)
+						return fmt.Errorf("Failed to get remote server certificate: %v", err)
 					}
 				} else {
 					return fmt.Errorf("Unable to communicate with remote server. Either set " +
@@ -359,7 +359,7 @@ func authenticateToLxdServer(instServer lxd.InstanceServer, password string) err
 
 	err = instServer.CreateCertificate(req)
 	if err != nil {
-		return fmt.Errorf("Unable to authenticate with remote server: %s", err)
+		return fmt.Errorf("Unable to authenticate with remote server: %v", err)
 	}
 
 	_, _, err = instServer.GetServer()
@@ -372,8 +372,8 @@ func authenticateToLxdServer(instServer lxd.InstanceServer, password string) err
 
 // fetchServerCertificate will attempt to retrieve a remote LXD server's
 // certificate and save it to the servercerts path.
-func fetchLxdServerCertificate(lxdRemote lxd_config.Remote, certPath string) error {
-	certificate, err := lxd_shared.GetRemoteCertificate(lxdRemote.Addr, "terraform-provider-lxd/2.0")
+func fetchLxdServerCertificate(address string, certPath string) error {
+	certificate, err := lxd_shared.GetRemoteCertificate(address, "terraform-provider-lxd/2.0")
 	if err != nil {
 		return err
 	}
