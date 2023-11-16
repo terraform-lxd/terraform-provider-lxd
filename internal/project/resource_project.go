@@ -13,6 +13,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringdefault"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/types"
+	"github.com/terraform-lxd/terraform-provider-lxd/internal/errors"
 	provider_config "github.com/terraform-lxd/terraform-provider-lxd/internal/provider-config"
 	"github.com/terraform-lxd/terraform-provider-lxd/internal/utils"
 )
@@ -32,7 +33,7 @@ func (m *LxdProjectResourceModel) Sync(server lxd.InstanceServer, projectName st
 	project, _, err := server.UseProject(projectName).GetProject(projectName)
 	if err != nil {
 		return diag.Diagnostics{
-			diag.NewErrorDiagnostic(fmt.Sprintf("Failed to retrieve updated project %q", projectName), err.Error()),
+			diag.NewErrorDiagnostic(fmt.Sprintf("Failed to retrieve project %q", projectName), err.Error()),
 		}
 	}
 
@@ -112,9 +113,7 @@ func (r *LxdProjectResource) Configure(_ context.Context, req resource.Configure
 
 	provider, ok := data.(*provider_config.LxdProviderConfig)
 	if !ok {
-		resp.Diagnostics.AddError("Unexpected ProviderData type",
-			fmt.Sprintf("Expected *provider_config.LxdProviderConfig, got %T. Please report this issue to the provider maintainers.", req.ProviderData),
-		)
+		resp.Diagnostics.Append(errors.NewProviderDataTypeError(req.ProviderData))
 		return
 	}
 
@@ -151,26 +150,25 @@ func (r LxdProjectResource) Create(ctx context.Context, req resource.CreateReque
 
 	server, err := r.provider.InstanceServer(data.Remote.ValueString())
 	if err != nil {
-		resp.Diagnostics.AddError("Failed to retrieve LXD InstanceServer", err.Error())
+		resp.Diagnostics.Append(errors.NewInstanceServerError(err))
 		return
 	}
 
-	projectName := data.Name.ValueString()
-	projectReq := api.ProjectsPost{
-		Name: projectName,
+	project := api.ProjectsPost{
+		Name: data.Name.ValueString(),
 		ProjectPut: api.ProjectPut{
 			Description: data.Description.ValueString(),
 			Config:      config,
 		},
 	}
 
-	err = server.CreateProject(projectReq)
+	err = server.CreateProject(project)
 	if err != nil {
-		resp.Diagnostics.AddError(fmt.Sprintf("Failed to create project %q", projectName), err.Error())
+		resp.Diagnostics.AddError(fmt.Sprintf("Failed to create project %q", project.Name), err.Error())
 		return
 	}
 
-	diags = data.Sync(server, projectName)
+	diags = data.Sync(server, project.Name)
 	resp.Diagnostics.Append(diags...)
 	if diags.HasError() {
 		return
@@ -193,7 +191,7 @@ func (r LxdProjectResource) Read(ctx context.Context, req resource.ReadRequest, 
 
 	server, err := r.provider.InstanceServer(data.Remote.ValueString())
 	if err != nil {
-		resp.Diagnostics.AddError("Failed to retrieve LXD InstanceServer", err.Error())
+		resp.Diagnostics.Append(errors.NewInstanceServerError(err))
 		return
 	}
 
@@ -222,30 +220,30 @@ func (r LxdProjectResource) Update(ctx context.Context, req resource.UpdateReque
 
 	server, err := r.provider.InstanceServer(data.Remote.ValueString())
 	if err != nil {
-		resp.Diagnostics.AddError("Failed to retrieve LXD InstanceServer", err.Error())
+		resp.Diagnostics.Append(errors.NewInstanceServerError(err))
 		return
 	}
 
 	projectName := data.Name.ValueString()
 	_, etag, err := server.UseProject(projectName).GetProject(projectName)
 	if err != nil {
-		resp.Diagnostics.AddError(fmt.Sprintf("Failed to retrieve project %q", projectName), err.Error())
+		resp.Diagnostics.AddError(fmt.Sprintf("Failed to retrieve existing project %q", projectName), err.Error())
 		return
 	}
 
-	config, diags := utils.ToStringMap(ctx, data.Config)
+	// Merge LXD state and user configurations.
+	userConfig, diags := utils.ToStringMap(ctx, data.Config)
 	resp.Diagnostics.Append(diags...)
 
 	stateConfig, diags := utils.ToStringMap(ctx, data.ConfigState)
 	resp.Diagnostics.Append(diags...)
 
-	// Merge LXD state and user configurations.
-	newConfig := utils.ComputeConfig(stateConfig, config, r.ComputedKeys())
+	config := utils.ComputeConfig(stateConfig, userConfig, r.ComputedKeys())
 
-	// Copy the current project config into the updatable project struct.
+	// Update project.
 	newProject := api.ProjectPut{
 		Description: data.Description.ValueString(),
-		Config:      newConfig,
+		Config:      config,
 	}
 
 	err = server.UpdateProject(projectName, newProject, etag)
@@ -277,7 +275,7 @@ func (r LxdProjectResource) Delete(ctx context.Context, req resource.DeleteReque
 
 	server, err := r.provider.InstanceServer(data.Remote.ValueString())
 	if err != nil {
-		resp.Diagnostics.AddError("Failed to retrieve LXD InstanceServer", err.Error())
+		resp.Diagnostics.Append(errors.NewInstanceServerError(err))
 		return
 	}
 
