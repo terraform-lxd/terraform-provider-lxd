@@ -17,6 +17,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
+	"github.com/terraform-lxd/terraform-provider-lxd/internal/network"
 	"github.com/terraform-lxd/terraform-provider-lxd/internal/project"
 	provider_config "github.com/terraform-lxd/terraform-provider-lxd/internal/provider-config"
 )
@@ -306,6 +307,7 @@ func (p *LxdProvider) Resources(_ context.Context) []func() resource.Resource {
 	// },
 
 	return []func() resource.Resource{
+		network.NewLxdNetworkResource,
 		project.NewLxdProjectResource,
 	}
 }
