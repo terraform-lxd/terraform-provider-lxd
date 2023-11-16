@@ -17,6 +17,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
+	"github.com/terraform-lxd/terraform-provider-lxd/internal/project"
 	provider_config "github.com/terraform-lxd/terraform-provider-lxd/internal/provider-config"
 )
 
@@ -304,7 +305,9 @@ func (p *LxdProvider) Resources(_ context.Context) []func() resource.Resource {
 	// 	"lxd_volume_container_attach": resourceLxdVolumeContainerAttach(),
 	// },
 
-	return []func() resource.Resource{}
+	return []func() resource.Resource{
+		project.NewLxdProjectResource,
+	}
 }
 
 func (p *LxdProvider) DataSources(_ context.Context) []func() datasource.DataSource {
