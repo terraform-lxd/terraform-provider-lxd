@@ -418,7 +418,7 @@ func verifyLxdServerVersion(instServer lxd.InstanceServer) error {
 func determineLxdDaemonAddr(remote LxdProviderRemoteConfig) (string, error) {
 	var daemonAddr string
 
-	if remote.Address == "" {
+	if remote.Address != "" {
 		switch remote.Scheme {
 		case "unix", "":
 			daemonAddr = fmt.Sprintf("unix:%s", remote.Address)
