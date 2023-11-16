@@ -62,15 +62,40 @@ func (p *LxdProvider) Metadata(_ context.Context, _ provider.MetadataRequest, re
 func (p *LxdProvider) Schema(_ context.Context, _ provider.SchemaRequest, resp *provider.SchemaResponse) {
 	resp.Schema = schema.Schema{
 		Attributes: map[string]schema.Attribute{
-			"remote": schema.ListNestedAttribute{
+			"config_dir": schema.StringAttribute{
 				Optional:    true,
+				Description: "The directory to look for existing LXD configuration. (default = $HOME/snap/lxd/common/config:$HOME/.config/lxc)",
+			},
+
+			"generate_client_certificates": schema.BoolAttribute{
+				Optional:    true,
+				Description: "Automatically generate the LXD client certificates if they don't exist.",
+			},
+
+			"accept_remote_certificate": schema.BoolAttribute{
+				Optional:    true,
+				Description: "Accept the server certificate.",
+			},
+
+			"refresh_interval": schema.StringAttribute{
+				Optional:    true,
+				Description: "How often to poll during state changes. (default = 10s)",
+			},
+
+			"project": schema.StringAttribute{
+				Optional:    true,
+				Description: "The project where project-scoped resources will be created. Can be overridden in individual resources. (default = default)",
+			},
+		},
+
+		Blocks: map[string]schema.Block{
+			"remote": schema.ListNestedBlock{
 				Description: "LXD Remote",
-				NestedObject: schema.NestedAttributeObject{
+				NestedObject: schema.NestedBlockObject{
 					Attributes: map[string]schema.Attribute{
 						"address": schema.StringAttribute{
 							Optional:    true,
 							Description: "The FQDN or IP where the LXD daemon can be contacted. (default = \"\" (read from lxc config))",
-							// Default: ""
 						},
 
 						"default": schema.BoolAttribute{
@@ -90,8 +115,7 @@ func (p *LxdProvider) Schema(_ context.Context, _ provider.SchemaRequest, resp *
 						},
 
 						"port": schema.StringAttribute{
-							Optional: true,
-							// Default:     "8443",
+							Optional:    true,
 							Description: "Port LXD Daemon API is listening on. (default = 8443)",
 						},
 
@@ -101,39 +125,9 @@ func (p *LxdProvider) Schema(_ context.Context, _ provider.SchemaRequest, resp *
 							Validators: []validator.String{
 								stringvalidator.OneOf("unix", "https"),
 							},
-							// Default:      "unix",
 						},
 					},
 				},
-			},
-
-			"config_dir": schema.StringAttribute{
-				Optional:    true,
-				Description: "The directory to look for existing LXD configuration. (default = $HOME/snap/lxd/common/config:$HOME/.config/lxc)",
-			},
-
-			"generate_client_certificates": schema.BoolAttribute{
-				Optional:    true,
-				Description: "Automatically generate the LXD client certificates if they don't exist.",
-				// DefaultFunc: schema.EnvDefaultFunc("LXD_GENERATE_CLIENT_CERTS", "false"),
-			},
-
-			"accept_remote_certificate": schema.BoolAttribute{
-				Optional:    true,
-				Description: "Accept the server certificate.",
-				// DefaultFunc: schema.EnvDefaultFunc("LXD_ACCEPT_SERVER_CERTIFICATE", "false"),
-			},
-
-			"refresh_interval": schema.StringAttribute{
-				Optional:    true,
-				Description: "How often to poll during state changes. (default = 10s)",
-				// Default:     "10s",
-			},
-
-			"project": schema.StringAttribute{
-				Optional:    true,
-				Description: "The project where project-scoped resources will be created. Can be overridden in individual resources. (default = default)",
-				//Default: "default",
 			},
 		},
 	}
