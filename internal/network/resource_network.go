@@ -197,13 +197,13 @@ func (r LxdNetworkResource) Create(ctx context.Context, req resource.CreateReque
 	// Set project if configured.
 	project := data.Project.ValueString()
 	if project != "" {
-		server.UseProject(project)
+		server = server.UseProject(project)
 	}
 
 	// Set target if configured.
 	target := data.Target.ValueString()
 	if target != "" {
-		server.UseTarget(project)
+		server = server.UseTarget(target)
 	}
 
 	// Convert network config to map.
@@ -263,13 +263,13 @@ func (r LxdNetworkResource) Read(ctx context.Context, req resource.ReadRequest, 
 	// Set project if configured.
 	project := data.Project.ValueString()
 	if project != "" {
-		server.UseProject(project)
+		server = server.UseProject(project)
 	}
 
 	// Set target if configured.
 	target := data.Target.ValueString()
 	if target != "" {
-		server.UseTarget(project)
+		server = server.UseTarget(target)
 	}
 
 	networkName := data.Name.ValueString()
@@ -309,13 +309,13 @@ func (r LxdNetworkResource) Update(ctx context.Context, req resource.UpdateReque
 	// Set project if configured.
 	project := data.Project.ValueString()
 	if project != "" {
-		server.UseProject(project)
+		server = server.UseProject(project)
 	}
 
 	// Set target if configured.
 	target := data.Target.ValueString()
 	if target != "" {
-		server.UseTarget(project)
+		server = server.UseTarget(target)
 	}
 
 	networkName := data.Name.ValueString()
@@ -381,13 +381,13 @@ func (r LxdNetworkResource) Delete(ctx context.Context, req resource.DeleteReque
 	// Set project if configured.
 	project := data.Project.ValueString()
 	if project != "" {
-		server.UseProject(project)
+		server = server.UseProject(project)
 	}
 
 	// Set target if configured.
 	target := data.Target.ValueString()
 	if target != "" {
-		server.UseTarget(project)
+		server = server.UseTarget(target)
 	}
 
 	networkName := data.Name.ValueString()
