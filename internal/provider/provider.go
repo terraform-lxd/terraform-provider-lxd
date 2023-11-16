@@ -46,15 +46,15 @@ type LxdProviderModel struct {
 }
 
 // New returns LXD provider with the given version set.
-func New(version string) func() provider.Provider {
+func NewLxdProvider(version string) func() provider.Provider {
 	return func() provider.Provider {
-		return &LxdProvider{version}
+		return &LxdProvider{version: version}
 	}
 }
 
 func (p *LxdProvider) Metadata(_ context.Context, _ provider.MetadataRequest, resp *provider.MetadataResponse) {
 	resp.TypeName = "lxd"
-	resp.TypeName = p.version
+	resp.Version = p.version
 }
 
 func (p *LxdProvider) Schema(_ context.Context, _ provider.SchemaRequest, resp *provider.SchemaResponse) {
@@ -144,10 +144,6 @@ func (p *LxdProvider) Configure(ctx context.Context, req provider.ConfigureReque
 	diags := req.Config.Get(ctx, &data)
 	resp.Diagnostics.Append(diags...)
 
-	// TODO: Read generate_cert from env var
-	// TODO: Read accept_cert from env var
-	// TODO: Read config_dir from env var
-
 	// Determine LXD configuration directory. First check for the presence
 	// of the /var/snap/lxd directory. If the directory exists, return
 	// snap's config path. Otherwise return the fallback path.
@@ -216,15 +212,14 @@ func (p *LxdProvider) Configure(ctx context.Context, req provider.ConfigureReque
 
 	// Determine project.
 	project := data.Project.ValueString()
-	if project == "" {
-		project = "default"
+	if project != "" {
+		config.ProjectOverride = project
 	}
-	config.ProjectOverride = project
 
 	// Initialize global LxdProvider struct.
 	// This struct is used to store information about this Terraform
 	// provider's configuration for reference throughout the lifecycle.
-	lxdProvider := provider_config.NewLxdProvider(*config, refreshInterval, acceptServerCertificate)
+	lxdProvider := provider_config.NewLxdProvider(config, refreshInterval, acceptServerCertificate)
 
 	// Create LXD remote from environment variables (if defined).
 	// This emulates the Terraform provider "lxd_remote" config:
