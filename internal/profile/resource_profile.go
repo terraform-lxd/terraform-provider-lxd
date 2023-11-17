@@ -10,6 +10,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/diag"
+	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
@@ -445,4 +446,22 @@ func fromDeviceMap(ctx context.Context, devices map[string]map[string]string) (t
 	}
 
 	return types.SetValueFrom(ctx, types.ObjectType{devModelTypes}, modelDevices)
+}
+
+func (r *LxdProfileResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
+	remote, project, name, diag := common.SplitImportID(req.ID, "profile")
+	if diag != nil {
+		resp.Diagnostics.Append(diag)
+		return
+	}
+
+	if remote != "" {
+		resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("remote"), remote)...)
+	}
+
+	if project != "" {
+		resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("project"), project)...)
+	}
+
+	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("name"), name)...)
 }
