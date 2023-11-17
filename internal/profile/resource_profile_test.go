@@ -9,7 +9,7 @@ import (
 	petname "github.com/dustinkirkland/golang-petname"
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
 	"github.com/hashicorp/terraform-plugin-testing/terraform"
-	"github.com/terraform-lxd/terraform-provider-lxd/internal/provider/acctest"
+	"github.com/terraform-lxd/terraform-provider-lxd/internal/acctest"
 )
 
 func TestAccProfile_basic(t *testing.T) {

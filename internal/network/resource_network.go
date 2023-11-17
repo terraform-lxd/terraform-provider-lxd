@@ -420,7 +420,7 @@ func (r *LxdNetworkResource) ImportState(ctx context.Context, req resource.Impor
 	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("name"), name)...)
 }
 
-// ComputedKeys returns list of compuuted LXD config keys.
+// ComputedKeys returns list of computed LXD config keys.
 func (r LxdNetworkResource) ComputedKeys() []string {
 	return []string{
 		"ipv4.address",

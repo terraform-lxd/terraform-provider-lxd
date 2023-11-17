@@ -6,7 +6,7 @@ import (
 
 	petname "github.com/dustinkirkland/golang-petname"
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
-	"github.com/terraform-lxd/terraform-provider-lxd/internal/provider/acctest"
+	"github.com/terraform-lxd/terraform-provider-lxd/internal/acctest"
 )
 
 // //At a high level, the first basic test for a resource should establish the following:

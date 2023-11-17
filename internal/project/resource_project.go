@@ -290,7 +290,7 @@ func (r LxdProjectResource) Delete(ctx context.Context, req resource.DeleteReque
 	}
 }
 
-// ComputedKeys returns list of compuuted LXD config keys.
+// ComputedKeys returns list of computed LXD config keys.
 func (r LxdProjectResource) ComputedKeys() []string {
 	return []string{
 		"features.images",
