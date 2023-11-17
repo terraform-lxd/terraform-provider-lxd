@@ -17,9 +17,9 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
+	"github.com/terraform-lxd/terraform-provider-lxd/internal/common"
 	"github.com/terraform-lxd/terraform-provider-lxd/internal/errors"
 	provider_config "github.com/terraform-lxd/terraform-provider-lxd/internal/provider-config"
-	"github.com/terraform-lxd/terraform-provider-lxd/internal/utils"
 )
 
 type LxdProfileDeviceModel struct {
@@ -48,7 +48,7 @@ func (m *LxdProfileResourceModel) Sync(server lxd.InstanceServer, profileName st
 		}
 	}
 
-	config, diags := utils.ToStringMapType(context.Background(), profile.Config)
+	config, diags := common.ToConfigMapType(context.Background(), profile.Config)
 	if diags.HasError() {
 		return diags
 	}
@@ -184,7 +184,7 @@ func (r *LxdProfileResource) Configure(_ context.Context, req resource.Configure
 }
 
 func (r *LxdProfileResource) ModifyPlan(ctx context.Context, req resource.ModifyPlanRequest, resp *resource.ModifyPlanResponse) {
-	utils.ModifyConfigStatePlan(ctx, req, resp, nil)
+	common.ModifyConfigStatePlan(ctx, req, resp, nil)
 }
 
 func (r LxdProfileResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
@@ -210,7 +210,7 @@ func (r LxdProfileResource) Create(ctx context.Context, req resource.CreateReque
 	}
 
 	// Convert profile config to map.
-	config, diag := utils.ToStringMap(ctx, data.Config)
+	config, diag := common.ToConfigMap(ctx, data.Config)
 	resp.Diagnostics.Append(diag...)
 
 	devices, diags := toDeviceMap(ctx, data.Devices)
@@ -310,7 +310,7 @@ func (r LxdProfileResource) Update(ctx context.Context, req resource.UpdateReque
 		return
 	}
 
-	config, diags := utils.ToStringMap(ctx, data.Config)
+	config, diags := common.ToConfigMap(ctx, data.Config)
 	resp.Diagnostics.Append(diags...)
 
 	devices, diags := toDeviceMap(ctx, data.Devices)

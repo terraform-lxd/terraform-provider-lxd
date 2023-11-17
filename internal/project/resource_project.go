@@ -13,9 +13,9 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringdefault"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/types"
+	"github.com/terraform-lxd/terraform-provider-lxd/internal/common"
 	"github.com/terraform-lxd/terraform-provider-lxd/internal/errors"
 	provider_config "github.com/terraform-lxd/terraform-provider-lxd/internal/provider-config"
-	"github.com/terraform-lxd/terraform-provider-lxd/internal/utils"
 )
 
 // LxdProjectResourceModel resource data model that matches the schema.
@@ -37,7 +37,7 @@ func (m *LxdProjectResourceModel) Sync(server lxd.InstanceServer, projectName st
 		}
 	}
 
-	config, diags := utils.ToStringMapType(context.Background(), project.Config)
+	config, diags := common.ToConfigMapType(context.Background(), project.Config)
 	if diags.HasError() {
 		return diags
 	}
@@ -128,7 +128,7 @@ func (r *LxdProjectResource) ModifyPlan(ctx context.Context, req resource.Modify
 	//    If user value is an empty string       : unset specific value.
 	//    If user value is set                   : overwrite this value.
 
-	utils.ModifyConfigStatePlan(ctx, req, resp, r.ComputedKeys())
+	common.ModifyConfigStatePlan(ctx, req, resp, r.ComputedKeys())
 }
 
 func (r LxdProjectResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
@@ -142,7 +142,7 @@ func (r LxdProjectResource) Create(ctx context.Context, req resource.CreateReque
 	}
 
 	// Convert project config schema to map.
-	config, diag := utils.ToStringMap(ctx, data.Config)
+	config, diag := common.ToConfigMap(ctx, data.Config)
 	resp.Diagnostics.Append(diag...)
 	if resp.Diagnostics.HasError() {
 		return
@@ -232,13 +232,17 @@ func (r LxdProjectResource) Update(ctx context.Context, req resource.UpdateReque
 	}
 
 	// Merge LXD state and user configurations.
-	userConfig, diags := utils.ToStringMap(ctx, data.Config)
+	userConfig, diags := common.ToConfigMap(ctx, data.Config)
 	resp.Diagnostics.Append(diags...)
 
-	stateConfig, diags := utils.ToStringMap(ctx, data.ConfigState)
+	stateConfig, diags := common.ToConfigMap(ctx, data.ConfigState)
 	resp.Diagnostics.Append(diags...)
 
-	config := utils.ComputeConfig(stateConfig, userConfig, r.ComputedKeys())
+	config := common.MergeConfig(stateConfig, userConfig, r.ComputedKeys())
+
+	if resp.Diagnostics.HasError() {
+		return
+	}
 
 	// Update project.
 	newProject := api.ProjectPut{

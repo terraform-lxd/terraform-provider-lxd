@@ -16,9 +16,9 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
+	"github.com/terraform-lxd/terraform-provider-lxd/internal/common"
 	"github.com/terraform-lxd/terraform-provider-lxd/internal/errors"
 	provider_config "github.com/terraform-lxd/terraform-provider-lxd/internal/provider-config"
-	"github.com/terraform-lxd/terraform-provider-lxd/internal/utils"
 )
 
 // LxdNetworkResourceModel resource data model that matches the schema.
@@ -50,7 +50,7 @@ func (m *LxdNetworkResourceModel) Sync(server lxd.InstanceServer, networkName st
 		}
 	}
 
-	config, diags := utils.ToStringMapType(context.Background(), network.Config)
+	config, diags := common.ToConfigMapType(context.Background(), network.Config)
 	if diags.HasError() {
 		return true, diags
 	}
@@ -175,7 +175,7 @@ func (r *LxdNetworkResource) Configure(_ context.Context, req resource.Configure
 }
 
 func (r *LxdNetworkResource) ModifyPlan(ctx context.Context, req resource.ModifyPlanRequest, resp *resource.ModifyPlanResponse) {
-	utils.ModifyConfigStatePlan(ctx, req, resp, r.ComputedKeys())
+	common.ModifyConfigStatePlan(ctx, req, resp, r.ComputedKeys())
 }
 
 func (r LxdNetworkResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
@@ -207,7 +207,7 @@ func (r LxdNetworkResource) Create(ctx context.Context, req resource.CreateReque
 	}
 
 	// Convert network config to map.
-	config, diag := utils.ToStringMap(ctx, data.Config)
+	config, diag := common.ToConfigMap(ctx, data.Config)
 	resp.Diagnostics.Append(diag...)
 	if resp.Diagnostics.HasError() {
 		return
@@ -326,13 +326,17 @@ func (r LxdNetworkResource) Update(ctx context.Context, req resource.UpdateReque
 	}
 
 	// Merge LXD state and user configs.
-	userConfig, diags := utils.ToStringMap(ctx, data.Config)
+	userConfig, diags := common.ToConfigMap(ctx, data.Config)
 	resp.Diagnostics.Append(diags...)
 
-	stateConfig, diags := utils.ToStringMap(ctx, data.ConfigState)
+	stateConfig, diags := common.ToConfigMap(ctx, data.ConfigState)
 	resp.Diagnostics.Append(diags...)
 
-	config := utils.ComputeConfig(stateConfig, userConfig, r.ComputedKeys())
+	config := common.MergeConfig(stateConfig, userConfig, r.ComputedKeys())
+
+	if resp.Diagnostics.HasError() {
+		return
+	}
 
 	// Update network.
 	network := api.NetworkPut{
