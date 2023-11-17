@@ -2,12 +2,12 @@ package common
 
 import (
 	"context"
+	"strings"
 
 	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/types"
-	"github.com/terraform-lxd/terraform-provider-lxd/internal/utils"
 )
 
 // ModifyConfigStatePlan is used to determines which configuration changes
@@ -53,12 +53,30 @@ func MergeConfig(resConfig map[string]string, usrConfig map[string]string, compu
 	// is contained within computedKeys.
 	for k, v := range resConfig {
 		_, ok := usrConfig[k]
-		if !ok && v != "" && utils.ValueInSlice(k, computedKeys) {
+		if !ok && v != "" && isComputedKey(k, computedKeys) {
 			config[k] = v
 		}
 	}
 
 	return config
+}
+
+// isComputedKey determines if a given key is considered "computed".
+// A key is considered computed in two scenarios:
+//  1. It exactly matches one of the computed keys.
+//  2. It starts with any of the computed keys that end with a dot.
+//
+// For example, if "volatile." is a computed key, then "volatile.demo"
+// is considered computed. However, "volatile" without a trailing dot
+// will not make "volatile.demo" computed.
+func isComputedKey(key string, computedKeys []string) bool {
+	for _, ck := range computedKeys {
+		if key == ck || strings.HasSuffix(ck, ".") && strings.HasPrefix(key, ck) {
+			return true
+		}
+	}
+
+	return false
 }
 
 // ToConfigMap converts config of type types.Map into map[string]string.
