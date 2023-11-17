@@ -8,7 +8,6 @@ import (
 	"github.com/canonical/lxd/shared/api"
 	"github.com/hashicorp/terraform-plugin-framework-validators/mapvalidator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
-	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
@@ -22,12 +21,6 @@ import (
 	"github.com/terraform-lxd/terraform-provider-lxd/internal/errors"
 	provider_config "github.com/terraform-lxd/terraform-provider-lxd/internal/provider-config"
 )
-
-type LxdProfileDeviceModel struct {
-	Name       types.String `tfsdk:"name"`
-	Type       types.String `tfsdk:"type"`
-	Properties types.Map    `tfsdk:"properties"`
-}
 
 type LxdProfileResourceModel struct {
 	Name        types.String `tfsdk:"name"`
@@ -54,7 +47,7 @@ func (m *LxdProfileResourceModel) Sync(server lxd.InstanceServer, profileName st
 		return diags
 	}
 
-	devices, diags := fromDeviceMap(context.Background(), profile.Devices)
+	devices, diags := common.ToDeviceSetType(context.Background(), profile.Devices)
 	if diags.HasError() {
 		return diags
 	}
@@ -214,7 +207,7 @@ func (r LxdProfileResource) Create(ctx context.Context, req resource.CreateReque
 	config, diag := common.ToConfigMap(ctx, data.Config)
 	resp.Diagnostics.Append(diag...)
 
-	devices, diags := toDeviceMap(ctx, data.Devices)
+	devices, diags := common.ToDeviceMap(ctx, data.Devices)
 	resp.Diagnostics.Append(diags...)
 
 	if resp.Diagnostics.HasError() {
@@ -314,7 +307,7 @@ func (r LxdProfileResource) Update(ctx context.Context, req resource.UpdateReque
 	config, diags := common.ToConfigMap(ctx, data.Config)
 	resp.Diagnostics.Append(diags...)
 
-	devices, diags := toDeviceMap(ctx, data.Devices)
+	devices, diags := common.ToDeviceMap(ctx, data.Devices)
 	resp.Diagnostics.Append(diags...)
 
 	if resp.Diagnostics.HasError() {
@@ -372,80 +365,6 @@ func (r LxdProfileResource) Delete(ctx context.Context, req resource.DeleteReque
 	if err != nil {
 		resp.Diagnostics.AddError(fmt.Sprintf("Failed to remove profile %q", profileName), err.Error())
 	}
-}
-
-// toDeviceMap converts deviecs from types.Set into map[string]map[string]string.
-func toDeviceMap(ctx context.Context, dataDevices types.Set) (map[string]map[string]string, diag.Diagnostics) {
-	if dataDevices.IsNull() || dataDevices.IsUnknown() {
-		return make(map[string]map[string]string), nil
-	}
-
-	// Convert types.Set into set of device models.
-	modelDevices := make([]LxdProfileDeviceModel, len(dataDevices.Elements()))
-	diags := dataDevices.ElementsAs(ctx, &modelDevices, false)
-	if diags.HasError() {
-		return nil, diags
-	}
-
-	devices := make(map[string]map[string]string, len(modelDevices))
-	for _, d := range modelDevices {
-		devName := d.Name.ValueString()
-		devType := d.Type.ValueString()
-
-		// Convert properties into map[string]string.
-		device := make(map[string]string, len(d.Properties.Elements()))
-		if !d.Properties.IsNull() && !d.Properties.IsUnknown() {
-			diags := d.Properties.ElementsAs(ctx, &device, false)
-			if diags.HasError() {
-				return nil, diags
-			}
-		}
-
-		device["type"] = devType
-		devices[devName] = device
-	}
-
-	return devices, nil
-}
-
-// fromDeviceMap converts deviecs from map[string]map[string]string into types.Set.
-func fromDeviceMap(ctx context.Context, devices map[string]map[string]string) (types.Set, diag.Diagnostics) {
-	devModelTypes := map[string]attr.Type{
-		"name":       types.StringType,
-		"type":       types.StringType,
-		"properties": types.MapType{types.StringType},
-	}
-
-	if len(devices) == 0 {
-		return types.SetNull(types.ObjectType{devModelTypes}), nil
-	}
-
-	modelDevices := make([]LxdProfileDeviceModel, 0, len(devices))
-	for key := range devices {
-		props := devices[key]
-
-		devName := types.StringValue(key)
-		devType := types.StringValue(props["type"])
-
-		// Remove type from properties, as we manage it
-		// outside properties.
-		delete(props, "type")
-
-		devProps, diags := types.MapValueFrom(ctx, types.StringType, props)
-		if diags.HasError() {
-			return types.SetNull(types.ObjectType{devModelTypes}), diags
-		}
-
-		dev := LxdProfileDeviceModel{
-			Name:       devName,
-			Type:       devType,
-			Properties: devProps,
-		}
-
-		modelDevices = append(modelDevices, dev)
-	}
-
-	return types.SetValueFrom(ctx, types.ObjectType{devModelTypes}, modelDevices)
 }
 
 func (r *LxdProfileResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
