@@ -21,6 +21,7 @@ import (
 	"github.com/terraform-lxd/terraform-provider-lxd/internal/profile"
 	"github.com/terraform-lxd/terraform-provider-lxd/internal/project"
 	provider_config "github.com/terraform-lxd/terraform-provider-lxd/internal/provider-config"
+	"github.com/terraform-lxd/terraform-provider-lxd/internal/storage"
 )
 
 // LxdProvider ...
@@ -305,6 +306,7 @@ func (p *LxdProvider) Resources(_ context.Context) []func() resource.Resource {
 		network.NewLxdNetworkResource,
 		profile.NewLxdProfileResource,
 		project.NewLxdProjectResource,
+		storage.NewLxdStoragePoolResource,
 	}
 }
 
