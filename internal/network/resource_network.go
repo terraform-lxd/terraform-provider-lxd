@@ -8,6 +8,7 @@ import (
 	"github.com/canonical/lxd/shared/api"
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/diag"
+	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/boolplanmodifier"
@@ -399,6 +400,24 @@ func (r LxdNetworkResource) Delete(ctx context.Context, req resource.DeleteReque
 	if err != nil {
 		resp.Diagnostics.AddError(fmt.Sprintf("Failed to remove network %q", networkName), err.Error())
 	}
+}
+
+func (r *LxdNetworkResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
+	remote, project, name, diag := common.SplitImportID(req.ID, "network")
+	if diag != nil {
+		resp.Diagnostics.Append(diag)
+		return
+	}
+
+	if remote != "" {
+		resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("remote"), remote)...)
+	}
+
+	if project != "" {
+		resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("project"), project)...)
+	}
+
+	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("name"), name)...)
 }
 
 // ComputedKeys returns list of compuuted LXD config keys.
