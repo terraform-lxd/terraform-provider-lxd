@@ -80,70 +80,6 @@ func NewLxdProvider(lxdConfig *lxd_config.Config, refreshInterval time.Duration,
 
 }
 
-// Remote returns LXD remote with the given name or default otherwise.
-func (p *LxdProviderConfig) Remote(name string) *LxdProviderRemoteConfig {
-	p.mux.RLock()
-	defer p.mux.RUnlock()
-
-	remote, ok := p.remotes[name]
-	if !ok {
-		remote, ok = p.remotes[p.lxdConfig.DefaultRemote]
-		if !ok {
-			return nil
-		}
-	}
-
-	return &remote
-}
-
-// SetRemote set LXD remote for the given name.
-func (p *LxdProviderConfig) SetRemote(remote LxdProviderRemoteConfig, isDefault bool) {
-	p.mux.Lock()
-	defer p.mux.Unlock()
-
-	if isDefault {
-		p.lxdConfig.DefaultRemote = remote.Name
-	}
-
-	p.remotes[remote.Name] = remote
-}
-
-// setLxdServer set LXD server for the given name.
-func (p *LxdProviderConfig) setLxdConfigRemote(name string, remote lxd_config.Remote) {
-	p.mux.Lock()
-	defer p.mux.Unlock()
-
-	p.lxdConfig.Remotes[name] = remote
-}
-
-// setLxdServer set LXD server for the given name.
-func (p *LxdProviderConfig) getLxdConfigRemote(name string) lxd_config.Remote {
-	p.mux.RLock()
-	defer p.mux.RUnlock()
-
-	return p.lxdConfig.Remotes[name]
-}
-
-// getLxdConfigInstanceServer will retrieve an LXD InstanceServer client
-// in a conncurrent-safe way.
-func (p *LxdProviderConfig) getLxdConfigInstanceServer(remoteName string) (lxd.InstanceServer, error) {
-	p.mux.RLock()
-	defer p.mux.RUnlock()
-
-	instServer, err := p.lxdConfig.GetInstanceServer(remoteName)
-	return instServer, err
-}
-
-// getLxdConfigImageServer will retrieve an LXD ImageServer client
-// in a conncurrent-safe way.
-func (p *LxdProviderConfig) getLxdConfigImageServer(remoteName string) (lxd.ImageServer, error) {
-	p.mux.RLock()
-	defer p.mux.RUnlock()
-
-	imgServer, err := p.lxdConfig.GetImageServer(remoteName)
-	return imgServer, err
-}
-
 // InstanceServer returns a LXD InstanceServer client for the given remote.
 // An error is returned if the remote is not a InstanceServer.
 func (p *LxdProviderConfig) InstanceServer(remoteName string) (lxd.InstanceServer, error) {
@@ -467,4 +403,76 @@ func determineLxdDir() (string, error) {
 	}
 
 	return "", fmt.Errorf("LXD socket with write permissions not found. Searched LXD directories: %v", lxdDirs)
+}
+
+/* Getters & Setters */
+
+// Remote returns LXD remote with the given name or default otherwise.
+func (p *LxdProviderConfig) Remote(name string) *LxdProviderRemoteConfig {
+	p.mux.RLock()
+	defer p.mux.RUnlock()
+
+	remote, ok := p.remotes[name]
+	if !ok {
+		remote, ok = p.remotes[p.lxdConfig.DefaultRemote]
+		if !ok {
+			return nil
+		}
+	}
+
+	return &remote
+}
+
+// SetRemote set LXD remote for the given name.
+func (p *LxdProviderConfig) SetRemote(remote LxdProviderRemoteConfig, isDefault bool) {
+	p.mux.Lock()
+	defer p.mux.Unlock()
+
+	if isDefault {
+		p.lxdConfig.DefaultRemote = remote.Name
+	}
+
+	p.remotes[remote.Name] = remote
+}
+
+// setLxdServer set LXD server for the given name.
+func (p *LxdProviderConfig) getLxdConfigRemote(name string) lxd_config.Remote {
+	p.mux.RLock()
+	defer p.mux.RUnlock()
+
+	return p.lxdConfig.Remotes[name]
+}
+
+// setLxdServer set LXD server for the given name.
+func (p *LxdProviderConfig) setLxdConfigRemote(name string, remote lxd_config.Remote) {
+	p.mux.Lock()
+	defer p.mux.Unlock()
+
+	p.lxdConfig.Remotes[name] = remote
+}
+
+// getLxdConfigInstanceServer will retrieve an LXD InstanceServer client
+// in a conncurrent-safe way.
+func (p *LxdProviderConfig) getLxdConfigInstanceServer(remoteName string) (lxd.InstanceServer, error) {
+	p.mux.RLock()
+	defer p.mux.RUnlock()
+
+	instServer, err := p.lxdConfig.GetInstanceServer(remoteName)
+	return instServer, err
+}
+
+// getLxdConfigImageServer will retrieve an LXD ImageServer client
+// in a conncurrent-safe way.
+func (p *LxdProviderConfig) getLxdConfigImageServer(remoteName string) (lxd.ImageServer, error) {
+	p.mux.RLock()
+	defer p.mux.RUnlock()
+
+	imgServer, err := p.lxdConfig.GetImageServer(remoteName)
+	return imgServer, err
+}
+
+// RefreshInterval returns a time interval on which provider should
+// retry to communicate with the LXD server.
+func (p *LxdProviderConfig) RefreshInterval() time.Duration {
+	return p.refreshInterval
 }
