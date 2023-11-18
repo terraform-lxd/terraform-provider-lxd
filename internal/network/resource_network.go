@@ -216,6 +216,7 @@ func (r LxdNetworkResource) Create(ctx context.Context, req resource.CreateReque
 
 	network := api.NetworksPost{
 		Name: data.Name.ValueString(),
+		Type: data.Type.ValueString(),
 		NetworkPut: api.NetworkPut{
 			Description: data.Description.ValueString(),
 			Config:      config,
