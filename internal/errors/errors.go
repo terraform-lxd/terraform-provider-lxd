@@ -19,6 +19,12 @@ func NewInstanceServerError(err error) diag.Diagnostic {
 	return diag.NewErrorDiagnostic("Failed to retrieve LXD InstanceServer", err.Error())
 }
 
+// NewImageServerError converts an error into diagnostic indicating
+// that provider failed to retrieve LXD image server client.
+func NewImageServerError(err error) diag.Diagnostic {
+	return diag.NewErrorDiagnostic("Failed to retrieve LXD ImageServer", err.Error())
+}
+
 // NewProviderDataTypeError returns a diagnostic error indicating that
 // a resource has received provider data of unexpected type.
 func NewProviderDataTypeError(value any) diag.Diagnostic {

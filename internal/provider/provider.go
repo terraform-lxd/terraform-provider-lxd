@@ -17,6 +17,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
+	"github.com/terraform-lxd/terraform-provider-lxd/internal/instance"
 	"github.com/terraform-lxd/terraform-provider-lxd/internal/network"
 	"github.com/terraform-lxd/terraform-provider-lxd/internal/profile"
 	"github.com/terraform-lxd/terraform-provider-lxd/internal/project"
@@ -285,24 +286,18 @@ func (p *LxdProvider) Resources(_ context.Context) []func() resource.Resource {
 	// ResourcesMap: map[string]*schema.Resource{
 	// 	"lxd_cached_image":            resourceLxdCachedImage(),
 	// 	"lxd_publish_image":           resourceLxdPublishImage(),
-	// 	"lxd_container":               resourceLxdContainer(),
-	// 	"lxd_container_file":          resourceLxdContainerFile(),
-	// 	"lxd_instance":                resourceLxdInstance(),
 	// 	"lxd_instance_file":           resourceLxdInstanceFile(),
-	// 	"lxd_network":                 resourceLxdNetwork(),
 	// 	"lxd_network_lb":              resourceLxdNetworkLB(),
 	// 	"lxd_network_zone":            resourceLxdNetworkZone(),
 	// 	"lxd_network_zone_record":     resourceLxdNetworkZoneRecord(),
-	// 	"lxd_profile":                 resourceLxdProfile(),
-	// 	"lxd_project":                 resourceLxdProject(),
 	// 	"lxd_snapshot":                resourceLxdSnapshot(),
-	// 	"lxd_storage_pool":            resourceLxdStoragePool(),
 	// 	"lxd_volume":                  resourceLxdVolume(),
 	// 	"lxd_volume_copy":             resourceLxdVolumeCopy(),
 	// 	"lxd_volume_container_attach": resourceLxdVolumeContainerAttach(),
 	// },
 
 	return []func() resource.Resource{
+		instance.NewLxdInstanceResource,
 		network.NewLxdNetworkResource,
 		profile.NewLxdProfileResource,
 		project.NewLxdProjectResource,
