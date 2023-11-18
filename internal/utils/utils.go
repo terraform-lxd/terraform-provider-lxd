@@ -3,40 +3,11 @@ package utils
 import (
 	"encoding/json"
 	"fmt"
+	"sort"
+	"strings"
 
 	"github.com/hashicorp/go-version"
 )
-
-// // ToStringTypeMap convert types.Map into map[string]types.String.
-// func ToStringTypeMap(ctx context.Context, m types.Map) (map[string]types.String, diag.Diagnostics) {
-// 	config := make(map[string]types.String, len(m.Elements()))
-// 	diags := m.ElementsAs(ctx, &config, false)
-// 	return config, diags
-// }
-
-// // ToStringMap convert types.Map into map[string]string.
-// func ToStringMap(ctx context.Context, m types.Map) (map[string]string, diag.Diagnostics) {
-// 	raw, diags := ToStringTypeMap(ctx, m)
-// 	if diags.HasError() {
-// 		return nil, diags
-// 	}
-
-// 	config := make(map[string]string, len(raw))
-// 	for k, v := range raw {
-// 		if v.IsNull() || v.IsUnknown() {
-// 			config[k] = ""
-// 		} else {
-// 			config[k] = v.ValueString()
-// 		}
-// 	}
-
-// 	return config, diags
-// }
-
-// // FromStringMap convert map[string]string into types.Map.
-// func FromStringMap(ctx context.Context, m map[string]string) (types.Map, diag.Diagnostics) {
-// 	return types.MapValueFrom(ctx, types.StringType, m)
-// }
 
 // CheckVersion checks whether the version satisfies the provided version constraints.
 func CheckVersion(versionString string, versionConstraint string) (bool, error) {
@@ -53,6 +24,17 @@ func CheckVersion(versionString string, versionConstraint string) (bool, error) 
 	return constraint.Check(ver), nil
 }
 
+// HasAnyPrefix checks whether a value has any of the prefixes.
+func HasAnyPrefix(value string, prefixes []string) bool {
+	for _, p := range prefixes {
+		if strings.HasPrefix(value, p) {
+			return true
+		}
+	}
+
+	return false
+}
+
 // ValueInSlice checks whether a value is present in the given slice.
 func ValueInSlice[T comparable](value T, slice []T) bool {
 	for _, v := range slice {
@@ -62,6 +44,17 @@ func ValueInSlice[T comparable](value T, slice []T) bool {
 	}
 
 	return false
+}
+
+// SortMapKeys returns map keys sorted alphabetically.
+func SortMapKeys[T any](m map[string]T) []string {
+	keys := make([]string, 0, len(m))
+	for key := range m {
+		keys = append(keys, key)
+	}
+
+	sort.Strings(keys)
+	return keys
 }
 
 // ToPrettyJSON converts the given value into JSON string. If value cannot
