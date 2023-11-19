@@ -21,8 +21,7 @@ func TestAccNetwork_basic(t *testing.T) {
 					resource.TestCheckResourceAttr("lxd_network.eth1", "type", "bridge"),
 					resource.TestCheckResourceAttr("lxd_network.eth1", "managed", "true"),
 					resource.TestCheckResourceAttr("lxd_network.eth1", "description", ""),
-					resource.TestCheckResourceAttr("lxd_network.eth1", "config.%", "1"),
-					resource.TestCheckResourceAttr("lxd_network.eth1", "config.ipv4.address", "10.150.19.1/24"),
+					resource.TestCheckResourceAttr("lxd_network.eth1", "config.%", "0"),
 				),
 			},
 		},
@@ -174,13 +173,74 @@ func TestAccNetwork_project(t *testing.T) {
 	})
 }
 
+func TestAccNetwork_importBasic(t *testing.T) {
+	resourceName := "lxd_network.eth1"
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { acctest.PreCheck(t) },
+		ProtoV6ProviderFactories: acctest.ProtoV6ProviderFactories,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccNetwork_basic(),
+			},
+			{
+				ResourceName:                         resourceName,
+				ImportStateId:                        "eth1",
+				ImportState:                          true,
+				ImportStateVerify:                    true,
+				ImportStateVerifyIdentifierAttribute: "name",
+			},
+		},
+	})
+}
+
+func TestAccNetwork_importDesc(t *testing.T) {
+	resourceName := "lxd_network.eth1"
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { acctest.PreCheck(t) },
+		ProtoV6ProviderFactories: acctest.ProtoV6ProviderFactories,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccNetwork_desc(),
+			},
+			{
+				ResourceName:                         resourceName,
+				ImportStateId:                        "eth1",
+				ImportStateVerifyIdentifierAttribute: "name",
+				ImportStateVerify:                    false, // State of "config" will be always empty.
+				ImportState:                          true,
+			},
+		},
+	})
+}
+
+func TestAccNetwork_importProject(t *testing.T) {
+	resourceName := "lxd_network.eth1"
+	projectName := petname.Name()
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { acctest.PreCheck(t) },
+		ProtoV6ProviderFactories: acctest.ProtoV6ProviderFactories,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccNetwork_project(projectName),
+			},
+			{
+				ResourceName:                         resourceName,
+				ImportStateId:                        fmt.Sprintf("%s/eth1", projectName),
+				ImportState:                          true,
+				ImportStateVerify:                    true,
+				ImportStateVerifyIdentifierAttribute: "name",
+			},
+		},
+	})
+}
+
 func testAccNetwork_basic() string {
 	return `
 resource "lxd_network" "eth1" {
   name = "eth1"
-  config = {
-    "ipv4.address" = "10.150.19.1/24"
-  }
 }
 `
 }

@@ -32,7 +32,6 @@ type LxdNetworkResourceModel struct {
 	Target      types.String `tfsdk:"target"`
 	Managed     types.Bool   `tfsdk:"managed"`
 	Config      types.Map    `tfsdk:"config"`
-	ConfigState types.Map    `tfsdk:"config_state"`
 }
 
 // LxdNetworkResource represent LXD network resource.
@@ -113,16 +112,8 @@ func (r LxdNetworkResource) Schema(_ context.Context, _ resource.SchemaRequest, 
 				},
 			},
 
-			// Config represents user defined LXD config file.
 			"config": schema.MapAttribute{
 				Optional:    true,
-				ElementType: types.StringType,
-			},
-
-			// Config state represents actual LXD resource state.
-			// It is managed solely by the provider. User config
-			// is merged into it.
-			"config_state": schema.MapAttribute{
 				Computed:    true,
 				ElementType: types.StringType,
 			},
@@ -397,7 +388,7 @@ func (m *LxdNetworkResourceModel) SyncState(ctx context.Context, server lxd.Inst
 	stateConfig := common.StripConfig(network.Config, usrConfig, m.ComputedKeys())
 
 	// Convert config state into schema type.
-	config, diags := common.ToConfigMapType(context.Background(), stateConfig)
+	config, diags := common.ToConfigMapType(ctx, stateConfig)
 	if diags.HasError() {
 		return true, diags
 	}
@@ -406,7 +397,7 @@ func (m *LxdNetworkResourceModel) SyncState(ctx context.Context, server lxd.Inst
 	m.Description = types.StringValue(network.Description)
 	m.Managed = types.BoolValue(network.Managed)
 	m.Type = types.StringValue(network.Type)
-	m.ConfigState = config
+	m.Config = config
 
 	return true, nil
 }
