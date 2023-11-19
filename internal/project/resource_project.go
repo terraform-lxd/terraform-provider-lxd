@@ -129,7 +129,7 @@ func (r LxdProjectResource) Create(ctx context.Context, req resource.CreateReque
 		return
 	}
 
-	diags = data.SyncState(ctx, server)
+	_, diags = data.SyncState(ctx, server)
 	resp.Diagnostics.Append(diags...)
 	if diags.HasError() {
 		return
@@ -156,9 +156,15 @@ func (r LxdProjectResource) Read(ctx context.Context, req resource.ReadRequest, 
 		return
 	}
 
-	diags = data.SyncState(ctx, server)
+	found, diags := data.SyncState(ctx, server)
 	resp.Diagnostics.Append(diags...)
 	if diags.HasError() {
+		return
+	}
+
+	// Remove resource state if resource is not found.
+	if !found {
+		resp.State.RemoveResource(ctx)
 		return
 	}
 
@@ -211,7 +217,7 @@ func (r LxdProjectResource) Update(ctx context.Context, req resource.UpdateReque
 		return
 	}
 
-	diags = data.SyncState(ctx, server)
+	_, diags = data.SyncState(ctx, server)
 	resp.Diagnostics.Append(diags...)
 	if diags.HasError() {
 		return
@@ -247,11 +253,15 @@ func (r LxdProjectResource) Delete(ctx context.Context, req resource.DeleteReque
 
 // SyncState pulls project data from the server and updates the model in-place.
 // This should be called before updating Terraform state.
-func (m *LxdProjectResourceModel) SyncState(ctx context.Context, server lxd.InstanceServer) diag.Diagnostics {
+func (m *LxdProjectResourceModel) SyncState(ctx context.Context, server lxd.InstanceServer) (bool, diag.Diagnostics) {
 	projectName := m.Name.ValueString()
 	project, _, err := server.UseProject(projectName).GetProject(projectName)
 	if err != nil {
-		return diag.Diagnostics{
+		if errors.IsNotFoundError(err) {
+			return false, nil
+		}
+
+		return true, diag.Diagnostics{
 			diag.NewErrorDiagnostic(fmt.Sprintf("Failed to retrieve project %q", projectName), err.Error()),
 		}
 	}
@@ -259,7 +269,7 @@ func (m *LxdProjectResourceModel) SyncState(ctx context.Context, server lxd.Inst
 	// Extract user defined config and merge it with current config state.
 	usrConfig, diags := common.ToConfigMap(ctx, m.Config)
 	if diags.HasError() {
-		return diags
+		return true, diags
 	}
 
 	stateConfig := common.StripConfig(project.Config, usrConfig, m.ComputedKeys())
@@ -267,14 +277,14 @@ func (m *LxdProjectResourceModel) SyncState(ctx context.Context, server lxd.Inst
 	// Convert config state into schema type.
 	config, diags := common.ToConfigMapType(ctx, stateConfig)
 	if diags.HasError() {
-		return diags
+		return true, diags
 	}
 
 	m.Name = types.StringValue(project.Name)
 	m.Description = types.StringValue(project.Description)
 	m.Config = config
 
-	return nil
+	return true, nil
 }
 
 // ComputedKeys returns list of computed config keys.
