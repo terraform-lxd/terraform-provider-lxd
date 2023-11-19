@@ -208,7 +208,7 @@ resource "lxd_storage_pool" "storage_pool1" {
     "lxd_storage_pool.storage_pool1_node2",
   ]
 
-  name = "%[1]s"
+  name   = "%[1]s"
   driver = "%[2]s"
 }
 	`, name, driver)

@@ -162,7 +162,7 @@ func (r *LxdStoragePoolResource) Configure(_ context.Context, req resource.Confi
 	r.provider = provider
 }
 
-func (r *LxdStoragePoolResource) ModifyPlan(ctx context.Context, req resource.ModifyPlanRequest, resp *resource.ModifyPlanResponse) {
+func (r LxdStoragePoolResource) ModifyPlan(ctx context.Context, req resource.ModifyPlanRequest, resp *resource.ModifyPlanResponse) {
 	// If resource is being destroyed req.Config will be null.
 	// In such case there is no need for plan modification.
 	if req.Config.Raw.IsNull() {
@@ -181,7 +181,7 @@ func (r *LxdStoragePoolResource) ModifyPlan(ctx context.Context, req resource.Mo
 }
 
 func (r LxdStoragePoolResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
-	var data *LxdStoragePoolResourceModel
+	var data LxdStoragePoolResourceModel
 
 	// Fetch resource model from Terraform plan.
 	diags := req.Plan.Get(ctx, &data)
@@ -248,7 +248,7 @@ func (r LxdStoragePoolResource) Create(ctx context.Context, req resource.CreateR
 }
 
 func (r LxdStoragePoolResource) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
-	var data *LxdStoragePoolResourceModel
+	var data LxdStoragePoolResourceModel
 
 	// Fetch resource model from Terraform state.
 	diags := req.State.Get(ctx, &data)
@@ -295,7 +295,7 @@ func (r LxdStoragePoolResource) Read(ctx context.Context, req resource.ReadReque
 }
 
 func (r LxdStoragePoolResource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
-	var data *LxdStoragePoolResourceModel
+	var data LxdStoragePoolResourceModel
 
 	// Fetch resource model from Terraform plan.
 	diags := req.Plan.Get(ctx, &data)
@@ -373,7 +373,7 @@ func (r LxdStoragePoolResource) Update(ctx context.Context, req resource.UpdateR
 }
 
 func (r LxdStoragePoolResource) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {
-	var data *LxdStoragePoolResourceModel
+	var data LxdStoragePoolResourceModel
 
 	// Fetch resource model from Terraform state.
 	diags := req.State.Get(ctx, &data)
@@ -407,7 +407,7 @@ func (r LxdStoragePoolResource) Delete(ctx context.Context, req resource.DeleteR
 	}
 }
 
-func (r *LxdStoragePoolResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
+func (r LxdStoragePoolResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
 	remote, project, name, diag := common.SplitImportID(req.ID, "storage_pool")
 	if diag != nil {
 		resp.Diagnostics.Append(diag)
