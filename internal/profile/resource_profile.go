@@ -177,12 +177,12 @@ func (r *LxdProfileResource) Configure(_ context.Context, req resource.Configure
 	r.provider = provider
 }
 
-func (r *LxdProfileResource) ModifyPlan(ctx context.Context, req resource.ModifyPlanRequest, resp *resource.ModifyPlanResponse) {
+func (r LxdProfileResource) ModifyPlan(ctx context.Context, req resource.ModifyPlanRequest, resp *resource.ModifyPlanResponse) {
 	common.ModifyConfigStatePlan(ctx, req, resp, nil)
 }
 
 func (r LxdProfileResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
-	var data *LxdProfileResourceModel
+	var data LxdProfileResourceModel
 
 	// Fetch resource model from Terraform plan.
 	diags := req.Plan.Get(ctx, &data)
@@ -241,7 +241,7 @@ func (r LxdProfileResource) Create(ctx context.Context, req resource.CreateReque
 }
 
 func (r LxdProfileResource) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
-	var data *LxdProfileResourceModel
+	var data LxdProfileResourceModel
 
 	// Fetch resource model from Terraform state.
 	diags := req.State.Get(ctx, &data)
@@ -276,7 +276,7 @@ func (r LxdProfileResource) Read(ctx context.Context, req resource.ReadRequest, 
 }
 
 func (r LxdProfileResource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
-	var data *LxdProfileResourceModel
+	var data LxdProfileResourceModel
 
 	// Fetch resource model from Terraform plan.
 	diags := req.Plan.Get(ctx, &data)
@@ -339,7 +339,7 @@ func (r LxdProfileResource) Update(ctx context.Context, req resource.UpdateReque
 }
 
 func (r LxdProfileResource) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {
-	var data *LxdProfileResourceModel
+	var data LxdProfileResourceModel
 
 	// Fetch resource model from Terraform state.
 	diags := req.State.Get(ctx, &data)
@@ -367,7 +367,7 @@ func (r LxdProfileResource) Delete(ctx context.Context, req resource.DeleteReque
 	}
 }
 
-func (r *LxdProfileResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
+func (r LxdProfileResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
 	remote, project, name, diag := common.SplitImportID(req.ID, "profile")
 	if diag != nil {
 		resp.Diagnostics.Append(diag)
