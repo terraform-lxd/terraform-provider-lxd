@@ -120,7 +120,7 @@ func (r *LxdProjectResource) Configure(_ context.Context, req resource.Configure
 	r.provider = provider
 }
 
-func (r *LxdProjectResource) ModifyPlan(ctx context.Context, req resource.ModifyPlanRequest, resp *resource.ModifyPlanResponse) {
+func (r LxdProjectResource) ModifyPlan(ctx context.Context, req resource.ModifyPlanRequest, resp *resource.ModifyPlanResponse) {
 
 	// TODO: Always remove computed state from the plan.
 	// TODO: Add changes to the plan that are being applied from user config.
@@ -132,7 +132,7 @@ func (r *LxdProjectResource) ModifyPlan(ctx context.Context, req resource.Modify
 }
 
 func (r LxdProjectResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
-	var data *LxdProjectResourceModel
+	var data LxdProjectResourceModel
 
 	// Fetch resource model from Terraform plan.
 	diags := req.Plan.Get(ctx, &data)
@@ -180,7 +180,7 @@ func (r LxdProjectResource) Create(ctx context.Context, req resource.CreateReque
 }
 
 func (r LxdProjectResource) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
-	var data *LxdProjectResourceModel
+	var data LxdProjectResourceModel
 
 	// Fetch resource model from Terraform state.
 	diags := req.State.Get(ctx, &data)
@@ -209,7 +209,7 @@ func (r LxdProjectResource) Read(ctx context.Context, req resource.ReadRequest, 
 }
 
 func (r LxdProjectResource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
-	var data *LxdProjectResourceModel
+	var data LxdProjectResourceModel
 
 	// Fetch resource model from Terraform plan.
 	diags := req.Plan.Get(ctx, &data)
@@ -268,7 +268,7 @@ func (r LxdProjectResource) Update(ctx context.Context, req resource.UpdateReque
 }
 
 func (r LxdProjectResource) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {
-	var data *LxdProjectResourceModel
+	var data LxdProjectResourceModel
 
 	// Fetch resource model from Terraform state.
 	diags := req.State.Get(ctx, &data)
