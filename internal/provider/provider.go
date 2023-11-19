@@ -286,7 +286,6 @@ func (p *LxdProvider) Resources(_ context.Context) []func() resource.Resource {
 	// ResourcesMap: map[string]*schema.Resource{
 	// 	"lxd_cached_image":            resourceLxdCachedImage(),
 	// 	"lxd_publish_image":           resourceLxdPublishImage(),
-	// 	"lxd_instance_file":           resourceLxdInstanceFile(),
 	// 	"lxd_network_lb":              resourceLxdNetworkLB(),
 	// 	"lxd_network_zone":            resourceLxdNetworkZone(),
 	// 	"lxd_network_zone_record":     resourceLxdNetworkZoneRecord(),
@@ -298,6 +297,7 @@ func (p *LxdProvider) Resources(_ context.Context) []func() resource.Resource {
 
 	return []func() resource.Resource{
 		instance.NewLxdInstanceResource,
+		instance.NewLxdInstanceFileResource,
 		network.NewLxdNetworkResource,
 		profile.NewLxdProfileResource,
 		project.NewLxdProjectResource,

@@ -417,7 +417,7 @@ func TestAccInstance_fileUploadSource(t *testing.T) {
 					resource.TestCheckResourceAttr("lxd_instance.instance1", "status", "Running"),
 					resource.TestCheckResourceAttr("lxd_instance.instance1", "file.#", "1"),
 					resource.TestCheckResourceAttr("lxd_instance.instance1", "file.0.mode", "0644"),
-					resource.TestCheckResourceAttr("lxd_instance.instance1", "file.0.source", "../acctest/test-fixtures/test-file.txt"),
+					resource.TestCheckResourceAttr("lxd_instance.instance1", "file.0.source", "../acctest/fixtures/test-file.txt"),
 					resource.TestCheckResourceAttr("lxd_instance.instance1", "file.0.target_file", "/foo/bar.txt"),
 					resource.TestCheckResourceAttr("lxd_instance.instance1", "file.0.create_directories", "true"),
 				),
@@ -879,7 +879,7 @@ resource "lxd_instance" "instance1" {
   image = "images:alpine/3.18/amd64"
 
   file {
-    source             = "../acctest/test-fixtures/test-file.txt"
+    source             = "../acctest/fixtures/test-file.txt"
     target_file        = "/foo/bar.txt"
     mode               = "0644"
     create_directories = true
