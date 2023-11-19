@@ -27,10 +27,11 @@ func TestAccProject_basic(t *testing.T) {
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("lxd_project.project0", "name", projectName),
 					resource.TestCheckResourceAttr("lxd_project.project0", "description", "Terraform provider test project"),
-					resource.TestCheckResourceAttr("lxd_project.project0", "config_state.features.images", "true"),
-					resource.TestCheckResourceAttr("lxd_project.project0", "config_state.features.profiles", "true"),
-					resource.TestCheckResourceAttr("lxd_project.project0", "config_state.features.storage.volumes", "true"),
-					resource.TestCheckResourceAttr("lxd_project.project0", "config_state.features.storage.buckets", "true"),
+					// Ensure state of computed keys is not tracked.
+					resource.TestCheckNoResourceAttr("lxd_project.project0", "config.features.images"),
+					resource.TestCheckNoResourceAttr("lxd_project.project0", "config.features.profiles"),
+					resource.TestCheckNoResourceAttr("lxd_project.project0", "config.features.storage.volumes"),
+					resource.TestCheckNoResourceAttr("lxd_project.project0", "config.features.storage.buckets"),
 				),
 			},
 		},
@@ -48,17 +49,52 @@ func TestAccProject_config(t *testing.T) {
 				Config: testAccProject_config(projectName),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("lxd_project.project1", "name", projectName),
-					resource.TestCheckResourceAttr("lxd_project.project1", "config.features.images", "false"),
+					resource.TestCheckResourceAttr("lxd_project.project1", "config.features.images", "true"),
 					resource.TestCheckResourceAttr("lxd_project.project1", "config.features.profiles", "false"),
-					resource.TestCheckResourceAttr("lxd_project.project1", "config_state.features.images", "false"),
-					resource.TestCheckResourceAttr("lxd_project.project1", "config_state.features.profiles", "false"),
-					resource.TestCheckResourceAttr("lxd_project.project1", "config_state.features.storage.volumes", "true"),
-					resource.TestCheckResourceAttr("lxd_project.project1", "config_state.features.storage.buckets", "true"),
+					// Ensure state of computed keys is not tracked.
+					resource.TestCheckNoResourceAttr("lxd_project.project1", "config.features.storage.volumes"),
+					resource.TestCheckNoResourceAttr("lxd_project.project1", "config.features.storage.buckets"),
 				),
 			},
 		},
 	})
 }
+
+func TestAccProject_updateConfig(t *testing.T) {
+	projectName := petname.Generate(2, "-")
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { acctest.PreCheck(t) },
+		ProtoV6ProviderFactories: acctest.ProtoV6ProviderFactories,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccProject_updateConfig_1(projectName),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr("lxd_project.project1", "name", projectName),
+					resource.TestCheckResourceAttr("lxd_project.project1", "description", "Old description"),
+					resource.TestCheckResourceAttr("lxd_project.project1", "config.features.images", "true"),
+					resource.TestCheckResourceAttr("lxd_project.project1", "config.features.profiles", "false"),
+					// Ensure state of computed keys is not tracked.
+					resource.TestCheckNoResourceAttr("lxd_project.project1", "config.features.storage.volumes"),
+					resource.TestCheckNoResourceAttr("lxd_project.project1", "config.features.storage.buckets"),
+				),
+			},
+			{
+				Config: testAccProject_updateConfig_2(projectName),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr("lxd_project.project1", "name", projectName),
+					resource.TestCheckResourceAttr("lxd_project.project1", "description", "New description"),
+					resource.TestCheckResourceAttr("lxd_project.project1", "config.features.images", "false"),
+					resource.TestCheckResourceAttr("lxd_project.project1", "config.features.profiles", "true"),
+					// Ensure state of computed keys is not tracked.
+					resource.TestCheckNoResourceAttr("lxd_project.project1", "config.features.storage.volumes"),
+					resource.TestCheckNoResourceAttr("lxd_project.project1", "config.features.storage.buckets"),
+				),
+			},
+		},
+	})
+}
+
 func testAccProject_basic(name string) string {
 	return fmt.Sprintf(`
 resource "lxd_project" "project0" {
@@ -73,8 +109,32 @@ resource "lxd_project" "project1" {
   name        = "%s"
   description = "Terraform provider test project"
   config = {
-	"features.images"   = false
+	"features.images"   = true
 	"features.profiles" = false
+  }
+}`, name)
+}
+
+func testAccProject_updateConfig_1(name string) string {
+	return fmt.Sprintf(`
+resource "lxd_project" "project1" {
+  name        = "%s"
+  description = "Old description"
+  config = {
+	"features.images"   = true
+	"features.profiles" = false
+  }
+}`, name)
+}
+
+func testAccProject_updateConfig_2(name string) string {
+	return fmt.Sprintf(`
+resource "lxd_project" "project1" {
+  name        = "%s"
+  description = "New description"
+  config = {
+	"features.images"   = false
+	"features.profiles" = true
   }
 }`, name)
 }

@@ -13,10 +13,10 @@ import (
 type configKeyValidator struct{}
 
 func (v configKeyValidator) Description(ctx context.Context) string {
-	return fmt.Sprintf("config key cannot have %q, %q or %q prefix", "volatile.", "image.", "limits.")
+	return fmt.Sprintf("config key cannot have %q, %q, or %q prefix", "volatile.", "image.", "limits.")
 }
 func (v configKeyValidator) MarkdownDescription(ctx context.Context) string {
-	return fmt.Sprintf("config key cannot have `%s`, `%s` or `%s` prefix", "volatile.", "image.", "limits.")
+	return fmt.Sprintf("config key cannot have `%s`, `%s`, or `%s` prefix", "volatile.", "image.", "limits.")
 }
 
 func (v configKeyValidator) ValidateString(ctx context.Context, req validator.StringRequest, resp *validator.StringResponse) {

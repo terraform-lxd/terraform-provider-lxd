@@ -8,10 +8,12 @@ import (
 	"github.com/canonical/lxd/shared/api"
 	"github.com/hashicorp/terraform-plugin-framework-validators/mapvalidator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
+	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/mapdefault"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringdefault"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
@@ -29,35 +31,6 @@ type LxdProfileResourceModel struct {
 	Remote      types.String `tfsdk:"remote"`
 	Devices     types.Set    `tfsdk:"device"`
 	Config      types.Map    `tfsdk:"config"`
-	ConfigState types.Map    `tfsdk:"config_state"`
-}
-
-// Sync pulls profile data from the server and updates the model in-place.
-// This should be called before updating Terraform state.
-func (m *LxdProfileResourceModel) Sync(server lxd.InstanceServer, profileName string) diag.Diagnostics {
-	profile, _, err := server.GetProfile(profileName)
-	if err != nil {
-		return diag.Diagnostics{
-			diag.NewErrorDiagnostic(fmt.Sprintf("Failed to retrieve profile %q", profileName), err.Error()),
-		}
-	}
-
-	config, diags := common.ToConfigMapType(context.Background(), profile.Config)
-	if diags.HasError() {
-		return diags
-	}
-
-	devices, diags := common.ToDeviceSetType(context.Background(), profile.Devices)
-	if diags.HasError() {
-		return diags
-	}
-
-	m.Name = types.StringValue(profile.Name)
-	m.Description = types.StringValue(profile.Description)
-	m.Devices = devices
-	m.ConfigState = config
-
-	return nil
 }
 
 // LxdProfileResource represent LXD profile resource.
@@ -109,18 +82,11 @@ func (r LxdProfileResource) Schema(_ context.Context, _ resource.SchemaRequest, 
 				},
 			},
 
-			// Config represents user defined LXD config file.
 			"config": schema.MapAttribute{
 				Optional:    true,
-				ElementType: types.StringType,
-			},
-
-			// Config state represents actual LXD resource state.
-			// It is managed solely by the provider. User config
-			// is merged into it.
-			"config_state": schema.MapAttribute{
 				Computed:    true,
 				ElementType: types.StringType,
+				Default:     mapdefault.StaticValue(types.MapValueMust(types.StringType, map[string]attr.Value{})),
 			},
 		},
 
@@ -177,10 +143,6 @@ func (r *LxdProfileResource) Configure(_ context.Context, req resource.Configure
 	r.provider = provider
 }
 
-func (r LxdProfileResource) ModifyPlan(ctx context.Context, req resource.ModifyPlanRequest, resp *resource.ModifyPlanResponse) {
-	common.ModifyConfigStatePlan(ctx, req, resp, nil)
-}
-
 func (r LxdProfileResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
 	var data LxdProfileResourceModel
 
@@ -203,7 +165,7 @@ func (r LxdProfileResource) Create(ctx context.Context, req resource.CreateReque
 		server = server.UseProject(project)
 	}
 
-	// Convert profile config to map.
+	// Convert profile config and devices to map.
 	config, diag := common.ToConfigMap(ctx, data.Config)
 	resp.Diagnostics.Append(diag...)
 
@@ -229,7 +191,7 @@ func (r LxdProfileResource) Create(ctx context.Context, req resource.CreateReque
 		return
 	}
 
-	diags = data.Sync(server, profile.Name)
+	diags = r.SyncState(ctx, server, &data)
 	resp.Diagnostics.Append(diags...)
 	if diags.HasError() {
 		return
@@ -262,9 +224,7 @@ func (r LxdProfileResource) Read(ctx context.Context, req resource.ReadRequest, 
 		server = server.UseProject(project)
 	}
 
-	profileName := data.Name.ValueString()
-
-	diags = data.Sync(server, profileName)
+	diags = r.SyncState(ctx, server, &data)
 	resp.Diagnostics.Append(diags...)
 	if diags.HasError() {
 		return
@@ -327,7 +287,7 @@ func (r LxdProfileResource) Update(ctx context.Context, req resource.UpdateReque
 		return
 	}
 
-	diags = data.Sync(server, profileName)
+	diags = r.SyncState(ctx, server, &data)
 	resp.Diagnostics.Append(diags...)
 	if diags.HasError() {
 		return
@@ -383,4 +343,35 @@ func (r LxdProfileResource) ImportState(ctx context.Context, req resource.Import
 	}
 
 	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("name"), name)...)
+}
+
+// SyncState pulls profile data from the server and updates the model in-place.
+// This should be called before updating Terraform state.
+func (r LxdProfileResource) SyncState(ctx context.Context, server lxd.InstanceServer, m *LxdProfileResourceModel) diag.Diagnostics {
+	respDiags := diag.Diagnostics{}
+
+	profileName := m.Name.ValueString()
+	profile, _, err := server.GetProfile(profileName)
+	if err != nil {
+		respDiags.Append(diag.NewErrorDiagnostic(fmt.Sprintf("Failed to retrieve profile %q", profileName), err.Error()))
+		return respDiags
+	}
+
+	// Convert config state and devices into schema types.
+	config, diags := common.ToConfigMapType(ctx, profile.Config)
+	respDiags.Append(diags...)
+
+	devices, diags := common.ToDeviceSetType(ctx, profile.Devices)
+	respDiags.Append(diags...)
+
+	if respDiags.HasError() {
+		return respDiags
+	}
+
+	m.Name = types.StringValue(profile.Name)
+	m.Description = types.StringValue(profile.Description)
+	m.Devices = devices
+	m.Config = config
+
+	return nil
 }

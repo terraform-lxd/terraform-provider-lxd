@@ -5,32 +5,23 @@ import (
 	"strings"
 
 	"github.com/hashicorp/terraform-plugin-framework/diag"
-	"github.com/hashicorp/terraform-plugin-framework/path"
-	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 )
 
-// ModifyConfigStatePlan is used to determines which configuration changes
-// are computed by LXD and left untouched, and which should be considered
-// modified externally and therefore removed. User defined configuration
-// has precedence and is always retained.
-func ModifyConfigStatePlan(ctx context.Context, req resource.ModifyPlanRequest, resp *resource.ModifyPlanResponse, computedKeys []string) {
-	// Ignore plan modification on create (state == nil)
-	// or destroy (plan == nil).
-	if req.State.Raw.IsNull() || req.Plan.Raw.IsNull() {
-		return
+// ToConfigMap converts config of type types.Map into map[string]string.
+func ToConfigMap(ctx context.Context, m types.Map) (map[string]string, diag.Diagnostics) {
+	if m.IsNull() || m.IsUnknown() {
+		return make(map[string]string), nil
 	}
 
-	// Read user defined configuration, and config_state configuration
-	// from Terraform state.
-	var config, configState map[string]string
-	req.Config.GetAttribute(ctx, path.Root("config"), &config)
-	req.State.GetAttribute(ctx, path.Root("config_state"), &configState)
+	config := make(map[string]string, len(m.Elements()))
+	diags := m.ElementsAs(ctx, &config, false)
+	return config, diags
+}
 
-	// Final config_state plan should be evaluated from user defined
-	// configuration and current config_state.
-	newConfigState := MergeConfig(configState, config, computedKeys)
-	resp.Plan.SetAttribute(ctx, path.Root("config_state"), newConfigState)
+// ToConfigMapType converts map[string]string into config of type types.Map.
+func ToConfigMapType(ctx context.Context, m map[string]string) (types.Map, diag.Diagnostics) {
+	return types.MapValueFrom(ctx, types.StringType, m)
 }
 
 // MergeConfig merges resource (existing) configuration with user defined
@@ -39,10 +30,10 @@ func ModifyConfigStatePlan(ctx context.Context, req resource.ModifyPlanRequest, 
 func MergeConfig(resConfig map[string]string, usrConfig map[string]string, computedKeys []string) map[string]string {
 	config := make(map[string]string)
 
-	// Add user defined entries to the config.
+	// Add user defined non-empty entries to the config. Empty values
+	// in LXD configuration are considered null (unset).
 	for k, v := range usrConfig {
-		// Empty values in LXD configuration are considered
-		// null (unset).
+
 		if v != "" {
 			config[k] = v
 		}
@@ -54,6 +45,38 @@ func MergeConfig(resConfig map[string]string, usrConfig map[string]string, compu
 	for k, v := range resConfig {
 		_, ok := usrConfig[k]
 		if !ok && v != "" && isComputedKey(k, computedKeys) {
+			config[k] = v
+		}
+	}
+
+	return config
+}
+
+// StripConfig removes any computed keys from the user-defined configuration
+// file in order to be able to produce a consistent Terraform plan. If there
+// is a non-computed-key entry, it will be retained in the configuration and
+// will trigger an error.
+func StripConfig(resConfig map[string]string, usrConfig map[string]string, computedKeys []string) map[string]string {
+	config := make(map[string]string)
+
+	// Populate empty values from user config, so they do not "disappear"
+	// from the state.
+	for k, v := range usrConfig {
+		if v == "" {
+			config[k] = v
+		}
+	}
+
+	// Apply entries to the config that are not empty (unset), are not
+	// computed, or are present in the user configuration file. The last
+	// one ensures that the correct change is shown in the terraform plan.
+	for k, v := range resConfig {
+		if v == "" {
+			continue
+		}
+
+		_, ok := usrConfig[k]
+		if ok || !isComputedKey(k, computedKeys) {
 			config[k] = v
 		}
 	}
@@ -77,20 +100,4 @@ func isComputedKey(key string, computedKeys []string) bool {
 	}
 
 	return false
-}
-
-// ToConfigMap converts config of type types.Map into map[string]string.
-func ToConfigMap(ctx context.Context, m types.Map) (map[string]string, diag.Diagnostics) {
-	if m.IsNull() || m.IsUnknown() {
-		return make(map[string]string), nil
-	}
-
-	config := make(map[string]string, len(m.Elements()))
-	diags := m.ElementsAs(ctx, &config, false)
-	return config, diags
-}
-
-// ToConfigMapType converts map[string]string into config of type types.Map.
-func ToConfigMapType(ctx context.Context, m map[string]string) (types.Map, diag.Diagnostics) {
-	return types.MapValueFrom(ctx, types.StringType, m)
 }

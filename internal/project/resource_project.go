@@ -6,9 +6,11 @@ import (
 
 	lxd "github.com/canonical/lxd/client"
 	"github.com/canonical/lxd/shared/api"
+	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/mapdefault"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringdefault"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
@@ -24,29 +26,6 @@ type LxdProjectResourceModel struct {
 	Description types.String `tfsdk:"description"`
 	Remote      types.String `tfsdk:"remote"`
 	Config      types.Map    `tfsdk:"config"`
-	ConfigState types.Map    `tfsdk:"config_state"`
-}
-
-// Sync pulls project data from the server and updates the model in-place.
-// This should be called before updating Terraform state.
-func (m *LxdProjectResourceModel) Sync(server lxd.InstanceServer, projectName string) diag.Diagnostics {
-	project, _, err := server.UseProject(projectName).GetProject(projectName)
-	if err != nil {
-		return diag.Diagnostics{
-			diag.NewErrorDiagnostic(fmt.Sprintf("Failed to retrieve project %q", projectName), err.Error()),
-		}
-	}
-
-	config, diags := common.ToConfigMapType(context.Background(), project.Config)
-	if diags.HasError() {
-		return diags
-	}
-
-	m.Name = types.StringValue(project.Name)
-	m.Description = types.StringValue(project.Description)
-	m.ConfigState = config
-
-	return nil
 }
 
 // LxdProjectResource represent LXD project resource.
@@ -81,18 +60,11 @@ func (r LxdProjectResource) Schema(_ context.Context, _ resource.SchemaRequest, 
 				Default:  stringdefault.StaticString(""),
 			},
 
-			// Config represents user defined LXD config file.
 			"config": schema.MapAttribute{
 				Optional:    true,
-				ElementType: types.StringType,
-			},
-
-			// Config state represents actual LXD resource state.
-			// It is managed solely by the provider. User config
-			// is merged into it.
-			"config_state": schema.MapAttribute{
 				Computed:    true,
 				ElementType: types.StringType,
+				Default:     mapdefault.StaticValue(types.MapValueMust(types.StringType, map[string]attr.Value{})),
 			},
 
 			"remote": schema.StringAttribute{
@@ -118,17 +90,6 @@ func (r *LxdProjectResource) Configure(_ context.Context, req resource.Configure
 	}
 
 	r.provider = provider
-}
-
-func (r LxdProjectResource) ModifyPlan(ctx context.Context, req resource.ModifyPlanRequest, resp *resource.ModifyPlanResponse) {
-
-	// TODO: Always remove computed state from the plan.
-	// TODO: Add changes to the plan that are being applied from user config.
-	//    If user value is not set (null/unknown): ignore.
-	//    If user value is an empty string       : unset specific value.
-	//    If user value is set                   : overwrite this value.
-
-	common.ModifyConfigStatePlan(ctx, req, resp, r.ComputedKeys())
 }
 
 func (r LxdProjectResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
@@ -168,7 +129,7 @@ func (r LxdProjectResource) Create(ctx context.Context, req resource.CreateReque
 		return
 	}
 
-	diags = data.Sync(server, project.Name)
+	diags = data.SyncState(ctx, server)
 	resp.Diagnostics.Append(diags...)
 	if diags.HasError() {
 		return
@@ -195,9 +156,7 @@ func (r LxdProjectResource) Read(ctx context.Context, req resource.ReadRequest, 
 		return
 	}
 
-	projectName := data.Name.ValueString()
-
-	diags = data.Sync(server, projectName)
+	diags = data.SyncState(ctx, server)
 	resp.Diagnostics.Append(diags...)
 	if diags.HasError() {
 		return
@@ -225,24 +184,20 @@ func (r LxdProjectResource) Update(ctx context.Context, req resource.UpdateReque
 	}
 
 	projectName := data.Name.ValueString()
-	_, etag, err := server.UseProject(projectName).GetProject(projectName)
+	project, etag, err := server.UseProject(projectName).GetProject(projectName)
 	if err != nil {
 		resp.Diagnostics.AddError(fmt.Sprintf("Failed to retrieve existing project %q", projectName), err.Error())
 		return
 	}
 
-	// Merge LXD state and user configurations.
 	userConfig, diags := common.ToConfigMap(ctx, data.Config)
 	resp.Diagnostics.Append(diags...)
-
-	stateConfig, diags := common.ToConfigMap(ctx, data.ConfigState)
-	resp.Diagnostics.Append(diags...)
-
-	config := common.MergeConfig(stateConfig, userConfig, r.ComputedKeys())
-
 	if resp.Diagnostics.HasError() {
 		return
 	}
+
+	// Merge project state and user defined configuration.
+	config := common.MergeConfig(project.Config, userConfig, data.ComputedKeys())
 
 	// Update project.
 	newProject := api.ProjectPut{
@@ -256,7 +211,7 @@ func (r LxdProjectResource) Update(ctx context.Context, req resource.UpdateReque
 		return
 	}
 
-	diags = data.Sync(server, projectName)
+	diags = data.SyncState(ctx, server)
 	resp.Diagnostics.Append(diags...)
 	if diags.HasError() {
 		return
@@ -290,8 +245,40 @@ func (r LxdProjectResource) Delete(ctx context.Context, req resource.DeleteReque
 	}
 }
 
-// ComputedKeys returns list of computed LXD config keys.
-func (r LxdProjectResource) ComputedKeys() []string {
+// SyncState pulls project data from the server and updates the model in-place.
+// This should be called before updating Terraform state.
+func (m *LxdProjectResourceModel) SyncState(ctx context.Context, server lxd.InstanceServer) diag.Diagnostics {
+	projectName := m.Name.ValueString()
+	project, _, err := server.UseProject(projectName).GetProject(projectName)
+	if err != nil {
+		return diag.Diagnostics{
+			diag.NewErrorDiagnostic(fmt.Sprintf("Failed to retrieve project %q", projectName), err.Error()),
+		}
+	}
+
+	// Extract user defined config and merge it with current config state.
+	usrConfig, diags := common.ToConfigMap(ctx, m.Config)
+	if diags.HasError() {
+		return diags
+	}
+
+	stateConfig := common.StripConfig(project.Config, usrConfig, m.ComputedKeys())
+
+	// Convert config state into schema type.
+	config, diags := common.ToConfigMapType(ctx, stateConfig)
+	if diags.HasError() {
+		return diags
+	}
+
+	m.Name = types.StringValue(project.Name)
+	m.Description = types.StringValue(project.Description)
+	m.Config = config
+
+	return nil
+}
+
+// ComputedKeys returns list of computed config keys.
+func (_ LxdProjectResourceModel) ComputedKeys() []string {
 	return []string{
 		"features.images",
 		"features.profiles",

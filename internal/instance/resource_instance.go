@@ -28,18 +28,7 @@ import (
 	"github.com/terraform-lxd/terraform-provider-lxd/internal/common"
 	"github.com/terraform-lxd/terraform-provider-lxd/internal/errors"
 	provider_config "github.com/terraform-lxd/terraform-provider-lxd/internal/provider-config"
-	"github.com/terraform-lxd/terraform-provider-lxd/internal/utils"
 )
-
-type LxdInstanceFileModel struct {
-	Content    types.String `tfsdk:"content"`
-	Source     types.String `tfsdk:"source"`
-	TargetFile types.String `tfsdk:"target_file"`
-	UserID     types.Int64  `tfsdk:"uid"`
-	GroupID    types.Int64  `tfsdk:"gid"`
-	Mode       types.String `tfsdk:"mode"`
-	CreateDirs types.String `tfsdk:"create_directories"`
-}
 
 type LxdInstanceResourceModel struct {
 	Name           types.String `tfsdk:"name"`
@@ -76,12 +65,10 @@ func NewLxdInstanceResource() resource.Resource {
 	return &LxdInstanceResource{}
 }
 
-// Metadata for instance resource.
 func (r LxdInstanceResource) Metadata(_ context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
 	resp.TypeName = fmt.Sprintf("%s_instance", req.ProviderTypeName)
 }
 
-// Schema for instance resource.
 func (r LxdInstanceResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *resource.SchemaResponse) {
 	resp.Schema = schema.Schema{
 		Attributes: map[string]schema.Attribute{
@@ -221,7 +208,6 @@ func (r LxdInstanceResource) Schema(_ context.Context, _ resource.SchemaRequest,
 				},
 			},
 
-			// Config represents user defined LXD config file.
 			"config": schema.MapAttribute{
 				Optional:    true,
 				Computed:    true,
@@ -302,8 +288,11 @@ func (r LxdInstanceResource) Schema(_ context.Context, _ resource.SchemaRequest,
 							Optional: true,
 						},
 
+						// This is here just to satisfy LxdFileModel.
+						// TODO: Should not be optional!
 						"append": schema.BoolAttribute{
 							Optional: true,
+							// Computed: true,
 						},
 					},
 				},
@@ -344,8 +333,6 @@ func (r *LxdInstanceResource) ModifyPlan(ctx context.Context, req resource.Modif
 	if profiles.IsNull() {
 		resp.Plan.SetAttribute(ctx, path.Root("profiles"), []string{"default"})
 	}
-
-	common.ModifyConfigStatePlan(ctx, req, resp, r.ComputedKeys())
 }
 
 func (r LxdInstanceResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
@@ -549,7 +536,7 @@ func (r LxdInstanceResource) Create(ctx context.Context, req resource.CreateRequ
 		}
 	}
 
-	_, diags = data.Sync(server, instance.Name)
+	_, diags = data.SyncState(ctx, server)
 	resp.Diagnostics.Append(diags...)
 	if diags.HasError() {
 		return
@@ -588,9 +575,7 @@ func (r LxdInstanceResource) Read(ctx context.Context, req resource.ReadRequest,
 		server = server.UseTarget(target)
 	}
 
-	instanceName := data.Name.ValueString()
-
-	found, diags := data.Sync(server, instanceName)
+	found, diags := data.SyncState(ctx, server)
 	resp.Diagnostics.Append(diags...)
 	if diags.HasError() {
 		return
@@ -656,7 +641,7 @@ func (r LxdInstanceResource) Update(ctx context.Context, req resource.UpdateRequ
 	userConfig, diags := common.ToConfigMap(ctx, data.Config)
 	resp.Diagnostics.Append(diags...)
 
-	config := common.MergeConfig(instance.Config, userConfig, r.ComputedKeys())
+	config := common.MergeConfig(instance.Config, userConfig, data.ComputedKeys())
 
 	if resp.Diagnostics.HasError() {
 		return
@@ -736,7 +721,7 @@ func (r LxdInstanceResource) Update(ctx context.Context, req resource.UpdateRequ
 		}
 	}
 
-	_, diags = data.Sync(server, instanceName)
+	_, diags = data.SyncState(ctx, server)
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
 		return
@@ -854,23 +839,24 @@ func (r *LxdInstanceResource) ImportState(ctx context.Context, req resource.Impo
 // It returns a boolean indicating whether resource is found and diagnostics
 // that contain potential errors.
 // This should be called before updating Terraform state.
-func (m *LxdInstanceResourceModel) Sync(server lxd.InstanceServer, instanceName string) (bool, diag.Diagnostics) {
+func (m *LxdInstanceResourceModel) SyncState(ctx context.Context, server lxd.InstanceServer) (bool, diag.Diagnostics) {
+	respDiags := diag.Diagnostics{}
+
+	instanceName := m.Name.ValueString()
 	instance, _, err := server.GetInstance(instanceName)
 	if err != nil {
 		if errors.IsNotFoundError(err) {
 			return false, nil
 		}
 
-		return true, diag.Diagnostics{
-			diag.NewErrorDiagnostic(fmt.Sprintf("Failed to retrieve instance %q", instanceName), err.Error()),
-		}
+		respDiags.Append(diag.NewErrorDiagnostic(fmt.Sprintf("Failed to retrieve instance %q", instanceName), err.Error()))
+		return true, respDiags
 	}
 
 	instanceState, _, err := server.GetInstanceState(instanceName)
 	if err != nil {
-		return true, diag.Diagnostics{
-			diag.NewErrorDiagnostic(fmt.Sprintf("Failed to retrieve state of instance %q", instanceName), err.Error()),
-		}
+		respDiags.Append(diag.NewErrorDiagnostic(fmt.Sprintf("Failed to retrieve state of instance %q", instanceName), err.Error()))
+		return true, respDiags
 	}
 
 	// Reset IPv4, IPv6, and MAC addresses. If case instance has lost
@@ -920,39 +906,36 @@ func (m *LxdInstanceResourceModel) Sync(server lxd.InstanceServer, instanceName 
 		}
 	}
 
-	instanceLimits := make(map[string]string)
-	for k, v := range instance.Config {
-		// Remove enteries with untracked prefixes.
-		if utils.HasAnyPrefix(k, []string{"image.", "volatile."}) {
-			delete(instance.Config, k)
-			continue
-		}
+	// Extract user defined config and merge it with current config state.
+	usrConfig, diags := common.ToConfigMap(ctx, m.Config)
+	respDiags.Append(diags...)
 
-		// Extract enteries with "limits." prefix.
+	stateConfig := common.StripConfig(instance.Config, usrConfig, m.ComputedKeys())
+
+	// Extract enteries with "limits." prefix.
+	instanceLimits := make(map[string]string)
+	for k, v := range stateConfig {
 		key, ok := strings.CutPrefix(k, "limits.")
 		if ok {
 			instanceLimits[key] = v
-			delete(instance.Config, k)
+			delete(stateConfig, k)
 		}
 	}
 
-	config, diags := common.ToConfigMapType(context.Background(), instance.Config)
-	if diags.HasError() {
-		return true, diags
-	}
+	// Convert config, limits, profiles, and devices into schema type.
+	config, diags := common.ToConfigMapType(ctx, stateConfig)
+	respDiags.Append(diags...)
 
-	limits, diags := common.ToConfigMapType(context.Background(), instanceLimits)
-	if diags.HasError() {
-		return true, diags
-	}
+	limits, diags := common.ToConfigMapType(ctx, instanceLimits)
+	respDiags.Append(diags...)
 
-	profiles, diags := ToProfileListType(context.Background(), instance.Profiles)
-	if diags.HasError() {
-		return true, diags
-	}
+	profiles, diags := ToProfileListType(ctx, instance.Profiles)
+	respDiags.Append(diags...)
 
-	devices, diags := common.ToDeviceSetType(context.Background(), instance.Devices)
-	if diags.HasError() {
+	devices, diags := common.ToDeviceSetType(ctx, instance.Devices)
+	respDiags.Append(diags...)
+
+	if respDiags.HasError() {
 		return true, diags
 	}
 
@@ -981,8 +964,8 @@ func (m *LxdInstanceResourceModel) Sync(server lxd.InstanceServer, instanceName 
 	return true, nil
 }
 
-// ComputedKeys returns list of computed LXD config keys.
-func (r LxdInstanceResource) ComputedKeys() []string {
+// ComputedKeys returns list of computed config keys.
+func (_ LxdInstanceResourceModel) ComputedKeys() []string {
 	return []string{
 		"image.",
 		"volatile.",

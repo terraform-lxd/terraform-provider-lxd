@@ -13,17 +13,29 @@ import (
 
 func TestAccStoragePool_dir(t *testing.T) {
 	poolName := petname.Generate(2, "-")
+	driverName := "dir"
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { acctest.PreCheck(t) },
 		ProtoV6ProviderFactories: acctest.ProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccStoragePool(poolName, "dir"),
+				Config: testAccStoragePool(poolName, driverName),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("lxd_storage_pool.storage_pool1", "name", poolName),
-					resource.TestCheckResourceAttr("lxd_storage_pool.storage_pool1", "driver", "dir"),
-					resource.TestCheckResourceAttrSet("lxd_storage_pool.storage_pool1", "config_state.source"),
+					resource.TestCheckResourceAttr("lxd_storage_pool.storage_pool1", "driver", driverName),
+					resource.TestCheckResourceAttr("lxd_storage_pool.storage_pool1", "config.%", "0"),
+					// Ensure computed keys are not tracked.
+					resource.TestCheckNoResourceAttr("lxd_storage_pool.storage_pool1", "config.source"),
+				),
+			},
+			{
+				// Ensure no error is thrown on update.
+				Config: testAccStoragePool(poolName, driverName),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr("lxd_storage_pool.storage_pool1", "name", poolName),
+					resource.TestCheckResourceAttr("lxd_storage_pool.storage_pool1", "driver", driverName),
+					resource.TestCheckResourceAttr("lxd_storage_pool.storage_pool1", "config.%", "0"),
 				),
 			},
 		},
@@ -32,19 +44,31 @@ func TestAccStoragePool_dir(t *testing.T) {
 
 func TestAccStoragePool_zfs(t *testing.T) {
 	poolName := petname.Generate(2, "-")
+	driverName := "zfs"
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { acctest.PreCheck(t) },
 		ProtoV6ProviderFactories: acctest.ProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccStoragePool(poolName, "zfs"),
+				Config: testAccStoragePool(poolName, driverName),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("lxd_storage_pool.storage_pool1", "name", poolName),
-					resource.TestCheckResourceAttr("lxd_storage_pool.storage_pool1", "driver", "zfs"),
-					resource.TestCheckResourceAttr("lxd_storage_pool.storage_pool1", "config_state.zfs.pool_name", poolName),
-					resource.TestCheckResourceAttrSet("lxd_storage_pool.storage_pool1", "config_state.size"),
-					resource.TestCheckResourceAttrSet("lxd_storage_pool.storage_pool1", "config_state.source"),
+					resource.TestCheckResourceAttr("lxd_storage_pool.storage_pool1", "driver", driverName),
+					resource.TestCheckResourceAttr("lxd_storage_pool.storage_pool1", "config.%", "0"),
+					// Ensure computed keys are not tracked.
+					resource.TestCheckNoResourceAttr("lxd_storage_pool.storage_pool1", "config.zfs.pool_name"),
+					resource.TestCheckNoResourceAttr("lxd_storage_pool.storage_pool1", "config.size"),
+					resource.TestCheckNoResourceAttr("lxd_storage_pool.storage_pool1", "config.source"),
+				),
+			},
+			{
+				// Ensure no error is thrown on update.
+				Config: testAccStoragePool(poolName, driverName),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr("lxd_storage_pool.storage_pool1", "name", poolName),
+					resource.TestCheckResourceAttr("lxd_storage_pool.storage_pool1", "driver", driverName),
+					resource.TestCheckResourceAttr("lxd_storage_pool.storage_pool1", "config.%", "0"),
 				),
 			},
 		},
@@ -53,20 +77,32 @@ func TestAccStoragePool_zfs(t *testing.T) {
 
 func TestAccStoragePool_lvm(t *testing.T) {
 	poolName := petname.Generate(2, "-")
+	driverName := "lvm"
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { acctest.PreCheck(t) },
 		ProtoV6ProviderFactories: acctest.ProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccStoragePool(poolName, "lvm"),
+				Config: testAccStoragePool(poolName, driverName),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("lxd_storage_pool.storage_pool1", "name", poolName),
-					resource.TestCheckResourceAttr("lxd_storage_pool.storage_pool1", "driver", "lvm"),
-					resource.TestCheckResourceAttr("lxd_storage_pool.storage_pool1", "config_state.lvm.vg_name", poolName),
-					resource.TestCheckResourceAttr("lxd_storage_pool.storage_pool1", "config_state.lvm.thinpool_name", "LXDThinPool"),
-					resource.TestCheckResourceAttrSet("lxd_storage_pool.storage_pool1", "config_state.size"),
-					resource.TestCheckResourceAttrSet("lxd_storage_pool.storage_pool1", "config_state.source"),
+					resource.TestCheckResourceAttr("lxd_storage_pool.storage_pool1", "driver", driverName),
+					resource.TestCheckResourceAttr("lxd_storage_pool.storage_pool1", "config.%", "0"),
+					// Ensure computed keys are not tracked.
+					resource.TestCheckNoResourceAttr("lxd_storage_pool.storage_pool1", "config.lvm.vg_name"),
+					resource.TestCheckNoResourceAttr("lxd_storage_pool.storage_pool1", "config.lvm.thinpool_name"),
+					resource.TestCheckNoResourceAttr("lxd_storage_pool.storage_pool1", "config.size"),
+					resource.TestCheckNoResourceAttr("lxd_storage_pool.storage_pool1", "config.source"),
+				),
+			},
+			{
+				// Ensure no error is thrown on update.
+				Config: testAccStoragePool(poolName, driverName),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr("lxd_storage_pool.storage_pool1", "name", poolName),
+					resource.TestCheckResourceAttr("lxd_storage_pool.storage_pool1", "driver", driverName),
+					resource.TestCheckResourceAttr("lxd_storage_pool.storage_pool1", "config.%", "0"),
 				),
 			},
 		},
@@ -75,46 +111,73 @@ func TestAccStoragePool_lvm(t *testing.T) {
 
 func TestAccStoragePool_btrfs(t *testing.T) {
 	poolName := petname.Generate(2, "-")
+	driverName := "btrfs"
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { acctest.PreCheck(t) },
 		ProtoV6ProviderFactories: acctest.ProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccStoragePool(poolName, "btrfs"),
+				Config: testAccStoragePool(poolName, driverName),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("lxd_storage_pool.storage_pool1", "name", poolName),
-					resource.TestCheckResourceAttr("lxd_storage_pool.storage_pool1", "driver", "btrfs"),
-					resource.TestCheckResourceAttrSet("lxd_storage_pool.storage_pool1", "config_state.size"),
-					resource.TestCheckResourceAttrSet("lxd_storage_pool.storage_pool1", "config_state.source"),
+					resource.TestCheckResourceAttr("lxd_storage_pool.storage_pool1", "driver", driverName),
+					resource.TestCheckResourceAttr("lxd_storage_pool.storage_pool1", "config.%", "0"),
+					// Ensure computed keys are not tracked.
+					resource.TestCheckNoResourceAttr("lxd_storage_pool.storage_pool1", "config.size"),
+					resource.TestCheckNoResourceAttr("lxd_storage_pool.storage_pool1", "config.source"),
+				),
+			},
+			{
+				// Ensure no error is thrown on update.
+				Config: testAccStoragePool(poolName, driverName),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr("lxd_storage_pool.storage_pool1", "name", poolName),
+					resource.TestCheckResourceAttr("lxd_storage_pool.storage_pool1", "driver", driverName),
+					resource.TestCheckResourceAttr("lxd_storage_pool.storage_pool1", "config.%", "0"),
 				),
 			},
 		},
 	})
 }
 
-// TODO:
-//   - requires clustering precheck
-//
-// func TestAccStoragePool_target(t *testing.T) {
-// 	// var pool api.StoragePool
-// 	poolName := petname.Generate(2, "-")
-// 	resource.Test(t, resource.TestCase{
-// 		PreCheck:                 func() { acctest.PreCheck(t) },
-// 		ProtoV6ProviderFactories: acctest.ProtoV6ProviderFactories,
-// 		Steps: []resource.TestStep{
-// 			{
-// 				Config: testAccStoragePool_target(poolName, "dir"),
-// 				Check: resource.ComposeTestCheckFunc(
-// 					// testAccStoragePoolExists(t, "lxd_storage_pool.storage_pool1", &pool),
-// 					resource.TestCheckResourceAttr("lxd_storage_pool.storage_pool1", "name", poolName),
-// 					resource.TestCheckResourceAttr("lxd_storage_pool.storage_pool1_node1", "config.source", source),
-// 					resource.TestCheckResourceAttr("lxd_storage_pool.storage_pool1_node2", "config.source", source),
-// 				),
-// 			},
-// 		},
-// 	})
-// }
+func TestAccStoragePool_size(t *testing.T) {
+	poolName := petname.Generate(2, "-")
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { acctest.PreCheck(t) },
+		ProtoV6ProviderFactories: acctest.ProtoV6ProviderFactories,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccStoragePool_size(poolName, "zfs"),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr("lxd_storage_pool.storage_pool1", "name", poolName),
+					resource.TestCheckResourceAttr("lxd_storage_pool.storage_pool1", "driver", "zfs"),
+					resource.TestCheckResourceAttr("lxd_storage_pool.storage_pool1", "config.%", "1"),
+					resource.TestCheckResourceAttr("lxd_storage_pool.storage_pool1", "config.size", "128MiB"),
+				),
+			},
+			{
+				Config: testAccStoragePool_size(poolName, "lvm"),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr("lxd_storage_pool.storage_pool1", "name", poolName),
+					resource.TestCheckResourceAttr("lxd_storage_pool.storage_pool1", "driver", "lvm"),
+					resource.TestCheckResourceAttr("lxd_storage_pool.storage_pool1", "config.%", "1"),
+					resource.TestCheckResourceAttr("lxd_storage_pool.storage_pool1", "config.size", "128MiB"),
+				),
+			},
+			{
+				Config: testAccStoragePool_size(poolName, "btrfs"),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr("lxd_storage_pool.storage_pool1", "name", poolName),
+					resource.TestCheckResourceAttr("lxd_storage_pool.storage_pool1", "driver", "btrfs"),
+					resource.TestCheckResourceAttr("lxd_storage_pool.storage_pool1", "config.%", "1"),
+					resource.TestCheckResourceAttr("lxd_storage_pool.storage_pool1", "config.size", "128MiB"),
+				),
+			},
+		},
+	})
+}
 
 func TestAccStoragePool_project(t *testing.T) {
 	poolName := petname.Generate(2, "-")
@@ -129,6 +192,7 @@ func TestAccStoragePool_project(t *testing.T) {
 				Config: testAccStoragePool_project(poolName, driverName, projectName),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("lxd_project.project1", "name", projectName),
+					resource.TestCheckResourceAttr("lxd_project.project1", "config.%", "1"),
 					resource.TestCheckResourceAttr("lxd_project.project1", "config.features.storage.volumes", "false"),
 					resource.TestCheckResourceAttr("lxd_storage_pool.storage_pool1", "name", poolName),
 					resource.TestCheckResourceAttr("lxd_storage_pool.storage_pool1", "driver", driverName),
@@ -138,6 +202,27 @@ func TestAccStoragePool_project(t *testing.T) {
 		},
 	})
 }
+
+// TODO:
+//   - requires clustering precheck
+// func TestAccStoragePool_target(t *testing.T) {
+// 	poolName := petname.Generate(2, "-")
+// 	driverName := "dir"
+
+// 	resource.Test(t, resource.TestCase{
+// 		PreCheck:                 func() { acctest.PreCheck(t) },
+// 		ProtoV6ProviderFactories: acctest.ProtoV6ProviderFactories,
+// 		Steps: []resource.TestStep{
+// 			{
+// 				Config: testAccStoragePool_target(poolName, driverName),
+// 				Check: resource.ComposeTestCheckFunc(
+// 					resource.TestCheckResourceAttr("lxd_storage_pool.storage_pool1", "name", poolName),
+// 					resource.TestCheckResourceAttr("lxd_storage_pool.storage_pool1", "driver", driverName),
+// 				),
+// 			},
+// 		},
+// 	})
+// }
 
 func testAccStoragePoolConfig(pool *api.StoragePool, k, v string) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
@@ -166,6 +251,18 @@ func testAccStoragePool(name string, driver string) string {
 resource "lxd_storage_pool" "storage_pool1" {
   name   = "%s"
   driver = "%s"
+}
+	`, name, driver)
+}
+
+func testAccStoragePool_size(name string, driver string) string {
+	return fmt.Sprintf(`
+resource "lxd_storage_pool" "storage_pool1" {
+  name   = "%s"
+  driver = "%s"
+  config = {
+	size = "128MiB"
+  }
 }
 	`, name, driver)
 }

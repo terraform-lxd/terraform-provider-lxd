@@ -7,10 +7,12 @@ import (
 	lxd "github.com/canonical/lxd/client"
 	"github.com/canonical/lxd/shared/api"
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
+	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/mapdefault"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringdefault"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
@@ -29,36 +31,6 @@ type LxdStoragePoolResourceModel struct {
 	Target      types.String `tfsdk:"target"`
 	Remote      types.String `tfsdk:"remote"`
 	Config      types.Map    `tfsdk:"config"`
-	ConfigState types.Map    `tfsdk:"config_state"`
-}
-
-// Sync pulls storage pool data from the server and updates the model in-place.
-// It returns a boolean indicating whether resource is found and diagnostics
-// that contain potential errors.
-// This should be called before updating Terraform state.
-func (m *LxdStoragePoolResourceModel) Sync(server lxd.InstanceServer, poolName string) (bool, diag.Diagnostics) {
-	pool, _, err := server.GetStoragePool(poolName)
-	if err != nil {
-		if errors.IsNotFoundError(err) {
-			return false, nil
-		}
-
-		return true, diag.Diagnostics{
-			diag.NewErrorDiagnostic(fmt.Sprintf("Failed to retrieve storage pool %q", poolName), err.Error()),
-		}
-	}
-
-	config, diags := common.ToConfigMapType(context.Background(), pool.Config)
-	if diags.HasError() {
-		return true, diags
-	}
-
-	m.Name = types.StringValue(pool.Name)
-	m.Description = types.StringValue(pool.Description)
-	m.Driver = types.StringValue(pool.Driver)
-	m.ConfigState = config
-
-	return true, nil
 }
 
 // LxdStoragePoolResource represent LXD storage pool resource.
@@ -130,18 +102,11 @@ func (r LxdStoragePoolResource) Schema(_ context.Context, _ resource.SchemaReque
 				},
 			},
 
-			// Config represents user defined LXD config file.
 			"config": schema.MapAttribute{
 				Optional:    true,
-				ElementType: types.StringType,
-			},
-
-			// Config state represents actual LXD resource state.
-			// It is managed solely by the provider. User config
-			// is merged into it.
-			"config_state": schema.MapAttribute{
 				Computed:    true,
 				ElementType: types.StringType,
+				Default:     mapdefault.StaticValue(types.MapValueMust(types.StringType, map[string]attr.Value{})),
 			},
 		},
 	}
@@ -160,24 +125,6 @@ func (r *LxdStoragePoolResource) Configure(_ context.Context, req resource.Confi
 	}
 
 	r.provider = provider
-}
-
-func (r LxdStoragePoolResource) ModifyPlan(ctx context.Context, req resource.ModifyPlanRequest, resp *resource.ModifyPlanResponse) {
-	// If resource is being destroyed req.Config will be null.
-	// In such case there is no need for plan modification.
-	if req.Config.Raw.IsNull() {
-		return
-	}
-
-	var driver string
-
-	diags := req.Config.GetAttribute(ctx, path.Root("driver"), &driver)
-	resp.Diagnostics.Append(diags...)
-	if resp.Diagnostics.HasError() {
-		return
-	}
-
-	common.ModifyConfigStatePlan(ctx, req, resp, r.ComputedKeys(driver))
 }
 
 func (r LxdStoragePoolResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
@@ -230,15 +177,9 @@ func (r LxdStoragePoolResource) Create(ctx context.Context, req resource.CreateR
 		return
 	}
 
-	found, diags := data.Sync(server, pool.Name)
+	_, diags = data.SyncState(ctx, server)
 	resp.Diagnostics.Append(diags...)
 	if diags.HasError() {
-		return
-	}
-
-	// Remove resource state if resource is not found.
-	if !found {
-		resp.State.RemoveResource(ctx)
 		return
 	}
 
@@ -275,9 +216,7 @@ func (r LxdStoragePoolResource) Read(ctx context.Context, req resource.ReadReque
 		server = server.UseTarget(target)
 	}
 
-	poolName := data.Name.ValueString()
-
-	found, diags := data.Sync(server, poolName)
+	found, diags := data.SyncState(ctx, server)
 	resp.Diagnostics.Append(diags...)
 	if diags.HasError() {
 		return
@@ -323,47 +262,36 @@ func (r LxdStoragePoolResource) Update(ctx context.Context, req resource.UpdateR
 	}
 
 	poolName := data.Name.ValueString()
-	_, etag, err := server.GetStoragePool(poolName)
+	pool, etag, err := server.GetStoragePool(poolName)
 	if err != nil {
 		resp.Diagnostics.AddError(fmt.Sprintf("Failed to retrieve existing storage pool %q", poolName), err.Error())
 		return
 	}
 
-	// Merge LXD state and user configs.
 	userConfig, diags := common.ToConfigMap(ctx, data.Config)
 	resp.Diagnostics.Append(diags...)
-
-	stateConfig, diags := common.ToConfigMap(ctx, data.ConfigState)
-	resp.Diagnostics.Append(diags...)
-
-	driver := data.Driver.ValueString()
-	config := common.MergeConfig(stateConfig, userConfig, r.ComputedKeys(driver))
-
 	if resp.Diagnostics.HasError() {
 		return
 	}
 
+	// Merge pool config state and user defined config.
+	config := common.MergeConfig(pool.Config, userConfig, data.ComputedKeys(pool.Driver))
+
 	// Update pool.
-	pool := api.StoragePoolPut{
+	newPool := api.StoragePoolPut{
 		Description: data.Description.ValueString(),
 		Config:      config,
 	}
 
-	err = server.UpdateStoragePool(poolName, pool, etag)
+	err = server.UpdateStoragePool(poolName, newPool, etag)
 	if err != nil {
 		resp.Diagnostics.AddError(fmt.Sprintf("Failed to update storage pool %q", poolName), err.Error())
 		return
 	}
 
-	found, diags := data.Sync(server, poolName)
+	_, diags = data.SyncState(ctx, server)
 	resp.Diagnostics.Append(diags...)
 	if diags.HasError() {
-		return
-	}
-
-	// Remove resource state if resource is not found.
-	if !found {
-		resp.State.RemoveResource(ctx)
 		return
 	}
 
@@ -425,8 +353,48 @@ func (r LxdStoragePoolResource) ImportState(ctx context.Context, req resource.Im
 	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("name"), name)...)
 }
 
-// ComputedKeys returns list of computed LXD config keys.
-func (r LxdStoragePoolResource) ComputedKeys(driver string) []string {
+// SyncState pulls storage pool data from the server and updates the model
+// in-place. It returns a boolean indicating whether resource is found and
+// diagnostics that contain potential errors.
+// This should be called before updating Terraform state.
+func (m *LxdStoragePoolResourceModel) SyncState(ctx context.Context, server lxd.InstanceServer) (bool, diag.Diagnostics) {
+	respDiags := diag.Diagnostics{}
+
+	poolName := m.Name.ValueString()
+	pool, _, err := server.GetStoragePool(poolName)
+	if err != nil {
+		if errors.IsNotFoundError(err) {
+			return false, nil
+		}
+
+		respDiags.Append(diag.NewErrorDiagnostic(fmt.Sprintf("Failed to retrieve storage pool %q", poolName), err.Error()))
+		return true, respDiags
+	}
+
+	// Extract user defined config and merge it with current config state.
+	userConfig, diags := common.ToConfigMap(ctx, m.Config)
+	respDiags.Append(diags...)
+
+	stateConfig := common.StripConfig(pool.Config, userConfig, m.ComputedKeys(pool.Driver))
+
+	// Convert config state into schema type.
+	config, diags := common.ToConfigMapType(ctx, stateConfig)
+	respDiags.Append(diags...)
+
+	if respDiags.HasError() {
+		return true, diags
+	}
+
+	m.Name = types.StringValue(pool.Name)
+	m.Description = types.StringValue(pool.Description)
+	m.Driver = types.StringValue(pool.Driver)
+	m.Config = config
+
+	return true, nil
+}
+
+// ComputedKeys returns list of computed config keys.
+func (_ LxdStoragePoolResourceModel) ComputedKeys(driver string) []string {
 	var keys []string
 
 	switch driver {
@@ -460,7 +428,5 @@ func (r LxdStoragePoolResource) ComputedKeys(driver string) []string {
 		// TODO
 	}
 
-	// TODO: Add regex support to ignore all keys
-	// of certain type.
-	return append(keys, "volatile.*")
+	return append(keys, "volatile.")
 }
