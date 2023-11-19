@@ -27,19 +27,6 @@ type LxdFileModel struct {
 	Append     types.Bool   `tfsdk:"append"`
 }
 
-func (f *LxdFileModel) String() string {
-	return fmt.Sprintf(
-		`
-  Content: %q
-  Source:  %q
-  Target:  %q
-`,
-		f.Content.String(),
-		f.Source.String(),
-		f.TargetFile.String(),
-	)
-}
-
 // ToFileMap converts files from types.Set into map[string]LxdFileModel.
 func ToFileMap(ctx context.Context, fileSet types.Set) (map[string]LxdFileModel, diag.Diagnostics) {
 	if fileSet.IsNull() || fileSet.IsUnknown() {

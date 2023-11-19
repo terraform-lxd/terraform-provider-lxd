@@ -141,7 +141,7 @@ func TestAccStoragePool_btrfs(t *testing.T) {
 	})
 }
 
-func TestAccStoragePool_size(t *testing.T) {
+func TestAccStoragePool_config(t *testing.T) {
 	poolName := petname.Generate(2, "-")
 
 	resource.Test(t, resource.TestCase{
@@ -149,7 +149,7 @@ func TestAccStoragePool_size(t *testing.T) {
 		ProtoV6ProviderFactories: acctest.ProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccStoragePool_size(poolName, "zfs"),
+				Config: testAccStoragePool_config(poolName, "zfs"),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("lxd_storage_pool.storage_pool1", "name", poolName),
 					resource.TestCheckResourceAttr("lxd_storage_pool.storage_pool1", "driver", "zfs"),
@@ -158,7 +158,7 @@ func TestAccStoragePool_size(t *testing.T) {
 				),
 			},
 			{
-				Config: testAccStoragePool_size(poolName, "lvm"),
+				Config: testAccStoragePool_config(poolName, "lvm"),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("lxd_storage_pool.storage_pool1", "name", poolName),
 					resource.TestCheckResourceAttr("lxd_storage_pool.storage_pool1", "driver", "lvm"),
@@ -167,7 +167,7 @@ func TestAccStoragePool_size(t *testing.T) {
 				),
 			},
 			{
-				Config: testAccStoragePool_size(poolName, "btrfs"),
+				Config: testAccStoragePool_config(poolName, "btrfs"),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("lxd_storage_pool.storage_pool1", "name", poolName),
 					resource.TestCheckResourceAttr("lxd_storage_pool.storage_pool1", "driver", "btrfs"),
@@ -246,6 +246,76 @@ func testAccStoragePoolConfig(pool *api.StoragePool, k, v string) resource.TestC
 	}
 }
 
+func TestAccLxdStoragePool_importBasic(t *testing.T) {
+	poolName := petname.Generate(2, "-")
+	driverName := "zfs"
+	resourceName := "lxd_storage_pool.storage_pool1"
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { acctest.PreCheck(t) },
+		ProtoV6ProviderFactories: acctest.ProtoV6ProviderFactories,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccStoragePool(poolName, driverName),
+			},
+			{
+				ResourceName:                         resourceName,
+				ImportStateId:                        poolName,
+				ImportStateVerifyIdentifierAttribute: "name",
+				ImportStateVerify:                    true,
+				ImportState:                          true,
+			},
+		},
+	})
+}
+
+func TestAccLxdStoragePool_importConfig(t *testing.T) {
+	poolName := petname.Generate(2, "-")
+	driverName := "zfs"
+	resourceName := "lxd_storage_pool.storage_pool1"
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { acctest.PreCheck(t) },
+		ProtoV6ProviderFactories: acctest.ProtoV6ProviderFactories,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccStoragePool_config(poolName, driverName),
+			},
+			{
+				ResourceName:                         resourceName,
+				ImportStateId:                        poolName,
+				ImportStateVerifyIdentifierAttribute: "name",
+				ImportStateVerify:                    false, // State of "config" will be always empty.
+				ImportState:                          true,
+			},
+		},
+	})
+}
+
+func TestAccLxdStoragePool_importProject(t *testing.T) {
+	poolName := petname.Generate(2, "-")
+	projectName := petname.Generate(2, "-")
+	driverName := "zfs"
+	resourceName := "lxd_storage_pool.storage_pool1"
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { acctest.PreCheck(t) },
+		ProtoV6ProviderFactories: acctest.ProtoV6ProviderFactories,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccStoragePool_project(poolName, driverName, projectName),
+			},
+			{
+				ResourceName:                         resourceName,
+				ImportStateId:                        fmt.Sprintf("%s/%s", projectName, poolName),
+				ImportStateVerifyIdentifierAttribute: "name",
+				ImportStateVerify:                    true,
+				ImportState:                          true,
+			},
+		},
+	})
+}
+
 func testAccStoragePool(name string, driver string) string {
 	return fmt.Sprintf(`
 resource "lxd_storage_pool" "storage_pool1" {
@@ -255,7 +325,7 @@ resource "lxd_storage_pool" "storage_pool1" {
 	`, name, driver)
 }
 
-func testAccStoragePool_size(name string, driver string) string {
+func testAccStoragePool_config(name string, driver string) string {
 	return fmt.Sprintf(`
 resource "lxd_storage_pool" "storage_pool1" {
   name   = "%s"

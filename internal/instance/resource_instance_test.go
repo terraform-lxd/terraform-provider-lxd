@@ -560,6 +560,51 @@ func TestAccInstance_removeProject(t *testing.T) {
 	})
 }
 
+func TestAccLxdInstance_importBasic(t *testing.T) {
+	instanceName := petname.Generate(2, "-")
+	resourceName := "lxd_instance.instance1"
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { acctest.PreCheck(t) },
+		ProtoV6ProviderFactories: acctest.ProtoV6ProviderFactories,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccInstance_basic(instanceName),
+			},
+			{
+				ResourceName:                         resourceName,
+				ImportStateId:                        instanceName,
+				ImportStateVerifyIdentifierAttribute: "name",
+				ImportStateVerify:                    false, // State of "image" and "config" will be inconsistent.
+				ImportState:                          true,
+			},
+		},
+	})
+}
+
+func TestAccLxdInstance_importProject(t *testing.T) {
+	instanceName := petname.Generate(2, "-")
+	projectName := petname.Generate(2, "-")
+	resourceName := "lxd_instance.instance1"
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { acctest.PreCheck(t) },
+		ProtoV6ProviderFactories: acctest.ProtoV6ProviderFactories,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccInstance_project(projectName, instanceName),
+			},
+			{
+				ResourceName:                         resourceName,
+				ImportStateId:                        fmt.Sprintf("%s/%s", projectName, instanceName),
+				ImportStateVerifyIdentifierAttribute: "name",
+				ImportStateVerify:                    false, // State of "image" and "config" will be inconsistent.
+				ImportState:                          true,
+			},
+		},
+	})
+}
+
 func testAccInstance_basic(name string) string {
 	return fmt.Sprintf(`
 resource "lxd_instance" "instance1" {

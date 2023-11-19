@@ -234,6 +234,72 @@ func TestAccProfile_project(t *testing.T) {
 	})
 }
 
+func TestAccProfile_importBasic(t *testing.T) {
+	profileName := petname.Generate(2, "-")
+	resourceName := "lxd_profile.profile1"
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { acctest.PreCheck(t) },
+		ProtoV6ProviderFactories: acctest.ProtoV6ProviderFactories,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccProfile_basic(profileName),
+			},
+			{
+				ResourceName:                         resourceName,
+				ImportStateId:                        profileName,
+				ImportState:                          true,
+				ImportStateVerify:                    true,
+				ImportStateVerifyIdentifierAttribute: "name",
+			},
+		},
+	})
+}
+
+func TestAccProfile_importConfig(t *testing.T) {
+	profileName := petname.Generate(2, "-")
+	resourceName := "lxd_profile.profile1"
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { acctest.PreCheck(t) },
+		ProtoV6ProviderFactories: acctest.ProtoV6ProviderFactories,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccProfile_config(profileName),
+			},
+			{
+				ResourceName:                         resourceName,
+				ImportStateId:                        profileName,
+				ImportState:                          true,
+				ImportStateVerify:                    true,
+				ImportStateVerifyIdentifierAttribute: "name",
+			},
+		},
+	})
+}
+
+func TestAccProfile_importDevice(t *testing.T) {
+	profileName := petname.Generate(2, "-")
+	resourceName := "lxd_profile.profile1"
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { acctest.PreCheck(t) },
+		ProtoV6ProviderFactories: acctest.ProtoV6ProviderFactories,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccProfile_device_1(profileName),
+			},
+			{
+				ResourceName:                         resourceName,
+				ImportStateId:                        profileName,
+				ImportState:                          true,
+				ImportStateVerify:                    true,
+				ImportStateVerifyIdentifierAttribute: "name",
+			},
+		},
+	})
+}
+
 func testAccProfile_basic(name string) string {
 	return fmt.Sprintf(`
 resource "lxd_profile" "profile1" {
