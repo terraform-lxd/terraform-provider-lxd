@@ -405,9 +405,11 @@ func (m *LxdNetworkResourceModel) SyncState(ctx context.Context, server lxd.Inst
 // ComputedKeys returns list of computed LXD config keys.
 func (_ LxdNetworkResourceModel) ComputedKeys() []string {
 	return []string{
+		"bridge.mtu",
 		"ipv4.address",
 		"ipv4.nat",
 		"ipv6.address",
 		"ipv6.nat",
+		"volatile.",
 	}
 }

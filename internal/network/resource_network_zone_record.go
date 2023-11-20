@@ -172,7 +172,7 @@ func (r LxdNetworkZoneRecordResource) Create(ctx context.Context, req resource.C
 	config, diags := common.ToConfigMap(ctx, data.Config)
 	resp.Diagnostics.Append(diags...)
 
-	entries, diags := ToZoneRecordList(ctx, data.Enteries)
+	entries, diags := ToZoneRecordEntryList(ctx, data.Enteries)
 	resp.Diagnostics.Append(diags...)
 
 	if resp.Diagnostics.HasError() {
@@ -282,7 +282,7 @@ func (r LxdNetworkZoneRecordResource) Update(ctx context.Context, req resource.U
 	config, diags := common.ToConfigMap(ctx, data.Config)
 	resp.Diagnostics.Append(diags...)
 
-	entries, diags := ToZoneRecordList(ctx, data.Enteries)
+	entries, diags := ToZoneRecordEntryList(ctx, data.Enteries)
 	resp.Diagnostics.Append(diags...)
 
 	if resp.Diagnostics.HasError() {
@@ -393,7 +393,7 @@ func (m *LxdNetworkZoneRecordResourceModel) SyncState(ctx context.Context, serve
 		}
 	}
 
-	entries, diags := ToZoneRecordSetType(ctx, record.Entries)
+	entries, diags := ToZoneRecordEntrySetType(ctx, record.Entries)
 	if diags.HasError() {
 		return true, diags
 	}
@@ -412,12 +412,6 @@ func (m *LxdNetworkZoneRecordResourceModel) SyncState(ctx context.Context, serve
 	return true, nil
 }
 
-type LxdDeviceModel struct {
-	Name       types.String `tfsdk:"name"`
-	Type       types.String `tfsdk:"type"`
-	Properties types.Map    `tfsdk:"properties"`
-}
-
 type LxdNetworkZoneRecordEntryModel struct {
 	Type  types.String `tfsdk:"type"`
 	Value types.String `tfsdk:"value"`
@@ -426,21 +420,21 @@ type LxdNetworkZoneRecordEntryModel struct {
 
 // ToZoneRecordMap converts network zone record of type types.Map
 // into []LxdNetworkZoneEntryModel.
-func ToZoneRecordList(ctx context.Context, set types.Set) ([]api.NetworkZoneRecordEntry, diag.Diagnostics) {
+func ToZoneRecordEntryList(ctx context.Context, set types.Set) ([]api.NetworkZoneRecordEntry, diag.Diagnostics) {
 	if set.IsNull() || set.IsUnknown() {
 		return []api.NetworkZoneRecordEntry{}, nil
 	}
 
 	// Convert into intermediary struct (that has struct tags).
-	entriesType := make([]LxdNetworkZoneRecordEntryModel, 0, len(set.Elements()))
-	diags := set.ElementsAs(ctx, &entriesType, false)
+	modelEntries := make([]LxdNetworkZoneRecordEntryModel, 0, len(set.Elements()))
+	diags := set.ElementsAs(ctx, &modelEntries, false)
 	if diags.HasError() {
 		return nil, diags
 	}
 
 	// Convert into API network zone entries.
-	entries := make([]api.NetworkZoneRecordEntry, 0, len(entriesType))
-	for _, e := range entriesType {
+	entries := make([]api.NetworkZoneRecordEntry, 0, len(modelEntries))
+	for _, e := range modelEntries {
 		entry := api.NetworkZoneRecordEntry{
 			Type:  e.Type.ValueString(),
 			Value: e.Value.ValueString(),
@@ -453,9 +447,9 @@ func ToZoneRecordList(ctx context.Context, set types.Set) ([]api.NetworkZoneReco
 	return entries, nil
 }
 
-// ToZoneRecordSetType converts list of network zone records into
+// ToZoneRecordEntrySetType converts list of network zone records into
 // set of type types.Set.
-func ToZoneRecordSetType(ctx context.Context, entries []api.NetworkZoneRecordEntry) (types.Set, diag.Diagnostics) {
+func ToZoneRecordEntrySetType(ctx context.Context, entries []api.NetworkZoneRecordEntry) (types.Set, diag.Diagnostics) {
 	modelEntries := make([]LxdNetworkZoneRecordEntryModel, 0, len(entries))
 	for _, e := range entries {
 		entry := LxdNetworkZoneRecordEntryModel{

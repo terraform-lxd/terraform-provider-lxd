@@ -285,14 +285,9 @@ func (p *LxdProvider) Configure(ctx context.Context, req provider.ConfigureReque
 
 func (p *LxdProvider) Resources(_ context.Context) []func() resource.Resource {
 	// ResourcesMap: map[string]*schema.Resource{
-	// 	"lxd_publish_image":           resourceLxdPublishImage(),
-	// 	"lxd_network_lb":              resourceLxdNetworkLB(),
-	// 	"lxd_network_zone":            resourceLxdNetworkZone(),
-	// 	"lxd_network_zone_record":     resourceLxdNetworkZoneRecord(),
 	// 	"lxd_snapshot":                resourceLxdSnapshot(),
 	// 	"lxd_volume":                  resourceLxdVolume(),
 	// 	"lxd_volume_copy":             resourceLxdVolumeCopy(),
-	// 	"lxd_volume_container_attach": resourceLxdVolumeContainerAttach(),
 	// },
 
 	return []func() resource.Resource{
@@ -301,6 +296,9 @@ func (p *LxdProvider) Resources(_ context.Context) []func() resource.Resource {
 		instance.NewLxdInstanceResource,
 		instance.NewLxdInstanceFileResource,
 		network.NewLxdNetworkResource,
+		network.NewLxdNetworkLBResource,
+		network.NewLxdNetworkZoneResource,
+		network.NewLxdNetworkZoneRecordResource,
 		profile.NewLxdProfileResource,
 		project.NewLxdProjectResource,
 		storage.NewLxdStoragePoolResource,
