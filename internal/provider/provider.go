@@ -297,6 +297,7 @@ func (p *LxdProvider) Resources(_ context.Context) []func() resource.Resource {
 
 	return []func() resource.Resource{
 		image.NewLxdCachedImageResource,
+		image.NewLxdPublishImageResource,
 		instance.NewLxdInstanceResource,
 		instance.NewLxdInstanceFileResource,
 		network.NewLxdNetworkResource,
