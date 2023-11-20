@@ -26,30 +26,26 @@ resource "lxd_instance" "container1" {
 
 ```hcl
 resource "lxd_storage_pool" "pool1" {
-  name = "mypool"
-  driver = "dir"
-  config = {
-    source = "/var/lib/lxd/storage-pools/mypool"
-  }
+  name   = "mypool"
+  driver = "zfs"
 }
 
 resource "lxd_volume" "volume1" {
   name = "myvolume"
-  pool = "${lxd_storage_pool.pool1.name}"
+  pool = lxd_storage_pool.pool1.name
 }
 
 resource "lxd_instance" "container1" {
-  name = "%s"
+  name  = "%s"
   image = "ubuntu"
-  profiles = ["default"]
 
   device {
     name = "volume1"
     type = "disk"
     properties = {
-      path = "/mount/point/in/instance"
-      source = "${lxd_volume.volume1.name}"
-      pool = "${lxd_storage_pool.pool1.name}"
+      path   = "/mount/point/in/instance"
+      source = lxd_volume.volume1.name
+      pool   = lxd_storage_pool.pool1.name
     }
   }
 }
@@ -59,9 +55,9 @@ resource "lxd_instance" "container1" {
 
 ```hcl
 resource "lxd_instance" "container2" {
-  name = "container2"
-  image = "ubuntu"
-  profiles = ["default"]
+  name      = "container2"
+  image     = "ubuntu"
+  profiles  = ["default"]
   ephemeral = false
 
   device {
@@ -84,13 +80,16 @@ resource "lxd_instance" "container2" {
 
 * `name` - *Required* - Name of the instance.
 
+* `description` - *Optional* - Description of the instance.
+
 * `image` - *Required* - Base image from which the instance will be created. Must
 *       specify [an image accessible from the provider remote](https://documentation.ubuntu.com/lxd/en/latest/reference/remote_image_servers/).
 
 * `type` - *Optional* -  Instance type. Can be `container`, or `virtual-machine`. Defaults to `container`.
 
 * `profiles` - *Optional* - List of LXD config profiles to apply to the new
-	instance.
+	instance. Profile `default` will be applied if profiles are not set (are `null`).
+  However, if an empty array (`[]`) is set, no profiles will be applied.
 
 * `ephemeral` - *Optional* - Boolean indicating if this instance is ephemeral.
 	Valid values are `true` and `false`. Defaults to `false`.
@@ -106,7 +105,7 @@ resource "lxd_instance" "container2" {
 * `file` - *Optional* - File to upload to the instance. See reference below.
 
 * `wait_for_network` - *Optional* - Boolean indicating if the provider should wait for the instance's network address to become available during creation.
-  Valid values are `true` and `false`. Defaults to `true`.
+  If `start_on_create` is set to false, this value has no effect. Valid values are `true` and `false`. Defaults to `true`.
 
 * `start_on_create` - *Optional* - Boolean indicating if the provider should start the instance during creation. It will not re-start on update runs.
   Valid values are `true` and `false`. Defaults to `true`.
@@ -188,7 +187,7 @@ resource "lxd_instance" "instance1" {
 Existing instances can be imported with the following syntax:
 
 ```shell
-$ terraform import lxd_instance.my_instance [remote:]name[/images:alpine/3.5]
+$ terraform import lxd_instance.my_instance [<remote>:][<project>/]<instance_name>
 ```
 
 Where:

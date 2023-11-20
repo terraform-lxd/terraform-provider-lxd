@@ -25,11 +25,15 @@ resource "lxd_instance" "container" {
 
 ## Argument Reference
 
-* `name` - *Required* - Name of the project. 
+* `name` - *Required* - Name of the project.
 
-* `description` - *Optional* - Description of the project. 
+* `description` - *Optional* - Description of the project.
 
 * `config` - *Optional* - Map of key/value pairs of [project config settings](https://documentation.ubuntu.com/lxd/en/latest/reference/projects/).
 
 * `remote` - *Optional* - The remote in which the resource will be created. If
     it is not provided, the default provider remote is used.
+
+## Attribute Reference
+
+No attributes are exported.

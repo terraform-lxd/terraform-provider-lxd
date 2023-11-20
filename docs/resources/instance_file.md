@@ -9,14 +9,14 @@ starts, use the `file` block in the `lxd_instance` resource.
 ## Example
 
 ```hcl
-resource "lxd_instance" "container1" {
-  name      = "container1"
+resource "lxd_instance" "instance" {
+  name      = "my-instance"
   image     = "ubuntu"
   ephemeral = false
 }
 
 resource "lxd_instance_file" "file1" {
-  instance_name     = "${lxd_instance.container1.name}"
+  instance           = lxd_instance.instance.name
   target_file        = "/foo/bar.txt"
   source             = "/path/to/local/file"
   create_directories = true
@@ -28,7 +28,7 @@ resource "lxd_instance_file" "file1" {
 * `remote` - *Optional* - The remote in which the resource will be created. If
 	it is not provided, the default provider remote is used.
 
-* `instance_name` - *Required* - Name of the instance.
+* `instance` - *Required* - Name of the instance.
 
 * `content` - *Required unless source is used* - The _contents_ of the file.
 	Use the `file()` function to read in the content of a file from disk.
@@ -50,6 +50,10 @@ resource "lxd_instance_file" "file1" {
 * `create_directories` - *Optional* - Whether to create the directories leading
 	to the target if they do not exist.
 
-* `append` - *Optional* - Whether to append the content to the target file. Defaults to false, where target file will be overwritten
+* `append` - *Optional* - Whether to append the content to the target file. Defaults to false, where target file will be overwritten.
 
 * `project` - *Optional* - Name of the project where the instance to which this file will be appended exist.
+
+## Attribute Reference
+
+No attributes are exported.

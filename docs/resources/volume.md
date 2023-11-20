@@ -6,16 +6,13 @@ Manages an LXD volume.
 
 ```hcl
 resource "lxd_storage_pool" "pool1" {
-  name = "mypool"
-  driver = "dir"
-  config = {
-    source = "/var/lib/lxd/storage-pools/mypool"
-  }
+  name   = "mypool"
+  driver = "zfs"
 }
 
 resource "lxd_volume" "volume1" {
   name = "myvolume"
-  pool = "${lxd_storage_pool.pool1.name}"
+  pool = lxd_storage_pool.pool1.name
 }
 ```
 
@@ -46,6 +43,14 @@ resource "lxd_volume" "volume1" {
 The following attributes are exported:
 
 * `location` - Name of the node where volume was created. It could be useful with LXD in cluster mode.
+
+## Importing
+
+Storage pool volumes can be imported with the following command:
+
+```shell
+$ terraform import lxd_volume.my_vol [<remote>:][<project>]/<pool_name>/<volume_name>
+```
 
 ## Notes
 

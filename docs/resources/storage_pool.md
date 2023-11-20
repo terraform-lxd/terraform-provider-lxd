@@ -24,23 +24,15 @@ actual pool
 
 ```hcl
 resource "lxd_storage_pool" "mypool_node1" {
-  target = "node1"
-
   name   = "mypool"
-  driver = "dir"
-  config = {
-    source = "/var/lib/lxd/storage-pools/mypool"
-  }
+  driver = "zfs"
+  target = "node1"
 }
 
 resource "lxd_storage_pool" "mypool_node2" {
-  target = "node2"
-
   name   = "mypool"
-  driver = "dir"
-  config = {
-    source = "/var/lib/lxd/storage-pools/mypool"
-  }
+  driver = "zfs"
+  target = "node2"
 }
 
 resource "lxd_storage_pool" "mypool" {
@@ -50,7 +42,7 @@ resource "lxd_storage_pool" "mypool" {
   ]
 
   name   = "mypool"
-  driver = "dir"
+  driver = "zfs"
 }
 ```
 
@@ -66,6 +58,8 @@ for more details on how to create a storage pool in clustered mode.
 
 * `name`   - *Required* - Name of the storage pool.
 
+* `description` - *Optional* - Description of the storage pool.
+
 * `driver` - _Required_ - Storage Pool driver. Must be one of `ceph`, `cephfs`, or `cephobject`
   `btrfs`, `dir`, `lvm`, or `zfs`.
 
@@ -77,8 +71,8 @@ for more details on how to create a storage pool in clustered mode.
 
 ## Importing
 
-Storage pools can be imported by doing:
+Storage pools can be imported with the following command:
 
 ```shell
-$ terraform import lxd_storage_pool.my_pool <name of pool>
+$ terraform import lxd_storage_pool.my_pool [<remote>:][<project>/]<pool_name>
 ```

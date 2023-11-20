@@ -8,9 +8,6 @@ Copies an existing LXD volume.
 resource "lxd_storage_pool" "pool1" {
   name   = "mypool"
   driver = "dir"
-  config = {
-    source = "/var/lib/lxd/storage-pools/mypool"
-  }
 }
 
 resource "lxd_volume" "volume1" {
@@ -44,7 +41,10 @@ resource "lxd_volume_copy" "volume1_copy" {
 
 * `source_name` - *Required* - Name of the existing storage volume that is to be copied.
 
+## Attribute Reference
+
+No attributes are exported.
 
 ## Notes
 
-[LXD move/copy documentation](https://documentation.ubuntu.com/lxd/en/latest/howto/storage_move_volume/).
+* [LXD move/copy documentation](https://documentation.ubuntu.com/lxd/en/latest/howto/storage_move_volume/).

@@ -37,7 +37,7 @@ resource "lxd_instance" "test1" {
   name      = "test1"
   image     = "ubuntu"
   ephemeral = false
-  profiles  = ["default", "${lxd_profile.profile1.name}"]
+  profiles  = [lxd_profile.profile1.name]
 }
 ```
 
@@ -65,12 +65,16 @@ The `device` block supports:
 * `properties`- *Required* - Map of key/value pairs of
 	[device properties](https://documentation.ubuntu.com/lxd/en/latest/reference/devices/).
 
+## Attribute Reference
+
+No attributes are exported.
+
 ## Importing
 
-Profiles can be imported by doing:
+Profiles can be imported with the following command:
 
 ```shell
-$ terraform import lxd_profile.my_profile <name of profile>
+$ terraform import lxd_profile.my_profile [<remote>:][<project>/]<profile_name>
 ```
 
 ## Notes

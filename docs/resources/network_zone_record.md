@@ -23,14 +23,14 @@ resource "lxd_network_zone" "zone" {
 resource "lxd_network_zone_record" "record" {
   name = "ns"
   zone = lxd_network_zone.zone.id
-  
+
   entry {
-      type = "CNAME"
+      type  = "CNAME"
       value = "<lxd.host.name>."
   }
-  
+
   entry {
-      type = "A"
+      type  = "A"
       value = "<lxd.host.ip>"
   }
 }
@@ -64,9 +64,9 @@ No attributes are exported.
 
 ## Importing
 
-Network zone records can be imported by doing:
+Network zone records can be imported with the following command:
 
 ```shell
-$ terraform import lxd_network_zone_record.my_record <name of network zone> <name of record>
+$ terraform import lxd_network_zone_record.my_record [<remote>:][<project>]/<zone_name>/<record_name>
 ```
 

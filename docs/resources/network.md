@@ -211,11 +211,11 @@ The following attributes are exported:
 
 ## Importing
 
-Networks can be imported by doing:
+Networks can be imported with the following command:
 
 ```shell
-$ terraform import lxd_network.my_network <name of network>
+$ terraform import lxd_network.my_network [<remote>:][<project>/]<network_name>
 ```
 
-> NOTE: Importing of clustered networks is not supported.
+-> Clustered networks cannot be imported.
 
