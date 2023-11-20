@@ -17,6 +17,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
+	"github.com/terraform-lxd/terraform-provider-lxd/internal/image"
 	"github.com/terraform-lxd/terraform-provider-lxd/internal/instance"
 	"github.com/terraform-lxd/terraform-provider-lxd/internal/network"
 	"github.com/terraform-lxd/terraform-provider-lxd/internal/profile"
@@ -284,7 +285,6 @@ func (p *LxdProvider) Configure(ctx context.Context, req provider.ConfigureReque
 
 func (p *LxdProvider) Resources(_ context.Context) []func() resource.Resource {
 	// ResourcesMap: map[string]*schema.Resource{
-	// 	"lxd_cached_image":            resourceLxdCachedImage(),
 	// 	"lxd_publish_image":           resourceLxdPublishImage(),
 	// 	"lxd_network_lb":              resourceLxdNetworkLB(),
 	// 	"lxd_network_zone":            resourceLxdNetworkZone(),
@@ -296,6 +296,7 @@ func (p *LxdProvider) Resources(_ context.Context) []func() resource.Resource {
 	// },
 
 	return []func() resource.Resource{
+		image.NewLxdCachedImageResource,
 		instance.NewLxdInstanceResource,
 		instance.NewLxdInstanceFileResource,
 		network.NewLxdNetworkResource,
