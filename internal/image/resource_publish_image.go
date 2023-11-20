@@ -32,7 +32,7 @@ import (
 
 // LxdPublishImageResourceModel resource data model that matches the schema.
 type LxdPublishImageResourceModel struct {
-	InstanceName   types.String `tfsdk:"instance_name"`
+	Instance       types.String `tfsdk:"instance"`
 	Aliases        types.Set    `tfsdk:"aliases"`
 	Properties     types.Map    `tfsdk:"properties"`
 	Public         types.Bool   `tfsdk:"public"`
@@ -68,7 +68,7 @@ func (r LxdPublishImageResource) Metadata(_ context.Context, req resource.Metada
 func (r LxdPublishImageResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *resource.SchemaResponse) {
 	resp.Schema = schema.Schema{
 		Attributes: map[string]schema.Attribute{
-			"instance_name": schema.StringAttribute{
+			"instance": schema.StringAttribute{
 				Required: true,
 				PlanModifiers: []planmodifier.String{
 					stringplanmodifier.RequiresReplace(),
@@ -223,7 +223,7 @@ func (r LxdPublishImageResource) Create(ctx context.Context, req resource.Create
 		server = server.UseProject(project)
 	}
 
-	instanceName := data.InstanceName.ValueString()
+	instanceName := data.Instance.ValueString()
 	ct, _, err := server.GetInstanceState(instanceName)
 	if err != nil { // && errors.IsNotFoundError(err)
 		resp.Diagnostics.AddError(fmt.Sprintf("Failed to retrieve state of instance %q", instanceName), err.Error())
@@ -270,7 +270,7 @@ func (r LxdPublishImageResource) Create(ctx context.Context, req resource.Create
 			Properties: imageProps,
 		},
 		Source: &api.ImagesPostSource{
-			Name: data.InstanceName.ValueString(),
+			Name: data.Instance.ValueString(),
 			Type: "instance",
 		},
 	}

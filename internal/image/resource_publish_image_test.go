@@ -22,7 +22,7 @@ func TestAccPublishImage_basic(t *testing.T) {
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("lxd_instance.instance1", "name", instanceName),
 					resource.TestCheckResourceAttr("lxd_instance.instance1", "status", "Stopped"),
-					resource.TestCheckResourceAttr("lxd_publish_image.pimg", "instance_name", instanceName),
+					resource.TestCheckResourceAttr("lxd_publish_image.pimg", "instance", instanceName),
 					resource.TestCheckResourceAttr("lxd_publish_image.pimg", "aliases.#", "1"),
 					resource.TestCheckResourceAttr("lxd_publish_image.pimg", "aliases.0", "test_basic"),
 					resource.TestCheckResourceAttrSet("lxd_publish_image.pimg", "id"),
@@ -46,7 +46,7 @@ func TestAccPublishImage_aliases(t *testing.T) {
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("lxd_instance.instance1", "name", instanceName),
 					resource.TestCheckResourceAttr("lxd_instance.instance1", "status", "Stopped"),
-					resource.TestCheckResourceAttr("lxd_publish_image.pimg", "instance_name", instanceName),
+					resource.TestCheckResourceAttr("lxd_publish_image.pimg", "instance", instanceName),
 					resource.TestCheckResourceAttr("lxd_publish_image.pimg", "aliases.#", "2"),
 					resource.TestCheckTypeSetElemAttr("lxd_publish_image.pimg", "aliases.*", aliases[0]),
 					resource.TestCheckTypeSetElemAttr("lxd_publish_image.pimg", "aliases.*", aliases[1]),
@@ -71,7 +71,7 @@ func TestAccPublishImage_properties(t *testing.T) {
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("lxd_instance.instance1", "name", instanceName),
 					resource.TestCheckResourceAttr("lxd_instance.instance1", "status", "Stopped"),
-					resource.TestCheckResourceAttr("lxd_publish_image.pimg", "instance_name", instanceName),
+					resource.TestCheckResourceAttr("lxd_publish_image.pimg", "instance", instanceName),
 					resource.TestCheckResourceAttr("lxd_publish_image.pimg", "aliases.#", "0"),
 					resource.TestCheckResourceAttr("lxd_publish_image.pimg", "properties.%", "2"),
 					resource.TestCheckResourceAttr("lxd_publish_image.pimg", "properties.os", "Alpine"),
@@ -97,7 +97,7 @@ func TestAccPublishImage_project(t *testing.T) {
 					resource.TestCheckResourceAttr("lxd_project.project1", "name", projectName),
 					resource.TestCheckResourceAttr("lxd_instance.instance1", "name", instanceName),
 					resource.TestCheckResourceAttr("lxd_instance.instance1", "status", "Stopped"),
-					resource.TestCheckResourceAttr("lxd_publish_image.pimg", "instance_name", instanceName),
+					resource.TestCheckResourceAttr("lxd_publish_image.pimg", "instance", instanceName),
 					resource.TestCheckResourceAttr("lxd_publish_image.pimg", "aliases.#", "0"),
 					resource.TestCheckResourceAttr("lxd_publish_image.pimg", "aliases.#", "0"),
 					resource.TestCheckResourceAttr("lxd_publish_image.pimg", "project", projectName),
@@ -117,8 +117,8 @@ resource "lxd_instance" "instance1" {
 }
 
 resource "lxd_publish_image" "pimg" {
-  instance_name = lxd_instance.instance1.name
-  aliases       = ["test_basic"]
+  instance = lxd_instance.instance1.name
+  aliases  = ["test_basic"]
 }
 	`, name)
 }
@@ -132,8 +132,8 @@ resource "lxd_instance" "instance1" {
 }
 
 resource "lxd_publish_image" "pimg" {
-  instance_name = lxd_instance.instance1.name
-  aliases       = ["%s"]
+  instance = lxd_instance.instance1.name
+  aliases  = ["%s"]
 }
 	`, name, strings.Join(toStringSlice(aliases), "\",\""))
 }
@@ -147,7 +147,7 @@ resource "lxd_instance" "instance1" {
 }
 
 resource "lxd_publish_image" "pimg" {
-  instance_name = lxd_instance.instance1.name
+  instance = lxd_instance.instance1.name
   properties = {
   	%s
   }
@@ -174,8 +174,8 @@ resource "lxd_instance" "instance1" {
 }
 
 resource "lxd_publish_image" "pimg" {
-  instance_name = lxd_instance.instance1.name
-  project       = lxd_project.project1.name
+  instance = lxd_instance.instance1.name
+  project  = lxd_project.project1.name
 }
 	`, project, instance)
 }

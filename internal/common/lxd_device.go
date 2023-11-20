@@ -14,7 +14,7 @@ type LxdDeviceModel struct {
 	Properties types.Map    `tfsdk:"properties"`
 }
 
-// toDeviceMap converts deviecs from types.Set into map[string]map[string]string.
+// ToDeviceMap converts deviecs from types.Set into map[string]map[string]string.
 func ToDeviceMap(ctx context.Context, dataDevices types.Set) (map[string]map[string]string, diag.Diagnostics) {
 	if dataDevices.IsNull() || dataDevices.IsUnknown() {
 		return make(map[string]map[string]string), nil
