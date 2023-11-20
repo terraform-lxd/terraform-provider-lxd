@@ -222,9 +222,9 @@ func (p *LxdProvider) Configure(ctx context.Context, req provider.ConfigureReque
 	lxdProvider := provider_config.NewLxdProvider(config, refreshInterval, acceptServerCertificate)
 
 	// Create LXD remote from environment variables (if defined).
-	// This emulates the Terraform provider "lxd_remote" config:
+	// This emulates the Terraform provider "remote" config:
 	//
-	// lxd_remote {
+	// remote {
 	//   name    = LXD_REMOTE
 	//   address = LXD_ADDR
 	//   ...
@@ -284,15 +284,12 @@ func (p *LxdProvider) Configure(ctx context.Context, req provider.ConfigureReque
 }
 
 func (p *LxdProvider) Resources(_ context.Context) []func() resource.Resource {
-	// ResourcesMap: map[string]*schema.Resource{
-	// 	"lxd_snapshot":                resourceLxdSnapshot(),
-	// },
-
 	return []func() resource.Resource{
 		image.NewLxdCachedImageResource,
 		image.NewLxdPublishImageResource,
 		instance.NewLxdInstanceResource,
 		instance.NewLxdInstanceFileResource,
+		instance.NewLxdInstanceSnapshotResource,
 		network.NewLxdNetworkResource,
 		network.NewLxdNetworkLBResource,
 		network.NewLxdNetworkZoneResource,
