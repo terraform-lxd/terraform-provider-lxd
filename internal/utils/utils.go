@@ -57,6 +57,40 @@ func SortMapKeys[T any](m map[string]T) []string {
 	return keys
 }
 
+// DiffSlice compares two slices and returns removed and added elements.
+// Note: Does not find differences for duplicate elemnts.
+func DiffSlices[T comparable](sliceA []T, sliceB []T) ([]T, []T) {
+	mapA := make(map[T]bool, len(sliceA))
+	mapB := make(map[T]bool, len(sliceB))
+
+	for _, k := range sliceA {
+		mapA[k] = true
+	}
+
+	for _, k := range sliceB {
+		mapB[k] = true
+	}
+
+	var removed []T
+	var added []T
+
+	// Find elements in listA but not in listB (removed elements)
+	for k := range mapA {
+		if mapB[k] {
+			removed = append(removed, k)
+		}
+	}
+
+	// Find elements in listB but not in listA (added elements)
+	for k := range mapB {
+		if mapA[k] {
+			added = append(added, k)
+		}
+	}
+
+	return removed, added
+}
+
 // ToPrettyJSON converts the given value into JSON string. If value cannot
 // be marshaled into JSON, an empty string is returned.
 func ToPrettyJSON(v any) string {
