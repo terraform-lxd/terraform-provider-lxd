@@ -3,6 +3,7 @@ package network
 import (
 	"context"
 	"fmt"
+	"strings"
 
 	lxd "github.com/canonical/lxd/client"
 	"github.com/canonical/lxd/shared/api"
@@ -349,6 +350,19 @@ func (r LxdNetworkZoneRecordResource) ImportState(ctx context.Context, req resou
 		return
 	}
 
+	// Split name into network zone name and record name.
+	split := strings.SplitN(name, "/", 2)
+	if len(split) != 2 {
+		resp.Diagnostics.AddError(
+			fmt.Sprintf("Invalid import format: %q", req.ID),
+			"Valid import:\nimport lxd_network_zone_record.<resource_name> [<remote>:][<project>]/<zone_name>/<record_name>",
+		)
+		return
+	}
+
+	zoneName := split[0]
+	recordName := split[1]
+
 	if remote != "" {
 		resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("remote"), remote)...)
 	}
@@ -357,7 +371,8 @@ func (r LxdNetworkZoneRecordResource) ImportState(ctx context.Context, req resou
 		resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("project"), project)...)
 	}
 
-	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("name"), name)...)
+	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("name"), recordName)...)
+	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("zone"), zoneName)...)
 }
 
 // SyncState pulls network zone record data from the server and updates the

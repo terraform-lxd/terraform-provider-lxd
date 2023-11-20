@@ -23,13 +23,11 @@ func SplitImportID(id string, resType string) (remote string, project string, na
 
 	// Split id into [project/]<name>
 	split = strings.Split(id, "/")
-	if len(split) > 2 {
-		err = diag.NewErrorDiagnostic(errSummary, errDetails)
-	} else if len(split) == 2 {
-		project = split[0]
-		name = split[1]
-	} else {
+	if len(split) < 2 {
 		name = id
+	} else {
+		project = split[0]
+		name = strings.Join(split[1:], "/")
 	}
 
 	// Verify name of the LXD resource is not empty.

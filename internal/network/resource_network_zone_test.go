@@ -75,6 +75,49 @@ func TestAccNetworkZone_project(t *testing.T) {
 	})
 }
 
+func TestAccNetworkZone_importBasic(t *testing.T) {
+	resourceName := "lxd_network_zone.zone"
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { acctest.PreCheck(t) },
+		ProtoV6ProviderFactories: acctest.ProtoV6ProviderFactories,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccNetworkZone_basic(),
+			},
+			{
+				ResourceName:                         resourceName,
+				ImportStateId:                        "custom.example.org",
+				ImportState:                          true,
+				ImportStateVerify:                    true,
+				ImportStateVerifyIdentifierAttribute: "name",
+			},
+		},
+	})
+}
+
+func TestAccNetworkZone_importProject(t *testing.T) {
+	resourceName := "lxd_network_zone.zone"
+	projectName := petname.Name()
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { acctest.PreCheck(t) },
+		ProtoV6ProviderFactories: acctest.ProtoV6ProviderFactories,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccNetworkZone_project(projectName),
+			},
+			{
+				ResourceName:                         resourceName,
+				ImportStateId:                        fmt.Sprintf("%s/custom.example.org", projectName),
+				ImportState:                          true,
+				ImportStateVerify:                    true,
+				ImportStateVerifyIdentifierAttribute: "name",
+			},
+		},
+	})
+}
+
 func testAccNetworkZone_basic() string {
 	return `
 resource "lxd_network_zone" "zone" {

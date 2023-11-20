@@ -73,6 +73,29 @@ func TestAccNetworkZoneRecord_entries(t *testing.T) {
 	})
 }
 
+func TestAccNetworkZoneRecord_importBasic(t *testing.T) {
+	resourceName := "lxd_network_zone_record.record"
+	recordName := petname.Generate(2, "-")
+	zoneName := petname.Generate(3, ".")
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { acctest.PreCheck(t) },
+		ProtoV6ProviderFactories: acctest.ProtoV6ProviderFactories,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccNetworkZoneRecord(zoneName, recordName),
+			},
+			{
+				ResourceName:                         resourceName,
+				ImportStateId:                        fmt.Sprintf("/%s/%s", zoneName, recordName),
+				ImportState:                          true,
+				ImportStateVerify:                    true,
+				ImportStateVerifyIdentifierAttribute: "name",
+			},
+		},
+	})
+}
+
 func testAccNetworkZoneRecord(zoneName, recordName string) string {
 	return fmt.Sprintf(`
 resource "lxd_network_zone" "zone" {
