@@ -21,7 +21,7 @@ func ToDeviceMap(ctx context.Context, dataDevices types.Set) (map[string]map[str
 	}
 
 	// Convert types.Set into set of device models.
-	modelDevices := make([]LxdDeviceModel, len(dataDevices.Elements()))
+	modelDevices := make([]LxdDeviceModel, 0, len(dataDevices.Elements()))
 	diags := dataDevices.ElementsAs(ctx, &modelDevices, false)
 	if diags.HasError() {
 		return nil, diags
@@ -53,11 +53,13 @@ func ToDeviceSetType(ctx context.Context, devices map[string]map[string]string) 
 	devModelTypes := map[string]attr.Type{
 		"name":       types.StringType,
 		"type":       types.StringType,
-		"properties": types.MapType{types.StringType},
+		"properties": types.MapType{ElemType: types.StringType},
 	}
 
+	nilSet := types.SetNull(types.ObjectType{AttrTypes: devModelTypes})
+
 	if len(devices) == 0 {
-		return types.SetNull(types.ObjectType{devModelTypes}), nil
+		return nilSet, nil
 	}
 
 	modelDevices := make([]LxdDeviceModel, 0, len(devices))
@@ -73,7 +75,7 @@ func ToDeviceSetType(ctx context.Context, devices map[string]map[string]string) 
 
 		devProps, diags := types.MapValueFrom(ctx, types.StringType, props)
 		if diags.HasError() {
-			return types.SetNull(types.ObjectType{devModelTypes}), diags
+			return nilSet, diags
 		}
 
 		dev := LxdDeviceModel{
@@ -85,5 +87,5 @@ func ToDeviceSetType(ctx context.Context, devices map[string]map[string]string) 
 		modelDevices = append(modelDevices, dev)
 	}
 
-	return types.SetValueFrom(ctx, types.ObjectType{devModelTypes}, modelDevices)
+	return types.SetValueFrom(ctx, types.ObjectType{AttrTypes: devModelTypes}, modelDevices)
 }
