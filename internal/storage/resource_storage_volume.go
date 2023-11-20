@@ -23,33 +23,39 @@ import (
 	provider_config "github.com/terraform-lxd/terraform-provider-lxd/internal/provider-config"
 )
 
-type LxdStoragePoolResourceModel struct {
+type LxdStorageVolumeResourceModel struct {
 	Name        types.String `tfsdk:"name"`
 	Description types.String `tfsdk:"description"`
-	Driver      types.String `tfsdk:"driver"`
+	Pool        types.String `tfsdk:"pool"`
+	Type        types.String `tfsdk:"type"`
+	ContentType types.String `tfsdk:"content_type"`
 	Project     types.String `tfsdk:"project"`
 	Target      types.String `tfsdk:"target"`
 	Remote      types.String `tfsdk:"remote"`
 	Config      types.Map    `tfsdk:"config"`
+
+	// Computed.
+	Location       types.String `tfsdk:"location"`
+	ExpandedConfig types.Map    `tfsdk:"expanded_config"`
 }
 
-// LxdStoragePoolResource represent LXD storage pool resource.
-type LxdStoragePoolResource struct {
+// LxdStorageVolumeResource represent LXD storage volume resource.
+type LxdStorageVolumeResource struct {
 	provider *provider_config.LxdProviderConfig
 }
 
-// NewLxdStoragePoolResource returns a new storage pool resource.
-func NewLxdStoragePoolResource() resource.Resource {
-	return &LxdStoragePoolResource{}
+// NewLxdStorageVolumeResource returns a new storage volume resource.
+func NewLxdStorageVolumeResource() resource.Resource {
+	return &LxdStorageVolumeResource{}
 }
 
 // Metadata for storage pool resource.
-func (r LxdStoragePoolResource) Metadata(_ context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
-	resp.TypeName = fmt.Sprintf("%s_storage_pool", req.ProviderTypeName)
+func (r LxdStorageVolumeResource) Metadata(_ context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
+	resp.TypeName = fmt.Sprintf("%s_volume", req.ProviderTypeName)
 }
 
 // Schema for storage pool resource.
-func (r LxdStoragePoolResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *resource.SchemaResponse) {
+func (r LxdStorageVolumeResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *resource.SchemaResponse) {
 	resp.Schema = schema.Schema{
 		Attributes: map[string]schema.Attribute{
 			"name": schema.StringAttribute{
@@ -65,13 +71,35 @@ func (r LxdStoragePoolResource) Schema(_ context.Context, _ resource.SchemaReque
 				Default:  stringdefault.StaticString(""),
 			},
 
-			"driver": schema.StringAttribute{
+			"pool": schema.StringAttribute{
 				Required: true,
 				PlanModifiers: []planmodifier.String{
 					stringplanmodifier.RequiresReplace(),
 				},
+			},
+
+			"type": schema.StringAttribute{
+				Optional: true,
+				Computed: true,
+				Default:  stringdefault.StaticString("custom"),
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.RequiresReplace(),
+				},
 				Validators: []validator.String{
-					stringvalidator.OneOf("dir", "zfs", "lvm", "btrfs", "ceph", "cephfs", "cephobject"),
+					// TODO: Add other types.
+					stringvalidator.OneOf("custom", "block"),
+				},
+			},
+
+			"content_type": schema.StringAttribute{
+				Optional: true,
+				Computed: true,
+				Default:  stringdefault.StaticString("filesystem"),
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.RequiresReplace(),
+				},
+				Validators: []validator.String{
+					stringvalidator.OneOf("filesystem", "block"),
 				},
 			},
 
@@ -108,11 +136,22 @@ func (r LxdStoragePoolResource) Schema(_ context.Context, _ resource.SchemaReque
 				ElementType: types.StringType,
 				Default:     mapdefault.StaticValue(types.MapValueMust(types.StringType, map[string]attr.Value{})),
 			},
+
+			// Computed.
+
+			"location": schema.StringAttribute{
+				Optional: true,
+			},
+
+			"expanded_config": schema.MapAttribute{
+				Computed:    true,
+				ElementType: types.StringType,
+			},
 		},
 	}
 }
 
-func (r *LxdStoragePoolResource) Configure(_ context.Context, req resource.ConfigureRequest, resp *resource.ConfigureResponse) {
+func (r *LxdStorageVolumeResource) Configure(_ context.Context, req resource.ConfigureRequest, resp *resource.ConfigureResponse) {
 	data := req.ProviderData
 	if data == nil {
 		return
@@ -127,8 +166,28 @@ func (r *LxdStoragePoolResource) Configure(_ context.Context, req resource.Confi
 	r.provider = provider
 }
 
-func (r LxdStoragePoolResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
-	var data LxdStoragePoolResourceModel
+func (r LxdStorageVolumeResource) Setup(_ context.Context, data LxdStorageVolumeResourceModel) (lxd.InstanceServer, diag.Diagnostic) {
+	server, err := r.provider.InstanceServer(data.Remote.ValueString())
+	if err != nil {
+		return nil, errors.NewInstanceServerError(err)
+	}
+
+	project := data.Project.ValueString()
+	target := data.Target.ValueString()
+
+	if project != "" {
+		server = server.UseProject(project)
+	}
+
+	if target != "" {
+		server = server.UseTarget(target)
+	}
+
+	return server, nil
+}
+
+func (r LxdStorageVolumeResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
+	var data LxdStorageVolumeResourceModel
 
 	// Fetch resource model from Terraform plan.
 	diags := req.Plan.Get(ctx, &data)
@@ -137,43 +196,35 @@ func (r LxdStoragePoolResource) Create(ctx context.Context, req resource.CreateR
 		return
 	}
 
-	server, err := r.provider.InstanceServer(data.Remote.ValueString())
-	if err != nil {
-		resp.Diagnostics.Append(errors.NewInstanceServerError(err))
+	server, diag := r.Setup(ctx, data)
+	if diag != nil {
+		resp.Diagnostics.Append(diag)
 		return
 	}
 
-	// Set project if configured.
-	project := data.Project.ValueString()
-	if project != "" {
-		server = server.UseProject(project)
-	}
-
-	// Set target if configured.
-	target := data.Target.ValueString()
-	if target != "" {
-		server = server.UseTarget(target)
-	}
-
-	// Convert pool config to map.
-	config, diag := common.ToConfigMap(ctx, data.Config)
-	resp.Diagnostics.Append(diag...)
+	// Convert volume config to map.
+	config, diags := common.ToConfigMap(ctx, data.Config)
+	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
 
-	pool := api.StoragePoolsPost{
-		Name:   data.Name.ValueString(),
-		Driver: data.Driver.ValueString(),
-		StoragePoolPut: api.StoragePoolPut{
+	volName := data.Name.ValueString()
+	poolName := data.Pool.ValueString()
+
+	vol := api.StorageVolumesPost{
+		Name:        data.Name.ValueString(),
+		Type:        data.Type.ValueString(),
+		ContentType: data.ContentType.ValueString(),
+		StorageVolumePut: api.StorageVolumePut{
 			Description: data.Description.ValueString(),
 			Config:      config,
 		},
 	}
 
-	err = server.CreateStoragePool(pool)
+	err := server.CreateStoragePoolVolume(poolName, vol)
 	if err != nil {
-		resp.Diagnostics.AddError(fmt.Sprintf("Failed to create storage pool %q", pool.Name), err.Error())
+		resp.Diagnostics.AddError(fmt.Sprintf("Failed to create storage volume %q", volName), err.Error())
 		return
 	}
 
@@ -188,8 +239,8 @@ func (r LxdStoragePoolResource) Create(ctx context.Context, req resource.CreateR
 	resp.Diagnostics.Append(diags...)
 }
 
-func (r LxdStoragePoolResource) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
-	var data LxdStoragePoolResourceModel
+func (r LxdStorageVolumeResource) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
+	var data LxdStorageVolumeResourceModel
 
 	// Fetch resource model from Terraform state.
 	diags := req.State.Get(ctx, &data)
@@ -198,22 +249,10 @@ func (r LxdStoragePoolResource) Read(ctx context.Context, req resource.ReadReque
 		return
 	}
 
-	server, err := r.provider.InstanceServer(data.Remote.ValueString())
-	if err != nil {
-		resp.Diagnostics.Append(errors.NewInstanceServerError(err))
+	server, diag := r.Setup(ctx, data)
+	if diag != nil {
+		resp.Diagnostics.Append(diag)
 		return
-	}
-
-	// Set project if configured.
-	project := data.Project.ValueString()
-	if project != "" {
-		server = server.UseProject(project)
-	}
-
-	// Set target if configured.
-	target := data.Target.ValueString()
-	if target != "" {
-		server = server.UseTarget(target)
 	}
 
 	found, diags := data.SyncState(ctx, server)
@@ -233,8 +272,8 @@ func (r LxdStoragePoolResource) Read(ctx context.Context, req resource.ReadReque
 	resp.Diagnostics.Append(diags...)
 }
 
-func (r LxdStoragePoolResource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
-	var data LxdStoragePoolResourceModel
+func (r LxdStorageVolumeResource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
+	var data LxdStorageVolumeResourceModel
 
 	// Fetch resource model from Terraform plan.
 	diags := req.Plan.Get(ctx, &data)
@@ -243,28 +282,19 @@ func (r LxdStoragePoolResource) Update(ctx context.Context, req resource.UpdateR
 		return
 	}
 
-	server, err := r.provider.InstanceServer(data.Remote.ValueString())
-	if err != nil {
-		resp.Diagnostics.Append(errors.NewInstanceServerError(err))
+	server, diag := r.Setup(ctx, data)
+	if diag != nil {
+		resp.Diagnostics.Append(diag)
 		return
 	}
 
-	// Set project if configured.
-	project := data.Project.ValueString()
-	if project != "" {
-		server = server.UseProject(project)
-	}
+	poolName := data.Pool.ValueString()
+	volName := data.Name.ValueString()
+	volType := data.Type.ValueString()
 
-	// Set target if configured.
-	target := data.Target.ValueString()
-	if target != "" {
-		server = server.UseTarget(target)
-	}
-
-	poolName := data.Name.ValueString()
-	pool, etag, err := server.GetStoragePool(poolName)
+	vol, etag, err := server.GetStoragePoolVolume(poolName, volType, volName)
 	if err != nil {
-		resp.Diagnostics.AddError(fmt.Sprintf("Failed to retrieve existing storage pool %q", poolName), err.Error())
+		resp.Diagnostics.AddError(fmt.Sprintf("Failed to retrieve existing storage volume %q", volName), err.Error())
 		return
 	}
 
@@ -274,18 +304,18 @@ func (r LxdStoragePoolResource) Update(ctx context.Context, req resource.UpdateR
 		return
 	}
 
-	// Merge pool config state and user defined config.
-	config := common.MergeConfig(pool.Config, userConfig, data.ComputedKeys(pool.Driver))
+	// Merge volume config and user defined config.
+	config := common.MergeConfig(vol.Config, userConfig, data.ComputedKeys())
 
-	// Update pool.
-	newPool := api.StoragePoolPut{
+	volReq := api.StorageVolumePut{
 		Description: data.Description.ValueString(),
 		Config:      config,
 	}
 
-	err = server.UpdateStoragePool(poolName, newPool, etag)
+	// Update volume.
+	err = server.UpdateStoragePoolVolume(poolName, volType, volName, volReq, etag)
 	if err != nil {
-		resp.Diagnostics.AddError(fmt.Sprintf("Failed to update storage pool %q", poolName), err.Error())
+		resp.Diagnostics.AddError(fmt.Sprintf("Failed to update storage volume %q", volName), err.Error())
 		return
 	}
 
@@ -300,8 +330,8 @@ func (r LxdStoragePoolResource) Update(ctx context.Context, req resource.UpdateR
 	resp.Diagnostics.Append(diags...)
 }
 
-func (r LxdStoragePoolResource) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {
-	var data LxdStoragePoolResourceModel
+func (r LxdStorageVolumeResource) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {
+	var data LxdStorageVolumeResourceModel
 
 	// Fetch resource model from Terraform state.
 	diags := req.State.Get(ctx, &data)
@@ -310,33 +340,24 @@ func (r LxdStoragePoolResource) Delete(ctx context.Context, req resource.DeleteR
 		return
 	}
 
-	server, err := r.provider.InstanceServer(data.Remote.ValueString())
-	if err != nil {
-		resp.Diagnostics.Append(errors.NewInstanceServerError(err))
+	server, diag := r.Setup(ctx, data)
+	if diag != nil {
+		resp.Diagnostics.Append(diag)
 		return
 	}
 
-	// Set project if configured.
-	project := data.Project.ValueString()
-	if project != "" {
-		server = server.UseProject(project)
-	}
+	poolName := data.Pool.ValueString()
+	volName := data.Name.ValueString()
+	volType := data.Type.ValueString()
 
-	// Set target if configured.
-	target := data.Target.ValueString()
-	if target != "" {
-		server = server.UseTarget(target)
-	}
-
-	poolName := data.Name.ValueString()
-	err = server.DeleteStoragePool(poolName)
+	err := server.DeleteStoragePoolVolume(poolName, volType, volName)
 	if err != nil {
 		resp.Diagnostics.AddError(fmt.Sprintf("Failed to remove storage pool %q", poolName), err.Error())
 	}
 }
 
-func (r LxdStoragePoolResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
-	remote, project, name, diag := common.SplitImportID(req.ID, "storage_pool")
+func (r LxdStorageVolumeResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
+	remote, project, name, diag := common.SplitImportID(req.ID, "volume")
 	if diag != nil {
 		resp.Diagnostics.Append(diag)
 		return
@@ -353,21 +374,24 @@ func (r LxdStoragePoolResource) ImportState(ctx context.Context, req resource.Im
 	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("name"), name)...)
 }
 
-// SyncState pulls storage pool data from the server and updates the model
+// SyncState pulls storage volume data from the server and updates the model
 // in-place. It returns a boolean indicating whether resource is found and
 // diagnostics that contain potential errors.
 // This should be called before updating Terraform state.
-func (m *LxdStoragePoolResourceModel) SyncState(ctx context.Context, server lxd.InstanceServer) (bool, diag.Diagnostics) {
+func (m *LxdStorageVolumeResourceModel) SyncState(ctx context.Context, server lxd.InstanceServer) (bool, diag.Diagnostics) {
 	respDiags := diag.Diagnostics{}
 
-	poolName := m.Name.ValueString()
-	pool, _, err := server.GetStoragePool(poolName)
+	poolName := m.Pool.ValueString()
+	volName := m.Name.ValueString()
+	volType := m.Type.ValueString()
+
+	vol, _, err := server.GetStoragePoolVolume(poolName, volType, volName)
 	if err != nil {
 		if errors.IsNotFoundError(err) {
 			return false, nil
 		}
 
-		respDiags.AddError(fmt.Sprintf("Failed to retrieve storage pool %q", poolName), err.Error())
+		respDiags.AddError(fmt.Sprintf("Failed to retrieve storage volume %q", volName), err.Error())
 		return true, respDiags
 	}
 
@@ -375,58 +399,31 @@ func (m *LxdStoragePoolResourceModel) SyncState(ctx context.Context, server lxd.
 	userConfig, diags := common.ToConfigMap(ctx, m.Config)
 	respDiags.Append(diags...)
 
-	stateConfig := common.StripConfig(pool.Config, userConfig, m.ComputedKeys(pool.Driver))
+	stateConfig := common.StripConfig(vol.Config, userConfig, m.ComputedKeys())
 
-	// Convert config state into schema type.
 	config, diags := common.ToConfigMapType(ctx, stateConfig)
+	respDiags.Append(diags...)
+
+	expandedConfig, diags := common.ToConfigMapType(ctx, vol.Config)
 	respDiags.Append(diags...)
 
 	if respDiags.HasError() {
 		return true, diags
 	}
 
-	m.Name = types.StringValue(pool.Name)
-	m.Description = types.StringValue(pool.Description)
-	m.Driver = types.StringValue(pool.Driver)
+	m.Name = types.StringValue(vol.Name)
+	m.Description = types.StringValue(vol.Description)
+	m.ExpandedConfig = expandedConfig
 	m.Config = config
+
+	if vol.Location != "" && vol.Location != "none" {
+		m.Location = types.StringValue(vol.Location)
+	}
 
 	return true, nil
 }
 
 // ComputedKeys returns list of computed config keys.
-func (_ LxdStoragePoolResourceModel) ComputedKeys(driver string) []string {
-	var keys []string
-
-	switch driver {
-	case "dir":
-		keys = []string{
-			"source",
-		}
-	case "zfs":
-		keys = []string{
-			"source",
-			"size",
-			"zfs.pool_name",
-		}
-	case "lvm":
-		keys = []string{
-			"source",
-			"size",
-			"lvm.vg_name",
-			"lvm.thinpool_name",
-		}
-	case "btrfs":
-		keys = []string{
-			"source",
-			"size",
-		}
-	case "ceph":
-		// TODO
-	case "cephfs":
-		// TODO
-	case "cephobject":
-		// TODO
-	}
-
-	return append(keys, "volatile.")
+func (_ LxdStorageVolumeResourceModel) ComputedKeys() []string {
+	return []string{"volatile."}
 }
