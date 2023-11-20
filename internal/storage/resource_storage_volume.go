@@ -3,6 +3,7 @@ package storage
 import (
 	"context"
 	"fmt"
+	"strings"
 
 	lxd "github.com/canonical/lxd/client"
 	"github.com/canonical/lxd/shared/api"
@@ -49,12 +50,10 @@ func NewLxdStorageVolumeResource() resource.Resource {
 	return &LxdStorageVolumeResource{}
 }
 
-// Metadata for storage pool resource.
 func (r LxdStorageVolumeResource) Metadata(_ context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
 	resp.TypeName = fmt.Sprintf("%s_volume", req.ProviderTypeName)
 }
 
-// Schema for storage pool resource.
 func (r LxdStorageVolumeResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *resource.SchemaResponse) {
 	resp.Schema = schema.Schema{
 		Attributes: map[string]schema.Attribute{
@@ -84,10 +83,6 @@ func (r LxdStorageVolumeResource) Schema(_ context.Context, _ resource.SchemaReq
 				Default:  stringdefault.StaticString("custom"),
 				PlanModifiers: []planmodifier.String{
 					stringplanmodifier.RequiresReplace(),
-				},
-				Validators: []validator.String{
-					// TODO: Add other types.
-					stringvalidator.OneOf("custom", "block"),
 				},
 			},
 
@@ -363,6 +358,26 @@ func (r LxdStorageVolumeResource) ImportState(ctx context.Context, req resource.
 		return
 	}
 
+	// Split name into pool and volume name.
+	split := strings.SplitN(name, "/", 2)
+	if len(split) != 2 {
+		resp.Diagnostics.AddError(
+			fmt.Sprintf("Invalid import format: %q", req.ID),
+			"Valid import:\nimport lxd_volume.<resource_name> [<remote>:][<project>]/<pool_name>/<volume_name>",
+		)
+		return
+	}
+
+	poolName := split[0]
+	volName := split[1]
+
+	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("pool"), poolName)...)
+	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("name"), volName)...)
+	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("type"), "custom")...)
+
+	fmt.Println("POOL_NAME =", poolName)
+	fmt.Println("VOLUME_NAME =", volName)
+
 	if remote != "" {
 		resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("remote"), remote)...)
 	}
@@ -370,8 +385,6 @@ func (r LxdStorageVolumeResource) ImportState(ctx context.Context, req resource.
 	if project != "" {
 		resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("project"), project)...)
 	}
-
-	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("name"), name)...)
 }
 
 // SyncState pulls storage volume data from the server and updates the model
@@ -425,5 +438,9 @@ func (m *LxdStorageVolumeResourceModel) SyncState(ctx context.Context, server lx
 
 // ComputedKeys returns list of computed config keys.
 func (_ LxdStorageVolumeResourceModel) ComputedKeys() []string {
-	return []string{"volatile."}
+	return []string{
+		"block.filesystem",
+		"block.mount_options",
+		"volatile.",
+	}
 }

@@ -9,7 +9,7 @@ import (
 	"github.com/terraform-lxd/terraform-provider-lxd/internal/acctest"
 )
 
-func TestAccVolume_basic(t *testing.T) {
+func TestAccLxdStorageVolume_basic(t *testing.T) {
 	poolName := petname.Generate(2, "-")
 	volumeName := petname.Generate(2, "-")
 
@@ -18,7 +18,7 @@ func TestAccVolume_basic(t *testing.T) {
 		ProtoV6ProviderFactories: acctest.ProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccVolume_basic(poolName, volumeName),
+				Config: testAccStorageVolume_basic(poolName, volumeName),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("lxd_storage_pool.pool1", "name", poolName),
 					resource.TestCheckResourceAttr("lxd_storage_pool.pool1", "driver", "dir"),
@@ -32,7 +32,7 @@ func TestAccVolume_basic(t *testing.T) {
 	})
 }
 
-func TestAccVolume_instanceAttach(t *testing.T) {
+func TestAccLxdStorageVolume_instanceAttach(t *testing.T) {
 	instanceName := petname.Generate(2, "-")
 	poolName := petname.Generate(2, "-")
 	volumeName := petname.Generate(2, "-")
@@ -42,7 +42,7 @@ func TestAccVolume_instanceAttach(t *testing.T) {
 		ProtoV6ProviderFactories: acctest.ProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccVolume_instanceAttach(poolName, volumeName, instanceName),
+				Config: testAccStorageVolume_instanceAttach(poolName, volumeName, instanceName),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("lxd_storage_pool.pool1", "name", poolName),
 					resource.TestCheckResourceAttr("lxd_storage_pool.pool1", "driver", "zfs"),
@@ -64,7 +64,7 @@ func TestAccVolume_instanceAttach(t *testing.T) {
 
 // TODO:
 // - clustering precheck
-// func TestAccVolume_target(t *testing.T) {
+// func TestAccLxdStorageVolume_target(t *testing.T) {
 // 	volumeName := petname.Generate(2, "-")
 
 // 	resource.Test(t, resource.TestCase{
@@ -72,7 +72,7 @@ func TestAccVolume_instanceAttach(t *testing.T) {
 // 		ProtoV6ProviderFactories: acctest.ProtoV6ProviderFactories,
 // 		Steps: []resource.TestStep{
 // 			{
-// 				Config: testAccVolume_target(volumeName),
+// 				Config: testAccStorageVolume_target(volumeName),
 // 				Check: resource.ComposeTestCheckFunc(
 // 					resource.TestCheckResourceAttr("lxd_volume.volume1", "name", volumeName),
 // 					resource.TestCheckResourceAttr("lxd_volume.volume1", "pool", "default"),
@@ -83,7 +83,7 @@ func TestAccVolume_instanceAttach(t *testing.T) {
 // 	})
 // }
 
-func TestAccVolume_project(t *testing.T) {
+func TestAccLxdStorageVolume_project(t *testing.T) {
 	volumeName := petname.Generate(2, "-")
 	projectName := petname.Name()
 
@@ -92,7 +92,7 @@ func TestAccVolume_project(t *testing.T) {
 		ProtoV6ProviderFactories: acctest.ProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccVolume_project(projectName, volumeName),
+				Config: testAccStorageVolume_project(projectName, volumeName),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("lxd_project.project1", "name", projectName),
 					resource.TestCheckResourceAttr("lxd_volume.volume1", "name", volumeName),
@@ -104,7 +104,7 @@ func TestAccVolume_project(t *testing.T) {
 	})
 }
 
-func TestAccVolume_contentType(t *testing.T) {
+func TestAccLxdStorageVolume_contentType(t *testing.T) {
 	poolName := petname.Generate(2, "-")
 	volumeName := petname.Generate(2, "-")
 
@@ -113,7 +113,7 @@ func TestAccVolume_contentType(t *testing.T) {
 		ProtoV6ProviderFactories: acctest.ProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccVolume_contentType(poolName, volumeName),
+				Config: testAccStorageVolume_contentType(poolName, volumeName),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("lxd_storage_pool.pool1", "name", poolName),
 					resource.TestCheckResourceAttr("lxd_storage_pool.pool1", "driver", "zfs"),
@@ -126,7 +126,52 @@ func TestAccVolume_contentType(t *testing.T) {
 	})
 }
 
-func testAccVolume_basic(poolName, volumeName string) string {
+func TestAccLxdStorageVolume_importBasic(t *testing.T) {
+	volName := petname.Generate(2, "-")
+	poolName := petname.Generate(2, "-")
+	resourceName := "lxd_volume.volume1"
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { acctest.PreCheck(t) },
+		ProtoV6ProviderFactories: acctest.ProtoV6ProviderFactories,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccStorageVolume_basic(poolName, volName),
+			},
+			{
+				ResourceName:                         resourceName,
+				ImportStateId:                        fmt.Sprintf("/%s/%s", poolName, volName),
+				ImportStateVerifyIdentifierAttribute: "name",
+				ImportStateVerify:                    false,
+				ImportState:                          true,
+			},
+		},
+	})
+}
+
+func TestAccLxdStorageVolume_importProject(t *testing.T) {
+	volName := petname.Generate(2, "-")
+	projectName := petname.Generate(2, "-")
+	resourceName := "lxd_volume.volume1"
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { acctest.PreCheck(t) },
+		ProtoV6ProviderFactories: acctest.ProtoV6ProviderFactories,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccStorageVolume_project(projectName, volName),
+			},
+			{
+				ResourceName:      resourceName,
+				ImportStateId:     fmt.Sprintf("%s/default/%s", projectName, volName),
+				ImportStateVerify: false, // Content-type missing (but is imported).
+				ImportState:       true,
+			},
+		},
+	})
+}
+
+func testAccStorageVolume_basic(poolName, volumeName string) string {
 	return fmt.Sprintf(`
 resource "lxd_storage_pool" "pool1" {
   name   = "%s"
@@ -140,7 +185,7 @@ resource "lxd_volume" "volume1" {
 	`, poolName, volumeName)
 }
 
-func testAccVolume_instanceAttach(poolName, volumeName, instanceName string) string {
+func testAccStorageVolume_instanceAttach(poolName, volumeName, instanceName string) string {
 	return fmt.Sprintf(`
 resource "lxd_storage_pool" "pool1" {
   name   = "%s"
@@ -170,7 +215,7 @@ resource "lxd_instance" "instance1" {
 	`, poolName, volumeName, instanceName)
 }
 
-func testAccVolume_target(volumeName string) string {
+func testAccStorageVolume_target(volumeName string) string {
 	return fmt.Sprintf(`
 resource "lxd_volume" "volume1" {
   name   = "%s"
@@ -180,7 +225,7 @@ resource "lxd_volume" "volume1" {
 	`, volumeName)
 }
 
-func testAccVolume_project(project, volumeName string) string {
+func testAccStorageVolume_project(projectName, volumeName string) string {
 	return fmt.Sprintf(`
 resource "lxd_project" "project1" {
   name = "%s"
@@ -194,10 +239,10 @@ resource "lxd_volume" "volume1" {
   pool    = "default"
   project = lxd_project.project1.name
 }
-	`, project, volumeName)
+	`, projectName, volumeName)
 }
 
-func testAccVolume_contentType(poolName, volumeName string) string {
+func testAccStorageVolume_contentType(poolName, volumeName string) string {
 	return fmt.Sprintf(`
 resource "lxd_storage_pool" "pool1" {
  	name   = "%s"

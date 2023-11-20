@@ -286,7 +286,6 @@ func (p *LxdProvider) Configure(ctx context.Context, req provider.ConfigureReque
 func (p *LxdProvider) Resources(_ context.Context) []func() resource.Resource {
 	// ResourcesMap: map[string]*schema.Resource{
 	// 	"lxd_snapshot":                resourceLxdSnapshot(),
-	// 	"lxd_volume_copy":             resourceLxdVolumeCopy(),
 	// },
 
 	return []func() resource.Resource{
@@ -302,6 +301,7 @@ func (p *LxdProvider) Resources(_ context.Context) []func() resource.Resource {
 		project.NewLxdProjectResource,
 		storage.NewLxdStoragePoolResource,
 		storage.NewLxdStorageVolumeResource,
+		storage.NewLxdStorageVolumeCopyResource,
 	}
 }
 

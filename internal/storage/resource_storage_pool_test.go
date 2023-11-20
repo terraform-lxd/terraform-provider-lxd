@@ -4,10 +4,8 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/canonical/lxd/shared/api"
 	petname "github.com/dustinkirkland/golang-petname"
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
-	"github.com/hashicorp/terraform-plugin-testing/terraform"
 	"github.com/terraform-lxd/terraform-provider-lxd/internal/acctest"
 )
 
@@ -223,28 +221,6 @@ func TestAccStoragePool_project(t *testing.T) {
 // 		},
 // 	})
 // }
-
-func testAccStoragePoolConfig(pool *api.StoragePool, k, v string) resource.TestCheckFunc {
-	return func(s *terraform.State) error {
-		if pool.Config == nil {
-			return fmt.Errorf("No config")
-		}
-
-		for key, value := range pool.Config {
-			if k != key {
-				continue
-			}
-
-			if v == value {
-				return nil
-			}
-
-			return fmt.Errorf("Bad value for %s: %s", k, value)
-		}
-
-		return fmt.Errorf("Config not found: %s", k)
-	}
-}
 
 func TestAccLxdStoragePool_importBasic(t *testing.T) {
 	poolName := petname.Generate(2, "-")
