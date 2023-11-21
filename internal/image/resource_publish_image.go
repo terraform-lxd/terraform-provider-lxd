@@ -43,7 +43,7 @@ type LxdPublishImageResourceModel struct {
 	Remote         types.String `tfsdk:"remote"`
 
 	// Computed.
-	ID           types.String `tfsdk:"id"`
+	ResourceID   types.String `tfsdk:"resource_id"`
 	Architecture types.String `tfsdk:"architecture"`
 	Fingerprint  types.String `tfsdk:"fingerprint"`
 	CreatedAt    types.Int64  `tfsdk:"created_at"`
@@ -154,7 +154,7 @@ func (r LxdPublishImageResource) Schema(_ context.Context, _ resource.SchemaRequ
 
 			// Computed.
 
-			"id": schema.StringAttribute{
+			"resource_id": schema.StringAttribute{
 				Computed: true,
 				PlanModifiers: []planmodifier.String{
 					stringplanmodifier.UseStateForUnknown(),
@@ -294,8 +294,8 @@ func (r LxdPublishImageResource) Create(ctx context.Context, req resource.Create
 	imageFingerprint := opResp.Metadata["fingerprint"].(string)
 	data.Fingerprint = types.StringValue(imageFingerprint)
 
-	imageID := createImageID(remote, imageFingerprint)
-	data.ID = types.StringValue(imageID)
+	imageID := createImageResourceID(remote, imageFingerprint)
+	data.ResourceID = types.StringValue(imageID)
 
 	_, diags = data.SyncState(ctx, server)
 	resp.Diagnostics.Append(diags...)
@@ -363,7 +363,7 @@ func (r LxdPublishImageResource) Update(ctx context.Context, req resource.Update
 		return
 	}
 
-	_, imageFingerprint := splitImageID(data.ID.ValueString())
+	_, imageFingerprint := splitImageResourceID(data.ResourceID.ValueString())
 
 	imageProps, diags := common.ToConfigMap(ctx, data.Properties)
 	resp.Diagnostics.Append(diags...)
@@ -447,7 +447,7 @@ func (r LxdPublishImageResource) Delete(ctx context.Context, req resource.Delete
 		server = server.UseProject(project)
 	}
 
-	_, imageFingerprint := splitImageID(data.ID.ValueString())
+	_, imageFingerprint := splitImageResourceID(data.ResourceID.ValueString())
 	opDelete, err := server.DeleteImage(imageFingerprint)
 	if err != nil {
 		resp.Diagnostics.AddError(fmt.Sprintf("Failed to remove published image"), err.Error())
@@ -467,7 +467,7 @@ func (r LxdPublishImageResource) Delete(ctx context.Context, req resource.Delete
 func (m *LxdPublishImageResourceModel) SyncState(ctx context.Context, server lxd.InstanceServer) (bool, diag.Diagnostics) {
 	respDiags := diag.Diagnostics{}
 
-	_, imageFingerprint := splitImageID(m.ID.ValueString())
+	_, imageFingerprint := splitImageResourceID(m.ResourceID.ValueString())
 
 	image, _, err := server.GetImage(imageFingerprint)
 	if err != nil {

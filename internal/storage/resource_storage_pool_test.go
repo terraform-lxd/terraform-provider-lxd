@@ -222,7 +222,7 @@ func TestAccStoragePool_project(t *testing.T) {
 // 	})
 // }
 
-func TestAccLxdStoragePool_importBasic(t *testing.T) {
+func TestAccStoragePool_importBasic(t *testing.T) {
 	poolName := petname.Generate(2, "-")
 	driverName := "zfs"
 	resourceName := "lxd_storage_pool.storage_pool1"
@@ -245,7 +245,7 @@ func TestAccLxdStoragePool_importBasic(t *testing.T) {
 	})
 }
 
-func TestAccLxdStoragePool_importConfig(t *testing.T) {
+func TestAccStoragePool_importConfig(t *testing.T) {
 	poolName := petname.Generate(2, "-")
 	driverName := "zfs"
 	resourceName := "lxd_storage_pool.storage_pool1"
@@ -268,7 +268,7 @@ func TestAccLxdStoragePool_importConfig(t *testing.T) {
 	})
 }
 
-func TestAccLxdStoragePool_importProject(t *testing.T) {
+func TestAccStoragePool_importProject(t *testing.T) {
 	poolName := petname.Generate(2, "-")
 	projectName := petname.Generate(2, "-")
 	driverName := "zfs"

@@ -21,12 +21,12 @@ func TestAccInstanceFile_basic(t *testing.T) {
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("lxd_instance.instance1", "name", instanceName),
 					resource.TestCheckResourceAttr("lxd_instance.instance1", "status", "Running"),
-					resource.TestCheckResourceAttr("lxd_instance_file.file1", "instance_name", instanceName),
+					resource.TestCheckResourceAttr("lxd_instance_file.file1", "instance", instanceName),
 					resource.TestCheckResourceAttr("lxd_instance_file.file1", "target_file", "/foo/bar.txt"),
 					resource.TestCheckResourceAttr("lxd_instance_file.file1", "content", "Hello, World!\n"),
 					resource.TestCheckNoResourceAttr("lxd_instance_file.file1", "source"),
 					resource.TestCheckResourceAttr("lxd_instance_file.file1", "create_directories", "true"),
-					resource.TestCheckResourceAttr("lxd_instance_file.file1", "id", fmt.Sprintf(":%s:/foo/bar.txt", instanceName)),
+					resource.TestCheckResourceAttr("lxd_instance_file.file1", "resource_id", fmt.Sprintf(":%s:/foo/bar.txt", instanceName)),
 				),
 			},
 			{
@@ -35,7 +35,7 @@ func TestAccInstanceFile_basic(t *testing.T) {
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("lxd_instance.instance1", "name", instanceName),
 					resource.TestCheckResourceAttr("lxd_instance.instance1", "status", "Running"),
-					resource.TestCheckResourceAttr("lxd_instance_file.file1", "id", fmt.Sprintf(":%s:/foo/bar.txt", instanceName)),
+					resource.TestCheckResourceAttr("lxd_instance_file.file1", "resource_id", fmt.Sprintf(":%s:/foo/bar.txt", instanceName)),
 				),
 			},
 			{
@@ -45,12 +45,12 @@ func TestAccInstanceFile_basic(t *testing.T) {
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("lxd_instance.instance1", "name", instanceName),
 					resource.TestCheckResourceAttr("lxd_instance.instance1", "status", "Running"),
-					resource.TestCheckResourceAttr("lxd_instance_file.file1", "instance_name", instanceName),
+					resource.TestCheckResourceAttr("lxd_instance_file.file1", "instance", instanceName),
 					resource.TestCheckResourceAttr("lxd_instance_file.file1", "target_file", "/foo/bar.txt"),
 					resource.TestCheckNoResourceAttr("lxd_instance_file.file1", "content"),
 					resource.TestCheckResourceAttr("lxd_instance_file.file1", "source", "../acctest/fixtures/test-file.txt"),
 					resource.TestCheckResourceAttr("lxd_instance_file.file1", "create_directories", "true"),
-					resource.TestCheckResourceAttr("lxd_instance_file.file1", "id", fmt.Sprintf(":%s:/foo/bar.txt", instanceName)),
+					resource.TestCheckResourceAttr("lxd_instance_file.file1", "resource_id", fmt.Sprintf(":%s:/foo/bar.txt", instanceName)),
 				),
 			},
 		},
@@ -72,12 +72,12 @@ func TestAccInstanceFile_project(t *testing.T) {
 					resource.TestCheckResourceAttr("lxd_instance.instance1", "name", instanceName),
 					resource.TestCheckResourceAttr("lxd_instance.instance1", "project", projectName),
 					resource.TestCheckResourceAttr("lxd_instance.instance1", "status", "Running"),
-					resource.TestCheckResourceAttr("lxd_instance_file.file1", "instance_name", instanceName),
+					resource.TestCheckResourceAttr("lxd_instance_file.file1", "instance", instanceName),
 					resource.TestCheckResourceAttr("lxd_instance_file.file1", "project", projectName),
 					resource.TestCheckResourceAttr("lxd_instance_file.file1", "target_file", "/foo/bar.txt"),
 					resource.TestCheckResourceAttr("lxd_instance_file.file1", "source", "../acctest/fixtures/test-file.txt"),
 					resource.TestCheckResourceAttr("lxd_instance_file.file1", "create_directories", "true"),
-					resource.TestCheckResourceAttr("lxd_instance_file.file1", "id", fmt.Sprintf(":%s:/foo/bar.txt", instanceName)),
+					resource.TestCheckResourceAttr("lxd_instance_file.file1", "resource_id", fmt.Sprintf(":%s:/foo/bar.txt", instanceName)),
 				),
 			},
 		},
@@ -92,7 +92,7 @@ resource "lxd_instance" "instance1" {
 }
 
 resource "lxd_instance_file" "file1" {
-  instance_name      = lxd_instance.instance1.name
+  instance           = lxd_instance.instance1.name
   target_file        = "/foo/bar.txt"
   content            = "Hello, World!\n"
   create_directories = true
@@ -108,7 +108,7 @@ resource "lxd_instance" "instance1" {
 }
 
 resource "lxd_instance_file" "file1" {
-  instance_name      = lxd_instance.instance1.name
+  instance           = lxd_instance.instance1.name
   target_file        = "/foo/bar.txt"
   source             = "../acctest/fixtures/test-file.txt"
   create_directories = true
@@ -133,7 +133,7 @@ resource "lxd_instance" "instance1" {
 }
 
 resource "lxd_instance_file" "file1" {
-  instance_name      = lxd_instance.instance1.name
+  instance           = lxd_instance.instance1.name
   project   	     = lxd_project.project1.name
   target_file        = "/foo/bar.txt"
   source   	     = "../acctest/fixtures/test-file.txt"

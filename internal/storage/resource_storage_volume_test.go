@@ -9,7 +9,7 @@ import (
 	"github.com/terraform-lxd/terraform-provider-lxd/internal/acctest"
 )
 
-func TestAccLxdStorageVolume_basic(t *testing.T) {
+func TestAccStorageVolume_basic(t *testing.T) {
 	poolName := petname.Generate(2, "-")
 	volumeName := petname.Generate(2, "-")
 
@@ -32,7 +32,7 @@ func TestAccLxdStorageVolume_basic(t *testing.T) {
 	})
 }
 
-func TestAccLxdStorageVolume_instanceAttach(t *testing.T) {
+func TestAccStorageVolume_instanceAttach(t *testing.T) {
 	instanceName := petname.Generate(2, "-")
 	poolName := petname.Generate(2, "-")
 	volumeName := petname.Generate(2, "-")
@@ -64,7 +64,7 @@ func TestAccLxdStorageVolume_instanceAttach(t *testing.T) {
 
 // TODO:
 // - clustering precheck
-// func TestAccLxdStorageVolume_target(t *testing.T) {
+// func TestAccStorageVolume_target(t *testing.T) {
 // 	volumeName := petname.Generate(2, "-")
 
 // 	resource.Test(t, resource.TestCase{
@@ -83,7 +83,7 @@ func TestAccLxdStorageVolume_instanceAttach(t *testing.T) {
 // 	})
 // }
 
-func TestAccLxdStorageVolume_project(t *testing.T) {
+func TestAccStorageVolume_project(t *testing.T) {
 	volumeName := petname.Generate(2, "-")
 	projectName := petname.Name()
 
@@ -104,7 +104,7 @@ func TestAccLxdStorageVolume_project(t *testing.T) {
 	})
 }
 
-func TestAccLxdStorageVolume_contentType(t *testing.T) {
+func TestAccStorageVolume_contentType(t *testing.T) {
 	poolName := petname.Generate(2, "-")
 	volumeName := petname.Generate(2, "-")
 
@@ -126,7 +126,7 @@ func TestAccLxdStorageVolume_contentType(t *testing.T) {
 	})
 }
 
-func TestAccLxdStorageVolume_importBasic(t *testing.T) {
+func TestAccStorageVolume_importBasic(t *testing.T) {
 	volName := petname.Generate(2, "-")
 	poolName := petname.Generate(2, "-")
 	resourceName := "lxd_volume.volume1"
@@ -149,7 +149,7 @@ func TestAccLxdStorageVolume_importBasic(t *testing.T) {
 	})
 }
 
-func TestAccLxdStorageVolume_importProject(t *testing.T) {
+func TestAccStorageVolume_importProject(t *testing.T) {
 	volName := petname.Generate(2, "-")
 	projectName := petname.Generate(2, "-")
 	resourceName := "lxd_volume.volume1"

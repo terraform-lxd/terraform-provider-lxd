@@ -288,11 +288,10 @@ func (r LxdInstanceResource) Schema(_ context.Context, _ resource.SchemaRequest,
 							Optional: true,
 						},
 
-						// This is here just to satisfy LxdFileModel.
-						// TODO: Should not be optional!
+						// Append is here just to satisfy the LxdFile model.
 						"append": schema.BoolAttribute{
-							Optional: true,
-							// Computed: true,
+							Computed: true,
+							Default:  booldefault.StaticBool(false),
 						},
 					},
 				},
@@ -849,13 +848,13 @@ func (m *LxdInstanceResourceModel) SyncState(ctx context.Context, server lxd.Ins
 			return false, nil
 		}
 
-		respDiags.Append(diag.NewErrorDiagnostic(fmt.Sprintf("Failed to retrieve instance %q", instanceName), err.Error()))
+		respDiags.AddError(fmt.Sprintf("Failed to retrieve instance %q", instanceName), err.Error())
 		return true, respDiags
 	}
 
 	instanceState, _, err := server.GetInstanceState(instanceName)
 	if err != nil {
-		respDiags.Append(diag.NewErrorDiagnostic(fmt.Sprintf("Failed to retrieve state of instance %q", instanceName), err.Error()))
+		respDiags.AddError(fmt.Sprintf("Failed to retrieve state of instance %q", instanceName), err.Error())
 		return true, respDiags
 	}
 

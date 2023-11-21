@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
+	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/boolplanmodifier"
@@ -27,10 +28,10 @@ import (
 // not yet support unmarshaling of embedded structs.
 // https://github.com/hashicorp/terraform-plugin-framework/issues/242
 type LxdInstanceFileResourceModel struct {
-	ID           types.String `tfsdk:"id"` // Computed.
-	InstanceName types.String `tfsdk:"instance_name"`
-	Project      types.String `tfsdk:"project"`
-	Remote       types.String `tfsdk:"remote"`
+	ResourceID types.String `tfsdk:"resource_id"` // Computed.
+	Instance   types.String `tfsdk:"instance"`
+	Project    types.String `tfsdk:"project"`
+	Remote     types.String `tfsdk:"remote"`
 
 	// LxdFileModel
 	Content    types.String `tfsdk:"content"`
@@ -60,14 +61,14 @@ func (r LxdInstanceFileResource) Metadata(_ context.Context, req resource.Metada
 func (r LxdInstanceFileResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *resource.SchemaResponse) {
 	resp.Schema = schema.Schema{
 		Attributes: map[string]schema.Attribute{
-			"id": schema.StringAttribute{
+			"resource_id": schema.StringAttribute{
 				Computed: true,
 				PlanModifiers: []planmodifier.String{
 					stringplanmodifier.UseStateForUnknown(),
 				},
 			},
 
-			"instance_name": schema.StringAttribute{
+			"instance": schema.StringAttribute{
 				Required: true,
 				PlanModifiers: []planmodifier.String{
 					stringplanmodifier.RequiresReplace(),
@@ -91,7 +92,6 @@ func (r LxdInstanceFileResource) Schema(_ context.Context, _ resource.SchemaRequ
 				},
 			},
 
-			// TODO: Conflicts with source!
 			"content": schema.StringAttribute{
 				Optional: true,
 				PlanModifiers: []planmodifier.String{
@@ -99,11 +99,18 @@ func (r LxdInstanceFileResource) Schema(_ context.Context, _ resource.SchemaRequ
 				},
 			},
 
-			// TODO: Conflicts with content!
 			"source": schema.StringAttribute{
 				Optional: true,
 				PlanModifiers: []planmodifier.String{
 					stringplanmodifier.RequiresReplace(),
+				},
+				Validators: []validator.String{
+					// Specify all attributes at one field to
+					// produce only one meaningful error.
+					stringvalidator.ExactlyOneOf(
+						path.MatchRoot("source"),
+						path.MatchRoot("content"),
+					),
 				},
 			},
 
@@ -197,7 +204,7 @@ func (r LxdInstanceFileResource) Create(ctx context.Context, req resource.Create
 	}
 
 	// Ensure instance exists.
-	instanceName := data.InstanceName.ValueString()
+	instanceName := data.Instance.ValueString()
 	_, _, err = server.GetInstance(instanceName)
 	if err != nil {
 		resp.Diagnostics.AddError(fmt.Sprintf("Failed retireve instance %q", instanceName), err.Error())
@@ -223,8 +230,8 @@ func (r LxdInstanceFileResource) Create(ctx context.Context, req resource.Create
 		return
 	}
 
-	fileID := createFileID(remote, instanceName, targetFile)
-	data.ID = types.StringValue(fileID)
+	fileID := createFileResourceID(remote, instanceName, targetFile)
+	data.ResourceID = types.StringValue(fileID)
 
 	// Update Terraform state.
 	diags = resp.State.Set(ctx, &data)
@@ -249,7 +256,7 @@ func (r LxdInstanceFileResource) Read(ctx context.Context, req resource.ReadRequ
 		return
 	}
 
-	remote, instanceName, targetFile := splitFileID(data.ID.ValueString())
+	remote, instanceName, targetFile := splitFileResourceID(data.ResourceID.ValueString())
 
 	server, err := r.provider.InstanceServer(remote)
 	if err != nil {
@@ -280,7 +287,7 @@ func (r LxdInstanceFileResource) Read(ctx context.Context, req resource.ReadRequ
 		resp.Diagnostics.AddError(fmt.Sprintf("Failed to retrieve file %q from instance %q", targetFile, instanceName), err.Error())
 	}
 
-	data.InstanceName = types.StringValue(instanceName)
+	data.Instance = types.StringValue(instanceName)
 	data.TargetFile = types.StringValue(targetFile)
 	data.UserID = types.Int64Value(file.UID)
 	data.GroupID = types.Int64Value(file.GID)
@@ -301,7 +308,7 @@ func (r LxdInstanceFileResource) Delete(ctx context.Context, req resource.Delete
 		return
 	}
 
-	remote, instanceName, targetFile := splitFileID(data.ID.ValueString())
+	remote, instanceName, targetFile := splitFileResourceID(data.ResourceID.ValueString())
 
 	server, err := r.provider.InstanceServer(remote)
 	if err != nil {
@@ -345,14 +352,14 @@ func (r LxdInstanceFileResource) Delete(ctx context.Context, req resource.Delete
 	}
 }
 
-// createFileID creates new file ID by concatenating remote, instnaceName, and
+// createFileResourceID creates new file ID by concatenating remote, instnaceName, and
 // targetFile using colon.
-func createFileID(remote string, instanceName string, targetFile string) string {
+func createFileResourceID(remote string, instanceName string, targetFile string) string {
 	return fmt.Sprintf("%s:%s:%s", remote, instanceName, targetFile)
 }
 
-// splitFileID splits file ID into remote, intanceName, and targetFile strings.
-func splitFileID(id string) (string, string, string) {
+// splitFileResourceID splits file ID into remote, intanceName, and targetFile strings.
+func splitFileResourceID(id string) (string, string, string) {
 	pieces := strings.SplitN(id, ":", 3)
 	return pieces[0], pieces[1], pieces[2]
 }

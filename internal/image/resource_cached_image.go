@@ -37,7 +37,7 @@ type LxdCachedImageResourceModel struct {
 	Remote       types.String `tfsdk:"remote"`
 
 	// Computed.
-	ID            types.String `tfsdk:"id"`
+	ResourceID    types.String `tfsdk:"resource_id"`
 	Architecture  types.String `tfsdk:"architecture"`
 	CreatedAt     types.Int64  `tfsdk:"created_at"`
 	Fingerprint   types.String `tfsdk:"fingerprint"`
@@ -125,7 +125,7 @@ func (r LxdCachedImageResource) Schema(_ context.Context, _ resource.SchemaReque
 
 			// Computed attributes.
 
-			"id": schema.StringAttribute{
+			"resource_id": schema.StringAttribute{
 				Computed: true,
 				PlanModifiers: []planmodifier.String{
 					stringplanmodifier.UseStateForUnknown(),
@@ -277,8 +277,8 @@ func (r LxdCachedImageResource) Create(ctx context.Context, req resource.CreateR
 		return
 	}
 
-	imageID := createImageID(remote, imageInfo.Fingerprint)
-	data.ID = types.StringValue(imageID)
+	imageID := createImageResourceID(remote, imageInfo.Fingerprint)
+	data.ResourceID = types.StringValue(imageID)
 	data.CopiedAliases = copiedAliases
 
 	_, diags = data.SyncState(ctx, server)
@@ -349,7 +349,7 @@ func (r LxdCachedImageResource) Update(ctx context.Context, req resource.UpdateR
 
 	// Extract image metadata.
 	image := data.SourceImage.ValueString()
-	_, imageFingerprint := splitImageID(data.ID.ValueString())
+	_, imageFingerprint := splitImageResourceID(data.ResourceID.ValueString())
 
 	// Extract removed and added image aliases.
 	oldAliases, diags := ToAliasList(ctx, data.Aliases)
@@ -420,7 +420,7 @@ func (r LxdCachedImageResource) Delete(ctx context.Context, req resource.DeleteR
 		server = server.UseProject(project)
 	}
 
-	_, imageFingerprint := splitImageID(data.ID.ValueString())
+	_, imageFingerprint := splitImageResourceID(data.ResourceID.ValueString())
 	opDelete, err := server.DeleteImage(imageFingerprint)
 	if err != nil {
 		resp.Diagnostics.AddError(fmt.Sprintf("Failed to remove cached image %q", data.SourceImage.ValueString()), err.Error())
@@ -440,7 +440,7 @@ func (r LxdCachedImageResource) Delete(ctx context.Context, req resource.DeleteR
 func (m *LxdCachedImageResourceModel) SyncState(ctx context.Context, server lxd.InstanceServer) (bool, diag.Diagnostics) {
 	respDiags := diag.Diagnostics{}
 
-	_, imageFingerprint := splitImageID(m.ID.ValueString())
+	_, imageFingerprint := splitImageResourceID(m.ResourceID.ValueString())
 
 	imageName := m.SourceImage.ValueString()
 	image, _, err := server.GetImage(imageFingerprint)
@@ -498,14 +498,14 @@ func ToAliasSetType(ctx context.Context, aliases []string) (types.Set, diag.Diag
 	return types.SetValueFrom(ctx, types.StringType, aliases)
 }
 
-// createImageID creates new image ID by concatenating remote and
+// createImageResourceID creates new image ID by concatenating remote and
 // image fingerprint using colon.
-func createImageID(remote string, fingerprint string) string {
+func createImageResourceID(remote string, fingerprint string) string {
 	return fmt.Sprintf("%s:%s", remote, fingerprint)
 }
 
-// splitImageID splits an image ID into remote and fingerprint strings.
-func splitImageID(id string) (string, string) {
+// splitImageResourceID splits an image ID into remote and fingerprint strings.
+func splitImageResourceID(id string) (string, string) {
 	pieces := strings.SplitN(id, ":", 2)
 	return pieces[0], pieces[1]
 }

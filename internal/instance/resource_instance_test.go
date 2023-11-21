@@ -560,7 +560,7 @@ func TestAccInstance_removeProject(t *testing.T) {
 	})
 }
 
-func TestAccLxdInstance_importBasic(t *testing.T) {
+func TestAccInstance_importBasic(t *testing.T) {
 	instanceName := petname.Generate(2, "-")
 	resourceName := "lxd_instance.instance1"
 
@@ -582,7 +582,7 @@ func TestAccLxdInstance_importBasic(t *testing.T) {
 	})
 }
 
-func TestAccLxdInstance_importProject(t *testing.T) {
+func TestAccInstance_importProject(t *testing.T) {
 	instanceName := petname.Generate(2, "-")
 	projectName := petname.Generate(2, "-")
 	resourceName := "lxd_instance.instance1"
