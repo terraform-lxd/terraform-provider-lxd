@@ -146,7 +146,7 @@ func (r LxdInstanceSnapshotResource) Create(ctx context.Context, req resource.Cr
 	}
 
 	instanceName := data.Instance.ValueString()
-	snapshotName := data.Instance.ValueString()
+	snapshotName := data.Name.ValueString()
 
 	snapshotReq := api.InstanceSnapshotsPost{
 		Name:     snapshotName,
@@ -162,13 +162,13 @@ func (r LxdInstanceSnapshotResource) Create(ctx context.Context, req resource.Cr
 			return
 		}
 
-		// Wait for snapshot operation to complete
+		// Wait for snapshot operation to complete.
 		serr = op.Wait()
 		if serr != nil {
-			if snapshotReq.Stateful && strings.Contains(err.Error(), "Dumping FAILED") {
-				log.Printf("[DEBUG] error creating stateful snapshot [%d]: %v", i, err)
+			if snapshotReq.Stateful && strings.Contains(serr.Error(), "Dumping FAILED") {
+				log.Printf("Error creating stateful snapshot [retry %d]: %v", i, serr)
 				time.Sleep(3 * time.Second)
-			} else if strings.Contains(err.Error(), "file has vanished") {
+			} else if strings.Contains(serr.Error(), "file has vanished") {
 				// Ignore, try again.
 				time.Sleep(3 * time.Second)
 			} else {

@@ -9,7 +9,7 @@ import (
 	"github.com/terraform-lxd/terraform-provider-lxd/internal/acctest"
 )
 
-func TestAccLxdInstanceSnapshot_stateless(t *testing.T) {
+func TestAccInstanceSnapshot_stateless(t *testing.T) {
 	instanceName := petname.Generate(2, "-")
 	snapshotName := petname.Generate(2, "-")
 
@@ -32,41 +32,31 @@ func TestAccLxdInstanceSnapshot_stateless(t *testing.T) {
 	})
 }
 
-/*
-	Disabling this test until:
+// TODO:
+// - Requires CRIU
+// func TestAccInstanceSnapshot_stateful(t *testing.T) {
+// 	instanceName := petname.Generate(2, "-")
+// 	snapshotName := petname.Generate(2, "-")
 
-- travis test environment updated with CRIU
-- some LXD stateful snapshot bugs are isolated and resolved / worked around
-e.g.
-(00.758590) Error (criu/parasite-syscall.c:532): Unable to connect a transport socket: Permission denied
-(00.758600) Error (criu/parasite-syscall.c:134): Can't block signals for 5087: No such process
-(00.758607) Error (criu/cr-dump.c:1244): Can't infect (pid: 5087) with parasite
-(00.761999) Error (criu/ptrace.c:54): Unable to detach from 5087: No such process
-(00.762251) Error (criu/cr-dump.c:1628): Dumping FAILED.
-*/
-func TestAccLxdInstanceSnapshot_stateful(t *testing.T) {
-	instanceName := petname.Generate(2, "-")
-	snapshotName := petname.Generate(2, "-")
+// 	resource.Test(t, resource.TestCase{
+// 		PreCheck:                 func() { acctest.PreCheck(t) },
+// 		ProtoV6ProviderFactories: acctest.ProtoV6ProviderFactories,
+// 		Steps: []resource.TestStep{
+// 			{
+// 				Config: testAccInstanceSnapshot_basic(instanceName, snapshotName, true),
+// 				Check: resource.ComposeTestCheckFunc(
+// 					resource.TestCheckResourceAttr("lxd_instance.instance1", "name", instanceName),
+// 					resource.TestCheckResourceAttr("lxd_instance.instance1", "status", "Running"),
+// 					resource.TestCheckResourceAttr("lxd_snapshot.snapshot1", "name", snapshotName),
+// 					resource.TestCheckResourceAttr("lxd_snapshot.snapshot1", "stateful", "true"),
+// 					resource.TestCheckResourceAttrSet("lxd_snapshot.snapshot1", "created_at"),
+// 				),
+// 			},
+// 		},
+// 	})
+// }
 
-	resource.Test(t, resource.TestCase{
-		PreCheck:                 func() { acctest.PreCheck(t) },
-		ProtoV6ProviderFactories: acctest.ProtoV6ProviderFactories,
-		Steps: []resource.TestStep{
-			{
-				Config: testAccInstanceSnapshot_basic(instanceName, snapshotName, true),
-				Check: resource.ComposeTestCheckFunc(
-					resource.TestCheckResourceAttr("lxd_instance.instance1", "name", instanceName),
-					resource.TestCheckResourceAttr("lxd_instance.instance1", "status", "Running"),
-					resource.TestCheckResourceAttr("lxd_snapshot.snapshot1", "name", snapshotName),
-					resource.TestCheckResourceAttr("lxd_snapshot.snapshot1", "stateful", "true"),
-					resource.TestCheckResourceAttrSet("lxd_snapshot.snapshot1", "created_at"),
-				),
-			},
-		},
-	})
-}
-
-func TestAccLxdInstanceSnapshot_multiple(t *testing.T) {
+func TestAccInstanceSnapshot_multiple(t *testing.T) {
 	instanceName := petname.Generate(2, "-")
 	snapshotName1 := petname.Generate(2, "-")
 	snapshotName2 := petname.Generate(2, "-")
@@ -102,7 +92,7 @@ func TestAccLxdInstanceSnapshot_multiple(t *testing.T) {
 	})
 }
 
-func TestAccLxdInstanceSnapshot_project(t *testing.T) {
+func TestAccInstanceSnapshot_project(t *testing.T) {
 	projectName := petname.Name()
 	instanceName := petname.Generate(2, "-")
 	snapshotName := petname.Generate(2, "-")
@@ -121,7 +111,7 @@ func TestAccLxdInstanceSnapshot_project(t *testing.T) {
 					resource.TestCheckResourceAttr("lxd_snapshot.snapshot1", "name", snapshotName),
 					resource.TestCheckResourceAttr("lxd_snapshot.snapshot1", "instance", instanceName),
 					resource.TestCheckResourceAttr("lxd_snapshot.snapshot1", "project", projectName),
-					resource.TestCheckResourceAttrSet("lxd_snapshot.snapshot2", "created_at"),
+					resource.TestCheckResourceAttrSet("lxd_snapshot.snapshot1", "created_at"),
 				),
 			},
 		},
