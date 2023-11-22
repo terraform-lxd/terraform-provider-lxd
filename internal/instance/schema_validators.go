@@ -9,7 +9,8 @@ import (
 	"github.com/terraform-lxd/terraform-provider-lxd/internal/utils"
 )
 
-// configKeyValidator ensures config key does not start with "volatile." or "image.".
+// configKeyValidator ensures config key does not start
+// with "volatile.", "image.", or "limits.".
 type configKeyValidator struct{}
 
 func (v configKeyValidator) Description(ctx context.Context) string {

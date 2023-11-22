@@ -20,31 +20,31 @@ import (
 	provider_config "github.com/terraform-lxd/terraform-provider-lxd/internal/provider-config"
 )
 
-// LxdProjectResourceModel resource data model that matches the schema.
-type LxdProjectResourceModel struct {
+// ProjectModel resource data model that matches the schema.
+type ProjectModel struct {
 	Name        types.String `tfsdk:"name"`
 	Description types.String `tfsdk:"description"`
 	Remote      types.String `tfsdk:"remote"`
 	Config      types.Map    `tfsdk:"config"`
 }
 
-// LxdProjectResource represent LXD project resource.
-type LxdProjectResource struct {
+// ProjectResource represent LXD project resource.
+type ProjectResource struct {
 	provider *provider_config.LxdProviderConfig
 }
 
-// NewLxdProjectResource return new project resource.
-func NewLxdProjectResource() resource.Resource {
-	return &LxdProjectResource{}
+// NewProjectResource return new project resource.
+func NewProjectResource() resource.Resource {
+	return &ProjectResource{}
 }
 
 // Metadata for project resource.
-func (r LxdProjectResource) Metadata(_ context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
+func (r ProjectResource) Metadata(_ context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
 	resp.TypeName = fmt.Sprintf("%s_project", req.ProviderTypeName)
 }
 
 // Schema for project resource.
-func (r LxdProjectResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *resource.SchemaResponse) {
+func (r ProjectResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *resource.SchemaResponse) {
 	resp.Schema = schema.Schema{
 		Attributes: map[string]schema.Attribute{
 			"name": schema.StringAttribute{
@@ -77,7 +77,7 @@ func (r LxdProjectResource) Schema(_ context.Context, _ resource.SchemaRequest, 
 	}
 }
 
-func (r *LxdProjectResource) Configure(_ context.Context, req resource.ConfigureRequest, resp *resource.ConfigureResponse) {
+func (r *ProjectResource) Configure(_ context.Context, req resource.ConfigureRequest, resp *resource.ConfigureResponse) {
 	data := req.ProviderData
 	if data == nil {
 		return
@@ -92,33 +92,33 @@ func (r *LxdProjectResource) Configure(_ context.Context, req resource.Configure
 	r.provider = provider
 }
 
-func (r LxdProjectResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
-	var data LxdProjectResourceModel
+func (r ProjectResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
+	var plan ProjectModel
 
 	// Fetch resource model from Terraform plan.
-	diags := req.Plan.Get(ctx, &data)
+	diags := req.Plan.Get(ctx, &plan)
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
 
 	// Convert project config schema to map.
-	config, diag := common.ToConfigMap(ctx, data.Config)
+	config, diag := common.ToConfigMap(ctx, plan.Config)
 	resp.Diagnostics.Append(diag...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
 
-	server, err := r.provider.InstanceServer(data.Remote.ValueString())
+	server, err := r.provider.InstanceServer(plan.Remote.ValueString())
 	if err != nil {
 		resp.Diagnostics.Append(errors.NewInstanceServerError(err))
 		return
 	}
 
 	project := api.ProjectsPost{
-		Name: data.Name.ValueString(),
+		Name: plan.Name.ValueString(),
 		ProjectPut: api.ProjectPut{
-			Description: data.Description.ValueString(),
+			Description: plan.Description.ValueString(),
 			Config:      config,
 		},
 	}
@@ -129,34 +129,34 @@ func (r LxdProjectResource) Create(ctx context.Context, req resource.CreateReque
 		return
 	}
 
-	_, diags = data.SyncState(ctx, server)
+	_, diags = plan.SyncState(ctx, server)
 	resp.Diagnostics.Append(diags...)
 	if diags.HasError() {
 		return
 	}
 
 	// Update Terraform state.
-	diags = resp.State.Set(ctx, &data)
+	diags = resp.State.Set(ctx, &plan)
 	resp.Diagnostics.Append(diags...)
 }
 
-func (r LxdProjectResource) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
-	var data LxdProjectResourceModel
+func (r ProjectResource) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
+	var state ProjectModel
 
 	// Fetch resource model from Terraform state.
-	diags := req.State.Get(ctx, &data)
+	diags := req.State.Get(ctx, &state)
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
 
-	server, err := r.provider.InstanceServer(data.Remote.ValueString())
+	server, err := r.provider.InstanceServer(state.Remote.ValueString())
 	if err != nil {
 		resp.Diagnostics.Append(errors.NewInstanceServerError(err))
 		return
 	}
 
-	found, diags := data.SyncState(ctx, server)
+	found, diags := state.SyncState(ctx, server)
 	resp.Diagnostics.Append(diags...)
 	if diags.HasError() {
 		return
@@ -169,45 +169,45 @@ func (r LxdProjectResource) Read(ctx context.Context, req resource.ReadRequest, 
 	}
 
 	// Update Terraform state.
-	diags = resp.State.Set(ctx, &data)
+	diags = resp.State.Set(ctx, &state)
 	resp.Diagnostics.Append(diags...)
 }
 
-func (r LxdProjectResource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
-	var data LxdProjectResourceModel
+func (r ProjectResource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
+	var plan ProjectModel
 
 	// Fetch resource model from Terraform plan.
-	diags := req.Plan.Get(ctx, &data)
+	diags := req.Plan.Get(ctx, &plan)
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
 
-	server, err := r.provider.InstanceServer(data.Remote.ValueString())
+	server, err := r.provider.InstanceServer(plan.Remote.ValueString())
 	if err != nil {
 		resp.Diagnostics.Append(errors.NewInstanceServerError(err))
 		return
 	}
 
-	projectName := data.Name.ValueString()
+	projectName := plan.Name.ValueString()
 	project, etag, err := server.UseProject(projectName).GetProject(projectName)
 	if err != nil {
 		resp.Diagnostics.AddError(fmt.Sprintf("Failed to retrieve existing project %q", projectName), err.Error())
 		return
 	}
 
-	userConfig, diags := common.ToConfigMap(ctx, data.Config)
+	userConfig, diags := common.ToConfigMap(ctx, plan.Config)
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
 
 	// Merge project state and user defined configuration.
-	config := common.MergeConfig(project.Config, userConfig, data.ComputedKeys())
+	config := common.MergeConfig(project.Config, userConfig, plan.ComputedKeys())
 
 	// Update project.
 	newProject := api.ProjectPut{
-		Description: data.Description.ValueString(),
+		Description: plan.Description.ValueString(),
 		Config:      config,
 	}
 
@@ -217,34 +217,34 @@ func (r LxdProjectResource) Update(ctx context.Context, req resource.UpdateReque
 		return
 	}
 
-	_, diags = data.SyncState(ctx, server)
+	_, diags = plan.SyncState(ctx, server)
 	resp.Diagnostics.Append(diags...)
 	if diags.HasError() {
 		return
 	}
 
 	// Update Terraform state.
-	diags = resp.State.Set(ctx, &data)
+	diags = resp.State.Set(ctx, &plan)
 	resp.Diagnostics.Append(diags...)
 }
 
-func (r LxdProjectResource) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {
-	var data LxdProjectResourceModel
+func (r ProjectResource) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {
+	var state ProjectModel
 
 	// Fetch resource model from Terraform state.
-	diags := req.State.Get(ctx, &data)
+	diags := req.State.Get(ctx, &state)
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
 
-	server, err := r.provider.InstanceServer(data.Remote.ValueString())
+	server, err := r.provider.InstanceServer(state.Remote.ValueString())
 	if err != nil {
 		resp.Diagnostics.Append(errors.NewInstanceServerError(err))
 		return
 	}
 
-	projectName := data.Name.ValueString()
+	projectName := state.Name.ValueString()
 	err = server.UseProject(projectName).DeleteProject(projectName)
 	if err != nil {
 		resp.Diagnostics.AddError(fmt.Sprintf("Failed to remove project %q", projectName), err.Error())
@@ -253,7 +253,7 @@ func (r LxdProjectResource) Delete(ctx context.Context, req resource.DeleteReque
 
 // SyncState pulls project data from the server and updates the model in-place.
 // This should be called before updating Terraform state.
-func (m *LxdProjectResourceModel) SyncState(ctx context.Context, server lxd.InstanceServer) (bool, diag.Diagnostics) {
+func (m *ProjectModel) SyncState(ctx context.Context, server lxd.InstanceServer) (bool, diag.Diagnostics) {
 	projectName := m.Name.ValueString()
 	project, _, err := server.UseProject(projectName).GetProject(projectName)
 	if err != nil {
@@ -288,7 +288,7 @@ func (m *LxdProjectResourceModel) SyncState(ctx context.Context, server lxd.Inst
 }
 
 // ComputedKeys returns list of computed config keys.
-func (_ LxdProjectResourceModel) ComputedKeys() []string {
+func (_ ProjectModel) ComputedKeys() []string {
 	return []string{
 		"features.images",
 		"features.profiles",

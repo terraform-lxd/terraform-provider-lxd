@@ -21,8 +21,8 @@ import (
 	provider_config "github.com/terraform-lxd/terraform-provider-lxd/internal/provider-config"
 )
 
-// LxdNetworkZoneResourceModel resource data model that matches the schema.
-type LxdNetworkZoneResourceModel struct {
+// NetworkZoneModel resource data model that matches the schema.
+type NetworkZoneModel struct {
 	Name        types.String `tfsdk:"name"`
 	Description types.String `tfsdk:"description"`
 	Project     types.String `tfsdk:"project"`
@@ -30,21 +30,21 @@ type LxdNetworkZoneResourceModel struct {
 	Config      types.Map    `tfsdk:"config"`
 }
 
-// LxdNetworkZoneResource represent LXD network zone resource.
-type LxdNetworkZoneResource struct {
+// NetworkZoneResource represent LXD network zone resource.
+type NetworkZoneResource struct {
 	provider *provider_config.LxdProviderConfig
 }
 
-// NewLxdNetworkZoneResource returns a new network zone resource.
-func NewLxdNetworkZoneResource() resource.Resource {
-	return &LxdNetworkZoneResource{}
+// NewNetworkZoneResource returns a new network zone resource.
+func NewNetworkZoneResource() resource.Resource {
+	return &NetworkZoneResource{}
 }
 
-func (r LxdNetworkZoneResource) Metadata(_ context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
+func (r NetworkZoneResource) Metadata(_ context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
 	resp.TypeName = fmt.Sprintf("%s_network_zone", req.ProviderTypeName)
 }
 
-func (r LxdNetworkZoneResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *resource.SchemaResponse) {
+func (r NetworkZoneResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *resource.SchemaResponse) {
 	resp.Schema = schema.Schema{
 		Attributes: map[string]schema.Attribute{
 			"name": schema.StringAttribute{
@@ -86,7 +86,7 @@ func (r LxdNetworkZoneResource) Schema(_ context.Context, _ resource.SchemaReque
 	}
 }
 
-func (r *LxdNetworkZoneResource) Configure(_ context.Context, req resource.ConfigureRequest, resp *resource.ConfigureResponse) {
+func (r *NetworkZoneResource) Configure(_ context.Context, req resource.ConfigureRequest, resp *resource.ConfigureResponse) {
 	data := req.ProviderData
 	if data == nil {
 		return
@@ -101,40 +101,40 @@ func (r *LxdNetworkZoneResource) Configure(_ context.Context, req resource.Confi
 	r.provider = provider
 }
 
-func (r LxdNetworkZoneResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
-	var data LxdNetworkZoneResourceModel
+func (r NetworkZoneResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
+	var plan NetworkZoneModel
 
 	// Fetch resource model from Terraform plan.
-	diags := req.Plan.Get(ctx, &data)
+	diags := req.Plan.Get(ctx, &plan)
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
 
-	server, err := r.provider.InstanceServer(data.Remote.ValueString())
+	server, err := r.provider.InstanceServer(plan.Remote.ValueString())
 	if err != nil {
 		resp.Diagnostics.Append(errors.NewInstanceServerError(err))
 		return
 	}
 
 	// Set project if configured.
-	project := data.Project.ValueString()
+	project := plan.Project.ValueString()
 	if project != "" {
 		server = server.UseProject(project)
 	}
 
 	// Convert network zone config to map.
-	config, diag := common.ToConfigMap(ctx, data.Config)
+	config, diag := common.ToConfigMap(ctx, plan.Config)
 	resp.Diagnostics.Append(diag...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
 
-	zoneName := data.Name.ValueString()
+	zoneName := plan.Name.ValueString()
 	zoneReq := api.NetworkZonesPost{
 		Name: zoneName,
 		NetworkZonePut: api.NetworkZonePut{
-			Description: data.Description.ValueString(),
+			Description: plan.Description.ValueString(),
 			Config:      config,
 		},
 	}
@@ -145,40 +145,40 @@ func (r LxdNetworkZoneResource) Create(ctx context.Context, req resource.CreateR
 		return
 	}
 
-	_, diags = data.SyncState(ctx, server)
+	_, diags = plan.Sync(ctx, server)
 	resp.Diagnostics.Append(diags...)
 	if diags.HasError() {
 		return
 	}
 
 	// Update Terraform state.
-	diags = resp.State.Set(ctx, &data)
+	diags = resp.State.Set(ctx, &plan)
 	resp.Diagnostics.Append(diags...)
 }
 
-func (r LxdNetworkZoneResource) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
-	var data LxdNetworkZoneResourceModel
+func (r NetworkZoneResource) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
+	var state NetworkZoneModel
 
 	// Fetch resource model from Terraform state.
-	diags := req.State.Get(ctx, &data)
+	diags := req.State.Get(ctx, &state)
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
 
-	server, err := r.provider.InstanceServer(data.Remote.ValueString())
+	server, err := r.provider.InstanceServer(state.Remote.ValueString())
 	if err != nil {
 		resp.Diagnostics.Append(errors.NewInstanceServerError(err))
 		return
 	}
 
 	// Set project if configured.
-	project := data.Project.ValueString()
+	project := state.Project.ValueString()
 	if project != "" {
 		server = server.UseProject(project)
 	}
 
-	found, diags := data.SyncState(ctx, server)
+	found, diags := state.Sync(ctx, server)
 	resp.Diagnostics.Append(diags...)
 	if diags.HasError() {
 		return
@@ -191,40 +191,40 @@ func (r LxdNetworkZoneResource) Read(ctx context.Context, req resource.ReadReque
 	}
 
 	// Update Terraform state.
-	diags = resp.State.Set(ctx, &data)
+	diags = resp.State.Set(ctx, &state)
 	resp.Diagnostics.Append(diags...)
 }
 
-func (r LxdNetworkZoneResource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
-	var data LxdNetworkZoneResourceModel
+func (r NetworkZoneResource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
+	var plan NetworkZoneModel
 
 	// Fetch resource model from Terraform plan.
-	diags := req.Plan.Get(ctx, &data)
+	diags := req.Plan.Get(ctx, &plan)
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
 
-	server, err := r.provider.InstanceServer(data.Remote.ValueString())
+	server, err := r.provider.InstanceServer(plan.Remote.ValueString())
 	if err != nil {
 		resp.Diagnostics.Append(errors.NewInstanceServerError(err))
 		return
 	}
 
 	// Set project if configured.
-	project := data.Project.ValueString()
+	project := plan.Project.ValueString()
 	if project != "" {
 		server = server.UseProject(project)
 	}
 
-	zoneName := data.Name.ValueString()
+	zoneName := plan.Name.ValueString()
 	_, etag, err := server.GetNetworkZone(zoneName)
 	if err != nil {
 		resp.Diagnostics.AddError(fmt.Sprintf("Failed to retrieve existing network zone %q", zoneName), err.Error())
 		return
 	}
 
-	config, diags := common.ToConfigMap(ctx, data.Config)
+	config, diags := common.ToConfigMap(ctx, plan.Config)
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
 		return
@@ -232,7 +232,7 @@ func (r LxdNetworkZoneResource) Update(ctx context.Context, req resource.UpdateR
 
 	// Update network zone.
 	zoneReq := api.NetworkZonePut{
-		Description: data.Description.ValueString(),
+		Description: plan.Description.ValueString(),
 		Config:      config,
 	}
 
@@ -242,47 +242,47 @@ func (r LxdNetworkZoneResource) Update(ctx context.Context, req resource.UpdateR
 		return
 	}
 
-	_, diags = data.SyncState(ctx, server)
+	_, diags = plan.Sync(ctx, server)
 	resp.Diagnostics.Append(diags...)
 	if diags.HasError() {
 		return
 	}
 
 	// Update Terraform state.
-	diags = resp.State.Set(ctx, &data)
+	diags = resp.State.Set(ctx, &plan)
 	resp.Diagnostics.Append(diags...)
 }
 
-func (r LxdNetworkZoneResource) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {
-	var data LxdNetworkZoneResourceModel
+func (r NetworkZoneResource) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {
+	var state NetworkZoneModel
 
 	// Fetch resource model from Terraform state.
-	diags := req.State.Get(ctx, &data)
+	diags := req.State.Get(ctx, &state)
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
 
-	server, err := r.provider.InstanceServer(data.Remote.ValueString())
+	server, err := r.provider.InstanceServer(state.Remote.ValueString())
 	if err != nil {
 		resp.Diagnostics.Append(errors.NewInstanceServerError(err))
 		return
 	}
 
 	// Set project if configured.
-	project := data.Project.ValueString()
+	project := state.Project.ValueString()
 	if project != "" {
 		server = server.UseProject(project)
 	}
 
-	zoneName := data.Name.ValueString()
+	zoneName := state.Name.ValueString()
 	err = server.DeleteNetworkZone(zoneName)
 	if err != nil {
 		resp.Diagnostics.AddError(fmt.Sprintf("Failed to remove network zone %q", zoneName), err.Error())
 	}
 }
 
-func (r LxdNetworkZoneResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
+func (r NetworkZoneResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
 	remote, project, name, diag := common.SplitImportID(req.ID, "network_zone")
 	if diag != nil {
 		resp.Diagnostics.Append(diag)
@@ -300,11 +300,11 @@ func (r LxdNetworkZoneResource) ImportState(ctx context.Context, req resource.Im
 	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("name"), name)...)
 }
 
-// SyncState pulls network zone data from the server and updates the model
-// in-place. It returns a boolean indicating whether resource is found and
-// diagnostics that contain potential errors.
+// Sync pulls network zone data from the server and updates the model in-place.
+// It returns a boolean indicating whether resource is found and diagnostics
+// that contain potential errors.
 // This should be called before updating Terraform state.
-func (m *LxdNetworkZoneResourceModel) SyncState(ctx context.Context, server lxd.InstanceServer) (bool, diag.Diagnostics) {
+func (m *NetworkZoneModel) Sync(ctx context.Context, server lxd.InstanceServer) (bool, diag.Diagnostics) {
 	zoneName := m.Name.ValueString()
 	zone, _, err := server.GetNetworkZone(zoneName)
 	if err != nil {

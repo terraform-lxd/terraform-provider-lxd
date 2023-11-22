@@ -30,7 +30,7 @@ import (
 	provider_config "github.com/terraform-lxd/terraform-provider-lxd/internal/provider-config"
 )
 
-type LxdInstanceResourceModel struct {
+type InstanceModel struct {
 	Name           types.String `tfsdk:"name"`
 	Description    types.String `tfsdk:"description"`
 	Type           types.String `tfsdk:"type"`
@@ -54,22 +54,22 @@ type LxdInstanceResourceModel struct {
 	Status types.String `tfsdk:"status"`
 }
 
-// LxdInstanceResource represent LXD instance resource.
-type LxdInstanceResource struct {
+// InstanceResource represent LXD instance resource.
+type InstanceResource struct {
 	provider      *provider_config.LxdProviderConfig
 	updateTimeout int
 }
 
-// NewLxdInstanceResource returns a new instance resource.
-func NewLxdInstanceResource() resource.Resource {
-	return &LxdInstanceResource{}
+// NewInstanceResource returns a new instance resource.
+func NewInstanceResource() resource.Resource {
+	return &InstanceResource{}
 }
 
-func (r LxdInstanceResource) Metadata(_ context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
+func (r InstanceResource) Metadata(_ context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
 	resp.TypeName = fmt.Sprintf("%s_instance", req.ProviderTypeName)
 }
 
-func (r LxdInstanceResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *resource.SchemaResponse) {
+func (r InstanceResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *resource.SchemaResponse) {
 	resp.Schema = schema.Schema{
 		Attributes: map[string]schema.Attribute{
 			"name": schema.StringAttribute{
@@ -300,7 +300,7 @@ func (r LxdInstanceResource) Schema(_ context.Context, _ resource.SchemaRequest,
 	}
 }
 
-func (r *LxdInstanceResource) Configure(_ context.Context, req resource.ConfigureRequest, resp *resource.ConfigureResponse) {
+func (r *InstanceResource) Configure(_ context.Context, req resource.ConfigureRequest, resp *resource.ConfigureResponse) {
 	// Set instance update timeout (for starting/stopping the instance).
 	r.updateTimeout = int(time.Duration(time.Minute * 5).Seconds())
 
@@ -318,7 +318,7 @@ func (r *LxdInstanceResource) Configure(_ context.Context, req resource.Configur
 	r.provider = provider
 }
 
-func (r *LxdInstanceResource) ModifyPlan(ctx context.Context, req resource.ModifyPlanRequest, resp *resource.ModifyPlanResponse) {
+func (r *InstanceResource) ModifyPlan(ctx context.Context, req resource.ModifyPlanRequest, resp *resource.ModifyPlanResponse) {
 	// If resource is being destroyed req.Config will be null.
 	// In such case there is no need for plan modification.
 	if req.Config.Raw.IsNull() {
@@ -334,17 +334,17 @@ func (r *LxdInstanceResource) ModifyPlan(ctx context.Context, req resource.Modif
 	}
 }
 
-func (r LxdInstanceResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
-	var data LxdInstanceResourceModel
+func (r InstanceResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
+	var plan InstanceModel
 
 	// Fetch resource model from Terraform plan.
-	diags := req.Plan.Get(ctx, &data)
+	diags := req.Plan.Get(ctx, &plan)
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
 
-	remote := data.Remote.ValueString()
+	remote := plan.Remote.ValueString()
 	server, err := r.provider.InstanceServer(remote)
 	if err != nil {
 		resp.Diagnostics.Append(errors.NewInstanceServerError(err))
@@ -352,19 +352,19 @@ func (r LxdInstanceResource) Create(ctx context.Context, req resource.CreateRequ
 	}
 
 	// Set project if configured.
-	project := data.Project.ValueString()
+	project := plan.Project.ValueString()
 	if project != "" {
 		server = server.UseProject(project)
 	}
 
 	// Set target if configured.
-	target := data.Target.ValueString()
+	target := plan.Target.ValueString()
 	if target != "" {
 		server = server.UseTarget(target)
 	}
 
 	// Evaluate image remote.
-	image := data.Image.ValueString()
+	image := plan.Image.ValueString()
 	imageRemote := remote
 	imageParts := strings.SplitN(image, ":", 2)
 	if len(imageParts) == 2 {
@@ -378,16 +378,16 @@ func (r LxdInstanceResource) Create(ctx context.Context, req resource.CreateRequ
 	}
 
 	// Extract profiles, devices, config and limits.
-	profiles, diags := ToProfileList(ctx, data.Profiles)
+	profiles, diags := ToProfileList(ctx, plan.Profiles)
 	resp.Diagnostics.Append(diags...)
 
-	devices, diags := common.ToDeviceMap(ctx, data.Devices)
+	devices, diags := common.ToDeviceMap(ctx, plan.Devices)
 	resp.Diagnostics.Append(diags...)
 
-	config, diags := common.ToConfigMap(ctx, data.Config)
+	config, diags := common.ToConfigMap(ctx, plan.Config)
 	resp.Diagnostics.Append(diags...)
 
-	limits, diags := common.ToConfigMap(ctx, data.Limits)
+	limits, diags := common.ToConfigMap(ctx, plan.Limits)
 	resp.Diagnostics.Append(diags...)
 
 	if resp.Diagnostics.HasError() {
@@ -402,11 +402,11 @@ func (r LxdInstanceResource) Create(ctx context.Context, req resource.CreateRequ
 
 	// Prepare instance request.
 	instance := api.InstancesPost{
-		Name: data.Name.ValueString(),
-		Type: api.InstanceType(data.Type.ValueString()),
+		Name: plan.Name.ValueString(),
+		Type: api.InstanceType(plan.Type.ValueString()),
 		InstancePut: api.InstancePut{
-			Description: data.Description.ValueString(),
-			Ephemeral:   data.Ephemeral.ValueBool(),
+			Description: plan.Description.ValueString(),
+			Ephemeral:   plan.Ephemeral.ValueBool(),
 			Config:      config,
 			Profiles:    profiles,
 			Devices:     devices,
@@ -462,8 +462,8 @@ func (r LxdInstanceResource) Create(ctx context.Context, req resource.CreateRequ
 	}
 
 	// Upload files.
-	if !data.Files.IsNull() && !data.Files.IsUnknown() {
-		files, diags := common.ToFileMap(ctx, data.Files)
+	if !plan.Files.IsNull() && !plan.Files.IsUnknown() {
+		files, diags := common.ToFileMap(ctx, plan.Files)
 		if diags.HasError() {
 			resp.Diagnostics.Append(diags...)
 			return
@@ -478,7 +478,7 @@ func (r LxdInstanceResource) Create(ctx context.Context, req resource.CreateRequ
 		}
 	}
 
-	if data.StartOnCreate.ValueBool() {
+	if plan.StartOnCreate.ValueBool() {
 		// Start instance.
 		startReq := api.InstanceStatePut{
 			Action:  "start",
@@ -515,7 +515,7 @@ func (r LxdInstanceResource) Create(ctx context.Context, req resource.CreateRequ
 			return
 		}
 
-		if data.WaitForNetwork.ValueBool() {
+		if plan.WaitForNetwork.ValueBool() {
 			// LXD will return "Running" even if "inet" has not yet
 			// been set. Therefore wait until we see an "inet" IP
 			// before reading the state.
@@ -535,46 +535,46 @@ func (r LxdInstanceResource) Create(ctx context.Context, req resource.CreateRequ
 		}
 	}
 
-	_, diags = data.SyncState(ctx, server)
+	_, diags = plan.Sync(ctx, server)
 	resp.Diagnostics.Append(diags...)
 	if diags.HasError() {
 		return
 	}
 
 	// Update Terraform state.
-	diags = resp.State.Set(ctx, &data)
+	diags = resp.State.Set(ctx, &plan)
 	resp.Diagnostics.Append(diags...)
 }
 
-func (r LxdInstanceResource) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
-	var data LxdInstanceResourceModel
+func (r InstanceResource) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
+	var state InstanceModel
 
 	// Fetch resource model from Terraform state.
-	diags := req.State.Get(ctx, &data)
+	diags := req.State.Get(ctx, &state)
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
 
-	server, err := r.provider.InstanceServer(data.Remote.ValueString())
+	server, err := r.provider.InstanceServer(state.Remote.ValueString())
 	if err != nil {
 		resp.Diagnostics.Append(errors.NewInstanceServerError(err))
 		return
 	}
 
 	// Set project if configured.
-	project := data.Project.ValueString()
+	project := state.Project.ValueString()
 	if project != "" {
 		server = server.UseProject(project)
 	}
 
 	// Set target if configured.
-	target := data.Target.ValueString()
+	target := state.Target.ValueString()
 	if target != "" {
 		server = server.UseTarget(target)
 	}
 
-	found, diags := data.SyncState(ctx, server)
+	found, diags := state.Sync(ctx, server)
 	resp.Diagnostics.Append(diags...)
 	if diags.HasError() {
 		return
@@ -587,39 +587,44 @@ func (r LxdInstanceResource) Read(ctx context.Context, req resource.ReadRequest,
 	}
 
 	// Update Terraform state.
-	diags = resp.State.Set(ctx, &data)
+	diags = resp.State.Set(ctx, &state)
 	resp.Diagnostics.Append(diags...)
 }
 
-func (r LxdInstanceResource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
-	var data *LxdInstanceResourceModel
+func (r InstanceResource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
+	var plan InstanceModel
+	var state InstanceModel
 
 	// Fetch resource model from Terraform plan.
-	diags := req.Plan.Get(ctx, &data)
+	diags := req.Plan.Get(ctx, &plan)
 	resp.Diagnostics.Append(diags...)
+
+	diags = req.State.Get(ctx, &state)
+	resp.Diagnostics.Append(diags...)
+
 	if resp.Diagnostics.HasError() {
 		return
 	}
 
-	server, err := r.provider.InstanceServer(data.Remote.ValueString())
+	server, err := r.provider.InstanceServer(plan.Remote.ValueString())
 	if err != nil {
 		resp.Diagnostics.Append(errors.NewInstanceServerError(err))
 		return
 	}
 
 	// Set project if configured.
-	project := data.Project.ValueString()
+	project := plan.Project.ValueString()
 	if project != "" {
 		server = server.UseProject(project)
 	}
 
 	// Set target if configured.
-	target := data.Target.ValueString()
+	target := plan.Target.ValueString()
 	if target != "" {
 		server = server.UseTarget(target)
 	}
 
-	instanceName := data.Name.ValueString()
+	instanceName := plan.Name.ValueString()
 	instance, etag, err := server.GetInstance(instanceName)
 	if err != nil {
 		resp.Diagnostics.AddError(fmt.Sprintf("Failed to retrieve existing instance %q", instanceName), err.Error())
@@ -628,19 +633,19 @@ func (r LxdInstanceResource) Update(ctx context.Context, req resource.UpdateRequ
 
 	// First extract profiles, devices, limits, config and config state.
 	// Then merge user defined config with instance config (state).
-	profiles, diags := ToProfileList(ctx, data.Profiles)
+	profiles, diags := ToProfileList(ctx, plan.Profiles)
 	resp.Diagnostics.Append(diags...)
 
-	devices, diags := common.ToDeviceMap(ctx, data.Devices)
+	devices, diags := common.ToDeviceMap(ctx, plan.Devices)
 	resp.Diagnostics.Append(diags...)
 
-	limits, diag := common.ToConfigMap(ctx, data.Limits)
+	limits, diag := common.ToConfigMap(ctx, plan.Limits)
 	resp.Diagnostics.Append(diag...)
 
-	userConfig, diags := common.ToConfigMap(ctx, data.Config)
+	userConfig, diags := common.ToConfigMap(ctx, plan.Config)
 	resp.Diagnostics.Append(diags...)
 
-	config := common.MergeConfig(instance.Config, userConfig, data.ComputedKeys())
+	config := common.MergeConfig(instance.Config, userConfig, plan.ComputedKeys())
 
 	if resp.Diagnostics.HasError() {
 		return
@@ -654,8 +659,8 @@ func (r LxdInstanceResource) Update(ctx context.Context, req resource.UpdateRequ
 
 	// Update instance.
 	newInstance := api.InstancePut{
-		Description:  data.Description.ValueString(),
-		Ephemeral:    data.Ephemeral.ValueBool(),
+		Description:  plan.Description.ValueString(),
+		Ephemeral:    plan.Ephemeral.ValueBool(),
 		Architecture: instance.Architecture,
 		Restore:      instance.Restore,
 		Stateful:     instance.Stateful,
@@ -676,15 +681,10 @@ func (r LxdInstanceResource) Update(ctx context.Context, req resource.UpdateRequ
 		return
 	}
 
-	// Fetch old files from state.
-	var oldFileSet types.Set
-	diags = req.State.GetAttribute(ctx, path.Root("file"), &oldFileSet)
+	oldFiles, diags := common.ToFileMap(ctx, state.Files)
 	resp.Diagnostics.Append(diags...)
 
-	oldFiles, diags := common.ToFileMap(ctx, oldFileSet)
-	resp.Diagnostics.Append(diags...)
-
-	newFiles, diags := common.ToFileMap(ctx, data.Files)
+	newFiles, diags := common.ToFileMap(ctx, plan.Files)
 	resp.Diagnostics.Append(diags...)
 
 	if resp.Diagnostics.HasError() {
@@ -720,46 +720,46 @@ func (r LxdInstanceResource) Update(ctx context.Context, req resource.UpdateRequ
 		}
 	}
 
-	_, diags = data.SyncState(ctx, server)
+	_, diags = plan.Sync(ctx, server)
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
 
 	// Update Terraform state.
-	diags = resp.State.Set(ctx, &data)
+	diags = resp.State.Set(ctx, &plan)
 	resp.Diagnostics.Append(diags...)
 }
 
-func (r LxdInstanceResource) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {
-	var data LxdInstanceResourceModel
+func (r InstanceResource) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {
+	var state InstanceModel
 
 	// Fetch resource model from Terraform state.
-	diags := req.State.Get(ctx, &data)
+	diags := req.State.Get(ctx, &state)
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
 
-	server, err := r.provider.InstanceServer(data.Remote.ValueString())
+	server, err := r.provider.InstanceServer(state.Remote.ValueString())
 	if err != nil {
 		resp.Diagnostics.Append(errors.NewInstanceServerError(err))
 		return
 	}
 
 	// Set project if configured.
-	project := data.Project.ValueString()
+	project := state.Project.ValueString()
 	if project != "" {
 		server = server.UseProject(project)
 	}
 
 	// Set target if configured.
-	target := data.Target.ValueString()
+	target := state.Target.ValueString()
 	if target != "" {
 		server = server.UseTarget(target)
 	}
 
-	instanceName := data.Name.ValueString()
+	instanceName := state.Name.ValueString()
 
 	ct, etag, _ := server.GetInstanceState(instanceName)
 	if ct.Status == "Running" {
@@ -816,7 +816,7 @@ func (r LxdInstanceResource) Delete(ctx context.Context, req resource.DeleteRequ
 	}
 }
 
-func (r *LxdInstanceResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
+func (r *InstanceResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
 	remote, project, name, diag := common.SplitImportID(req.ID, "instance")
 	if diag != nil {
 		resp.Diagnostics.Append(diag)
@@ -838,7 +838,7 @@ func (r *LxdInstanceResource) ImportState(ctx context.Context, req resource.Impo
 // It returns a boolean indicating whether resource is found and diagnostics
 // that contain potential errors.
 // This should be called before updating Terraform state.
-func (m *LxdInstanceResourceModel) SyncState(ctx context.Context, server lxd.InstanceServer) (bool, diag.Diagnostics) {
+func (m *InstanceModel) Sync(ctx context.Context, server lxd.InstanceServer) (bool, diag.Diagnostics) {
 	respDiags := diag.Diagnostics{}
 
 	instanceName := m.Name.ValueString()
@@ -905,7 +905,7 @@ func (m *LxdInstanceResourceModel) SyncState(ctx context.Context, server lxd.Ins
 		}
 	}
 
-	// Extract user defined config and merge it with current config state.
+	// Extract user defined config and merge it with current resource config.
 	usrConfig, diags := common.ToConfigMap(ctx, m.Config)
 	respDiags.Append(diags...)
 
@@ -964,7 +964,7 @@ func (m *LxdInstanceResourceModel) SyncState(ctx context.Context, server lxd.Ins
 }
 
 // ComputedKeys returns list of computed config keys.
-func (_ LxdInstanceResourceModel) ComputedKeys() []string {
+func (_ InstanceModel) ComputedKeys() []string {
 	return []string{
 		"image.",
 		"volatile.",
@@ -975,20 +975,20 @@ func (_ LxdInstanceResourceModel) ComputedKeys() []string {
 //
 // If profiles are null, use "default" profile.
 // If profiles lengeth is 0, no profiles are applied.
-func ToProfileList(ctx context.Context, list types.List) ([]string, diag.Diagnostics) {
-	if list.IsNull() {
+func ToProfileList(ctx context.Context, profileList types.List) ([]string, diag.Diagnostics) {
+	if profileList.IsNull() {
 		return []string{"default"}, nil
 	}
 
-	profiles := make([]string, 0, len(list.Elements()))
-	diags := list.ElementsAs(ctx, &profiles, false)
+	profiles := make([]string, 0, len(profileList.Elements()))
+	diags := profileList.ElementsAs(ctx, &profiles, false)
 
 	return profiles, diags
 }
 
 // ToProfileListType converts []string into profiles of type types.List.
-func ToProfileListType(ctx context.Context, list []string) (types.List, diag.Diagnostics) {
-	return types.ListValueFrom(ctx, types.StringType, list)
+func ToProfileListType(ctx context.Context, profiles []string) (types.List, diag.Diagnostics) {
+	return types.ListValueFrom(ctx, types.StringType, profiles)
 }
 
 // networkStateRefreshFunc returns function that refreshes instance's status.

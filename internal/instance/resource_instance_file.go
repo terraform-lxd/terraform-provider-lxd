@@ -22,18 +22,18 @@ import (
 	provider_config "github.com/terraform-lxd/terraform-provider-lxd/internal/provider-config"
 )
 
-// LxdInstanceFileResourceModel
+// InstanceFileModel
 //
 // This model should embed common.LxdFileMode, but terraform-framework does
 // not yet support unmarshaling of embedded structs.
 // https://github.com/hashicorp/terraform-plugin-framework/issues/242
-type LxdInstanceFileResourceModel struct {
+type InstanceFileModel struct {
 	ResourceID types.String `tfsdk:"resource_id"` // Computed.
 	Instance   types.String `tfsdk:"instance"`
 	Project    types.String `tfsdk:"project"`
 	Remote     types.String `tfsdk:"remote"`
 
-	// LxdFileModel
+	// common.InstanceFileModel
 	Content    types.String `tfsdk:"content"`
 	Source     types.String `tfsdk:"source"`
 	TargetFile types.String `tfsdk:"target_file"`
@@ -44,21 +44,21 @@ type LxdInstanceFileResourceModel struct {
 	Append     types.Bool   `tfsdk:"append"`
 }
 
-// LxdInstanceFileResource represent LXD instance file resource.
-type LxdInstanceFileResource struct {
+// InstanceFileResource represent LXD instance file resource.
+type InstanceFileResource struct {
 	provider *provider_config.LxdProviderConfig
 }
 
-// NewLxdInstanceFileResource returns a new instance file resource.
-func NewLxdInstanceFileResource() resource.Resource {
-	return &LxdInstanceFileResource{}
+// NewInstanceFileResource returns a new instance file resource.
+func NewInstanceFileResource() resource.Resource {
+	return &InstanceFileResource{}
 }
 
-func (r LxdInstanceFileResource) Metadata(_ context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
+func (r InstanceFileResource) Metadata(_ context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
 	resp.TypeName = fmt.Sprintf("%s_instance_file", req.ProviderTypeName)
 }
 
-func (r LxdInstanceFileResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *resource.SchemaResponse) {
+func (r InstanceFileResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *resource.SchemaResponse) {
 	resp.Schema = schema.Schema{
 		Attributes: map[string]schema.Attribute{
 			"resource_id": schema.StringAttribute{
@@ -165,7 +165,7 @@ func (r LxdInstanceFileResource) Schema(_ context.Context, _ resource.SchemaRequ
 	}
 }
 
-func (r *LxdInstanceFileResource) Configure(_ context.Context, req resource.ConfigureRequest, resp *resource.ConfigureResponse) {
+func (r *InstanceFileResource) Configure(_ context.Context, req resource.ConfigureRequest, resp *resource.ConfigureResponse) {
 	data := req.ProviderData
 	if data == nil {
 		return
@@ -180,17 +180,17 @@ func (r *LxdInstanceFileResource) Configure(_ context.Context, req resource.Conf
 	r.provider = provider
 }
 
-func (r LxdInstanceFileResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
-	var data LxdInstanceFileResourceModel
+func (r InstanceFileResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
+	var plan InstanceFileModel
 
 	// Fetch resource model from Terraform plan.
-	diags := req.Plan.Get(ctx, &data)
+	diags := req.Plan.Get(ctx, &plan)
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
 
-	remote := data.Remote.ValueString()
+	remote := plan.Remote.ValueString()
 	server, err := r.provider.InstanceServer(remote)
 	if err != nil {
 		resp.Diagnostics.Append(errors.NewInstanceServerError(err))
@@ -198,32 +198,32 @@ func (r LxdInstanceFileResource) Create(ctx context.Context, req resource.Create
 	}
 
 	// Set project if configured.
-	project := data.Project.ValueString()
+	project := plan.Project.ValueString()
 	if project != "" {
 		server = server.UseProject(project)
 	}
 
 	// Ensure instance exists.
-	instanceName := data.Instance.ValueString()
+	instanceName := plan.Instance.ValueString()
 	_, _, err = server.GetInstance(instanceName)
 	if err != nil {
 		resp.Diagnostics.AddError(fmt.Sprintf("Failed retireve instance %q", instanceName), err.Error())
 		return
 	}
 
-	file := common.LxdFileModel{
-		Content:    data.Content,
-		Source:     data.Source,
-		TargetFile: data.TargetFile,
-		UserID:     data.UserID,
-		GroupID:    data.GroupID,
-		Mode:       data.Mode,
-		CreateDirs: data.CreateDirs,
-		Append:     data.Append,
+	file := common.InstanceFileModel{
+		Content:    plan.Content,
+		Source:     plan.Source,
+		TargetFile: plan.TargetFile,
+		UserID:     plan.UserID,
+		GroupID:    plan.GroupID,
+		Mode:       plan.Mode,
+		CreateDirs: plan.CreateDirs,
+		Append:     plan.Append,
 	}
 
 	// Upload file.
-	targetFile := data.TargetFile.ValueString()
+	targetFile := plan.TargetFile.ValueString()
 	err = common.InstanceFileUpload(server, instanceName, file)
 	if err != nil {
 		resp.Diagnostics.AddError(fmt.Sprintf("Failed to create file %q on instance %q", targetFile, instanceName), err.Error())
@@ -231,32 +231,24 @@ func (r LxdInstanceFileResource) Create(ctx context.Context, req resource.Create
 	}
 
 	fileID := createFileResourceID(remote, instanceName, targetFile)
-	data.ResourceID = types.StringValue(fileID)
+	plan.ResourceID = types.StringValue(fileID)
 
 	// Update Terraform state.
-	diags = resp.State.Set(ctx, &data)
+	diags = resp.State.Set(ctx, &plan)
 	resp.Diagnostics.Append(diags...)
 }
 
-func (r LxdInstanceFileResource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
-	// Not supported.
-	resp.Diagnostics.AddError(
-		"Update of InstanceFile is not supported.",
-		"InstanceFile should be replaced upon any changes in configuration. Please report this issue to the maintainers.",
-	)
-}
-
-func (r LxdInstanceFileResource) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
-	var data LxdInstanceFileResourceModel
+func (r InstanceFileResource) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
+	var state InstanceFileModel
 
 	// Fetch resource model from Terraform state.
-	diags := req.State.Get(ctx, &data)
+	diags := req.State.Get(ctx, &state)
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
 
-	remote, instanceName, targetFile := splitFileResourceID(data.ResourceID.ValueString())
+	remote, instanceName, targetFile := splitFileResourceID(state.ResourceID.ValueString())
 
 	server, err := r.provider.InstanceServer(remote)
 	if err != nil {
@@ -265,7 +257,7 @@ func (r LxdInstanceFileResource) Read(ctx context.Context, req resource.ReadRequ
 	}
 
 	// Set project if configured.
-	project := data.Project.ValueString()
+	project := state.Project.ValueString()
 	if project != "" {
 		server = server.UseProject(project)
 	}
@@ -287,28 +279,31 @@ func (r LxdInstanceFileResource) Read(ctx context.Context, req resource.ReadRequ
 		resp.Diagnostics.AddError(fmt.Sprintf("Failed to retrieve file %q from instance %q", targetFile, instanceName), err.Error())
 	}
 
-	data.Instance = types.StringValue(instanceName)
-	data.TargetFile = types.StringValue(targetFile)
-	data.UserID = types.Int64Value(file.UID)
-	data.GroupID = types.Int64Value(file.GID)
-	data.Mode = types.StringValue(fmt.Sprintf("%04o", file.Mode))
+	state.Instance = types.StringValue(instanceName)
+	state.TargetFile = types.StringValue(targetFile)
+	state.UserID = types.Int64Value(file.UID)
+	state.GroupID = types.Int64Value(file.GID)
+	state.Mode = types.StringValue(fmt.Sprintf("%04o", file.Mode))
 
 	// Update Terraform state.
-	diags = resp.State.Set(ctx, &data)
+	diags = resp.State.Set(ctx, &state)
 	resp.Diagnostics.Append(diags...)
 }
 
-func (r LxdInstanceFileResource) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {
-	var data LxdInstanceFileResourceModel
+func (r InstanceFileResource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
+}
+
+func (r InstanceFileResource) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {
+	var state InstanceFileModel
 
 	// Fetch resource model from Terraform state.
-	diags := req.State.Get(ctx, &data)
+	diags := req.State.Get(ctx, &state)
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
 
-	remote, instanceName, targetFile := splitFileResourceID(data.ResourceID.ValueString())
+	remote, instanceName, targetFile := splitFileResourceID(state.ResourceID.ValueString())
 
 	server, err := r.provider.InstanceServer(remote)
 	if err != nil {
@@ -317,7 +312,7 @@ func (r LxdInstanceFileResource) Delete(ctx context.Context, req resource.Delete
 	}
 
 	// Set project if configured.
-	project := data.Project.ValueString()
+	project := state.Project.ValueString()
 	if project != "" {
 		server = server.UseProject(project)
 	}
@@ -333,15 +328,15 @@ func (r LxdInstanceFileResource) Delete(ctx context.Context, req resource.Delete
 		return
 	}
 
-	file := common.LxdFileModel{
-		Content:    data.Content,
-		Source:     data.Source,
-		TargetFile: data.TargetFile,
-		UserID:     data.UserID,
-		GroupID:    data.GroupID,
-		Mode:       data.Mode,
-		CreateDirs: data.CreateDirs,
-		Append:     data.Append,
+	file := common.InstanceFileModel{
+		Content:    state.Content,
+		Source:     state.Source,
+		TargetFile: state.TargetFile,
+		UserID:     state.UserID,
+		GroupID:    state.GroupID,
+		Mode:       state.Mode,
+		CreateDirs: state.CreateDirs,
+		Append:     state.Append,
 	}
 
 	// Delete file.

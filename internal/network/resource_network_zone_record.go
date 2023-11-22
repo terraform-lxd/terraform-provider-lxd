@@ -24,9 +24,9 @@ import (
 	provider_config "github.com/terraform-lxd/terraform-provider-lxd/internal/provider-config"
 )
 
-// LxdNetworkZoneRecordRecordResourceModel resource data model that
+// NetworkZoneRecordModel resource data model that
 // matches the schema.
-type LxdNetworkZoneRecordResourceModel struct {
+type NetworkZoneRecordModel struct {
 	Name        types.String `tfsdk:"name"`
 	Zone        types.String `tfsdk:"zone"`
 	Description types.String `tfsdk:"description"`
@@ -36,21 +36,21 @@ type LxdNetworkZoneRecordResourceModel struct {
 	Config      types.Map    `tfsdk:"config"`
 }
 
-// LxdNetworkZoneRecordResource represent LXD network zone record resource.
-type LxdNetworkZoneRecordResource struct {
+// NetworkZoneRecordResource represent LXD network zone record resource.
+type NetworkZoneRecordResource struct {
 	provider *provider_config.LxdProviderConfig
 }
 
-// NewLxdNetworkZoneRecordResource returns a new network zone record resource.
-func NewLxdNetworkZoneRecordResource() resource.Resource {
-	return &LxdNetworkZoneRecordResource{}
+// NewNetworkZoneRecordResource returns a new network zone record resource.
+func NewNetworkZoneRecordResource() resource.Resource {
+	return &NetworkZoneRecordResource{}
 }
 
-func (r LxdNetworkZoneRecordResource) Metadata(_ context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
+func (r NetworkZoneRecordResource) Metadata(_ context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
 	resp.TypeName = fmt.Sprintf("%s_network_zone_record", req.ProviderTypeName)
 }
 
-func (r LxdNetworkZoneRecordResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *resource.SchemaResponse) {
+func (r NetworkZoneRecordResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *resource.SchemaResponse) {
 	resp.Schema = schema.Schema{
 		Attributes: map[string]schema.Attribute{
 			"name": schema.StringAttribute{
@@ -131,7 +131,7 @@ func (r LxdNetworkZoneRecordResource) Schema(_ context.Context, _ resource.Schem
 	}
 }
 
-func (r *LxdNetworkZoneRecordResource) Configure(_ context.Context, req resource.ConfigureRequest, resp *resource.ConfigureResponse) {
+func (r *NetworkZoneRecordResource) Configure(_ context.Context, req resource.ConfigureRequest, resp *resource.ConfigureResponse) {
 	data := req.ProviderData
 	if data == nil {
 		return
@@ -146,45 +146,45 @@ func (r *LxdNetworkZoneRecordResource) Configure(_ context.Context, req resource
 	r.provider = provider
 }
 
-func (r LxdNetworkZoneRecordResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
-	var data LxdNetworkZoneRecordResourceModel
+func (r NetworkZoneRecordResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
+	var plan NetworkZoneRecordModel
 
 	// Fetch resource model from Terraform plan.
-	diags := req.Plan.Get(ctx, &data)
+	diags := req.Plan.Get(ctx, &plan)
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
 
-	server, err := r.provider.InstanceServer(data.Remote.ValueString())
+	server, err := r.provider.InstanceServer(plan.Remote.ValueString())
 	if err != nil {
 		resp.Diagnostics.Append(errors.NewInstanceServerError(err))
 		return
 	}
 
 	// Set project if configured.
-	project := data.Project.ValueString()
+	project := plan.Project.ValueString()
 	if project != "" {
 		server = server.UseProject(project)
 	}
 
 	// Convert network zone record config and entries.
-	config, diags := common.ToConfigMap(ctx, data.Config)
+	config, diags := common.ToConfigMap(ctx, plan.Config)
 	resp.Diagnostics.Append(diags...)
 
-	entries, diags := ToZoneRecordEntryList(ctx, data.Enteries)
+	entries, diags := ToZoneRecordEntryList(ctx, plan.Enteries)
 	resp.Diagnostics.Append(diags...)
 
 	if resp.Diagnostics.HasError() {
 		return
 	}
 
-	zoneName := data.Zone.ValueString()
-	recordName := data.Name.ValueString()
+	zoneName := plan.Zone.ValueString()
+	recordName := plan.Name.ValueString()
 	recordReq := api.NetworkZoneRecordsPost{
 		Name: recordName,
 		NetworkZoneRecordPut: api.NetworkZoneRecordPut{
-			Description: data.Description.ValueString(),
+			Description: plan.Description.ValueString(),
 			Config:      config,
 			Entries:     entries,
 		},
@@ -197,40 +197,40 @@ func (r LxdNetworkZoneRecordResource) Create(ctx context.Context, req resource.C
 		return
 	}
 
-	_, diags = data.SyncState(ctx, server)
+	_, diags = plan.Sync(ctx, server)
 	resp.Diagnostics.Append(diags...)
 	if diags.HasError() {
 		return
 	}
 
 	// Update Terraform state.
-	diags = resp.State.Set(ctx, &data)
+	diags = resp.State.Set(ctx, &plan)
 	resp.Diagnostics.Append(diags...)
 }
 
-func (r LxdNetworkZoneRecordResource) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
-	var data LxdNetworkZoneRecordResourceModel
+func (r NetworkZoneRecordResource) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
+	var state NetworkZoneRecordModel
 
 	// Fetch resource model from Terraform state.
-	diags := req.State.Get(ctx, &data)
+	diags := req.State.Get(ctx, &state)
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
 
-	server, err := r.provider.InstanceServer(data.Remote.ValueString())
+	server, err := r.provider.InstanceServer(state.Remote.ValueString())
 	if err != nil {
 		resp.Diagnostics.Append(errors.NewInstanceServerError(err))
 		return
 	}
 
 	// Set project if configured.
-	project := data.Project.ValueString()
+	project := state.Project.ValueString()
 	if project != "" {
 		server = server.UseProject(project)
 	}
 
-	found, diags := data.SyncState(ctx, server)
+	found, diags := state.Sync(ctx, server)
 	resp.Diagnostics.Append(diags...)
 	if diags.HasError() {
 		return
@@ -243,35 +243,35 @@ func (r LxdNetworkZoneRecordResource) Read(ctx context.Context, req resource.Rea
 	}
 
 	// Update Terraform state.
-	diags = resp.State.Set(ctx, &data)
+	diags = resp.State.Set(ctx, &state)
 	resp.Diagnostics.Append(diags...)
 }
 
-func (r LxdNetworkZoneRecordResource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
-	var data LxdNetworkZoneRecordResourceModel
+func (r NetworkZoneRecordResource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
+	var plan NetworkZoneRecordModel
 
 	// Fetch resource model from Terraform plan.
-	diags := req.Plan.Get(ctx, &data)
+	diags := req.Plan.Get(ctx, &plan)
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
 
-	server, err := r.provider.InstanceServer(data.Remote.ValueString())
+	server, err := r.provider.InstanceServer(plan.Remote.ValueString())
 	if err != nil {
 		resp.Diagnostics.Append(errors.NewInstanceServerError(err))
 		return
 	}
 
 	// Set project if configured.
-	project := data.Project.ValueString()
+	project := plan.Project.ValueString()
 	if project != "" {
 		server = server.UseProject(project)
 	}
 
 	// Get existing network zone record.
-	zoneName := data.Zone.ValueString()
-	recordName := data.Name.ValueString()
+	zoneName := plan.Zone.ValueString()
+	recordName := plan.Name.ValueString()
 	_, etag, err := server.GetNetworkZoneRecord(zoneName, recordName)
 	if err != nil {
 		resp.Diagnostics.AddError(fmt.Sprintf("Failed to retrieve existing network zone record %q", recordName), err.Error())
@@ -279,10 +279,10 @@ func (r LxdNetworkZoneRecordResource) Update(ctx context.Context, req resource.U
 	}
 
 	// Convert network zone record config and entries.
-	config, diags := common.ToConfigMap(ctx, data.Config)
+	config, diags := common.ToConfigMap(ctx, plan.Config)
 	resp.Diagnostics.Append(diags...)
 
-	entries, diags := ToZoneRecordEntryList(ctx, data.Enteries)
+	entries, diags := ToZoneRecordEntryList(ctx, plan.Enteries)
 	resp.Diagnostics.Append(diags...)
 
 	if resp.Diagnostics.HasError() {
@@ -291,7 +291,7 @@ func (r LxdNetworkZoneRecordResource) Update(ctx context.Context, req resource.U
 
 	// Update network zone record.
 	recordReq := api.NetworkZoneRecordPut{
-		Description: data.Description.ValueString(),
+		Description: plan.Description.ValueString(),
 		Entries:     entries,
 		Config:      config,
 	}
@@ -302,48 +302,48 @@ func (r LxdNetworkZoneRecordResource) Update(ctx context.Context, req resource.U
 		return
 	}
 
-	_, diags = data.SyncState(ctx, server)
+	_, diags = plan.Sync(ctx, server)
 	resp.Diagnostics.Append(diags...)
 	if diags.HasError() {
 		return
 	}
 
 	// Update Terraform state.
-	diags = resp.State.Set(ctx, &data)
+	diags = resp.State.Set(ctx, &plan)
 	resp.Diagnostics.Append(diags...)
 }
 
-func (r LxdNetworkZoneRecordResource) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {
-	var data LxdNetworkZoneRecordResourceModel
+func (r NetworkZoneRecordResource) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {
+	var state NetworkZoneRecordModel
 
 	// Fetch resource model from Terraform state.
-	diags := req.State.Get(ctx, &data)
+	diags := req.State.Get(ctx, &state)
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
 
-	server, err := r.provider.InstanceServer(data.Remote.ValueString())
+	server, err := r.provider.InstanceServer(state.Remote.ValueString())
 	if err != nil {
 		resp.Diagnostics.Append(errors.NewInstanceServerError(err))
 		return
 	}
 
 	// Set project if configured.
-	project := data.Project.ValueString()
+	project := state.Project.ValueString()
 	if project != "" {
 		server = server.UseProject(project)
 	}
 
-	zoneName := data.Zone.ValueString()
-	recordName := data.Name.ValueString()
+	zoneName := state.Zone.ValueString()
+	recordName := state.Name.ValueString()
 	err = server.DeleteNetworkZoneRecord(zoneName, recordName)
 	if err != nil {
 		resp.Diagnostics.AddError(fmt.Sprintf("Failed to remove network zone record %q", recordName), err.Error())
 	}
 }
 
-func (r LxdNetworkZoneRecordResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
+func (r NetworkZoneRecordResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
 	remote, project, name, diag := common.SplitImportID(req.ID, "network_zone_record")
 	if diag != nil {
 		resp.Diagnostics.Append(diag)
@@ -375,11 +375,11 @@ func (r LxdNetworkZoneRecordResource) ImportState(ctx context.Context, req resou
 	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("zone"), zoneName)...)
 }
 
-// SyncState pulls network zone record data from the server and updates the
-// model in-place. It returns a boolean indicating whether resource is found
-// and diagnostics that contain potential errors.
+// Sync pulls network zone record data from the server and updates the model
+// in-place. It returns a boolean indicating whether resource is found and
+// diagnostics that contain potential errors.
 // This should be called before updating Terraform state.
-func (m *LxdNetworkZoneRecordResourceModel) SyncState(ctx context.Context, server lxd.InstanceServer) (bool, diag.Diagnostics) {
+func (m *NetworkZoneRecordModel) Sync(ctx context.Context, server lxd.InstanceServer) (bool, diag.Diagnostics) {
 	zoneName := m.Zone.ValueString()
 	recordName := m.Name.ValueString()
 	record, _, err := server.GetNetworkZoneRecord(zoneName, recordName)
@@ -412,7 +412,7 @@ func (m *LxdNetworkZoneRecordResourceModel) SyncState(ctx context.Context, serve
 	return true, nil
 }
 
-type LxdNetworkZoneRecordEntryModel struct {
+type NetworkZoneRecordEntryModel struct {
 	Type  types.String `tfsdk:"type"`
 	Value types.String `tfsdk:"value"`
 	TTL   types.Int64  `tfsdk:"ttl"`
@@ -420,21 +420,21 @@ type LxdNetworkZoneRecordEntryModel struct {
 
 // ToZoneRecordMap converts network zone record of type types.Map
 // into []LxdNetworkZoneEntryModel.
-func ToZoneRecordEntryList(ctx context.Context, set types.Set) ([]api.NetworkZoneRecordEntry, diag.Diagnostics) {
-	if set.IsNull() || set.IsUnknown() {
+func ToZoneRecordEntryList(ctx context.Context, entrySet types.Set) ([]api.NetworkZoneRecordEntry, diag.Diagnostics) {
+	if entrySet.IsNull() || entrySet.IsUnknown() {
 		return []api.NetworkZoneRecordEntry{}, nil
 	}
 
 	// Convert into intermediary struct (that has struct tags).
-	modelEntries := make([]LxdNetworkZoneRecordEntryModel, 0, len(set.Elements()))
-	diags := set.ElementsAs(ctx, &modelEntries, false)
+	entryList := make([]NetworkZoneRecordEntryModel, 0, len(entrySet.Elements()))
+	diags := entrySet.ElementsAs(ctx, &entryList, false)
 	if diags.HasError() {
 		return nil, diags
 	}
 
 	// Convert into API network zone entries.
-	entries := make([]api.NetworkZoneRecordEntry, 0, len(modelEntries))
-	for _, e := range modelEntries {
+	entries := make([]api.NetworkZoneRecordEntry, 0, len(entryList))
+	for _, e := range entryList {
 		entry := api.NetworkZoneRecordEntry{
 			Type:  e.Type.ValueString(),
 			Value: e.Value.ValueString(),
@@ -450,14 +450,14 @@ func ToZoneRecordEntryList(ctx context.Context, set types.Set) ([]api.NetworkZon
 // ToZoneRecordEntrySetType converts list of network zone records into
 // set of type types.Set.
 func ToZoneRecordEntrySetType(ctx context.Context, entries []api.NetworkZoneRecordEntry) (types.Set, diag.Diagnostics) {
-	modelEntries := make([]LxdNetworkZoneRecordEntryModel, 0, len(entries))
+	entryList := make([]NetworkZoneRecordEntryModel, 0, len(entries))
 	for _, e := range entries {
-		entry := LxdNetworkZoneRecordEntryModel{
+		entry := NetworkZoneRecordEntryModel{
 			Type:  types.StringValue(e.Type),
 			Value: types.StringValue(e.Value),
 			TTL:   types.Int64Value(int64(e.TTL)),
 		}
-		modelEntries = append(modelEntries, entry)
+		entryList = append(entryList, entry)
 	}
 
 	entryType := map[string]attr.Type{
@@ -466,5 +466,5 @@ func ToZoneRecordEntrySetType(ctx context.Context, entries []api.NetworkZoneReco
 		"ttl":   types.Int64Type,
 	}
 
-	return types.SetValueFrom(ctx, types.ObjectType{AttrTypes: entryType}, modelEntries)
+	return types.SetValueFrom(ctx, types.ObjectType{AttrTypes: entryType}, entryList)
 }

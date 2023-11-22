@@ -72,7 +72,7 @@ func TestAccCachedImage_alias(t *testing.T) {
 	})
 }
 
-func TestAccCachedImage_copiedAlias(t *testing.T) {
+func TestAccCachedImage_copiedAliases(t *testing.T) {
 	alias1 := petname.Generate(2, "-")
 	alias2 := petname.Generate(2, "-")
 
@@ -117,7 +117,7 @@ func TestAccCachedImage_aliasCollision(t *testing.T) {
 	})
 }
 
-func TestAccCachedImage_aliasAlreadyExists(t *testing.T) {
+func TestAccCachedImage_aliasExists(t *testing.T) {
 	alias := petname.Generate(2, "-")
 
 	resource.Test(t, resource.TestCase{

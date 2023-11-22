@@ -9,19 +9,19 @@ import (
 )
 
 // ToConfigMap converts config of type types.Map into map[string]string.
-func ToConfigMap(ctx context.Context, m types.Map) (map[string]string, diag.Diagnostics) {
-	if m.IsNull() || m.IsUnknown() {
+func ToConfigMap(ctx context.Context, configMap types.Map) (map[string]string, diag.Diagnostics) {
+	if configMap.IsNull() || configMap.IsUnknown() {
 		return make(map[string]string), nil
 	}
 
-	config := make(map[string]string, len(m.Elements()))
-	diags := m.ElementsAs(ctx, &config, false)
+	config := make(map[string]string, len(configMap.Elements()))
+	diags := configMap.ElementsAs(ctx, &config, false)
 	return config, diags
 }
 
 // ToConfigMapType converts map[string]string into config of type types.Map.
-func ToConfigMapType(ctx context.Context, m map[string]string) (types.Map, diag.Diagnostics) {
-	return types.MapValueFrom(ctx, types.StringType, m)
+func ToConfigMapType(ctx context.Context, config map[string]string) (types.Map, diag.Diagnostics) {
+	return types.MapValueFrom(ctx, types.StringType, config)
 }
 
 // MergeConfig merges resource (existing) configuration with user defined

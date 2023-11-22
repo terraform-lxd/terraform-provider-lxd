@@ -23,7 +23,7 @@ import (
 	provider_config "github.com/terraform-lxd/terraform-provider-lxd/internal/provider-config"
 )
 
-type LxdInstanceSnapshotResourceModel struct {
+type InstanceSnapshotModel struct {
 	Name     types.String `tfsdk:"name"`
 	Instance types.String `tfsdk:"instance"`
 	Stateful types.Bool   `tfsdk:"stateful"`
@@ -34,21 +34,21 @@ type LxdInstanceSnapshotResourceModel struct {
 	CreatedAt types.Int64 `tfsdk:"created_at"`
 }
 
-// LxdInstanceSnapshotResource represent LXD instance snapshot resource.
-type LxdInstanceSnapshotResource struct {
+// InstanceSnapshotResource represent LXD instance snapshot resource.
+type InstanceSnapshotResource struct {
 	provider *provider_config.LxdProviderConfig
 }
 
-// NewLxdInstanceSnapshotResource returns a new instance snapshot resource.
-func NewLxdInstanceSnapshotResource() resource.Resource {
-	return &LxdInstanceSnapshotResource{}
+// NewInstanceSnapshotResource returns a new instance snapshot resource.
+func NewInstanceSnapshotResource() resource.Resource {
+	return &InstanceSnapshotResource{}
 }
 
-func (r LxdInstanceSnapshotResource) Metadata(_ context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
+func (r InstanceSnapshotResource) Metadata(_ context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
 	resp.TypeName = fmt.Sprintf("%s_snapshot", req.ProviderTypeName)
 }
 
-func (r LxdInstanceSnapshotResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *resource.SchemaResponse) {
+func (r InstanceSnapshotResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *resource.SchemaResponse) {
 	resp.Schema = schema.Schema{
 		Attributes: map[string]schema.Attribute{
 			"name": schema.StringAttribute{
@@ -100,7 +100,7 @@ func (r LxdInstanceSnapshotResource) Schema(_ context.Context, _ resource.Schema
 	}
 }
 
-func (r *LxdInstanceSnapshotResource) Configure(_ context.Context, req resource.ConfigureRequest, resp *resource.ConfigureResponse) {
+func (r *InstanceSnapshotResource) Configure(_ context.Context, req resource.ConfigureRequest, resp *resource.ConfigureResponse) {
 	data := req.ProviderData
 	if data == nil {
 		return
@@ -115,7 +115,7 @@ func (r *LxdInstanceSnapshotResource) Configure(_ context.Context, req resource.
 	r.provider = provider
 }
 
-func (r LxdInstanceSnapshotResource) Setup(_ context.Context, data LxdInstanceSnapshotResourceModel) (lxd.InstanceServer, diag.Diagnostic) {
+func (r InstanceSnapshotResource) Setup(_ context.Context, data InstanceSnapshotModel) (lxd.InstanceServer, diag.Diagnostic) {
 	server, err := r.provider.InstanceServer(data.Remote.ValueString())
 	if err != nil {
 		return nil, errors.NewInstanceServerError(err)
@@ -129,33 +129,32 @@ func (r LxdInstanceSnapshotResource) Setup(_ context.Context, data LxdInstanceSn
 	return server, nil
 }
 
-func (r LxdInstanceSnapshotResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
-	var data LxdInstanceSnapshotResourceModel
+func (r InstanceSnapshotResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
+	var plan InstanceSnapshotModel
 
 	// Fetch resource model from Terraform plan.
-	diags := req.Plan.Get(ctx, &data)
+	diags := req.Plan.Get(ctx, &plan)
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
 
-	server, diag := r.Setup(ctx, data)
+	server, diag := r.Setup(ctx, plan)
 	if diag != nil {
 		resp.Diagnostics.Append(diag)
 		return
 	}
 
-	instanceName := data.Instance.ValueString()
-	snapshotName := data.Name.ValueString()
+	instanceName := plan.Instance.ValueString()
+	snapshotName := plan.Name.ValueString()
 
 	snapshotReq := api.InstanceSnapshotsPost{
 		Name:     snapshotName,
-		Stateful: data.Stateful.ValueBool(),
+		Stateful: plan.Stateful.ValueBool(),
 	}
 
-	var i int
 	var serr error
-	for i = 0; i < 5; i++ {
+	for i := 0; i < 5; i++ {
 		op, err := server.CreateInstanceSnapshot(instanceName, snapshotReq)
 		if err != nil {
 			resp.Diagnostics.AddError(fmt.Sprintf("Failed to create snapshot %q for instance %q", snapshotName, instanceName), serr.Error())
@@ -184,34 +183,34 @@ func (r LxdInstanceSnapshotResource) Create(ctx context.Context, req resource.Cr
 		return
 	}
 
-	_, diags = data.SyncState(ctx, server)
+	_, diags = plan.Sync(ctx, server)
 	resp.Diagnostics.Append(diags...)
 	if diags.HasError() {
 		return
 	}
 
 	// Update Terraform state.
-	diags = resp.State.Set(ctx, &data)
+	diags = resp.State.Set(ctx, &plan)
 	resp.Diagnostics.Append(diags...)
 }
 
-func (r LxdInstanceSnapshotResource) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
-	var data LxdInstanceSnapshotResourceModel
+func (r InstanceSnapshotResource) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
+	var state InstanceSnapshotModel
 
 	// Fetch resource model from Terraform state.
-	diags := req.State.Get(ctx, &data)
+	diags := req.State.Get(ctx, &state)
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
 
-	server, diag := r.Setup(ctx, data)
+	server, diag := r.Setup(ctx, state)
 	if diag != nil {
 		resp.Diagnostics.Append(diag)
 		return
 	}
 
-	found, diags := data.SyncState(ctx, server)
+	found, diags := state.Sync(ctx, server)
 	resp.Diagnostics.Append(diags...)
 	if diags.HasError() {
 		return
@@ -224,31 +223,31 @@ func (r LxdInstanceSnapshotResource) Read(ctx context.Context, req resource.Read
 	}
 
 	// Update Terraform state.
-	diags = resp.State.Set(ctx, &data)
+	diags = resp.State.Set(ctx, &state)
 	resp.Diagnostics.Append(diags...)
 }
 
-func (r LxdInstanceSnapshotResource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
+func (r InstanceSnapshotResource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
 }
 
-func (r LxdInstanceSnapshotResource) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {
-	var data LxdInstanceSnapshotResourceModel
+func (r InstanceSnapshotResource) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {
+	var state InstanceSnapshotModel
 
 	// Fetch resource model from Terraform state.
-	diags := req.State.Get(ctx, &data)
+	diags := req.State.Get(ctx, &state)
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
 
-	server, diag := r.Setup(ctx, data)
+	server, diag := r.Setup(ctx, state)
 	if diag != nil {
 		resp.Diagnostics.Append(diag)
 		return
 	}
 
-	instanceName := data.Instance.ValueString()
-	snapshotName := data.Name.ValueString()
+	instanceName := state.Instance.ValueString()
+	snapshotName := state.Name.ValueString()
 	op, err := server.DeleteInstanceSnapshot(instanceName, snapshotName)
 	if err != nil {
 		resp.Diagnostics.AddError(fmt.Sprintf("Failed to remove snapshot %q for instance %q", snapshotName, instanceName), err.Error())
@@ -261,15 +260,15 @@ func (r LxdInstanceSnapshotResource) Delete(ctx context.Context, req resource.De
 	}
 }
 
-// SyncState pulls instance snapshot data from the server and updates the model
+// Sync pulls instance snapshot data from the server and updates the model
 // in-place. It returns a boolean indicating whether resource is found and
 // diagnostics that contain potential errors.
 // This should be called before updating Terraform state.
-func (m *LxdInstanceSnapshotResourceModel) SyncState(ctx context.Context, server lxd.InstanceServer) (bool, diag.Diagnostics) {
+func (m *InstanceSnapshotModel) Sync(ctx context.Context, server lxd.InstanceServer) (bool, diag.Diagnostics) {
 	instanceName := m.Instance.ValueString()
 	snapshotName := m.Name.ValueString()
 
-	snap, _, err := server.GetInstanceSnapshot(instanceName, snapshotName)
+	snapshot, _, err := server.GetInstanceSnapshot(instanceName, snapshotName)
 	if err != nil {
 		if errors.IsNotFoundError(err) {
 			return false, nil
@@ -281,8 +280,8 @@ func (m *LxdInstanceSnapshotResourceModel) SyncState(ctx context.Context, server
 		)}
 	}
 
-	m.Stateful = types.BoolValue(snap.Stateful)
-	m.CreatedAt = types.Int64Value(snap.CreatedAt.Unix())
+	m.Stateful = types.BoolValue(snapshot.Stateful)
+	m.CreatedAt = types.Int64Value(snapshot.CreatedAt.Unix())
 
 	return true, nil
 }

@@ -22,8 +22,8 @@ import (
 	provider_config "github.com/terraform-lxd/terraform-provider-lxd/internal/provider-config"
 )
 
-// LxdNetworkResourceModel resource data model that matches the schema.
-type LxdNetworkResourceModel struct {
+// NetworkModel resource data model that matches the schema.
+type NetworkModel struct {
 	Name        types.String `tfsdk:"name"`
 	Description types.String `tfsdk:"description"`
 	Type        types.String `tfsdk:"type"`
@@ -34,23 +34,23 @@ type LxdNetworkResourceModel struct {
 	Config      types.Map    `tfsdk:"config"`
 }
 
-// LxdNetworkResource represent LXD network resource.
-type LxdNetworkResource struct {
+// NetworkResource represent LXD network resource.
+type NetworkResource struct {
 	provider *provider_config.LxdProviderConfig
 }
 
-// NewLxdNetworkResource returns a new network resource.
-func NewLxdNetworkResource() resource.Resource {
-	return &LxdNetworkResource{}
+// NewNetworkResource returns a new network resource.
+func NewNetworkResource() resource.Resource {
+	return &NetworkResource{}
 }
 
 // Metadata for network resource.
-func (r LxdNetworkResource) Metadata(_ context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
+func (r NetworkResource) Metadata(_ context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
 	resp.TypeName = fmt.Sprintf("%s_network", req.ProviderTypeName)
 }
 
 // Schema for network resource.
-func (r LxdNetworkResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *resource.SchemaResponse) {
+func (r NetworkResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *resource.SchemaResponse) {
 	resp.Schema = schema.Schema{
 		Attributes: map[string]schema.Attribute{
 			"name": schema.StringAttribute{
@@ -121,7 +121,7 @@ func (r LxdNetworkResource) Schema(_ context.Context, _ resource.SchemaRequest, 
 	}
 }
 
-func (r *LxdNetworkResource) Configure(_ context.Context, req resource.ConfigureRequest, resp *resource.ConfigureResponse) {
+func (r *NetworkResource) Configure(_ context.Context, req resource.ConfigureRequest, resp *resource.ConfigureResponse) {
 	data := req.ProviderData
 	if data == nil {
 		return
@@ -136,46 +136,46 @@ func (r *LxdNetworkResource) Configure(_ context.Context, req resource.Configure
 	r.provider = provider
 }
 
-func (r LxdNetworkResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
-	var data LxdNetworkResourceModel
+func (r NetworkResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
+	var plan NetworkModel
 
 	// Fetch resource model from Terraform plan.
-	diags := req.Plan.Get(ctx, &data)
+	diags := req.Plan.Get(ctx, &plan)
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
 
-	server, err := r.provider.InstanceServer(data.Remote.ValueString())
+	server, err := r.provider.InstanceServer(plan.Remote.ValueString())
 	if err != nil {
 		resp.Diagnostics.Append(errors.NewInstanceServerError(err))
 		return
 	}
 
 	// Set project if configured.
-	project := data.Project.ValueString()
+	project := plan.Project.ValueString()
 	if project != "" {
 		server = server.UseProject(project)
 	}
 
 	// Set target if configured.
-	target := data.Target.ValueString()
+	target := plan.Target.ValueString()
 	if target != "" {
 		server = server.UseTarget(target)
 	}
 
 	// Convert network config to map.
-	config, diag := common.ToConfigMap(ctx, data.Config)
+	config, diag := common.ToConfigMap(ctx, plan.Config)
 	resp.Diagnostics.Append(diag...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
 
 	network := api.NetworksPost{
-		Name: data.Name.ValueString(),
-		Type: data.Type.ValueString(),
+		Name: plan.Name.ValueString(),
+		Type: plan.Type.ValueString(),
 		NetworkPut: api.NetworkPut{
-			Description: data.Description.ValueString(),
+			Description: plan.Description.ValueString(),
 			Config:      config,
 		},
 	}
@@ -186,46 +186,46 @@ func (r LxdNetworkResource) Create(ctx context.Context, req resource.CreateReque
 		return
 	}
 
-	_, diags = data.SyncState(ctx, server)
+	_, diags = plan.Sync(ctx, server)
 	resp.Diagnostics.Append(diags...)
 	if diags.HasError() {
 		return
 	}
 
 	// Update Terraform state.
-	diags = resp.State.Set(ctx, &data)
+	diags = resp.State.Set(ctx, &plan)
 	resp.Diagnostics.Append(diags...)
 }
 
-func (r LxdNetworkResource) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
-	var data LxdNetworkResourceModel
+func (r NetworkResource) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
+	var state NetworkModel
 
 	// Fetch resource model from Terraform state.
-	diags := req.State.Get(ctx, &data)
+	diags := req.State.Get(ctx, &state)
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
 
-	server, err := r.provider.InstanceServer(data.Remote.ValueString())
+	server, err := r.provider.InstanceServer(state.Remote.ValueString())
 	if err != nil {
 		resp.Diagnostics.Append(errors.NewInstanceServerError(err))
 		return
 	}
 
 	// Set project if configured.
-	project := data.Project.ValueString()
+	project := state.Project.ValueString()
 	if project != "" {
 		server = server.UseProject(project)
 	}
 
 	// Set target if configured.
-	target := data.Target.ValueString()
+	target := state.Target.ValueString()
 	if target != "" {
 		server = server.UseTarget(target)
 	}
 
-	found, diags := data.SyncState(ctx, server)
+	found, diags := state.Sync(ctx, server)
 	resp.Diagnostics.Append(diags...)
 	if diags.HasError() {
 		return
@@ -238,57 +238,57 @@ func (r LxdNetworkResource) Read(ctx context.Context, req resource.ReadRequest, 
 	}
 
 	// Update Terraform state.
-	diags = resp.State.Set(ctx, &data)
+	diags = resp.State.Set(ctx, &state)
 	resp.Diagnostics.Append(diags...)
 }
 
-func (r LxdNetworkResource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
-	var data LxdNetworkResourceModel
+func (r NetworkResource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
+	var plan NetworkModel
 
 	// Fetch resource model from Terraform plan.
-	diags := req.Plan.Get(ctx, &data)
+	diags := req.Plan.Get(ctx, &plan)
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
 
-	server, err := r.provider.InstanceServer(data.Remote.ValueString())
+	server, err := r.provider.InstanceServer(plan.Remote.ValueString())
 	if err != nil {
 		resp.Diagnostics.Append(errors.NewInstanceServerError(err))
 		return
 	}
 
 	// Set project if configured.
-	project := data.Project.ValueString()
+	project := plan.Project.ValueString()
 	if project != "" {
 		server = server.UseProject(project)
 	}
 
 	// Set target if configured.
-	target := data.Target.ValueString()
+	target := plan.Target.ValueString()
 	if target != "" {
 		server = server.UseTarget(target)
 	}
 
-	networkName := data.Name.ValueString()
+	networkName := plan.Name.ValueString()
 	network, etag, err := server.GetNetwork(networkName)
 	if err != nil {
 		resp.Diagnostics.AddError(fmt.Sprintf("Failed to retrieve existing network %q", networkName), err.Error())
 		return
 	}
 
-	userConfig, diags := common.ToConfigMap(ctx, data.Config)
+	userConfig, diags := common.ToConfigMap(ctx, plan.Config)
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
 
 	// Merge network config state and user config.
-	config := common.MergeConfig(network.Config, userConfig, data.ComputedKeys())
+	config := common.MergeConfig(network.Config, userConfig, plan.ComputedKeys())
 
 	// Update network.
 	newNetwork := api.NetworkPut{
-		Description: data.Description.ValueString(),
+		Description: plan.Description.ValueString(),
 		Config:      config,
 	}
 
@@ -298,53 +298,53 @@ func (r LxdNetworkResource) Update(ctx context.Context, req resource.UpdateReque
 		return
 	}
 
-	_, diags = data.SyncState(ctx, server)
+	_, diags = plan.Sync(ctx, server)
 	resp.Diagnostics.Append(diags...)
 	if diags.HasError() {
 		return
 	}
 
 	// Update Terraform state.
-	diags = resp.State.Set(ctx, &data)
+	diags = resp.State.Set(ctx, &plan)
 	resp.Diagnostics.Append(diags...)
 }
 
-func (r LxdNetworkResource) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {
-	var data LxdNetworkResourceModel
+func (r NetworkResource) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {
+	var state NetworkModel
 
 	// Fetch resource model from Terraform state.
-	diags := req.State.Get(ctx, &data)
+	diags := req.State.Get(ctx, &state)
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
 
-	server, err := r.provider.InstanceServer(data.Remote.ValueString())
+	server, err := r.provider.InstanceServer(state.Remote.ValueString())
 	if err != nil {
 		resp.Diagnostics.Append(errors.NewInstanceServerError(err))
 		return
 	}
 
 	// Set project if configured.
-	project := data.Project.ValueString()
+	project := state.Project.ValueString()
 	if project != "" {
 		server = server.UseProject(project)
 	}
 
 	// Set target if configured.
-	target := data.Target.ValueString()
+	target := state.Target.ValueString()
 	if target != "" {
 		server = server.UseTarget(target)
 	}
 
-	networkName := data.Name.ValueString()
+	networkName := state.Name.ValueString()
 	err = server.DeleteNetwork(networkName)
 	if err != nil {
 		resp.Diagnostics.AddError(fmt.Sprintf("Failed to remove network %q", networkName), err.Error())
 	}
 }
 
-func (r LxdNetworkResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
+func (r NetworkResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
 	remote, project, name, diag := common.SplitImportID(req.ID, "network")
 	if diag != nil {
 		resp.Diagnostics.Append(diag)
@@ -362,11 +362,11 @@ func (r LxdNetworkResource) ImportState(ctx context.Context, req resource.Import
 	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("name"), name)...)
 }
 
-// SyncState pulls network data from the server and updates the model in-place.
+// Sync pulls network data from the server and updates the model in-place.
 // It returns a boolean indicating whether resource is found and diagnostics
 // that contain potential errors.
 // This should be called before updating Terraform state.
-func (m *LxdNetworkResourceModel) SyncState(ctx context.Context, server lxd.InstanceServer) (bool, diag.Diagnostics) {
+func (m *NetworkModel) Sync(ctx context.Context, server lxd.InstanceServer) (bool, diag.Diagnostics) {
 	networkName := m.Name.ValueString()
 	network, _, err := server.GetNetwork(networkName)
 	if err != nil {
@@ -403,7 +403,7 @@ func (m *LxdNetworkResourceModel) SyncState(ctx context.Context, server lxd.Inst
 }
 
 // ComputedKeys returns list of computed LXD config keys.
-func (_ LxdNetworkResourceModel) ComputedKeys() []string {
+func (_ NetworkModel) ComputedKeys() []string {
 	return []string{
 		"bridge.mtu",
 		"ipv4.address",

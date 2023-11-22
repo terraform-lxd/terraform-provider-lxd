@@ -8,27 +8,26 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/types"
 )
 
-type LxdDeviceModel struct {
+type DeviceModel struct {
 	Name       types.String `tfsdk:"name"`
 	Type       types.String `tfsdk:"type"`
 	Properties types.Map    `tfsdk:"properties"`
 }
 
 // ToDeviceMap converts deviecs from types.Set into map[string]map[string]string.
-func ToDeviceMap(ctx context.Context, dataDevices types.Set) (map[string]map[string]string, diag.Diagnostics) {
-	if dataDevices.IsNull() || dataDevices.IsUnknown() {
+func ToDeviceMap(ctx context.Context, deviceSet types.Set) (map[string]map[string]string, diag.Diagnostics) {
+	if deviceSet.IsNull() || deviceSet.IsUnknown() {
 		return make(map[string]map[string]string), nil
 	}
 
-	// Convert types.Set into set of device models.
-	modelDevices := make([]LxdDeviceModel, 0, len(dataDevices.Elements()))
-	diags := dataDevices.ElementsAs(ctx, &modelDevices, false)
+	deviceList := make([]DeviceModel, 0, len(deviceSet.Elements()))
+	diags := deviceSet.ElementsAs(ctx, &deviceList, false)
 	if diags.HasError() {
 		return nil, diags
 	}
 
-	devices := make(map[string]map[string]string, len(modelDevices))
-	for _, d := range modelDevices {
+	devices := make(map[string]map[string]string, len(deviceList))
+	for _, d := range deviceList {
 		devName := d.Name.ValueString()
 		devType := d.Type.ValueString()
 
@@ -48,21 +47,22 @@ func ToDeviceMap(ctx context.Context, dataDevices types.Set) (map[string]map[str
 	return devices, nil
 }
 
-// ToDeviceSetType converts deviecs from map[string]map[string]string into types.Set.
+// ToDeviceSetType converts deviecs from map[string]map[string]string
+// into types.Set.
 func ToDeviceSetType(ctx context.Context, devices map[string]map[string]string) (types.Set, diag.Diagnostics) {
-	devModelTypes := map[string]attr.Type{
+	deviceType := map[string]attr.Type{
 		"name":       types.StringType,
 		"type":       types.StringType,
 		"properties": types.MapType{ElemType: types.StringType},
 	}
 
-	nilSet := types.SetNull(types.ObjectType{AttrTypes: devModelTypes})
+	nilSet := types.SetNull(types.ObjectType{AttrTypes: deviceType})
 
 	if len(devices) == 0 {
 		return nilSet, nil
 	}
 
-	modelDevices := make([]LxdDeviceModel, 0, len(devices))
+	deviceList := make([]DeviceModel, 0, len(devices))
 	for key := range devices {
 		props := devices[key]
 
@@ -78,14 +78,14 @@ func ToDeviceSetType(ctx context.Context, devices map[string]map[string]string) 
 			return nilSet, diags
 		}
 
-		dev := LxdDeviceModel{
+		dev := DeviceModel{
 			Name:       devName,
 			Type:       devType,
 			Properties: devProps,
 		}
 
-		modelDevices = append(modelDevices, dev)
+		deviceList = append(deviceList, dev)
 	}
 
-	return types.SetValueFrom(ctx, types.ObjectType{AttrTypes: devModelTypes}, modelDevices)
+	return types.SetValueFrom(ctx, types.ObjectType{AttrTypes: deviceType}, deviceList)
 }

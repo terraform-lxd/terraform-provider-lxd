@@ -24,7 +24,7 @@ import (
 	provider_config "github.com/terraform-lxd/terraform-provider-lxd/internal/provider-config"
 )
 
-type LxdStorageVolumeResourceModel struct {
+type StorageVolumeModel struct {
 	Name        types.String `tfsdk:"name"`
 	Description types.String `tfsdk:"description"`
 	Pool        types.String `tfsdk:"pool"`
@@ -40,21 +40,21 @@ type LxdStorageVolumeResourceModel struct {
 	ExpandedConfig types.Map    `tfsdk:"expanded_config"`
 }
 
-// LxdStorageVolumeResource represent LXD storage volume resource.
-type LxdStorageVolumeResource struct {
+// StorageVolumeResource represent LXD storage volume resource.
+type StorageVolumeResource struct {
 	provider *provider_config.LxdProviderConfig
 }
 
-// NewLxdStorageVolumeResource returns a new storage volume resource.
-func NewLxdStorageVolumeResource() resource.Resource {
-	return &LxdStorageVolumeResource{}
+// NewStorageVolumeResource returns a new storage volume resource.
+func NewStorageVolumeResource() resource.Resource {
+	return &StorageVolumeResource{}
 }
 
-func (r LxdStorageVolumeResource) Metadata(_ context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
+func (r StorageVolumeResource) Metadata(_ context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
 	resp.TypeName = fmt.Sprintf("%s_volume", req.ProviderTypeName)
 }
 
-func (r LxdStorageVolumeResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *resource.SchemaResponse) {
+func (r StorageVolumeResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *resource.SchemaResponse) {
 	resp.Schema = schema.Schema{
 		Attributes: map[string]schema.Attribute{
 			"name": schema.StringAttribute{
@@ -146,7 +146,7 @@ func (r LxdStorageVolumeResource) Schema(_ context.Context, _ resource.SchemaReq
 	}
 }
 
-func (r *LxdStorageVolumeResource) Configure(_ context.Context, req resource.ConfigureRequest, resp *resource.ConfigureResponse) {
+func (r *StorageVolumeResource) Configure(_ context.Context, req resource.ConfigureRequest, resp *resource.ConfigureResponse) {
 	data := req.ProviderData
 	if data == nil {
 		return
@@ -161,7 +161,7 @@ func (r *LxdStorageVolumeResource) Configure(_ context.Context, req resource.Con
 	r.provider = provider
 }
 
-func (r LxdStorageVolumeResource) Setup(_ context.Context, data LxdStorageVolumeResourceModel) (lxd.InstanceServer, diag.Diagnostic) {
+func (r StorageVolumeResource) Setup(_ context.Context, data StorageVolumeModel) (lxd.InstanceServer, diag.Diagnostic) {
 	server, err := r.provider.InstanceServer(data.Remote.ValueString())
 	if err != nil {
 		return nil, errors.NewInstanceServerError(err)
@@ -181,38 +181,38 @@ func (r LxdStorageVolumeResource) Setup(_ context.Context, data LxdStorageVolume
 	return server, nil
 }
 
-func (r LxdStorageVolumeResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
-	var data LxdStorageVolumeResourceModel
+func (r StorageVolumeResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
+	var plan StorageVolumeModel
 
 	// Fetch resource model from Terraform plan.
-	diags := req.Plan.Get(ctx, &data)
+	diags := req.Plan.Get(ctx, &plan)
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
 
-	server, diag := r.Setup(ctx, data)
+	server, diag := r.Setup(ctx, plan)
 	if diag != nil {
 		resp.Diagnostics.Append(diag)
 		return
 	}
 
 	// Convert volume config to map.
-	config, diags := common.ToConfigMap(ctx, data.Config)
+	config, diags := common.ToConfigMap(ctx, plan.Config)
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
 
-	volName := data.Name.ValueString()
-	poolName := data.Pool.ValueString()
+	volName := plan.Name.ValueString()
+	poolName := plan.Pool.ValueString()
 
 	vol := api.StorageVolumesPost{
-		Name:        data.Name.ValueString(),
-		Type:        data.Type.ValueString(),
-		ContentType: data.ContentType.ValueString(),
+		Name:        plan.Name.ValueString(),
+		Type:        plan.Type.ValueString(),
+		ContentType: plan.ContentType.ValueString(),
 		StorageVolumePut: api.StorageVolumePut{
-			Description: data.Description.ValueString(),
+			Description: plan.Description.ValueString(),
 			Config:      config,
 		},
 	}
@@ -223,34 +223,34 @@ func (r LxdStorageVolumeResource) Create(ctx context.Context, req resource.Creat
 		return
 	}
 
-	_, diags = data.SyncState(ctx, server)
+	_, diags = plan.Sync(ctx, server)
 	resp.Diagnostics.Append(diags...)
 	if diags.HasError() {
 		return
 	}
 
 	// Update Terraform state.
-	diags = resp.State.Set(ctx, &data)
+	diags = resp.State.Set(ctx, &plan)
 	resp.Diagnostics.Append(diags...)
 }
 
-func (r LxdStorageVolumeResource) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
-	var data LxdStorageVolumeResourceModel
+func (r StorageVolumeResource) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
+	var state StorageVolumeModel
 
 	// Fetch resource model from Terraform state.
-	diags := req.State.Get(ctx, &data)
+	diags := req.State.Get(ctx, &state)
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
 
-	server, diag := r.Setup(ctx, data)
+	server, diag := r.Setup(ctx, state)
 	if diag != nil {
 		resp.Diagnostics.Append(diag)
 		return
 	}
 
-	found, diags := data.SyncState(ctx, server)
+	found, diags := state.Sync(ctx, server)
 	resp.Diagnostics.Append(diags...)
 	if diags.HasError() {
 		return
@@ -263,29 +263,29 @@ func (r LxdStorageVolumeResource) Read(ctx context.Context, req resource.ReadReq
 	}
 
 	// Update Terraform state.
-	diags = resp.State.Set(ctx, &data)
+	diags = resp.State.Set(ctx, &state)
 	resp.Diagnostics.Append(diags...)
 }
 
-func (r LxdStorageVolumeResource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
-	var data LxdStorageVolumeResourceModel
+func (r StorageVolumeResource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
+	var plan StorageVolumeModel
 
 	// Fetch resource model from Terraform plan.
-	diags := req.Plan.Get(ctx, &data)
+	diags := req.Plan.Get(ctx, &plan)
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
 
-	server, diag := r.Setup(ctx, data)
+	server, diag := r.Setup(ctx, plan)
 	if diag != nil {
 		resp.Diagnostics.Append(diag)
 		return
 	}
 
-	poolName := data.Pool.ValueString()
-	volName := data.Name.ValueString()
-	volType := data.Type.ValueString()
+	poolName := plan.Pool.ValueString()
+	volName := plan.Name.ValueString()
+	volType := plan.Type.ValueString()
 
 	vol, etag, err := server.GetStoragePoolVolume(poolName, volType, volName)
 	if err != nil {
@@ -293,17 +293,17 @@ func (r LxdStorageVolumeResource) Update(ctx context.Context, req resource.Updat
 		return
 	}
 
-	userConfig, diags := common.ToConfigMap(ctx, data.Config)
+	userConfig, diags := common.ToConfigMap(ctx, plan.Config)
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
 
 	// Merge volume config and user defined config.
-	config := common.MergeConfig(vol.Config, userConfig, data.ComputedKeys())
+	config := common.MergeConfig(vol.Config, userConfig, plan.ComputedKeys())
 
 	volReq := api.StorageVolumePut{
-		Description: data.Description.ValueString(),
+		Description: plan.Description.ValueString(),
 		Config:      config,
 	}
 
@@ -314,36 +314,36 @@ func (r LxdStorageVolumeResource) Update(ctx context.Context, req resource.Updat
 		return
 	}
 
-	_, diags = data.SyncState(ctx, server)
+	_, diags = plan.Sync(ctx, server)
 	resp.Diagnostics.Append(diags...)
 	if diags.HasError() {
 		return
 	}
 
 	// Update Terraform state.
-	diags = resp.State.Set(ctx, &data)
+	diags = resp.State.Set(ctx, &plan)
 	resp.Diagnostics.Append(diags...)
 }
 
-func (r LxdStorageVolumeResource) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {
-	var data LxdStorageVolumeResourceModel
+func (r StorageVolumeResource) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {
+	var state StorageVolumeModel
 
 	// Fetch resource model from Terraform state.
-	diags := req.State.Get(ctx, &data)
+	diags := req.State.Get(ctx, &state)
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
 
-	server, diag := r.Setup(ctx, data)
+	server, diag := r.Setup(ctx, state)
 	if diag != nil {
 		resp.Diagnostics.Append(diag)
 		return
 	}
 
-	poolName := data.Pool.ValueString()
-	volName := data.Name.ValueString()
-	volType := data.Type.ValueString()
+	poolName := state.Pool.ValueString()
+	volName := state.Name.ValueString()
+	volType := state.Type.ValueString()
 
 	err := server.DeleteStoragePoolVolume(poolName, volType, volName)
 	if err != nil {
@@ -351,7 +351,7 @@ func (r LxdStorageVolumeResource) Delete(ctx context.Context, req resource.Delet
 	}
 }
 
-func (r LxdStorageVolumeResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
+func (r StorageVolumeResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
 	remote, project, name, diag := common.SplitImportID(req.ID, "volume")
 	if diag != nil {
 		resp.Diagnostics.Append(diag)
@@ -375,9 +375,6 @@ func (r LxdStorageVolumeResource) ImportState(ctx context.Context, req resource.
 	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("name"), volName)...)
 	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("type"), "custom")...)
 
-	fmt.Println("POOL_NAME =", poolName)
-	fmt.Println("VOLUME_NAME =", volName)
-
 	if remote != "" {
 		resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("remote"), remote)...)
 	}
@@ -387,11 +384,11 @@ func (r LxdStorageVolumeResource) ImportState(ctx context.Context, req resource.
 	}
 }
 
-// SyncState pulls storage volume data from the server and updates the model
-// in-place. It returns a boolean indicating whether resource is found and
-// diagnostics that contain potential errors.
+// Sync pulls storage volume data from the server and updates the model
+// in-place. It returns a boolean indicating whether resource is found
+// and diagnostics that contain potential errors.
 // This should be called before updating Terraform state.
-func (m *LxdStorageVolumeResourceModel) SyncState(ctx context.Context, server lxd.InstanceServer) (bool, diag.Diagnostics) {
+func (m *StorageVolumeModel) Sync(ctx context.Context, server lxd.InstanceServer) (bool, diag.Diagnostics) {
 	respDiags := diag.Diagnostics{}
 
 	poolName := m.Pool.ValueString()
@@ -437,7 +434,7 @@ func (m *LxdStorageVolumeResourceModel) SyncState(ctx context.Context, server lx
 }
 
 // ComputedKeys returns list of computed config keys.
-func (_ LxdStorageVolumeResourceModel) ComputedKeys() []string {
+func (_ StorageVolumeModel) ComputedKeys() []string {
 	return []string{
 		"block.filesystem",
 		"block.mount_options",

@@ -34,7 +34,6 @@ func TestAccPublishImage_basic(t *testing.T) {
 
 func TestAccPublishImage_aliases(t *testing.T) {
 	instanceName := petname.Generate(2, "-")
-
 	aliases := []string{"alias1", "alias2"}
 
 	resource.Test(t, resource.TestCase{
@@ -59,7 +58,6 @@ func TestAccPublishImage_aliases(t *testing.T) {
 
 func TestAccPublishImage_properties(t *testing.T) {
 	instanceName := petname.Generate(2, "-")
-
 	properties := map[string]string{"os": "Alpine", "version": "4"}
 
 	resource.Test(t, resource.TestCase{

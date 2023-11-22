@@ -16,7 +16,7 @@ import (
 	"github.com/terraform-lxd/terraform-provider-lxd/internal/errors"
 )
 
-type LxdFileModel struct {
+type InstanceFileModel struct {
 	Content    types.String `tfsdk:"content"`
 	Source     types.String `tfsdk:"source"`
 	TargetFile types.String `tfsdk:"target_file"`
@@ -28,19 +28,19 @@ type LxdFileModel struct {
 }
 
 // ToFileMap converts files from types.Set into map[string]LxdFileModel.
-func ToFileMap(ctx context.Context, fileSet types.Set) (map[string]LxdFileModel, diag.Diagnostics) {
+func ToFileMap(ctx context.Context, fileSet types.Set) (map[string]InstanceFileModel, diag.Diagnostics) {
 	if fileSet.IsNull() || fileSet.IsUnknown() {
-		return make(map[string]LxdFileModel), nil
+		return make(map[string]InstanceFileModel), nil
 	}
 
-	files := make([]LxdFileModel, 0, len(fileSet.Elements()))
+	files := make([]InstanceFileModel, 0, len(fileSet.Elements()))
 	diags := fileSet.ElementsAs(ctx, &files, false)
 	if diags.HasError() {
 		return nil, diags
 	}
 
 	// Convert list into map.
-	fileMap := make(map[string]LxdFileModel, len(files))
+	fileMap := make(map[string]InstanceFileModel, len(files))
 	for _, f := range files {
 		fileMap[f.TargetFile.ValueString()] = f
 	}
@@ -49,8 +49,8 @@ func ToFileMap(ctx context.Context, fileSet types.Set) (map[string]LxdFileModel,
 }
 
 // ToFileSetType converts files from a map[string]LxdFileModel into types.Set.
-func ToFileSetType(ctx context.Context, fileMap map[string]LxdFileModel) (types.Set, diag.Diagnostics) {
-	files := make([]LxdFileModel, 0, len(fileMap))
+func ToFileSetType(ctx context.Context, fileMap map[string]InstanceFileModel) (types.Set, diag.Diagnostics) {
+	files := make([]InstanceFileModel, 0, len(fileMap))
 	for _, v := range fileMap {
 		files = append(files, v)
 	}
@@ -74,7 +74,7 @@ func InstanceFileDelete(server lxd.InstanceServer, instanceName string, targetFi
 }
 
 // InstanceFileUpload uploads a file to an instance.
-func InstanceFileUpload(server lxd.InstanceServer, instanceName string, file LxdFileModel) error {
+func InstanceFileUpload(server lxd.InstanceServer, instanceName string, file InstanceFileModel) error {
 	content := file.Content.ValueString()
 	source := file.Source.ValueString()
 

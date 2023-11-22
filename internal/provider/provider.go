@@ -166,7 +166,7 @@ func (p *LxdProvider) Configure(ctx context.Context, req provider.ConfigureReque
 		config.ConfigDir = configDir
 	}
 
-	log.Printf("[DEBUG] LXD Config: %#v", config)
+	log.Printf("LXD Config: %#v", config)
 
 	// Determine custom refresh interval. Default is 10 seconds.
 	refreshIntervalString := data.RefreshInterval.ValueString()
@@ -277,7 +277,7 @@ func (p *LxdProvider) Configure(ctx context.Context, req provider.ConfigureReque
 		lxdProvider.SetRemote(lxdRemote, isDefault)
 	}
 
-	log.Printf("[DEBUG] LXD Provider: %#v", &lxdProvider)
+	log.Printf("LXD Provider: %#v", &lxdProvider)
 
 	resp.ResourceData = lxdProvider
 	resp.DataSourceData = lxdProvider
@@ -285,20 +285,20 @@ func (p *LxdProvider) Configure(ctx context.Context, req provider.ConfigureReque
 
 func (p *LxdProvider) Resources(_ context.Context) []func() resource.Resource {
 	return []func() resource.Resource{
-		image.NewLxdCachedImageResource,
-		image.NewLxdPublishImageResource,
-		instance.NewLxdInstanceResource,
-		instance.NewLxdInstanceFileResource,
-		instance.NewLxdInstanceSnapshotResource,
-		network.NewLxdNetworkResource,
-		network.NewLxdNetworkLBResource,
-		network.NewLxdNetworkZoneResource,
-		network.NewLxdNetworkZoneRecordResource,
-		profile.NewLxdProfileResource,
-		project.NewLxdProjectResource,
-		storage.NewLxdStoragePoolResource,
-		storage.NewLxdStorageVolumeResource,
-		storage.NewLxdStorageVolumeCopyResource,
+		image.NewCachedImageResource,
+		image.NewPublishImageResource,
+		instance.NewInstanceResource,
+		instance.NewInstanceFileResource,
+		instance.NewInstanceSnapshotResource,
+		network.NewNetworkResource,
+		network.NewNetworkLBResource,
+		network.NewNetworkZoneResource,
+		network.NewNetworkZoneRecordResource,
+		profile.NewProfileResource,
+		project.NewProjectResource,
+		storage.NewStoragePoolResource,
+		storage.NewStorageVolumeResource,
+		storage.NewStorageVolumeCopyResource,
 	}
 }
 

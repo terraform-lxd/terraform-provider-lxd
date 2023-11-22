@@ -22,8 +22,8 @@ import (
 	provider_config "github.com/terraform-lxd/terraform-provider-lxd/internal/provider-config"
 )
 
-// LxdNetworkLBResourceModel resource data model that matches the schema.
-type LxdNetworkLBResourceModel struct {
+// NetworkLBModel resource data model that matches the schema.
+type NetworkLBModel struct {
 	Network       types.String `tfsdk:"network"`
 	ListenAddress types.String `tfsdk:"listen_address"`
 	Ports         types.Set    `tfsdk:"port"`
@@ -39,8 +39,8 @@ type LxdNetworkLBResource struct {
 	provider *provider_config.LxdProviderConfig
 }
 
-// NewLxdNetworkLBResource returns a new network load balancer resource.
-func NewLxdNetworkLBResource() resource.Resource {
+// NewNetworkLBResource returns a new network load balancer resource.
+func NewNetworkLBResource() resource.Resource {
 	return &LxdNetworkLBResource{}
 }
 
@@ -178,48 +178,48 @@ func (r *LxdNetworkLBResource) Configure(_ context.Context, req resource.Configu
 }
 
 func (r LxdNetworkLBResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
-	var data LxdNetworkLBResourceModel
+	var plan NetworkLBModel
 
 	// Fetch resource model from Terraform plan.
-	diags := req.Plan.Get(ctx, &data)
+	diags := req.Plan.Get(ctx, &plan)
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
 
-	server, err := r.provider.InstanceServer(data.Remote.ValueString())
+	server, err := r.provider.InstanceServer(plan.Remote.ValueString())
 	if err != nil {
 		resp.Diagnostics.Append(errors.NewInstanceServerError(err))
 		return
 	}
 
 	// Set project if configured.
-	project := data.Project.ValueString()
+	project := plan.Project.ValueString()
 	if project != "" {
 		server = server.UseProject(project)
 	}
 
-	backends, diag := ToLBBackendList(ctx, data.Backends)
+	backends, diag := ToLBBackendList(ctx, plan.Backends)
 	resp.Diagnostics.Append(diag...)
 
-	ports, diag := ToLBPortList(ctx, data.Ports)
+	ports, diag := ToLBPortList(ctx, plan.Ports)
 	resp.Diagnostics.Append(diag...)
 
-	config, diag := common.ToConfigMap(ctx, data.Config)
+	config, diag := common.ToConfigMap(ctx, plan.Config)
 	resp.Diagnostics.Append(diag...)
 
 	if resp.Diagnostics.HasError() {
 		return
 	}
 
-	networkName := data.Network.ValueString()
-	listenAddr := data.ListenAddress.ValueString()
+	networkName := plan.Network.ValueString()
+	listenAddr := plan.ListenAddress.ValueString()
 	lbName := toLBName(networkName, listenAddr)
 
 	lbReq := api.NetworkLoadBalancersPost{
 		ListenAddress: listenAddr,
 		NetworkLoadBalancerPut: api.NetworkLoadBalancerPut{
-			Description: data.Description.ValueString(),
+			Description: plan.Description.ValueString(),
 			Ports:       ports,
 			Backends:    backends,
 			Config:      config,
@@ -233,40 +233,40 @@ func (r LxdNetworkLBResource) Create(ctx context.Context, req resource.CreateReq
 		return
 	}
 
-	_, diags = data.SyncState(ctx, server)
+	_, diags = plan.Sync(ctx, server)
 	resp.Diagnostics.Append(diags...)
 	if diags.HasError() {
 		return
 	}
 
 	// Update Terraform state.
-	diags = resp.State.Set(ctx, &data)
+	diags = resp.State.Set(ctx, &plan)
 	resp.Diagnostics.Append(diags...)
 }
 
 func (r LxdNetworkLBResource) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
-	var data LxdNetworkLBResourceModel
+	var state NetworkLBModel
 
 	// Fetch resource model from Terraform state.
-	diags := req.State.Get(ctx, &data)
+	diags := req.State.Get(ctx, &state)
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
 
-	server, err := r.provider.InstanceServer(data.Remote.ValueString())
+	server, err := r.provider.InstanceServer(state.Remote.ValueString())
 	if err != nil {
 		resp.Diagnostics.Append(errors.NewInstanceServerError(err))
 		return
 	}
 
 	// Set project if configured.
-	project := data.Project.ValueString()
+	project := state.Project.ValueString()
 	if project != "" {
 		server = server.UseProject(project)
 	}
 
-	found, diags := data.SyncState(ctx, server)
+	found, diags := state.Sync(ctx, server)
 	resp.Diagnostics.Append(diags...)
 	if diags.HasError() {
 		return
@@ -279,51 +279,51 @@ func (r LxdNetworkLBResource) Read(ctx context.Context, req resource.ReadRequest
 	}
 
 	// Update Terraform state.
-	diags = resp.State.Set(ctx, &data)
+	diags = resp.State.Set(ctx, &state)
 	resp.Diagnostics.Append(diags...)
 }
 
 func (r LxdNetworkLBResource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
-	var data LxdNetworkLBResourceModel
+	var plan NetworkLBModel
 
 	// Fetch resource model from Terraform plan.
-	diags := req.Plan.Get(ctx, &data)
+	diags := req.Plan.Get(ctx, &plan)
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
 
-	server, err := r.provider.InstanceServer(data.Remote.ValueString())
+	server, err := r.provider.InstanceServer(plan.Remote.ValueString())
 	if err != nil {
 		resp.Diagnostics.Append(errors.NewInstanceServerError(err))
 		return
 	}
 
 	// Set project if configured.
-	project := data.Project.ValueString()
+	project := plan.Project.ValueString()
 	if project != "" {
 		server = server.UseProject(project)
 	}
 
-	backends, diag := ToLBBackendList(ctx, data.Backends)
+	backends, diag := ToLBBackendList(ctx, plan.Backends)
 	resp.Diagnostics.Append(diag...)
 
-	ports, diag := ToLBPortList(ctx, data.Ports)
+	ports, diag := ToLBPortList(ctx, plan.Ports)
 	resp.Diagnostics.Append(diag...)
 
-	config, diag := common.ToConfigMap(ctx, data.Config)
+	config, diag := common.ToConfigMap(ctx, plan.Config)
 	resp.Diagnostics.Append(diag...)
 
 	if resp.Diagnostics.HasError() {
 		return
 	}
 
-	networkName := data.Network.ValueString()
-	listenAddr := data.ListenAddress.ValueString()
+	networkName := plan.Network.ValueString()
+	listenAddr := plan.ListenAddress.ValueString()
 	lbName := toLBName(networkName, listenAddr)
 
 	lbReq := api.NetworkLoadBalancerPut{
-		Description: data.Description.ValueString(),
+		Description: plan.Description.ValueString(),
 		Backends:    backends,
 		Ports:       ports,
 		Config:      config,
@@ -342,41 +342,41 @@ func (r LxdNetworkLBResource) Update(ctx context.Context, req resource.UpdateReq
 		return
 	}
 
-	_, diags = data.SyncState(ctx, server)
+	_, diags = plan.Sync(ctx, server)
 	resp.Diagnostics.Append(diags...)
 	if diags.HasError() {
 		return
 	}
 
 	// Update Terraform state.
-	diags = resp.State.Set(ctx, &data)
+	diags = resp.State.Set(ctx, &plan)
 	resp.Diagnostics.Append(diags...)
 }
 
 func (r LxdNetworkLBResource) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {
-	var data LxdNetworkLBResourceModel
+	var state NetworkLBModel
 
 	// Fetch resource model from Terraform state.
-	diags := req.State.Get(ctx, &data)
+	diags := req.State.Get(ctx, &state)
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
 
-	server, err := r.provider.InstanceServer(data.Remote.ValueString())
+	server, err := r.provider.InstanceServer(state.Remote.ValueString())
 	if err != nil {
 		resp.Diagnostics.Append(errors.NewInstanceServerError(err))
 		return
 	}
 
 	// Set project if configured.
-	project := data.Project.ValueString()
+	project := state.Project.ValueString()
 	if project != "" {
 		server = server.UseProject(project)
 	}
 
-	networkName := data.Network.ValueString()
-	listenAddr := data.ListenAddress.ValueString()
+	networkName := state.Network.ValueString()
+	listenAddr := state.ListenAddress.ValueString()
 	lbName := toLBName(networkName, listenAddr)
 
 	err = server.DeleteNetworkLoadBalancer(networkName, listenAddr)
@@ -385,11 +385,11 @@ func (r LxdNetworkLBResource) Delete(ctx context.Context, req resource.DeleteReq
 	}
 }
 
-// SyncState pulls network load balancer data from the server and updates the
+// Sync pulls network load balancer data from the server and updates the
 // model in-place. It returns a boolean indicating whether resource is found
 // and diagnostics that contain potential errors.
 // This should be called before updating Terraform state.
-func (m *LxdNetworkLBResourceModel) SyncState(ctx context.Context, server lxd.InstanceServer) (bool, diag.Diagnostics) {
+func (m *NetworkLBModel) Sync(ctx context.Context, server lxd.InstanceServer) (bool, diag.Diagnostics) {
 	respDiags := diag.Diagnostics{}
 
 	networkName := m.Network.ValueString()
@@ -432,13 +432,13 @@ type LxdNetworkLBBackendModel struct {
 
 // ToLBBackendList converts network LB backend from types.Set into
 // list of API backends.
-func ToLBBackendList(ctx context.Context, set types.Set) ([]api.NetworkLoadBalancerBackend, diag.Diagnostics) {
-	if set.IsNull() || set.IsUnknown() {
+func ToLBBackendList(ctx context.Context, backendsSet types.Set) ([]api.NetworkLoadBalancerBackend, diag.Diagnostics) {
+	if backendsSet.IsNull() || backendsSet.IsUnknown() {
 		return []api.NetworkLoadBalancerBackend{}, nil
 	}
 
-	modelBackends := make([]LxdNetworkLBBackendModel, 0, len(set.Elements()))
-	diags := set.ElementsAs(ctx, &modelBackends, false)
+	modelBackends := make([]LxdNetworkLBBackendModel, 0, len(backendsSet.Elements()))
+	diags := backendsSet.ElementsAs(ctx, &modelBackends, false)
 	if diags.HasError() {
 		return nil, diags
 	}
@@ -461,7 +461,7 @@ func ToLBBackendList(ctx context.Context, set types.Set) ([]api.NetworkLoadBalan
 
 // ToLBBackendList converts list of API network LB backends into types.Set.
 func ToLBBackendSetType(ctx context.Context, backends []api.NetworkLoadBalancerBackend) (types.Set, diag.Diagnostics) {
-	modelBackends := make([]LxdNetworkLBBackendModel, 0, len(backends))
+	backendList := make([]LxdNetworkLBBackendModel, 0, len(backends))
 	for _, b := range backends {
 		backend := LxdNetworkLBBackendModel{
 			Name:          types.StringValue(b.Name),
@@ -470,7 +470,7 @@ func ToLBBackendSetType(ctx context.Context, backends []api.NetworkLoadBalancerB
 			TargetPort:    types.StringValue(b.TargetPort),
 		}
 
-		modelBackends = append(modelBackends, backend)
+		backendList = append(backendList, backend)
 	}
 
 	backendType := map[string]attr.Type{
@@ -480,10 +480,10 @@ func ToLBBackendSetType(ctx context.Context, backends []api.NetworkLoadBalancerB
 		"target_port":    types.StringType,
 	}
 
-	return types.SetValueFrom(ctx, types.ObjectType{AttrTypes: backendType}, modelBackends)
+	return types.SetValueFrom(ctx, types.ObjectType{AttrTypes: backendType}, backendList)
 }
 
-type LxdNetworkLBPortModel struct {
+type NetworkLBPortModel struct {
 	Description   types.String `tfsdk:"description"`
 	Protocol      types.String `tfsdk:"protocol"`
 	ListenPort    types.String `tfsdk:"listen_port"`
@@ -492,20 +492,20 @@ type LxdNetworkLBPortModel struct {
 
 // ToLBPortList converts network LB backend from types.Set into
 // list of API ports.
-func ToLBPortList(ctx context.Context, set types.Set) ([]api.NetworkLoadBalancerPort, diag.Diagnostics) {
-	if set.IsNull() || set.IsUnknown() {
+func ToLBPortList(ctx context.Context, portSet types.Set) ([]api.NetworkLoadBalancerPort, diag.Diagnostics) {
+	if portSet.IsNull() || portSet.IsUnknown() {
 		return []api.NetworkLoadBalancerPort{}, nil
 	}
 
-	modelPorts := make([]LxdNetworkLBPortModel, 0, len(set.Elements()))
-	diags := set.ElementsAs(ctx, &modelPorts, false)
+	portList := make([]NetworkLBPortModel, 0, len(portSet.Elements()))
+	diags := portSet.ElementsAs(ctx, &portList, false)
 	if diags.HasError() {
 		return nil, diags
 	}
 
 	// Convert into API network LB ports.
-	ports := make([]api.NetworkLoadBalancerPort, 0, len(modelPorts))
-	for _, p := range modelPorts {
+	ports := make([]api.NetworkLoadBalancerPort, 0, len(portList))
+	for _, p := range portList {
 		// Convert target backends string slice.
 		backends := make([]string, 0, len(p.TargetBackend.Elements()))
 		if !p.TargetBackend.IsNull() && !p.TargetBackend.IsUnknown() {
@@ -529,7 +529,7 @@ func ToLBPortList(ctx context.Context, set types.Set) ([]api.NetworkLoadBalancer
 }
 
 // ToLBPortList converts list of API network LB ports into types.Set.
-func ToLBPortSetType(ctx context.Context, backends []api.NetworkLoadBalancerPort) (types.Set, diag.Diagnostics) {
+func ToLBPortSetType(ctx context.Context, ports []api.NetworkLoadBalancerPort) (types.Set, diag.Diagnostics) {
 	portType := map[string]attr.Type{
 		"description":    types.StringType,
 		"protocol":       types.StringType,
@@ -537,24 +537,24 @@ func ToLBPortSetType(ctx context.Context, backends []api.NetworkLoadBalancerPort
 		"target_backend": types.SetType{ElemType: types.StringType},
 	}
 
-	modelPorts := make([]LxdNetworkLBPortModel, 0, len(backends))
-	for _, p := range backends {
+	portList := make([]NetworkLBPortModel, 0, len(ports))
+	for _, p := range ports {
 		backends, diags := types.SetValueFrom(ctx, types.StringType, p.TargetBackend)
 		if diags.HasError() {
 			return types.SetNull(types.ObjectType{AttrTypes: portType}), diags
 		}
 
-		port := LxdNetworkLBPortModel{
+		port := NetworkLBPortModel{
 			Description:   types.StringValue(p.Description),
 			Protocol:      types.StringValue(p.Protocol),
 			ListenPort:    types.StringValue(p.ListenPort),
 			TargetBackend: backends,
 		}
 
-		modelPorts = append(modelPorts, port)
+		portList = append(portList, port)
 	}
 
-	return types.SetValueFrom(ctx, types.ObjectType{AttrTypes: portType}, modelPorts)
+	return types.SetValueFrom(ctx, types.ObjectType{AttrTypes: portType}, portList)
 }
 
 // toLBName creates a unique load balancer name (id).

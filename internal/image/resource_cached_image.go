@@ -26,8 +26,8 @@ import (
 	"github.com/terraform-lxd/terraform-provider-lxd/internal/utils"
 )
 
-// LxdCachedImageResourceModel resource data model that matches the schema.
-type LxdCachedImageResourceModel struct {
+// CachedImageModel resource data model that matches the schema.
+type CachedImageModel struct {
 	SourceImage  types.String `tfsdk:"source_image"`
 	SourceRemote types.String `tfsdk:"source_remote"`
 	Aliases      types.Set    `tfsdk:"aliases"`
@@ -44,21 +44,21 @@ type LxdCachedImageResourceModel struct {
 	CopiedAliases types.Set    `tfsdk:"copied_aliases"`
 }
 
-// LxdCachedImageResource represent LXD cached image resource.
-type LxdCachedImageResource struct {
+// CachedImageResource represent LXD cached image resource.
+type CachedImageResource struct {
 	provider *provider_config.LxdProviderConfig
 }
 
-// NewLxdCachedImageResource return new cached image resource.
-func NewLxdCachedImageResource() resource.Resource {
-	return &LxdCachedImageResource{}
+// NewCachedImageResource return new cached image resource.
+func NewCachedImageResource() resource.Resource {
+	return &CachedImageResource{}
 }
 
-func (r LxdCachedImageResource) Metadata(_ context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
+func (r CachedImageResource) Metadata(_ context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
 	resp.TypeName = fmt.Sprintf("%s_cached_image", req.ProviderTypeName)
 }
 
-func (r LxdCachedImageResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *resource.SchemaResponse) {
+func (r CachedImageResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *resource.SchemaResponse) {
 	resp.Schema = schema.Schema{
 		Attributes: map[string]schema.Attribute{
 			"source_image": schema.StringAttribute{
@@ -161,7 +161,7 @@ func (r LxdCachedImageResource) Schema(_ context.Context, _ resource.SchemaReque
 	}
 }
 
-func (r *LxdCachedImageResource) Configure(_ context.Context, req resource.ConfigureRequest, resp *resource.ConfigureResponse) {
+func (r *CachedImageResource) Configure(_ context.Context, req resource.ConfigureRequest, resp *resource.ConfigureResponse) {
 	data := req.ProviderData
 	if data == nil {
 		return
@@ -176,17 +176,17 @@ func (r *LxdCachedImageResource) Configure(_ context.Context, req resource.Confi
 	r.provider = provider
 }
 
-func (r LxdCachedImageResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
-	var data LxdCachedImageResourceModel
+func (r CachedImageResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
+	var plan CachedImageModel
 
 	// Fetch resource model from Terraform plan.
-	diags := req.Plan.Get(ctx, &data)
+	diags := req.Plan.Get(ctx, &plan)
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
 
-	remote := data.Remote.ValueString()
+	remote := plan.Remote.ValueString()
 	server, err := r.provider.InstanceServer(remote)
 	if err != nil {
 		resp.Diagnostics.Append(errors.NewInstanceServerError(err))
@@ -194,14 +194,14 @@ func (r LxdCachedImageResource) Create(ctx context.Context, req resource.CreateR
 	}
 
 	// Set project if configured.
-	project := data.Project.ValueString()
+	project := plan.Project.ValueString()
 	if project != "" {
 		server = server.UseProject(project)
 	}
 
-	image := data.SourceImage.ValueString()
-	imageType := data.Type.ValueString()
-	imageRemote := data.SourceRemote.ValueString()
+	image := plan.SourceImage.ValueString()
+	imageType := plan.Type.ValueString()
+	imageRemote := plan.SourceRemote.ValueString()
 	imageServer, err := r.provider.ImageServer(imageRemote)
 	if err != nil {
 		resp.Diagnostics.Append(errors.NewImageServerError(err))
@@ -214,7 +214,7 @@ func (r LxdCachedImageResource) Create(ctx context.Context, req resource.CreateR
 		image = aliasTarget.Target
 	}
 
-	aliases, diags := ToAliasList(ctx, data.Aliases)
+	aliases, diags := ToAliasList(ctx, plan.Aliases)
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
 		return
@@ -265,7 +265,7 @@ func (r LxdCachedImageResource) Create(ctx context.Context, req resource.CreateR
 	// Store remote aliases that we've copied, so we can filter them
 	// out later.
 	copied := make([]string, 0)
-	if data.CopyAliases.ValueBool() {
+	if plan.CopyAliases.ValueBool() {
 		for _, a := range imageInfo.Aliases {
 			copied = append(copied, a.Name)
 		}
@@ -278,43 +278,43 @@ func (r LxdCachedImageResource) Create(ctx context.Context, req resource.CreateR
 	}
 
 	imageID := createImageResourceID(remote, imageInfo.Fingerprint)
-	data.ResourceID = types.StringValue(imageID)
-	data.CopiedAliases = copiedAliases
+	plan.ResourceID = types.StringValue(imageID)
+	plan.CopiedAliases = copiedAliases
 
-	_, diags = data.SyncState(ctx, server)
+	_, diags = plan.Sync(ctx, server)
 	resp.Diagnostics.Append(diags...)
 	if diags.HasError() {
 		return
 	}
 
 	// Update Terraform state.
-	diags = resp.State.Set(ctx, &data)
+	diags = resp.State.Set(ctx, &plan)
 	resp.Diagnostics.Append(diags...)
 }
 
-func (r LxdCachedImageResource) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
-	var data LxdCachedImageResourceModel
+func (r CachedImageResource) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
+	var state CachedImageModel
 
 	// Fetch resource model from Terraform state.
-	diags := req.State.Get(ctx, &data)
+	diags := req.State.Get(ctx, &state)
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
 
-	server, err := r.provider.InstanceServer(data.Remote.ValueString())
+	server, err := r.provider.InstanceServer(state.Remote.ValueString())
 	if err != nil {
 		resp.Diagnostics.Append(errors.NewInstanceServerError(err))
 		return
 	}
 
 	// Set project if configured.
-	project := data.Project.ValueString()
+	project := state.Project.ValueString()
 	if project != "" {
 		server = server.UseProject(project)
 	}
 
-	found, diags := data.SyncState(ctx, server)
+	found, diags := state.Sync(ctx, server)
 	resp.Diagnostics.Append(diags...)
 	if diags.HasError() {
 		return
@@ -327,35 +327,35 @@ func (r LxdCachedImageResource) Read(ctx context.Context, req resource.ReadReque
 	}
 
 	// Update Terraform state.
-	diags = resp.State.Set(ctx, &data)
+	diags = resp.State.Set(ctx, &state)
 	resp.Diagnostics.Append(diags...)
 }
 
-func (r LxdCachedImageResource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
-	var data LxdCachedImageResourceModel
+func (r CachedImageResource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
+	var plan CachedImageModel
 
 	// Fetch resource model from Terraform plan.
-	diags := req.Plan.Get(ctx, &data)
+	diags := req.Plan.Get(ctx, &plan)
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
 
-	server, err := r.provider.InstanceServer(data.Remote.ValueString())
+	server, err := r.provider.InstanceServer(plan.Remote.ValueString())
 	if err != nil {
 		resp.Diagnostics.Append(errors.NewInstanceServerError(err))
 		return
 	}
 
 	// Extract image metadata.
-	image := data.SourceImage.ValueString()
-	_, imageFingerprint := splitImageResourceID(data.ResourceID.ValueString())
+	image := plan.SourceImage.ValueString()
+	_, imageFingerprint := splitImageResourceID(plan.ResourceID.ValueString())
 
 	// Extract removed and added image aliases.
-	oldAliases, diags := ToAliasList(ctx, data.Aliases)
+	oldAliases, diags := ToAliasList(ctx, plan.Aliases)
 	resp.Diagnostics.Append(diags...)
 
-	newAliases := make([]string, 0, len(data.Aliases.Elements()))
+	newAliases := make([]string, 0, len(plan.Aliases.Elements()))
 	diags = req.State.GetAttribute(ctx, path.Root("aliases"), &newAliases)
 	resp.Diagnostics.Append(diags...)
 
@@ -387,57 +387,56 @@ func (r LxdCachedImageResource) Update(ctx context.Context, req resource.UpdateR
 		}
 	}
 
-	_, diags = data.SyncState(ctx, server)
+	_, diags = plan.Sync(ctx, server)
 	resp.Diagnostics.Append(diags...)
 	if diags.HasError() {
 		return
 	}
 
 	// Update Terraform state.
-	diags = resp.State.Set(ctx, &data)
+	diags = resp.State.Set(ctx, &plan)
 	resp.Diagnostics.Append(diags...)
 }
 
-func (r LxdCachedImageResource) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {
-	var data LxdCachedImageResourceModel
+func (r CachedImageResource) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {
+	var state CachedImageModel
 
 	// Fetch resource model from Terraform state.
-	diags := req.State.Get(ctx, &data)
+	diags := req.State.Get(ctx, &state)
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
 
-	server, err := r.provider.InstanceServer(data.Remote.ValueString())
+	server, err := r.provider.InstanceServer(state.Remote.ValueString())
 	if err != nil {
 		resp.Diagnostics.Append(errors.NewInstanceServerError(err))
 		return
 	}
 
 	// Set project if configured.
-	project := data.Project.ValueString()
+	project := state.Project.ValueString()
 	if project != "" {
 		server = server.UseProject(project)
 	}
 
-	_, imageFingerprint := splitImageResourceID(data.ResourceID.ValueString())
+	_, imageFingerprint := splitImageResourceID(state.ResourceID.ValueString())
 	opDelete, err := server.DeleteImage(imageFingerprint)
 	if err != nil {
-		resp.Diagnostics.AddError(fmt.Sprintf("Failed to remove cached image %q", data.SourceImage.ValueString()), err.Error())
+		resp.Diagnostics.AddError(fmt.Sprintf("Failed to remove cached image %q", state.SourceImage.ValueString()), err.Error())
 		return
 	}
 
 	err = opDelete.Wait()
 	if err != nil {
-		resp.Diagnostics.AddError(fmt.Sprintf("Failed to remove cached image %q", data.SourceImage.ValueString()), err.Error())
+		resp.Diagnostics.AddError(fmt.Sprintf("Failed to remove cached image %q", state.SourceImage.ValueString()), err.Error())
 		return
 	}
 }
 
-// SyncState pulls cached image data from the server and updates the model
-// in-place.
+// Sync pulls cached image data from the server and updates the model in-place.
 // This should be called before updating Terraform state.
-func (m *LxdCachedImageResourceModel) SyncState(ctx context.Context, server lxd.InstanceServer) (bool, diag.Diagnostics) {
+func (m *CachedImageModel) Sync(ctx context.Context, server lxd.InstanceServer) (bool, diag.Diagnostics) {
 	respDiags := diag.Diagnostics{}
 
 	_, imageFingerprint := splitImageResourceID(m.ResourceID.ValueString())
@@ -483,13 +482,13 @@ func (m *LxdCachedImageResourceModel) SyncState(ctx context.Context, server lxd.
 }
 
 // ToAliasList converts aliases of type types.Set into a slice of strings.
-func ToAliasList(ctx context.Context, set types.Set) ([]string, diag.Diagnostics) {
-	if set.IsNull() || set.IsUnknown() {
+func ToAliasList(ctx context.Context, aliasSet types.Set) ([]string, diag.Diagnostics) {
+	if aliasSet.IsNull() || aliasSet.IsUnknown() {
 		return []string{}, nil
 	}
 
-	aliases := make([]string, 0, len(set.Elements()))
-	diags := set.ElementsAs(ctx, &aliases, false)
+	aliases := make([]string, 0, len(aliasSet.Elements()))
+	diags := aliasSet.ElementsAs(ctx, &aliases, false)
 	return aliases, diags
 }
 

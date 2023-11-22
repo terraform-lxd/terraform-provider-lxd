@@ -17,7 +17,7 @@ import (
 	provider_config "github.com/terraform-lxd/terraform-provider-lxd/internal/provider-config"
 )
 
-type LxdStorageVolumeCopyResourceModel struct {
+type StorageVolumeCopyModel struct {
 	Name         types.String `tfsdk:"name"`
 	Pool         types.String `tfsdk:"pool"`
 	SourceName   types.String `tfsdk:"source_name"`
@@ -28,21 +28,21 @@ type LxdStorageVolumeCopyResourceModel struct {
 	Remote       types.String `tfsdk:"remote"`
 }
 
-// LxdStorageVolumeCopyResource represent LXD storage volume copy resource.
-type LxdStorageVolumeCopyResource struct {
+// StorageVolumeCopyResource represent LXD storage volume copy resource.
+type StorageVolumeCopyResource struct {
 	provider *provider_config.LxdProviderConfig
 }
 
-// NewLxdStorageVolumeCopyResource returns a new storage volume copy resource.
-func NewLxdStorageVolumeCopyResource() resource.Resource {
-	return &LxdStorageVolumeCopyResource{}
+// NewStorageVolumeCopyResource returns a new storage volume copy resource.
+func NewStorageVolumeCopyResource() resource.Resource {
+	return &StorageVolumeCopyResource{}
 }
 
-func (r LxdStorageVolumeCopyResource) Metadata(_ context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
+func (r StorageVolumeCopyResource) Metadata(_ context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
 	resp.TypeName = fmt.Sprintf("%s_volume_copy", req.ProviderTypeName)
 }
 
-func (r LxdStorageVolumeCopyResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *resource.SchemaResponse) {
+func (r StorageVolumeCopyResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *resource.SchemaResponse) {
 	resp.Schema = schema.Schema{
 		Attributes: map[string]schema.Attribute{
 			"name": schema.StringAttribute{
@@ -113,7 +113,7 @@ func (r LxdStorageVolumeCopyResource) Schema(_ context.Context, _ resource.Schem
 	}
 }
 
-func (r *LxdStorageVolumeCopyResource) Configure(_ context.Context, req resource.ConfigureRequest, resp *resource.ConfigureResponse) {
+func (r *StorageVolumeCopyResource) Configure(_ context.Context, req resource.ConfigureRequest, resp *resource.ConfigureResponse) {
 	data := req.ProviderData
 	if data == nil {
 		return
@@ -128,24 +128,24 @@ func (r *LxdStorageVolumeCopyResource) Configure(_ context.Context, req resource
 	r.provider = provider
 }
 
-func (r LxdStorageVolumeCopyResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
-	var data LxdStorageVolumeCopyResourceModel
+func (r StorageVolumeCopyResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
+	var plan StorageVolumeCopyModel
 
 	// Fetch resource model from Terraform plan.
-	diags := req.Plan.Get(ctx, &data)
+	diags := req.Plan.Get(ctx, &plan)
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
 
-	dstServer, err := r.provider.InstanceServer(data.Remote.ValueString())
+	dstServer, err := r.provider.InstanceServer(plan.Remote.ValueString())
 	if err != nil {
 		resp.Diagnostics.Append(errors.NewInstanceServerError(err))
 		return
 	}
 
-	dstProject := data.Project.ValueString()
-	dstTarget := data.Target.ValueString()
+	dstProject := plan.Project.ValueString()
+	dstTarget := plan.Target.ValueString()
 
 	if dstProject != "" {
 		dstServer = dstServer.UseProject(dstProject)
@@ -155,16 +155,16 @@ func (r LxdStorageVolumeCopyResource) Create(ctx context.Context, req resource.C
 		dstServer = dstServer.UseTarget(dstTarget)
 	}
 
-	srcServer, err := r.provider.InstanceServer(data.SourceRemote.ValueString())
+	srcServer, err := r.provider.InstanceServer(plan.SourceRemote.ValueString())
 	if err != nil {
 		resp.Diagnostics.Append(errors.NewInstanceServerError(err))
 		return
 	}
 
-	dstName := data.Name.ValueString()
-	dstPool := data.Pool.ValueString()
-	srcName := data.SourceName.ValueString()
-	srcPool := data.SourcePool.ValueString()
+	dstName := plan.Name.ValueString()
+	dstPool := plan.Pool.ValueString()
+	srcName := plan.SourceName.ValueString()
+	srcPool := plan.SourcePool.ValueString()
 
 	dstVolID := fmt.Sprintf("%s/%s", dstPool, dstName)
 	srcVolID := fmt.Sprintf("%s/%s", srcPool, srcName)
@@ -192,15 +192,15 @@ func (r LxdStorageVolumeCopyResource) Create(ctx context.Context, req resource.C
 	}
 
 	// Update Terraform state.
-	diags = resp.State.Set(ctx, &data)
+	diags = resp.State.Set(ctx, &plan)
 	resp.Diagnostics.Append(diags...)
 }
 
-func (r LxdStorageVolumeCopyResource) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
+func (r StorageVolumeCopyResource) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
 }
 
-func (r LxdStorageVolumeCopyResource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
+func (r StorageVolumeCopyResource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
 }
 
-func (r LxdStorageVolumeCopyResource) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {
+func (r StorageVolumeCopyResource) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {
 }
