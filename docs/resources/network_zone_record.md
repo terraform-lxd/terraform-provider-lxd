@@ -40,23 +40,29 @@ See the `lxd_network_zone` resource for information on how to configure network 
 
 ## Argument Reference
 
-* `remote` - *Optional* - The remote in which the resource will be created. If
-	it is not provided, the default provider remote is used.
+* `name` - **Required** - Name of the network zone record.
 
-* `name` - *Required* - Name of the network zone record.
+* `zone` - **Required** - Name of the zone to add the entries of this record.
 
-* `zone` - *Required* - Name of the zone to add the entries of this record.
+* `description` - *Optional* - Description of the network zone.
 
 * `entry` - *Optional* - Entry in network zone record - see below.
 
 * `config` - *Optional* - Map of key/value pairs of
 	[network zone_config settings](https://documentation.ubuntu.com/lxd/en/latest/howto/network_zones/#configuration-options).
 
+* `project` - *Optional* - Name of the project where the network zone record will be created.
+
+* `remote` - *Optional* - The remote in which the resource will be created. If
+	it is not provided, the default provider remote is used.
+
 The `entry` block supports:
 
-* `type` - *Required* - The entry type. Valid values are DNS record type, e.g. `A`, `AAAA`, `CNAME`, `TXT`, etc.
+* `type` - **Required** - Entry type. Valid values are DNS record type, e.g. `A`, `AAAA`, `CNAME`, `TXT`, etc.
 
-* `value` - *Required* - The entry value.
+* `value` - **Required** - Entry value.
+
+* `ttl` - *Optional* - Entry time to live (TTL).
 
 ## Attribute Reference
 

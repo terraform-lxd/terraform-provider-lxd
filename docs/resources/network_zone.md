@@ -41,15 +41,17 @@ See the `lxd_network_zone_record` resource for information on how to configure n
 
 ## Argument Reference
 
-* `remote` - *Optional* - The remote in which the resource will be created. If
-	it is not provided, the default provider remote is used.
+* `name` - **Required** - Name of the network zone.
 
-* `name` - *Required* - Name of the network zone.
+* `description` - *Optional* - Description of the network zone.
 
 * `config` - *Optional* - Map of key/value pairs of
 	[network zone_config settings](https://documentation.ubuntu.com/lxd/en/latest/howto/network_zones/#configuration-options).
 
 * `project` - *Optional* - Name of the project where the network zone will be created.
+
+* `remote` - *Optional* - The remote in which the resource will be created. If
+	it is not provided, the default provider remote is used.
 
 ## Attribute Reference
 

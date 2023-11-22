@@ -25,7 +25,7 @@ resource "lxd_publish_image" "test1" {
 
 ## Argument Reference
 
-* `instance` - *Required* - The name of the instance.
+* `instance` - **Required** - The name of the instance.
 
 * `aliases` - *Optional* - A list of aliases to assign to the image.
 
@@ -39,7 +39,7 @@ resource "lxd_publish_image" "test1" {
 * `compression_algorithm` - *Optional* - Override the compression algorithm for the image.
     Valid values are (`bzip2`, `gzip`, `lzma`, `xz` or `none`). Defaults to `gzip`.
 
-* `triggers` - *Optional* - A map of arbitrary strings that, when changed, will force the resource to be replaced.
+* `triggers` - *Optional* - A list of arbitrary strings that, when changed, will force the resource to be replaced.
 
 * `project` - *Optional* - Name of the project where the published image will be stored.
 

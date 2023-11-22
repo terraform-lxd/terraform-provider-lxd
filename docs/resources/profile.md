@@ -43,26 +43,26 @@ resource "lxd_instance" "test1" {
 
 ## Argument Reference
 
-* `remote` - *Optional* - The remote in which the resource will be created. If
-	it is not provided, the default provider remote is used.
+* `name` - **Required** - Name of the container.
 
-* `name` - *Required* - Name of the container.
+* `device` - *Optional* - Device definition. See reference below.
 
 * `config` - *Optional* - Map of key/value pairs of
 	[container config settings](https://documentation.ubuntu.com/lxd/en/latest/reference/instance_options/).
 
-* `device` - *Optional* - Device definition. See reference below.
-
 * `project` - *Optional* - Name of the project where the profile will be stored.
+
+* `remote` - *Optional* - The remote in which the resource will be created. If
+	it is not provided, the default provider remote is used.
 
 The `device` block supports:
 
-* `name` - *Required* - Name of the device.
+* `name` - **Required** - Name of the device.
 
-* `type` - *Required* - Type of the device Must be one of none, disk, nic,
+* `type` - **Required** - Type of the device Must be one of none, disk, nic,
 	unix-char, unix-block, usb, gpu, infiniband, proxy, unix-hotplug, tpm, pci.
 
-* `properties`- *Required* - Map of key/value pairs of
+* `properties`- **Required** - Map of key/value pairs of
 	[device properties](https://documentation.ubuntu.com/lxd/en/latest/reference/devices/).
 
 ## Attribute Reference

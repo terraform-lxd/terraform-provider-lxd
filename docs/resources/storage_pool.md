@@ -51,23 +51,22 @@ for more details on how to create a storage pool in clustered mode.
 
 ## Argument Reference
 
-* `remote` - *Optional* - The remote in which the resource will be created. If
-	it is not provided, the default provider remote is used.
+* `name`   - **Required** - Name of the storage pool.
 
-* `target` - *Optional* - Specify a target node in a cluster.
-
-* `name`   - *Required* - Name of the storage pool.
+* `driver` - **Required** - Storage Pool driver. Must be one of `dir`, `zfs`, `lvm`, `btrfs`,`ceph`, `cephfs`, or `cephobject`.
 
 * `description` - *Optional* - Description of the storage pool.
-
-* `driver` - _Required_ - Storage Pool driver. Must be one of `ceph`, `cephfs`, or `cephobject`
-  `btrfs`, `dir`, `lvm`, or `zfs`.
 
 * `config` - *Optional* - Map of key/value pairs of
 	[storage pool config settings](https://documentation.ubuntu.com/lxd/en/latest/reference/storage_drivers/).
 	Config settings vary from driver to driver.
 
 * `project` - *Optional* - Name of the project where the storage pool will be stored.
+
+* `remote` - *Optional* - The remote in which the resource will be created. If
+	it is not provided, the default provider remote is used.
+
+* `target` - *Optional* - Specify a target node in a cluster.
 
 ## Importing
 

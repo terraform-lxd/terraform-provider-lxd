@@ -19,18 +19,18 @@ resource "lxd_snapshot" "snap1" {
 
 ## Argument Reference
 
-* `remote` - *Optional* - The remote in which the resource will be created. If
-	it is not provided, the default provider remote is used.
+* `name` - **Required** - Name of the snapshot.
 
-* `name` - *Required* - Name of the snapshot.
-
-* `instance` - *Required* - The name of the instance to snapshot.
+* `instance` - **Required** - The name of the instance to snapshot.
 
 * `stateful` - *Optional* - Set to `true` to create a stateful snapshot,
 	`false` for stateless. Stateful snapshots include runtime state. Defaults to
 	`false`.
 
 * `project` - *Optional* - Name of the project where the snapshot will be stored.
+
+* `remote` - *Optional* - The remote in which the resource will be created. If
+	it is not provided, the default provider remote is used.
 
 ## Attribute Reference
 

@@ -25,7 +25,7 @@ resource "lxd_instance" "container" {
 
 ## Argument Reference
 
-* `name` - *Required* - Name of the project.
+* `name` - **Required** - Name of the project.
 
 * `description` - *Optional* - Description of the project.
 

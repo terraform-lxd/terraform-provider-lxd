@@ -183,22 +183,24 @@ for more details on how to create a network in clustered mode.
 
 ## Argument Reference
 
-* `remote` - *Optional* - The remote in which the resource will be created. If
-	it is not provided, the default provider remote is used.
-
-* `target` - *Optional* - Specify a target node in a cluster.
-
-* `name` - *Required* - Name of the network. This is usually the device the
+* `name` - **Required** - Name of the network. This is usually the device the
 	network will appear as to containers.
 
+* `description` - *Optional* - Description of the network.
+
 * `type` - *Optional* - The type of network to create. Can be one of: bridge,
-  macvlan, sriov, ovn, or physical. If no type is specified, usually a bridge
+  macvlan, sriov, ovn, or physical. If no type is specified, a bridge network
   is created.
 
 * `config` - *Optional* - Map of key/value pairs of
 	[network config settings](https://documentation.ubuntu.com/lxd/en/latest/networks/).
 
 * `project` - *Optional* - Name of the project where the network will be created.
+
+* `remote` - *Optional* - The remote in which the resource will be created. If
+	it is not provided, the default provider remote is used.
+
+* `target` - *Optional* - Specify a target node in a cluster.
 
 ## Attribute Reference
 

@@ -58,7 +58,7 @@ provider "lxd" {
 
 The following arguments are supported:
 
-* `remote` - *Required* - Specifies an LXD remote (LXD server) to connect
+* `remote` - *Optional* - Specifies an LXD remote (LXD server) to connect
 	to. See the `remote` reference below for details.
 
 * `config_dir` - *Optional* - The directory to look for existing LXD

@@ -58,28 +58,28 @@ resource "lxd_network_lb" "load_balancer" {
 
 ## Argument Reference
 
-* `remote` - *Optional* - The remote in which the resource will be created. If
-	it is not provided, the default provider remote is used.
+* `network` - **Required** - Name of the uplink network.
 
-* `project` - *Optional* - Name of the project where the load balancer will be spawned.
-
-* `network` - *Required* - Name of the uplink network.
-
-* `listen_address` - *Required* - IP address to listen on. Also, see the [Requirements for listen address](https://documentation.ubuntu.com/lxd/en/latest/howto/network_load_balancers/#requirements-for-listen-addresses) in the official LXD documentation.
+* `listen_address` - **Required** - IP address to listen on. Also, see the [Requirements for listen address](https://documentation.ubuntu.com/lxd/en/latest/howto/network_load_balancers/#requirements-for-listen-addresses) in the official LXD documentation.
 
 * `description` - *Optional* - Description of the network load balancer.
-
-* `config` - *Optional* - Map of key/value pairs (load balancer's currently support only `user.*` keys).
 
 * `backend` - *Optional* - Load balancer's backend definition. See reference below.
 
 * `port` - *Optional* - Load balancer's port definition. See reference below.
 
+* `config` - *Optional* - Map of key/value pairs (load balancer's currently support only `user.*` keys).
+
+* `project` - *Optional* - Name of the project where the load balancer will be spawned.
+
+* `remote` - *Optional* - The remote in which the resource will be created. If
+	it is not provided, the default provider remote is used.
+
 The `backend` block supports:
 
-* `name` - *Required* - Name of the load balancer's backend.
+* `name` - **Required** - Name of the load balancer's backend.
 
-* `target_address` - *Required* - IP address to forward to.
+* `target_address` - **Required** - IP address to forward to.
 
 * `target_port` - *Optional* - Target port(s) (e.g. `80`, `80,32000-32080`). Default: *`listen_port` of the corresponding `port` block*
 
@@ -87,9 +87,9 @@ The `backend` block supports:
 
 The `port` block supports:
 
-* `listen_port` - *Required* - Listen port(s) (e.g. `80`, `80,32000-32080`).
+* `listen_port` - **Required** - Listen port(s) (e.g. `80`, `80,32000-32080`).
 
-* `target_backend` - *Required* - Backend name(s) to forward to.
+* `target_backend` - **Required** - Backend name(s) to forward to.
 
 * `protocol` - *Optional* - Protocol of the port(s). Can be either `tcp` or `udp`. Default: `tcp`
 
