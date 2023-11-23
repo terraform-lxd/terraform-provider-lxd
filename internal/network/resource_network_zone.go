@@ -15,6 +15,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringdefault"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
+	"github.com/hashicorp/terraform-plugin-framework/tfsdk"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/terraform-lxd/terraform-provider-lxd/internal/common"
 	"github.com/terraform-lxd/terraform-provider-lxd/internal/errors"
@@ -104,23 +105,18 @@ func (r *NetworkZoneResource) Configure(_ context.Context, req resource.Configur
 func (r NetworkZoneResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
 	var plan NetworkZoneModel
 
-	// Fetch resource model from Terraform plan.
 	diags := req.Plan.Get(ctx, &plan)
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
 
-	server, err := r.provider.InstanceServer(plan.Remote.ValueString())
+	remote := plan.Remote.ValueString()
+	project := plan.Project.ValueString()
+	server, err := r.provider.InstanceServer(remote, project, "")
 	if err != nil {
 		resp.Diagnostics.Append(errors.NewInstanceServerError(err))
 		return
-	}
-
-	// Set project if configured.
-	project := plan.Project.ValueString()
-	if project != "" {
-		server = server.UseProject(project)
 	}
 
 	// Convert network zone config to map.
@@ -145,53 +141,30 @@ func (r NetworkZoneResource) Create(ctx context.Context, req resource.CreateRequ
 		return
 	}
 
-	_, diags = plan.Sync(ctx, server)
-	resp.Diagnostics.Append(diags...)
-	if diags.HasError() {
-		return
-	}
-
 	// Update Terraform state.
-	diags = resp.State.Set(ctx, &plan)
+	diags = r.SyncState(ctx, &resp.State, server, plan)
 	resp.Diagnostics.Append(diags...)
 }
 
 func (r NetworkZoneResource) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
 	var state NetworkZoneModel
 
-	// Fetch resource model from Terraform state.
 	diags := req.State.Get(ctx, &state)
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
 
-	server, err := r.provider.InstanceServer(state.Remote.ValueString())
+	remote := state.Remote.ValueString()
+	project := state.Project.ValueString()
+	server, err := r.provider.InstanceServer(remote, project, "")
 	if err != nil {
 		resp.Diagnostics.Append(errors.NewInstanceServerError(err))
 		return
 	}
 
-	// Set project if configured.
-	project := state.Project.ValueString()
-	if project != "" {
-		server = server.UseProject(project)
-	}
-
-	found, diags := state.Sync(ctx, server)
-	resp.Diagnostics.Append(diags...)
-	if diags.HasError() {
-		return
-	}
-
-	// Remove resource state if resource is not found.
-	if !found {
-		resp.State.RemoveResource(ctx)
-		return
-	}
-
 	// Update Terraform state.
-	diags = resp.State.Set(ctx, &state)
+	diags = r.SyncState(ctx, &resp.State, server, state)
 	resp.Diagnostics.Append(diags...)
 }
 
@@ -205,16 +178,12 @@ func (r NetworkZoneResource) Update(ctx context.Context, req resource.UpdateRequ
 		return
 	}
 
-	server, err := r.provider.InstanceServer(plan.Remote.ValueString())
+	remote := plan.Remote.ValueString()
+	project := plan.Project.ValueString()
+	server, err := r.provider.InstanceServer(remote, project, "")
 	if err != nil {
 		resp.Diagnostics.Append(errors.NewInstanceServerError(err))
 		return
-	}
-
-	// Set project if configured.
-	project := plan.Project.ValueString()
-	if project != "" {
-		server = server.UseProject(project)
 	}
 
 	zoneName := plan.Name.ValueString()
@@ -242,37 +211,26 @@ func (r NetworkZoneResource) Update(ctx context.Context, req resource.UpdateRequ
 		return
 	}
 
-	_, diags = plan.Sync(ctx, server)
-	resp.Diagnostics.Append(diags...)
-	if diags.HasError() {
-		return
-	}
-
 	// Update Terraform state.
-	diags = resp.State.Set(ctx, &plan)
+	diags = r.SyncState(ctx, &resp.State, server, plan)
 	resp.Diagnostics.Append(diags...)
 }
 
 func (r NetworkZoneResource) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {
 	var state NetworkZoneModel
 
-	// Fetch resource model from Terraform state.
 	diags := req.State.Get(ctx, &state)
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
 
-	server, err := r.provider.InstanceServer(state.Remote.ValueString())
+	remote := state.Remote.ValueString()
+	project := state.Project.ValueString()
+	server, err := r.provider.InstanceServer(remote, project, "")
 	if err != nil {
 		resp.Diagnostics.Append(errors.NewInstanceServerError(err))
 		return
-	}
-
-	// Set project if configured.
-	project := state.Project.ValueString()
-	if project != "" {
-		server = server.UseProject(project)
 	}
 
 	zoneName := state.Name.ValueString()
@@ -300,32 +258,32 @@ func (r NetworkZoneResource) ImportState(ctx context.Context, req resource.Impor
 	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("name"), name)...)
 }
 
-// Sync pulls network zone data from the server and updates the model in-place.
-// It returns a boolean indicating whether resource is found and diagnostics
-// that contain potential errors.
-// This should be called before updating Terraform state.
-func (m *NetworkZoneModel) Sync(ctx context.Context, server lxd.InstanceServer) (bool, diag.Diagnostics) {
+// SyncState fetches the server's current state for a network zone and
+// updates the provided model. It then applies this updated model as the
+// new state in Terraform.
+func (r NetworkZoneResource) SyncState(ctx context.Context, tfState *tfsdk.State, server lxd.InstanceServer, m NetworkZoneModel) diag.Diagnostics {
 	zoneName := m.Name.ValueString()
 	zone, _, err := server.GetNetworkZone(zoneName)
 	if err != nil {
 		if errors.IsNotFoundError(err) {
-			return false, nil
+			tfState.RemoveResource(ctx)
+			return nil
 		}
 
-		return true, diag.Diagnostics{
-			diag.NewErrorDiagnostic(fmt.Sprintf("Failed to retrieve network zone %q", zoneName), err.Error()),
-		}
+		return diag.Diagnostics{diag.NewErrorDiagnostic(
+			fmt.Sprintf("Failed to retrieve network zone %q", zoneName), err.Error(),
+		)}
 	}
 
 	// Convert config state into schema type.
 	config, diags := common.ToConfigMapType(ctx, zone.Config)
 	if diags.HasError() {
-		return true, diags
+		return diags
 	}
 
 	m.Name = types.StringValue(zone.Name)
 	m.Description = types.StringValue(zone.Description)
 	m.Config = config
 
-	return true, nil
+	return tfState.Set(ctx, &m)
 }

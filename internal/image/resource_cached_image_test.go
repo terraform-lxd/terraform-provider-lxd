@@ -137,7 +137,7 @@ func TestAccCachedImage_aliasExists(t *testing.T) {
 			},
 			{
 				Config:      testAccCachedImage_aliasExists2(alias),
-				ExpectError: regexp.MustCompile(fmt.Sprintf(`.*Image alias %q alread exist`, alias)),
+				ExpectError: regexp.MustCompile(fmt.Sprintf(`Image alias %q already exists`, alias)),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("lxd_cached_image.exists1", "source_remote", "images"),
 					resource.TestCheckResourceAttr("lxd_cached_image.exists1", "source_image", "alpine/3.18"),

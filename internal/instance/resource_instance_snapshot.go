@@ -18,6 +18,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
+	"github.com/hashicorp/terraform-plugin-framework/tfsdk"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/terraform-lxd/terraform-provider-lxd/internal/errors"
 	provider_config "github.com/terraform-lxd/terraform-provider-lxd/internal/provider-config"
@@ -115,20 +116,6 @@ func (r *InstanceSnapshotResource) Configure(_ context.Context, req resource.Con
 	r.provider = provider
 }
 
-func (r InstanceSnapshotResource) Setup(_ context.Context, data InstanceSnapshotModel) (lxd.InstanceServer, diag.Diagnostic) {
-	server, err := r.provider.InstanceServer(data.Remote.ValueString())
-	if err != nil {
-		return nil, errors.NewInstanceServerError(err)
-	}
-
-	project := data.Project.ValueString()
-	if project != "" {
-		server = server.UseProject(project)
-	}
-
-	return server, nil
-}
-
 func (r InstanceSnapshotResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
 	var plan InstanceSnapshotModel
 
@@ -139,9 +126,11 @@ func (r InstanceSnapshotResource) Create(ctx context.Context, req resource.Creat
 		return
 	}
 
-	server, diag := r.Setup(ctx, plan)
-	if diag != nil {
-		resp.Diagnostics.Append(diag)
+	remote := plan.Remote.ValueString()
+	project := plan.Project.ValueString()
+	server, err := r.provider.InstanceServer(remote, project, "")
+	if err != nil {
+		resp.Diagnostics.Append(errors.NewInstanceServerError(err))
 		return
 	}
 
@@ -165,7 +154,7 @@ func (r InstanceSnapshotResource) Create(ctx context.Context, req resource.Creat
 		serr = op.Wait()
 		if serr != nil {
 			if snapshotReq.Stateful && strings.Contains(serr.Error(), "Dumping FAILED") {
-				log.Printf("Error creating stateful snapshot [retry %d]: %v", i, serr)
+				log.Printf("[DEBUG] Error creating stateful snapshot [retry %d]: %v", i, serr)
 				time.Sleep(3 * time.Second)
 			} else if strings.Contains(serr.Error(), "file has vanished") {
 				// Ignore, try again.
@@ -183,14 +172,8 @@ func (r InstanceSnapshotResource) Create(ctx context.Context, req resource.Creat
 		return
 	}
 
-	_, diags = plan.Sync(ctx, server)
-	resp.Diagnostics.Append(diags...)
-	if diags.HasError() {
-		return
-	}
-
 	// Update Terraform state.
-	diags = resp.State.Set(ctx, &plan)
+	diags = r.SyncState(ctx, &resp.State, server, plan)
 	resp.Diagnostics.Append(diags...)
 }
 
@@ -204,26 +187,16 @@ func (r InstanceSnapshotResource) Read(ctx context.Context, req resource.ReadReq
 		return
 	}
 
-	server, diag := r.Setup(ctx, state)
-	if diag != nil {
-		resp.Diagnostics.Append(diag)
-		return
-	}
-
-	found, diags := state.Sync(ctx, server)
-	resp.Diagnostics.Append(diags...)
-	if diags.HasError() {
-		return
-	}
-
-	// Remove resource state if resource is not found.
-	if !found {
-		resp.State.RemoveResource(ctx)
+	remote := state.Remote.ValueString()
+	project := state.Project.ValueString()
+	server, err := r.provider.InstanceServer(remote, project, "")
+	if err != nil {
+		resp.Diagnostics.Append(errors.NewInstanceServerError(err))
 		return
 	}
 
 	// Update Terraform state.
-	diags = resp.State.Set(ctx, &state)
+	diags = r.SyncState(ctx, &resp.State, server, state)
 	resp.Diagnostics.Append(diags...)
 }
 
@@ -240,9 +213,11 @@ func (r InstanceSnapshotResource) Delete(ctx context.Context, req resource.Delet
 		return
 	}
 
-	server, diag := r.Setup(ctx, state)
-	if diag != nil {
-		resp.Diagnostics.Append(diag)
+	remote := state.Remote.ValueString()
+	project := state.Project.ValueString()
+	server, err := r.provider.InstanceServer(remote, project, "")
+	if err != nil {
+		resp.Diagnostics.Append(errors.NewInstanceServerError(err))
 		return
 	}
 
@@ -260,21 +235,20 @@ func (r InstanceSnapshotResource) Delete(ctx context.Context, req resource.Delet
 	}
 }
 
-// Sync pulls instance snapshot data from the server and updates the model
-// in-place. It returns a boolean indicating whether resource is found and
-// diagnostics that contain potential errors.
-// This should be called before updating Terraform state.
-func (m *InstanceSnapshotModel) Sync(ctx context.Context, server lxd.InstanceServer) (bool, diag.Diagnostics) {
+// SyncState fetches the server's current state for an instance snapshot and
+// updates the provided model. It then applies this updated model as the new
+// state in Terraform.
+func (r InstanceSnapshotResource) SyncState(ctx context.Context, tfState *tfsdk.State, server lxd.InstanceServer, m InstanceSnapshotModel) diag.Diagnostics {
 	instanceName := m.Instance.ValueString()
 	snapshotName := m.Name.ValueString()
-
 	snapshot, _, err := server.GetInstanceSnapshot(instanceName, snapshotName)
 	if err != nil {
 		if errors.IsNotFoundError(err) {
-			return false, nil
+			tfState.RemoveResource(ctx)
+			return nil
 		}
 
-		return true, diag.Diagnostics{diag.NewErrorDiagnostic(
+		return diag.Diagnostics{diag.NewErrorDiagnostic(
 			fmt.Sprintf("Failed to retrieve snapshot %q for instance %q", snapshotName, instanceName),
 			err.Error(),
 		)}
@@ -283,5 +257,5 @@ func (m *InstanceSnapshotModel) Sync(ctx context.Context, server lxd.InstanceSer
 	m.Stateful = types.BoolValue(snapshot.Stateful)
 	m.CreatedAt = types.Int64Value(snapshot.CreatedAt.Unix())
 
-	return true, nil
+	return tfState.Set(ctx, &m)
 }

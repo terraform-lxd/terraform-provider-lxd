@@ -23,6 +23,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringdefault"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
+	"github.com/hashicorp/terraform-plugin-framework/tfsdk"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/retry"
 	"github.com/terraform-lxd/terraform-provider-lxd/internal/common"
@@ -282,6 +283,9 @@ func (r InstanceResource) Schema(_ context.Context, _ resource.SchemaRequest, re
 							Optional: true,
 							Computed: true,
 							Default:  stringdefault.StaticString("0775"),
+							PlanModifiers: []planmodifier.String{
+								stringplanmodifier.UseStateForUnknown(),
+							},
 						},
 
 						"create_directories": schema.BoolAttribute{
@@ -337,7 +341,6 @@ func (r *InstanceResource) ModifyPlan(ctx context.Context, req resource.ModifyPl
 func (r InstanceResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
 	var plan InstanceModel
 
-	// Fetch resource model from Terraform plan.
 	diags := req.Plan.Get(ctx, &plan)
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
@@ -345,22 +348,12 @@ func (r InstanceResource) Create(ctx context.Context, req resource.CreateRequest
 	}
 
 	remote := plan.Remote.ValueString()
-	server, err := r.provider.InstanceServer(remote)
+	project := plan.Project.ValueString()
+	target := plan.Target.ValueString()
+	server, err := r.provider.InstanceServer(remote, project, target)
 	if err != nil {
 		resp.Diagnostics.Append(errors.NewInstanceServerError(err))
 		return
-	}
-
-	// Set project if configured.
-	project := plan.Project.ValueString()
-	if project != "" {
-		server = server.UseProject(project)
-	}
-
-	// Set target if configured.
-	target := plan.Target.ValueString()
-	if target != "" {
-		server = server.UseTarget(target)
 	}
 
 	// Evaluate image remote.
@@ -535,59 +528,31 @@ func (r InstanceResource) Create(ctx context.Context, req resource.CreateRequest
 		}
 	}
 
-	_, diags = plan.Sync(ctx, server)
-	resp.Diagnostics.Append(diags...)
-	if diags.HasError() {
-		return
-	}
-
 	// Update Terraform state.
-	diags = resp.State.Set(ctx, &plan)
+	diags = r.SyncState(ctx, &resp.State, server, plan)
 	resp.Diagnostics.Append(diags...)
 }
 
 func (r InstanceResource) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
 	var state InstanceModel
 
-	// Fetch resource model from Terraform state.
 	diags := req.State.Get(ctx, &state)
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
 
-	server, err := r.provider.InstanceServer(state.Remote.ValueString())
+	remote := state.Remote.ValueString()
+	project := state.Project.ValueString()
+	target := state.Target.ValueString()
+	server, err := r.provider.InstanceServer(remote, project, target)
 	if err != nil {
 		resp.Diagnostics.Append(errors.NewInstanceServerError(err))
 		return
 	}
 
-	// Set project if configured.
-	project := state.Project.ValueString()
-	if project != "" {
-		server = server.UseProject(project)
-	}
-
-	// Set target if configured.
-	target := state.Target.ValueString()
-	if target != "" {
-		server = server.UseTarget(target)
-	}
-
-	found, diags := state.Sync(ctx, server)
-	resp.Diagnostics.Append(diags...)
-	if diags.HasError() {
-		return
-	}
-
-	// Remove resource state if resource is not found.
-	if !found {
-		resp.State.RemoveResource(ctx)
-		return
-	}
-
 	// Update Terraform state.
-	diags = resp.State.Set(ctx, &state)
+	diags = r.SyncState(ctx, &resp.State, server, state)
 	resp.Diagnostics.Append(diags...)
 }
 
@@ -606,22 +571,13 @@ func (r InstanceResource) Update(ctx context.Context, req resource.UpdateRequest
 		return
 	}
 
-	server, err := r.provider.InstanceServer(plan.Remote.ValueString())
+	remote := plan.Remote.ValueString()
+	project := plan.Project.ValueString()
+	target := plan.Target.ValueString()
+	server, err := r.provider.InstanceServer(remote, project, target)
 	if err != nil {
 		resp.Diagnostics.Append(errors.NewInstanceServerError(err))
 		return
-	}
-
-	// Set project if configured.
-	project := plan.Project.ValueString()
-	if project != "" {
-		server = server.UseProject(project)
-	}
-
-	// Set target if configured.
-	target := plan.Target.ValueString()
-	if target != "" {
-		server = server.UseTarget(target)
 	}
 
 	instanceName := plan.Name.ValueString()
@@ -720,14 +676,8 @@ func (r InstanceResource) Update(ctx context.Context, req resource.UpdateRequest
 		}
 	}
 
-	_, diags = plan.Sync(ctx, server)
-	resp.Diagnostics.Append(diags...)
-	if resp.Diagnostics.HasError() {
-		return
-	}
-
 	// Update Terraform state.
-	diags = resp.State.Set(ctx, &plan)
+	diags = r.SyncState(ctx, &resp.State, server, plan)
 	resp.Diagnostics.Append(diags...)
 }
 
@@ -741,22 +691,13 @@ func (r InstanceResource) Delete(ctx context.Context, req resource.DeleteRequest
 		return
 	}
 
-	server, err := r.provider.InstanceServer(state.Remote.ValueString())
+	remote := state.Remote.ValueString()
+	project := state.Project.ValueString()
+	target := state.Target.ValueString()
+	server, err := r.provider.InstanceServer(remote, project, target)
 	if err != nil {
 		resp.Diagnostics.Append(errors.NewInstanceServerError(err))
 		return
-	}
-
-	// Set project if configured.
-	project := state.Project.ValueString()
-	if project != "" {
-		server = server.UseProject(project)
-	}
-
-	// Set target if configured.
-	target := state.Target.ValueString()
-	if target != "" {
-		server = server.UseTarget(target)
 	}
 
 	instanceName := state.Name.ValueString()
@@ -834,28 +775,28 @@ func (r *InstanceResource) ImportState(ctx context.Context, req resource.ImportS
 	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("name"), name)...)
 }
 
-// Sync pulls instance data from the server and updates the model in-place.
-// It returns a boolean indicating whether resource is found and diagnostics
-// that contain potential errors.
-// This should be called before updating Terraform state.
-func (m *InstanceModel) Sync(ctx context.Context, server lxd.InstanceServer) (bool, diag.Diagnostics) {
-	respDiags := diag.Diagnostics{}
+// SyncState fetches the server's current state for an instance and updates
+// the provided model. It then applies this updated model as the new state
+// in Terraform.
+func (r InstanceResource) SyncState(ctx context.Context, tfState *tfsdk.State, server lxd.InstanceServer, m InstanceModel) diag.Diagnostics {
+	var respDiags diag.Diagnostics
 
 	instanceName := m.Name.ValueString()
 	instance, _, err := server.GetInstance(instanceName)
 	if err != nil {
 		if errors.IsNotFoundError(err) {
-			return false, nil
+			tfState.RemoveResource(ctx)
+			return nil
 		}
 
 		respDiags.AddError(fmt.Sprintf("Failed to retrieve instance %q", instanceName), err.Error())
-		return true, respDiags
+		return respDiags
 	}
 
 	instanceState, _, err := server.GetInstanceState(instanceName)
 	if err != nil {
 		respDiags.AddError(fmt.Sprintf("Failed to retrieve state of instance %q", instanceName), err.Error())
-		return true, respDiags
+		return respDiags
 	}
 
 	// Reset IPv4, IPv6, and MAC addresses. If case instance has lost
@@ -934,10 +875,6 @@ func (m *InstanceModel) Sync(ctx context.Context, server lxd.InstanceServer) (bo
 	devices, diags := common.ToDeviceSetType(ctx, instance.Devices)
 	respDiags.Append(diags...)
 
-	if respDiags.HasError() {
-		return true, diags
-	}
-
 	m.Name = types.StringValue(instance.Name)
 	m.Description = types.StringValue(instance.Description)
 	m.Status = types.StringValue(instance.Status)
@@ -960,7 +897,11 @@ func (m *InstanceModel) Sync(ctx context.Context, server lxd.InstanceServer) (bo
 		m.Target = types.StringValue(instance.Location)
 	}
 
-	return true, nil
+	if respDiags.HasError() {
+		return respDiags
+	}
+
+	return tfState.Set(ctx, &m)
 }
 
 // ComputedKeys returns list of computed config keys.

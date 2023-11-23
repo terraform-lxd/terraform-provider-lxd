@@ -16,6 +16,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringdefault"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
+	"github.com/hashicorp/terraform-plugin-framework/tfsdk"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/terraform-lxd/terraform-provider-lxd/internal/common"
 	"github.com/terraform-lxd/terraform-provider-lxd/internal/errors"
@@ -180,23 +181,18 @@ func (r *LxdNetworkLBResource) Configure(_ context.Context, req resource.Configu
 func (r LxdNetworkLBResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
 	var plan NetworkLBModel
 
-	// Fetch resource model from Terraform plan.
 	diags := req.Plan.Get(ctx, &plan)
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
 
-	server, err := r.provider.InstanceServer(plan.Remote.ValueString())
+	remote := plan.Remote.ValueString()
+	project := plan.Project.ValueString()
+	server, err := r.provider.InstanceServer(remote, project, "")
 	if err != nil {
 		resp.Diagnostics.Append(errors.NewInstanceServerError(err))
 		return
-	}
-
-	// Set project if configured.
-	project := plan.Project.ValueString()
-	if project != "" {
-		server = server.UseProject(project)
 	}
 
 	backends, diag := ToLBBackendList(ctx, plan.Backends)
@@ -233,76 +229,48 @@ func (r LxdNetworkLBResource) Create(ctx context.Context, req resource.CreateReq
 		return
 	}
 
-	_, diags = plan.Sync(ctx, server)
-	resp.Diagnostics.Append(diags...)
-	if diags.HasError() {
-		return
-	}
-
 	// Update Terraform state.
-	diags = resp.State.Set(ctx, &plan)
+	diags = r.SyncState(ctx, &resp.State, server, plan)
 	resp.Diagnostics.Append(diags...)
 }
 
 func (r LxdNetworkLBResource) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
 	var state NetworkLBModel
 
-	// Fetch resource model from Terraform state.
 	diags := req.State.Get(ctx, &state)
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
 
-	server, err := r.provider.InstanceServer(state.Remote.ValueString())
+	remote := state.Remote.ValueString()
+	project := state.Project.ValueString()
+	server, err := r.provider.InstanceServer(remote, project, "")
 	if err != nil {
 		resp.Diagnostics.Append(errors.NewInstanceServerError(err))
 		return
 	}
 
-	// Set project if configured.
-	project := state.Project.ValueString()
-	if project != "" {
-		server = server.UseProject(project)
-	}
-
-	found, diags := state.Sync(ctx, server)
-	resp.Diagnostics.Append(diags...)
-	if diags.HasError() {
-		return
-	}
-
-	// Remove resource state if resource is not found.
-	if !found {
-		resp.State.RemoveResource(ctx)
-		return
-	}
-
 	// Update Terraform state.
-	diags = resp.State.Set(ctx, &state)
+	diags = r.SyncState(ctx, &resp.State, server, state)
 	resp.Diagnostics.Append(diags...)
 }
 
 func (r LxdNetworkLBResource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
 	var plan NetworkLBModel
 
-	// Fetch resource model from Terraform plan.
 	diags := req.Plan.Get(ctx, &plan)
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
 
-	server, err := r.provider.InstanceServer(plan.Remote.ValueString())
+	remote := plan.Remote.ValueString()
+	project := plan.Project.ValueString()
+	server, err := r.provider.InstanceServer(remote, project, "")
 	if err != nil {
 		resp.Diagnostics.Append(errors.NewInstanceServerError(err))
 		return
-	}
-
-	// Set project if configured.
-	project := plan.Project.ValueString()
-	if project != "" {
-		server = server.UseProject(project)
 	}
 
 	backends, diag := ToLBBackendList(ctx, plan.Backends)
@@ -342,37 +310,26 @@ func (r LxdNetworkLBResource) Update(ctx context.Context, req resource.UpdateReq
 		return
 	}
 
-	_, diags = plan.Sync(ctx, server)
-	resp.Diagnostics.Append(diags...)
-	if diags.HasError() {
-		return
-	}
-
 	// Update Terraform state.
-	diags = resp.State.Set(ctx, &plan)
+	diags = r.SyncState(ctx, &resp.State, server, plan)
 	resp.Diagnostics.Append(diags...)
 }
 
 func (r LxdNetworkLBResource) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {
 	var state NetworkLBModel
 
-	// Fetch resource model from Terraform state.
 	diags := req.State.Get(ctx, &state)
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
 
-	server, err := r.provider.InstanceServer(state.Remote.ValueString())
+	remote := state.Remote.ValueString()
+	project := state.Project.ValueString()
+	server, err := r.provider.InstanceServer(remote, project, "")
 	if err != nil {
 		resp.Diagnostics.Append(errors.NewInstanceServerError(err))
 		return
-	}
-
-	// Set project if configured.
-	project := state.Project.ValueString()
-	if project != "" {
-		server = server.UseProject(project)
 	}
 
 	networkName := state.Network.ValueString()
@@ -385,25 +342,24 @@ func (r LxdNetworkLBResource) Delete(ctx context.Context, req resource.DeleteReq
 	}
 }
 
-// Sync pulls network load balancer data from the server and updates the
-// model in-place. It returns a boolean indicating whether resource is found
-// and diagnostics that contain potential errors.
-// This should be called before updating Terraform state.
-func (m *NetworkLBModel) Sync(ctx context.Context, server lxd.InstanceServer) (bool, diag.Diagnostics) {
-	respDiags := diag.Diagnostics{}
+// SyncState fetches the server's current state for an network load balancer
+// and updates the provided model. It then applies this updated model as the
+// new state in Terraform.
+func (r LxdNetworkLBResource) SyncState(ctx context.Context, tfState *tfsdk.State, server lxd.InstanceServer, m NetworkLBModel) diag.Diagnostics {
+	var respDiags diag.Diagnostics
 
 	networkName := m.Network.ValueString()
 	listenAddr := m.ListenAddress.ValueString()
-
 	lb, _, err := server.GetNetworkLoadBalancer(networkName, listenAddr)
 	if err != nil {
 		if errors.IsNotFoundError(err) {
-			return false, nil
+			tfState.RemoveResource(ctx)
+			return nil
 		}
 
 		lbName := toLBName(networkName, listenAddr)
 		respDiags.AddError(fmt.Sprintf("Failed to retrieve network load balancer %q", lbName), err.Error())
-		return true, respDiags
+		return respDiags
 	}
 
 	backends, diags := ToLBBackendSetType(ctx, lb.Backends)
@@ -420,7 +376,11 @@ func (m *NetworkLBModel) Sync(ctx context.Context, server lxd.InstanceServer) (b
 	m.Ports = ports
 	m.Config = config
 
-	return true, respDiags
+	if respDiags.HasError() {
+		return respDiags
+	}
+
+	return tfState.Set(ctx, &m)
 }
 
 type LxdNetworkLBBackendModel struct {

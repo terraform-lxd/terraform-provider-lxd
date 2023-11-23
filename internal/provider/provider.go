@@ -26,11 +26,6 @@ import (
 	"github.com/terraform-lxd/terraform-provider-lxd/internal/storage"
 )
 
-// LxdProvider ...
-type LxdProvider struct {
-	version string
-}
-
 // LxdProviderRemoteModel represents provider's schema remote.
 type LxdProviderRemoteModel struct {
 	Name     types.String `tfsdk:"name"`
@@ -49,6 +44,11 @@ type LxdProviderModel struct {
 	RefreshInterval            types.String             `tfsdk:"refresh_interval"`
 	AcceptRemoteCertificate    types.Bool               `tfsdk:"accept_remote_certificate"`
 	GenerateClientCertificates types.Bool               `tfsdk:"generate_client_certificates"`
+}
+
+// LxdProvider ...
+type LxdProvider struct {
+	version string
 }
 
 // New returns LXD provider with the given version set.
@@ -166,7 +166,7 @@ func (p *LxdProvider) Configure(ctx context.Context, req provider.ConfigureReque
 		config.ConfigDir = configDir
 	}
 
-	log.Printf("LXD Config: %#v", config)
+	log.Printf("[DEBUG] LXD Config: %#v", config)
 
 	// Determine custom refresh interval. Default is 10 seconds.
 	refreshIntervalString := data.RefreshInterval.ValueString()
@@ -277,7 +277,7 @@ func (p *LxdProvider) Configure(ctx context.Context, req provider.ConfigureReque
 		lxdProvider.SetRemote(lxdRemote, isDefault)
 	}
 
-	log.Printf("LXD Provider: %#v", &lxdProvider)
+	log.Printf("[DEBUG] LXD Provider: %#v", &lxdProvider)
 
 	resp.ResourceData = lxdProvider
 	resp.DataSourceData = lxdProvider

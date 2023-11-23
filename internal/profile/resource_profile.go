@@ -18,6 +18,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringdefault"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
+	"github.com/hashicorp/terraform-plugin-framework/tfsdk"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/terraform-lxd/terraform-provider-lxd/internal/common"
 	"github.com/terraform-lxd/terraform-provider-lxd/internal/errors"
@@ -146,23 +147,18 @@ func (r *ProfileResource) Configure(_ context.Context, req resource.ConfigureReq
 func (r ProfileResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
 	var plan ProfileModel
 
-	// Fetch resource model from Terraform plan.
 	diags := req.Plan.Get(ctx, &plan)
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
 
-	server, err := r.provider.InstanceServer(plan.Remote.ValueString())
+	remote := plan.Remote.ValueString()
+	project := plan.Project.ValueString()
+	server, err := r.provider.InstanceServer(remote, project, "")
 	if err != nil {
 		resp.Diagnostics.Append(errors.NewInstanceServerError(err))
 		return
-	}
-
-	// Set project if configured.
-	project := plan.Project.ValueString()
-	if project != "" {
-		server = server.UseProject(project)
 	}
 
 	// Convert profile config and devices to map.
@@ -191,75 +187,48 @@ func (r ProfileResource) Create(ctx context.Context, req resource.CreateRequest,
 		return
 	}
 
-	_, diags = plan.Sync(ctx, server)
-	resp.Diagnostics.Append(diags...)
-	if diags.HasError() {
-		return
-	}
-
 	// Update Terraform state.
-	diags = resp.State.Set(ctx, &plan)
+	diags = r.SyncState(ctx, &resp.State, server, plan)
 	resp.Diagnostics.Append(diags...)
 }
 
 func (r ProfileResource) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
 	var state ProfileModel
 
-	// Fetch resource model from Terraform state.
 	diags := req.State.Get(ctx, &state)
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
 
-	server, err := r.provider.InstanceServer(state.Remote.ValueString())
+	remote := state.Remote.ValueString()
+	project := state.Project.ValueString()
+	server, err := r.provider.InstanceServer(remote, project, "")
 	if err != nil {
 		resp.Diagnostics.Append(errors.NewInstanceServerError(err))
 		return
 	}
 
-	// Set project if configured.
-	project := state.Project.ValueString()
-	if project != "" {
-		server = server.UseProject(project)
-	}
-
-	found, diags := state.Sync(ctx, server)
-	resp.Diagnostics.Append(diags...)
-	if diags.HasError() {
-		return
-	}
-
-	if !found {
-		resp.State.RemoveResource(ctx)
-		return
-	}
-
 	// Update Terraform state.
-	diags = resp.State.Set(ctx, &state)
+	diags = r.SyncState(ctx, &resp.State, server, state)
 	resp.Diagnostics.Append(diags...)
 }
 
 func (r ProfileResource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
 	var plan ProfileModel
 
-	// Fetch resource model from Terraform plan.
 	diags := req.Plan.Get(ctx, &plan)
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
 
-	server, err := r.provider.InstanceServer(plan.Remote.ValueString())
+	remote := plan.Remote.ValueString()
+	project := plan.Project.ValueString()
+	server, err := r.provider.InstanceServer(remote, project, "")
 	if err != nil {
 		resp.Diagnostics.Append(errors.NewInstanceServerError(err))
 		return
-	}
-
-	// Set project if configured.
-	project := plan.Project.ValueString()
-	if project != "" {
-		server = server.UseProject(project)
 	}
 
 	profileName := plan.Name.ValueString()
@@ -292,37 +261,26 @@ func (r ProfileResource) Update(ctx context.Context, req resource.UpdateRequest,
 		return
 	}
 
-	_, diags = plan.Sync(ctx, server)
-	resp.Diagnostics.Append(diags...)
-	if diags.HasError() {
-		return
-	}
-
 	// Update Terraform state.
-	diags = resp.State.Set(ctx, &plan)
+	diags = r.SyncState(ctx, &resp.State, server, plan)
 	resp.Diagnostics.Append(diags...)
 }
 
 func (r ProfileResource) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {
 	var state ProfileModel
 
-	// Fetch resource model from Terraform state.
 	diags := req.State.Get(ctx, &state)
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
 
-	server, err := r.provider.InstanceServer(state.Remote.ValueString())
+	remote := state.Remote.ValueString()
+	project := state.Project.ValueString()
+	server, err := r.provider.InstanceServer(remote, project, "")
 	if err != nil {
 		resp.Diagnostics.Append(errors.NewInstanceServerError(err))
 		return
-	}
-
-	// Set project if configured.
-	project := state.Project.ValueString()
-	if project != "" {
-		server = server.UseProject(project)
 	}
 
 	profileName := state.Name.ValueString()
@@ -350,20 +308,22 @@ func (r ProfileResource) ImportState(ctx context.Context, req resource.ImportSta
 	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("name"), name)...)
 }
 
-// Sync pulls profile data from the server and updates the model in-place.
-// This should be called before updating Terraform state.
-func (m *ProfileModel) Sync(ctx context.Context, server lxd.InstanceServer) (bool, diag.Diagnostics) {
-	respDiags := diag.Diagnostics{}
+// SyncState fetches the server's current state for a profile and updates
+// the provided model. It then applies this updated model as the new state
+// in Terraform.
+func (r ProfileResource) SyncState(ctx context.Context, tfState *tfsdk.State, server lxd.InstanceServer, m ProfileModel) diag.Diagnostics {
+	var respDiags diag.Diagnostics
 
 	profileName := m.Name.ValueString()
 	profile, _, err := server.GetProfile(profileName)
 	if err != nil {
 		if errors.IsNotFoundError(err) {
-			return false, nil
+			tfState.RemoveResource(ctx)
+			return nil
 		}
 
 		respDiags.AddError(fmt.Sprintf("Failed to retrieve profile %q", profileName), err.Error())
-		return true, respDiags
+		return respDiags
 	}
 
 	// Convert config state and devices into schema types.
@@ -378,5 +338,9 @@ func (m *ProfileModel) Sync(ctx context.Context, server lxd.InstanceServer) (boo
 	m.Devices = devices
 	m.Config = config
 
-	return true, respDiags
+	if respDiags.HasError() {
+		return respDiags
+	}
+
+	return tfState.Set(ctx, &m)
 }

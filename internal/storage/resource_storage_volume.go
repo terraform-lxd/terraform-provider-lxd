@@ -18,6 +18,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringdefault"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
+	"github.com/hashicorp/terraform-plugin-framework/tfsdk"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/terraform-lxd/terraform-provider-lxd/internal/common"
 	"github.com/terraform-lxd/terraform-provider-lxd/internal/errors"
@@ -36,8 +37,7 @@ type StorageVolumeModel struct {
 	Config      types.Map    `tfsdk:"config"`
 
 	// Computed.
-	Location       types.String `tfsdk:"location"`
-	ExpandedConfig types.Map    `tfsdk:"expanded_config"`
+	Location types.String `tfsdk:"location"`
 }
 
 // StorageVolumeResource represent LXD storage volume resource.
@@ -137,11 +137,6 @@ func (r StorageVolumeResource) Schema(_ context.Context, _ resource.SchemaReques
 			"location": schema.StringAttribute{
 				Optional: true,
 			},
-
-			"expanded_config": schema.MapAttribute{
-				Computed:    true,
-				ElementType: types.StringType,
-			},
 		},
 	}
 }
@@ -161,39 +156,21 @@ func (r *StorageVolumeResource) Configure(_ context.Context, req resource.Config
 	r.provider = provider
 }
 
-func (r StorageVolumeResource) Setup(_ context.Context, data StorageVolumeModel) (lxd.InstanceServer, diag.Diagnostic) {
-	server, err := r.provider.InstanceServer(data.Remote.ValueString())
-	if err != nil {
-		return nil, errors.NewInstanceServerError(err)
-	}
-
-	project := data.Project.ValueString()
-	target := data.Target.ValueString()
-
-	if project != "" {
-		server = server.UseProject(project)
-	}
-
-	if target != "" {
-		server = server.UseTarget(target)
-	}
-
-	return server, nil
-}
-
 func (r StorageVolumeResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
 	var plan StorageVolumeModel
 
-	// Fetch resource model from Terraform plan.
 	diags := req.Plan.Get(ctx, &plan)
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
 
-	server, diag := r.Setup(ctx, plan)
-	if diag != nil {
-		resp.Diagnostics.Append(diag)
+	remote := plan.Remote.ValueString()
+	project := plan.Project.ValueString()
+	target := plan.Target.ValueString()
+	server, err := r.provider.InstanceServer(remote, project, target)
+	if err != nil {
+		resp.Diagnostics.Append(errors.NewInstanceServerError(err))
 		return
 	}
 
@@ -204,8 +181,8 @@ func (r StorageVolumeResource) Create(ctx context.Context, req resource.CreateRe
 		return
 	}
 
-	volName := plan.Name.ValueString()
 	poolName := plan.Pool.ValueString()
+	volName := plan.Name.ValueString()
 
 	vol := api.StorageVolumesPost{
 		Name:        plan.Name.ValueString(),
@@ -217,76 +194,61 @@ func (r StorageVolumeResource) Create(ctx context.Context, req resource.CreateRe
 		},
 	}
 
-	err := server.CreateStoragePoolVolume(poolName, vol)
+	err = server.CreateStoragePoolVolume(poolName, vol)
 	if err != nil {
 		resp.Diagnostics.AddError(fmt.Sprintf("Failed to create storage volume %q", volName), err.Error())
 		return
 	}
 
-	_, diags = plan.Sync(ctx, server)
-	resp.Diagnostics.Append(diags...)
-	if diags.HasError() {
-		return
-	}
-
 	// Update Terraform state.
-	diags = resp.State.Set(ctx, &plan)
+	diags = r.SyncState(ctx, &resp.State, server, plan)
 	resp.Diagnostics.Append(diags...)
 }
 
 func (r StorageVolumeResource) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
 	var state StorageVolumeModel
 
-	// Fetch resource model from Terraform state.
 	diags := req.State.Get(ctx, &state)
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
 
-	server, diag := r.Setup(ctx, state)
-	if diag != nil {
-		resp.Diagnostics.Append(diag)
-		return
-	}
-
-	found, diags := state.Sync(ctx, server)
-	resp.Diagnostics.Append(diags...)
-	if diags.HasError() {
-		return
-	}
-
-	// Remove resource state if resource is not found.
-	if !found {
-		resp.State.RemoveResource(ctx)
+	remote := state.Remote.ValueString()
+	project := state.Project.ValueString()
+	target := state.Target.ValueString()
+	server, err := r.provider.InstanceServer(remote, project, target)
+	if err != nil {
+		resp.Diagnostics.Append(errors.NewInstanceServerError(err))
 		return
 	}
 
 	// Update Terraform state.
-	diags = resp.State.Set(ctx, &state)
+	diags = r.SyncState(ctx, &resp.State, server, state)
 	resp.Diagnostics.Append(diags...)
 }
 
 func (r StorageVolumeResource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
 	var plan StorageVolumeModel
 
-	// Fetch resource model from Terraform plan.
 	diags := req.Plan.Get(ctx, &plan)
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
 
-	server, diag := r.Setup(ctx, plan)
-	if diag != nil {
-		resp.Diagnostics.Append(diag)
+	remote := plan.Remote.ValueString()
+	project := plan.Project.ValueString()
+	target := plan.Target.ValueString()
+	server, err := r.provider.InstanceServer(remote, project, target)
+	if err != nil {
+		resp.Diagnostics.Append(errors.NewInstanceServerError(err))
 		return
 	}
 
 	poolName := plan.Pool.ValueString()
 	volName := plan.Name.ValueString()
 	volType := plan.Type.ValueString()
-
 	vol, etag, err := server.GetStoragePoolVolume(poolName, volType, volName)
 	if err != nil {
 		resp.Diagnostics.AddError(fmt.Sprintf("Failed to retrieve existing storage volume %q", volName), err.Error())
@@ -314,38 +276,33 @@ func (r StorageVolumeResource) Update(ctx context.Context, req resource.UpdateRe
 		return
 	}
 
-	_, diags = plan.Sync(ctx, server)
-	resp.Diagnostics.Append(diags...)
-	if diags.HasError() {
-		return
-	}
-
 	// Update Terraform state.
-	diags = resp.State.Set(ctx, &plan)
+	diags = r.SyncState(ctx, &resp.State, server, plan)
 	resp.Diagnostics.Append(diags...)
 }
 
 func (r StorageVolumeResource) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {
 	var state StorageVolumeModel
 
-	// Fetch resource model from Terraform state.
 	diags := req.State.Get(ctx, &state)
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
 
-	server, diag := r.Setup(ctx, state)
-	if diag != nil {
-		resp.Diagnostics.Append(diag)
+	remote := state.Remote.ValueString()
+	project := state.Project.ValueString()
+	target := state.Target.ValueString()
+	server, err := r.provider.InstanceServer(remote, project, target)
+	if err != nil {
+		resp.Diagnostics.Append(errors.NewInstanceServerError(err))
 		return
 	}
 
 	poolName := state.Pool.ValueString()
 	volName := state.Name.ValueString()
 	volType := state.Type.ValueString()
-
-	err := server.DeleteStoragePoolVolume(poolName, volType, volName)
+	err = server.DeleteStoragePoolVolume(poolName, volType, volName)
 	if err != nil {
 		resp.Diagnostics.AddError(fmt.Sprintf("Failed to remove storage pool %q", poolName), err.Error())
 	}
@@ -384,25 +341,24 @@ func (r StorageVolumeResource) ImportState(ctx context.Context, req resource.Imp
 	}
 }
 
-// Sync pulls storage volume data from the server and updates the model
-// in-place. It returns a boolean indicating whether resource is found
-// and diagnostics that contain potential errors.
-// This should be called before updating Terraform state.
-func (m *StorageVolumeModel) Sync(ctx context.Context, server lxd.InstanceServer) (bool, diag.Diagnostics) {
+// SyncState fetches the server's current state for a storage volume and
+// updates the provided model. It then applies this updated model as the
+// new state in Terraform.
+func (r StorageVolumeResource) SyncState(ctx context.Context, tfState *tfsdk.State, server lxd.InstanceServer, m StorageVolumeModel) diag.Diagnostics {
 	respDiags := diag.Diagnostics{}
 
 	poolName := m.Pool.ValueString()
 	volName := m.Name.ValueString()
 	volType := m.Type.ValueString()
-
 	vol, _, err := server.GetStoragePoolVolume(poolName, volType, volName)
 	if err != nil {
 		if errors.IsNotFoundError(err) {
-			return false, nil
+			tfState.RemoveResource(ctx)
+			return nil
 		}
 
 		respDiags.AddError(fmt.Sprintf("Failed to retrieve storage volume %q", volName), err.Error())
-		return true, respDiags
+		return respDiags
 	}
 
 	// Extract user defined config and merge it with current config state.
@@ -414,23 +370,19 @@ func (m *StorageVolumeModel) Sync(ctx context.Context, server lxd.InstanceServer
 	config, diags := common.ToConfigMapType(ctx, stateConfig)
 	respDiags.Append(diags...)
 
-	expandedConfig, diags := common.ToConfigMapType(ctx, vol.Config)
-	respDiags.Append(diags...)
-
-	if respDiags.HasError() {
-		return true, diags
-	}
-
 	m.Name = types.StringValue(vol.Name)
 	m.Description = types.StringValue(vol.Description)
-	m.ExpandedConfig = expandedConfig
 	m.Config = config
 
 	if vol.Location != "" && vol.Location != "none" {
 		m.Location = types.StringValue(vol.Location)
 	}
 
-	return true, nil
+	if respDiags.HasError() {
+		return respDiags
+	}
+
+	return tfState.Set(ctx, &m)
 }
 
 // ComputedKeys returns list of computed config keys.

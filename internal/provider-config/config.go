@@ -82,7 +82,7 @@ func NewLxdProvider(lxdConfig *lxd_config.Config, refreshInterval time.Duration,
 
 // InstanceServer returns a LXD InstanceServer client for the given remote.
 // An error is returned if the remote is not a InstanceServer.
-func (p *LxdProviderConfig) InstanceServer(remoteName string) (lxd.InstanceServer, error) {
+func (p *LxdProviderConfig) InstanceServer(remoteName string, project string, target string) (lxd.InstanceServer, error) {
 	server, err := p.server(remoteName)
 	if err != nil {
 		return nil, err
@@ -93,12 +93,16 @@ func (p *LxdProviderConfig) InstanceServer(remoteName string) (lxd.InstanceServe
 		return nil, err
 	}
 
-	if connInfo.Protocol == "lxd" {
-		return server.(lxd.InstanceServer), nil
+	if connInfo.Protocol != "lxd" {
+		return nil, fmt.Errorf("Remote %q (%s) is not an InstanceServer", remoteName, connInfo.Protocol)
 	}
 
-	err = fmt.Errorf("Remote %q (%s) is not an InstanceServer", remoteName, connInfo.Protocol)
-	return nil, err
+	instServer := server.(lxd.InstanceServer)
+	instServer = instServer.UseProject(project)
+	instServer = instServer.UseTarget(target)
+
+	return instServer, nil
+
 }
 
 // ImageServer returns a LXD ImageServer client for the given remote.
@@ -139,7 +143,7 @@ func (p *LxdProviderConfig) server(remoteName string) (lxd.Server, error) {
 	}
 
 	// If the server is not already created, create a new one.
-	remote := p.Remote(remoteName)
+	remote := p.remote(remoteName)
 	if remote != nil && !remote.Bootstrapped {
 		err := p.createLxdServerClient(*remote)
 		if err != nil {
@@ -244,7 +248,7 @@ func (p *LxdProviderConfig) createLxdServerClient(remote LxdProviderRemoteConfig
 		p.SetRemote(remote, false)
 
 		// Finally, make sure the client is authenticated.
-		instServer, err := p.InstanceServer(remote.Name)
+		instServer, err := p.InstanceServer(remote.Name, "", "")
 		if err != nil {
 			return err
 		}
@@ -407,8 +411,8 @@ func determineLxdDir() (string, error) {
 
 /* Getters & Setters */
 
-// Remote returns LXD remote with the given name or default otherwise.
-func (p *LxdProviderConfig) Remote(name string) *LxdProviderRemoteConfig {
+// remote returns LXD remote with the given name or default otherwise.
+func (p *LxdProviderConfig) remote(name string) *LxdProviderRemoteConfig {
 	p.mux.RLock()
 	defer p.mux.RUnlock()
 
@@ -433,6 +437,20 @@ func (p *LxdProviderConfig) SetRemote(remote LxdProviderRemoteConfig, isDefault 
 	}
 
 	p.remotes[remote.Name] = remote
+}
+
+// SelectRemote returns the specified remote name if it exists, or the default
+// remote name otherwise.
+func (p *LxdProviderConfig) SelectRemote(name string) string {
+	p.mux.RLock()
+	defer p.mux.RUnlock()
+
+	_, ok := p.remotes[name]
+	if ok {
+		return name
+	}
+
+	return p.lxdConfig.DefaultRemote
 }
 
 // setLxdServer set LXD server for the given name.

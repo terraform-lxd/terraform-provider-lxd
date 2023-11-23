@@ -191,16 +191,11 @@ func (r InstanceFileResource) Create(ctx context.Context, req resource.CreateReq
 	}
 
 	remote := plan.Remote.ValueString()
-	server, err := r.provider.InstanceServer(remote)
+	project := plan.Project.ValueString()
+	server, err := r.provider.InstanceServer(remote, project, "")
 	if err != nil {
 		resp.Diagnostics.Append(errors.NewInstanceServerError(err))
 		return
-	}
-
-	// Set project if configured.
-	project := plan.Project.ValueString()
-	if project != "" {
-		server = server.UseProject(project)
 	}
 
 	// Ensure instance exists.
@@ -250,16 +245,11 @@ func (r InstanceFileResource) Read(ctx context.Context, req resource.ReadRequest
 
 	remote, instanceName, targetFile := splitFileResourceID(state.ResourceID.ValueString())
 
-	server, err := r.provider.InstanceServer(remote)
+	project := state.Project.ValueString()
+	server, err := r.provider.InstanceServer(remote, project, "")
 	if err != nil {
 		resp.Diagnostics.Append(errors.NewInstanceServerError(err))
 		return
-	}
-
-	// Set project if configured.
-	project := state.Project.ValueString()
-	if project != "" {
-		server = server.UseProject(project)
 	}
 
 	// Ensure instance exists.
@@ -305,16 +295,11 @@ func (r InstanceFileResource) Delete(ctx context.Context, req resource.DeleteReq
 
 	remote, instanceName, targetFile := splitFileResourceID(state.ResourceID.ValueString())
 
-	server, err := r.provider.InstanceServer(remote)
+	project := state.Project.ValueString()
+	server, err := r.provider.InstanceServer(remote, project, "")
 	if err != nil {
 		resp.Diagnostics.Append(errors.NewInstanceServerError(err))
 		return
-	}
-
-	// Set project if configured.
-	project := state.Project.ValueString()
-	if project != "" {
-		server = server.UseProject(project)
 	}
 
 	// Ensure instance exists.

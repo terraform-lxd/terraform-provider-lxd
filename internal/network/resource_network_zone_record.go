@@ -18,6 +18,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringdefault"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
+	"github.com/hashicorp/terraform-plugin-framework/tfsdk"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/terraform-lxd/terraform-provider-lxd/internal/common"
 	"github.com/terraform-lxd/terraform-provider-lxd/internal/errors"
@@ -156,16 +157,12 @@ func (r NetworkZoneRecordResource) Create(ctx context.Context, req resource.Crea
 		return
 	}
 
-	server, err := r.provider.InstanceServer(plan.Remote.ValueString())
+	remote := plan.Remote.ValueString()
+	project := plan.Project.ValueString()
+	server, err := r.provider.InstanceServer(remote, project, "")
 	if err != nil {
 		resp.Diagnostics.Append(errors.NewInstanceServerError(err))
 		return
-	}
-
-	// Set project if configured.
-	project := plan.Project.ValueString()
-	if project != "" {
-		server = server.UseProject(project)
 	}
 
 	// Convert network zone record config and entries.
@@ -197,14 +194,8 @@ func (r NetworkZoneRecordResource) Create(ctx context.Context, req resource.Crea
 		return
 	}
 
-	_, diags = plan.Sync(ctx, server)
-	resp.Diagnostics.Append(diags...)
-	if diags.HasError() {
-		return
-	}
-
 	// Update Terraform state.
-	diags = resp.State.Set(ctx, &plan)
+	diags = r.SyncState(ctx, &resp.State, server, plan)
 	resp.Diagnostics.Append(diags...)
 }
 
@@ -218,55 +209,34 @@ func (r NetworkZoneRecordResource) Read(ctx context.Context, req resource.ReadRe
 		return
 	}
 
-	server, err := r.provider.InstanceServer(state.Remote.ValueString())
+	remote := state.Remote.ValueString()
+	project := state.Project.ValueString()
+	server, err := r.provider.InstanceServer(remote, project, "")
 	if err != nil {
 		resp.Diagnostics.Append(errors.NewInstanceServerError(err))
 		return
 	}
 
-	// Set project if configured.
-	project := state.Project.ValueString()
-	if project != "" {
-		server = server.UseProject(project)
-	}
-
-	found, diags := state.Sync(ctx, server)
-	resp.Diagnostics.Append(diags...)
-	if diags.HasError() {
-		return
-	}
-
-	// Remove resource state if resource is not found.
-	if !found {
-		resp.State.RemoveResource(ctx)
-		return
-	}
-
 	// Update Terraform state.
-	diags = resp.State.Set(ctx, &state)
+	diags = r.SyncState(ctx, &resp.State, server, state)
 	resp.Diagnostics.Append(diags...)
 }
 
 func (r NetworkZoneRecordResource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
 	var plan NetworkZoneRecordModel
 
-	// Fetch resource model from Terraform plan.
 	diags := req.Plan.Get(ctx, &plan)
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
 
-	server, err := r.provider.InstanceServer(plan.Remote.ValueString())
+	remote := plan.Remote.ValueString()
+	project := plan.Project.ValueString()
+	server, err := r.provider.InstanceServer(remote, project, "")
 	if err != nil {
 		resp.Diagnostics.Append(errors.NewInstanceServerError(err))
 		return
-	}
-
-	// Set project if configured.
-	project := plan.Project.ValueString()
-	if project != "" {
-		server = server.UseProject(project)
 	}
 
 	// Get existing network zone record.
@@ -302,14 +272,8 @@ func (r NetworkZoneRecordResource) Update(ctx context.Context, req resource.Upda
 		return
 	}
 
-	_, diags = plan.Sync(ctx, server)
-	resp.Diagnostics.Append(diags...)
-	if diags.HasError() {
-		return
-	}
-
 	// Update Terraform state.
-	diags = resp.State.Set(ctx, &plan)
+	diags = r.SyncState(ctx, &resp.State, server, plan)
 	resp.Diagnostics.Append(diags...)
 }
 
@@ -323,16 +287,12 @@ func (r NetworkZoneRecordResource) Delete(ctx context.Context, req resource.Dele
 		return
 	}
 
-	server, err := r.provider.InstanceServer(state.Remote.ValueString())
+	remote := state.Remote.ValueString()
+	project := state.Project.ValueString()
+	server, err := r.provider.InstanceServer(remote, project, "")
 	if err != nil {
 		resp.Diagnostics.Append(errors.NewInstanceServerError(err))
 		return
-	}
-
-	// Set project if configured.
-	project := state.Project.ValueString()
-	if project != "" {
-		server = server.UseProject(project)
 	}
 
 	zoneName := state.Zone.ValueString()
@@ -375,33 +335,30 @@ func (r NetworkZoneRecordResource) ImportState(ctx context.Context, req resource
 	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("zone"), zoneName)...)
 }
 
-// Sync pulls network zone record data from the server and updates the model
-// in-place. It returns a boolean indicating whether resource is found and
-// diagnostics that contain potential errors.
-// This should be called before updating Terraform state.
-func (m *NetworkZoneRecordModel) Sync(ctx context.Context, server lxd.InstanceServer) (bool, diag.Diagnostics) {
+// SyncState fetches the server's current state for a network zone record and
+// updates the provided model. It then applies this updated model as the new
+// state in Terraform.
+func (r NetworkZoneRecordResource) SyncState(ctx context.Context, tfState *tfsdk.State, server lxd.InstanceServer, m NetworkZoneRecordModel) diag.Diagnostics {
+	var respDiags diag.Diagnostics
+
 	zoneName := m.Zone.ValueString()
 	recordName := m.Name.ValueString()
 	record, _, err := server.GetNetworkZoneRecord(zoneName, recordName)
 	if err != nil {
 		if errors.IsNotFoundError(err) {
-			return false, nil
+			tfState.RemoveResource(ctx)
+			return nil
 		}
 
-		return true, diag.Diagnostics{
-			diag.NewErrorDiagnostic(fmt.Sprintf("Failed to retrieve network zone record %q", recordName), err.Error()),
-		}
+		respDiags.AddError(fmt.Sprintf("Failed to retrieve network zone record %q", recordName), err.Error())
+		return respDiags
 	}
 
 	entries, diags := ToZoneRecordEntrySetType(ctx, record.Entries)
-	if diags.HasError() {
-		return true, diags
-	}
+	respDiags.Append(diags...)
 
 	config, diags := common.ToConfigMapType(ctx, record.Config)
-	if diags.HasError() {
-		return true, diags
-	}
+	respDiags.Append(diags...)
 
 	m.Zone = types.StringValue(zoneName)
 	m.Name = types.StringValue(record.Name)
@@ -409,7 +366,11 @@ func (m *NetworkZoneRecordModel) Sync(ctx context.Context, server lxd.InstanceSe
 	m.Enteries = entries
 	m.Config = config
 
-	return true, nil
+	if respDiags.HasError() {
+		return respDiags
+	}
+
+	return tfState.Set(ctx, &m)
 }
 
 type NetworkZoneRecordEntryModel struct {

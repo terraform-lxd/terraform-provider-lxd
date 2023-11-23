@@ -12,7 +12,7 @@ import (
 func IsSocketWritable(socketPath string) bool {
 	err := unix.Access(socketPath, unix.W_OK)
 	if err != nil {
-		log.Printf("Unix socket %q: %v", socketPath, err)
+		log.Printf("[DEBUG] Unix socket %q: %v", socketPath, err)
 		return false
 	}
 

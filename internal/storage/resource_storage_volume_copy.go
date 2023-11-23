@@ -131,31 +131,21 @@ func (r *StorageVolumeCopyResource) Configure(_ context.Context, req resource.Co
 func (r StorageVolumeCopyResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
 	var plan StorageVolumeCopyModel
 
-	// Fetch resource model from Terraform plan.
 	diags := req.Plan.Get(ctx, &plan)
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
 
-	dstServer, err := r.provider.InstanceServer(plan.Remote.ValueString())
+	dstProject := plan.Project.ValueString()
+	dstTarget := plan.Target.ValueString()
+	dstServer, err := r.provider.InstanceServer(plan.Remote.ValueString(), dstProject, dstTarget)
 	if err != nil {
 		resp.Diagnostics.Append(errors.NewInstanceServerError(err))
 		return
 	}
 
-	dstProject := plan.Project.ValueString()
-	dstTarget := plan.Target.ValueString()
-
-	if dstProject != "" {
-		dstServer = dstServer.UseProject(dstProject)
-	}
-
-	if dstTarget != "" {
-		dstServer = dstServer.UseTarget(dstTarget)
-	}
-
-	srcServer, err := r.provider.InstanceServer(plan.SourceRemote.ValueString())
+	srcServer, err := r.provider.InstanceServer(plan.SourceRemote.ValueString(), "", "")
 	if err != nil {
 		resp.Diagnostics.Append(errors.NewInstanceServerError(err))
 		return

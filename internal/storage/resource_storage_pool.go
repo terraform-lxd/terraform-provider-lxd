@@ -17,6 +17,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringdefault"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
+	"github.com/hashicorp/terraform-plugin-framework/tfsdk"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/terraform-lxd/terraform-provider-lxd/internal/common"
 	"github.com/terraform-lxd/terraform-provider-lxd/internal/errors"
@@ -128,29 +129,19 @@ func (r *StoragePoolResource) Configure(_ context.Context, req resource.Configur
 func (r StoragePoolResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
 	var plan StoragePoolModel
 
-	// Fetch resource model from Terraform plan.
 	diags := req.Plan.Get(ctx, &plan)
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
 
-	server, err := r.provider.InstanceServer(plan.Remote.ValueString())
+	remote := plan.Remote.ValueString()
+	project := plan.Project.ValueString()
+	target := plan.Target.ValueString()
+	server, err := r.provider.InstanceServer(remote, project, target)
 	if err != nil {
 		resp.Diagnostics.Append(errors.NewInstanceServerError(err))
 		return
-	}
-
-	// Set project if configured.
-	project := plan.Project.ValueString()
-	if project != "" {
-		server = server.UseProject(project)
-	}
-
-	// Set target if configured.
-	target := plan.Target.ValueString()
-	if target != "" {
-		server = server.UseTarget(target)
 	}
 
 	// Convert pool config to map.
@@ -175,88 +166,50 @@ func (r StoragePoolResource) Create(ctx context.Context, req resource.CreateRequ
 		return
 	}
 
-	_, diags = plan.Sync(ctx, server)
-	resp.Diagnostics.Append(diags...)
-	if diags.HasError() {
-		return
-	}
-
 	// Update Terraform state.
-	diags = resp.State.Set(ctx, &plan)
+	diags = r.SyncState(ctx, &resp.State, server, plan)
 	resp.Diagnostics.Append(diags...)
 }
 
 func (r StoragePoolResource) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
 	var state StoragePoolModel
 
-	// Fetch resource model from Terraform state.
 	diags := req.State.Get(ctx, &state)
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
 
-	server, err := r.provider.InstanceServer(state.Remote.ValueString())
+	remote := state.Remote.ValueString()
+	project := state.Project.ValueString()
+	target := state.Target.ValueString()
+	server, err := r.provider.InstanceServer(remote, project, target)
 	if err != nil {
 		resp.Diagnostics.Append(errors.NewInstanceServerError(err))
 		return
 	}
 
-	// Set project if configured.
-	project := state.Project.ValueString()
-	if project != "" {
-		server = server.UseProject(project)
-	}
-
-	// Set target if configured.
-	target := state.Target.ValueString()
-	if target != "" {
-		server = server.UseTarget(target)
-	}
-
-	found, diags := state.Sync(ctx, server)
-	resp.Diagnostics.Append(diags...)
-	if diags.HasError() {
-		return
-	}
-
-	// Remove resource state if resource is not found.
-	if !found {
-		resp.State.RemoveResource(ctx)
-		return
-	}
-
 	// Update Terraform state.
-	diags = resp.State.Set(ctx, &state)
+	diags = r.SyncState(ctx, &resp.State, server, state)
 	resp.Diagnostics.Append(diags...)
 }
 
 func (r StoragePoolResource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
 	var plan StoragePoolModel
 
-	// Fetch resource model from Terraform plan.
 	diags := req.Plan.Get(ctx, &plan)
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
 
-	server, err := r.provider.InstanceServer(plan.Remote.ValueString())
+	remote := plan.Remote.ValueString()
+	project := plan.Project.ValueString()
+	target := plan.Target.ValueString()
+	server, err := r.provider.InstanceServer(remote, project, target)
 	if err != nil {
 		resp.Diagnostics.Append(errors.NewInstanceServerError(err))
 		return
-	}
-
-	// Set project if configured.
-	project := plan.Project.ValueString()
-	if project != "" {
-		server = server.UseProject(project)
-	}
-
-	// Set target if configured.
-	target := plan.Target.ValueString()
-	if target != "" {
-		server = server.UseTarget(target)
 	}
 
 	poolName := plan.Name.ValueString()
@@ -287,43 +240,27 @@ func (r StoragePoolResource) Update(ctx context.Context, req resource.UpdateRequ
 		return
 	}
 
-	_, diags = plan.Sync(ctx, server)
-	resp.Diagnostics.Append(diags...)
-	if diags.HasError() {
-		return
-	}
-
 	// Update Terraform state.
-	diags = resp.State.Set(ctx, &plan)
+	diags = r.SyncState(ctx, &resp.State, server, plan)
 	resp.Diagnostics.Append(diags...)
 }
 
 func (r StoragePoolResource) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {
 	var state StoragePoolModel
 
-	// Fetch resource model from Terraform state.
 	diags := req.State.Get(ctx, &state)
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
 
-	server, err := r.provider.InstanceServer(state.Remote.ValueString())
+	remote := state.Remote.ValueString()
+	project := state.Project.ValueString()
+	target := state.Target.ValueString()
+	server, err := r.provider.InstanceServer(remote, project, target)
 	if err != nil {
 		resp.Diagnostics.Append(errors.NewInstanceServerError(err))
 		return
-	}
-
-	// Set project if configured.
-	project := state.Project.ValueString()
-	if project != "" {
-		server = server.UseProject(project)
-	}
-
-	// Set target if configured.
-	target := state.Target.ValueString()
-	if target != "" {
-		server = server.UseTarget(target)
 	}
 
 	poolName := state.Name.ValueString()
@@ -351,22 +288,22 @@ func (r StoragePoolResource) ImportState(ctx context.Context, req resource.Impor
 	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("name"), name)...)
 }
 
-// Sync pulls storage pool data from the server and updates the model
-// in-place. It returns a boolean indicating whether resource is found and
-// diagnostics that contain potential errors.
-// This should be called before updating Terraform state.
-func (m *StoragePoolModel) Sync(ctx context.Context, server lxd.InstanceServer) (bool, diag.Diagnostics) {
-	respDiags := diag.Diagnostics{}
+// SyncState fetches the server's current state for a storage pool and updates
+// the provided model. It then applies this updated model as the new state
+// in Terraform.
+func (r StoragePoolResource) SyncState(ctx context.Context, tfState *tfsdk.State, server lxd.InstanceServer, m StoragePoolModel) diag.Diagnostics {
+	var respDiags diag.Diagnostics
 
 	poolName := m.Name.ValueString()
 	pool, _, err := server.GetStoragePool(poolName)
 	if err != nil {
 		if errors.IsNotFoundError(err) {
-			return false, nil
+			tfState.RemoveResource(ctx)
+			return nil
 		}
 
 		respDiags.AddError(fmt.Sprintf("Failed to retrieve storage pool %q", poolName), err.Error())
-		return true, respDiags
+		return respDiags
 	}
 
 	// Extract user defined config and merge it with current config state.
@@ -379,16 +316,16 @@ func (m *StoragePoolModel) Sync(ctx context.Context, server lxd.InstanceServer) 
 	config, diags := common.ToConfigMapType(ctx, stateConfig)
 	respDiags.Append(diags...)
 
-	if respDiags.HasError() {
-		return true, diags
-	}
-
 	m.Name = types.StringValue(pool.Name)
 	m.Description = types.StringValue(pool.Description)
 	m.Driver = types.StringValue(pool.Driver)
 	m.Config = config
 
-	return true, nil
+	if respDiags.HasError() {
+		return respDiags
+	}
+
+	return tfState.Set(ctx, &m)
 }
 
 // ComputedKeys returns list of computed config keys.

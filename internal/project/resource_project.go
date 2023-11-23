@@ -14,6 +14,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringdefault"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
+	"github.com/hashicorp/terraform-plugin-framework/tfsdk"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/terraform-lxd/terraform-provider-lxd/internal/common"
 	"github.com/terraform-lxd/terraform-provider-lxd/internal/errors"
@@ -95,7 +96,6 @@ func (r *ProjectResource) Configure(_ context.Context, req resource.ConfigureReq
 func (r ProjectResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
 	var plan ProjectModel
 
-	// Fetch resource model from Terraform plan.
 	diags := req.Plan.Get(ctx, &plan)
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
@@ -109,88 +109,73 @@ func (r ProjectResource) Create(ctx context.Context, req resource.CreateRequest,
 		return
 	}
 
-	server, err := r.provider.InstanceServer(plan.Remote.ValueString())
+	remote := plan.Remote.ValueString()
+	projectName := plan.Name.ValueString()
+	server, err := r.provider.InstanceServer(remote, projectName, "")
 	if err != nil {
 		resp.Diagnostics.Append(errors.NewInstanceServerError(err))
 		return
 	}
 
-	project := api.ProjectsPost{
-		Name: plan.Name.ValueString(),
+	projectReq := api.ProjectsPost{
+		Name: projectName,
 		ProjectPut: api.ProjectPut{
 			Description: plan.Description.ValueString(),
 			Config:      config,
 		},
 	}
 
-	err = server.CreateProject(project)
+	err = server.CreateProject(projectReq)
 	if err != nil {
-		resp.Diagnostics.AddError(fmt.Sprintf("Failed to create project %q", project.Name), err.Error())
-		return
-	}
-
-	_, diags = plan.SyncState(ctx, server)
-	resp.Diagnostics.Append(diags...)
-	if diags.HasError() {
+		resp.Diagnostics.AddError(fmt.Sprintf("Failed to create project %q", projectName), err.Error())
 		return
 	}
 
 	// Update Terraform state.
-	diags = resp.State.Set(ctx, &plan)
+	diags = r.SyncState(ctx, &resp.State, server, plan)
 	resp.Diagnostics.Append(diags...)
 }
 
 func (r ProjectResource) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
 	var state ProjectModel
 
-	// Fetch resource model from Terraform state.
 	diags := req.State.Get(ctx, &state)
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
 
-	server, err := r.provider.InstanceServer(state.Remote.ValueString())
+	remote := state.Remote.ValueString()
+	projectName := state.Name.ValueString()
+	server, err := r.provider.InstanceServer(remote, projectName, "")
 	if err != nil {
 		resp.Diagnostics.Append(errors.NewInstanceServerError(err))
 		return
 	}
 
-	found, diags := state.SyncState(ctx, server)
-	resp.Diagnostics.Append(diags...)
-	if diags.HasError() {
-		return
-	}
-
-	// Remove resource state if resource is not found.
-	if !found {
-		resp.State.RemoveResource(ctx)
-		return
-	}
-
 	// Update Terraform state.
-	diags = resp.State.Set(ctx, &state)
+	diags = r.SyncState(ctx, &resp.State, server, state)
 	resp.Diagnostics.Append(diags...)
 }
 
 func (r ProjectResource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
 	var plan ProjectModel
 
-	// Fetch resource model from Terraform plan.
 	diags := req.Plan.Get(ctx, &plan)
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
 
-	server, err := r.provider.InstanceServer(plan.Remote.ValueString())
+	remote := plan.Remote.ValueString()
+	projectName := plan.Name.ValueString()
+	server, err := r.provider.InstanceServer(remote, projectName, "")
 	if err != nil {
 		resp.Diagnostics.Append(errors.NewInstanceServerError(err))
 		return
 	}
 
-	projectName := plan.Name.ValueString()
-	project, etag, err := server.UseProject(projectName).GetProject(projectName)
+	project, etag, err := server.GetProject(projectName)
 	if err != nil {
 		resp.Diagnostics.AddError(fmt.Sprintf("Failed to retrieve existing project %q", projectName), err.Error())
 		return
@@ -217,74 +202,71 @@ func (r ProjectResource) Update(ctx context.Context, req resource.UpdateRequest,
 		return
 	}
 
-	_, diags = plan.SyncState(ctx, server)
-	resp.Diagnostics.Append(diags...)
-	if diags.HasError() {
-		return
-	}
-
 	// Update Terraform state.
-	diags = resp.State.Set(ctx, &plan)
+	diags = r.SyncState(ctx, &resp.State, server, plan)
 	resp.Diagnostics.Append(diags...)
 }
 
 func (r ProjectResource) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {
 	var state ProjectModel
 
-	// Fetch resource model from Terraform state.
 	diags := req.State.Get(ctx, &state)
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
 
-	server, err := r.provider.InstanceServer(state.Remote.ValueString())
+	remote := state.Remote.ValueString()
+	projectName := state.Name.ValueString()
+	server, err := r.provider.InstanceServer(remote, projectName, "")
 	if err != nil {
 		resp.Diagnostics.Append(errors.NewInstanceServerError(err))
 		return
 	}
 
-	projectName := state.Name.ValueString()
-	err = server.UseProject(projectName).DeleteProject(projectName)
+	err = server.DeleteProject(projectName)
 	if err != nil {
 		resp.Diagnostics.AddError(fmt.Sprintf("Failed to remove project %q", projectName), err.Error())
 	}
 }
 
-// SyncState pulls project data from the server and updates the model in-place.
-// This should be called before updating Terraform state.
-func (m *ProjectModel) SyncState(ctx context.Context, server lxd.InstanceServer) (bool, diag.Diagnostics) {
+// SyncState fetches the server's current state for a project and updates
+// the provided model. It then applies this updated model as the new state
+// in Terraform.
+func (r ProjectResource) SyncState(ctx context.Context, tfState *tfsdk.State, server lxd.InstanceServer, m ProjectModel) diag.Diagnostics {
+	var respDiags diag.Diagnostics
+
 	projectName := m.Name.ValueString()
-	project, _, err := server.UseProject(projectName).GetProject(projectName)
+	project, _, err := server.GetProject(projectName)
 	if err != nil {
 		if errors.IsNotFoundError(err) {
-			return false, nil
+			tfState.RemoveResource(ctx)
+			return nil
 		}
 
-		return true, diag.Diagnostics{
-			diag.NewErrorDiagnostic(fmt.Sprintf("Failed to retrieve project %q", projectName), err.Error()),
-		}
+		respDiags.AddError(fmt.Sprintf("Failed to retrieve project %q", projectName), err.Error())
+		return respDiags
 	}
 
 	// Extract user defined config and merge it with current config state.
 	usrConfig, diags := common.ToConfigMap(ctx, m.Config)
-	if diags.HasError() {
-		return true, diags
-	}
+	respDiags.Append(diags...)
 
 	stateConfig := common.StripConfig(project.Config, usrConfig, m.ComputedKeys())
 
 	// Convert config state into schema type.
 	config, diags := common.ToConfigMapType(ctx, stateConfig)
-	if diags.HasError() {
-		return true, diags
-	}
+	respDiags.Append(diags...)
 
 	m.Name = types.StringValue(project.Name)
 	m.Description = types.StringValue(project.Description)
 	m.Config = config
 
-	return true, nil
+	if respDiags.HasError() {
+		return respDiags
+	}
+
+	return tfState.Set(ctx, &m)
 }
 
 // ComputedKeys returns list of computed config keys.

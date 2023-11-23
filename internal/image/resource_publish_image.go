@@ -23,6 +23,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringdefault"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
+	"github.com/hashicorp/terraform-plugin-framework/tfsdk"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/terraform-lxd/terraform-provider-lxd/internal/common"
 	"github.com/terraform-lxd/terraform-provider-lxd/internal/errors"
@@ -201,7 +202,6 @@ func (r *PublishImageResource) Configure(_ context.Context, req resource.Configu
 func (r PublishImageResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
 	var plan PublishImageModel
 
-	// Fetch resource model from Terraform plan.
 	diags := req.Plan.Get(ctx, &plan)
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
@@ -209,16 +209,11 @@ func (r PublishImageResource) Create(ctx context.Context, req resource.CreateReq
 	}
 
 	remote := plan.Remote.ValueString()
-	server, err := r.provider.InstanceServer(remote)
+	project := plan.Project.ValueString()
+	server, err := r.provider.InstanceServer(remote, project, "")
 	if err != nil {
 		resp.Diagnostics.Append(errors.NewInstanceServerError(err))
 		return
-	}
-
-	// Set project if configured.
-	project := plan.Project.ValueString()
-	if project != "" {
-		server = server.UseProject(project)
 	}
 
 	instanceName := plan.Instance.ValueString()
@@ -295,67 +290,45 @@ func (r PublishImageResource) Create(ctx context.Context, req resource.CreateReq
 	imageID := createImageResourceID(remote, imageFingerprint)
 	plan.ResourceID = types.StringValue(imageID)
 
-	_, diags = plan.Sync(ctx, server)
-	resp.Diagnostics.Append(diags...)
-	if diags.HasError() {
-		return
-	}
-
 	// Update Terraform state.
-	diags = resp.State.Set(ctx, &plan)
+	diags = r.SyncState(ctx, &resp.State, server, plan)
 	resp.Diagnostics.Append(diags...)
 }
 
 func (r PublishImageResource) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
 	var state PublishImageModel
 
-	// Fetch resource model from Terraform state.
 	diags := req.State.Get(ctx, &state)
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
 
-	server, err := r.provider.InstanceServer(state.Remote.ValueString())
+	remote := state.Remote.ValueString()
+	project := state.Project.ValueString()
+	server, err := r.provider.InstanceServer(remote, project, "")
 	if err != nil {
 		resp.Diagnostics.Append(errors.NewInstanceServerError(err))
 		return
 	}
 
-	// Set project if configured.
-	project := state.Project.ValueString()
-	if project != "" {
-		server = server.UseProject(project)
-	}
-
-	found, diags := state.Sync(ctx, server)
-	resp.Diagnostics.Append(diags...)
-	if diags.HasError() {
-		return
-	}
-
-	// Remove resource state if resource is not found.
-	if !found {
-		resp.State.RemoveResource(ctx)
-		return
-	}
-
 	// Update Terraform state.
-	diags = resp.State.Set(ctx, &state)
+	diags = r.SyncState(ctx, &resp.State, server, state)
 	resp.Diagnostics.Append(diags...)
 }
 
 func (r PublishImageResource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
 	var plan PublishImageModel
 
-	// Fetch resource model from Terraform plan.
 	diags := req.Plan.Get(ctx, &plan)
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
 
-	server, err := r.provider.InstanceServer(plan.Remote.ValueString())
+	remote := plan.Remote.ValueString()
+	project := plan.Project.ValueString()
+	server, err := r.provider.InstanceServer(remote, project, "")
 	if err != nil {
 		resp.Diagnostics.Append(errors.NewInstanceServerError(err))
 		return
@@ -412,37 +385,26 @@ func (r PublishImageResource) Update(ctx context.Context, req resource.UpdateReq
 		return
 	}
 
-	_, diags = plan.Sync(ctx, server)
-	resp.Diagnostics.Append(diags...)
-	if diags.HasError() {
-		return
-	}
-
 	// Update Terraform state.
-	diags = resp.State.Set(ctx, &plan)
+	diags = r.SyncState(ctx, &resp.State, server, plan)
 	resp.Diagnostics.Append(diags...)
 }
 
 func (r PublishImageResource) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {
 	var state PublishImageModel
 
-	// Fetch resource model from Terraform state.
 	diags := req.State.Get(ctx, &state)
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
 
-	server, err := r.provider.InstanceServer(state.Remote.ValueString())
+	remote := state.Remote.ValueString()
+	project := state.Project.ValueString()
+	server, err := r.provider.InstanceServer(remote, project, "")
 	if err != nil {
 		resp.Diagnostics.Append(errors.NewInstanceServerError(err))
 		return
-	}
-
-	// Set project if configured.
-	project := state.Project.ValueString()
-	if project != "" {
-		server = server.UseProject(project)
 	}
 
 	_, imageFingerprint := splitImageResourceID(state.ResourceID.ValueString())
@@ -459,22 +421,23 @@ func (r PublishImageResource) Delete(ctx context.Context, req resource.DeleteReq
 	}
 }
 
-// Sync pulls published image data from the server and updates
-// the model in-place.
-// This should be called before updating Terraform state.
-func (m *PublishImageModel) Sync(ctx context.Context, server lxd.InstanceServer) (bool, diag.Diagnostics) {
-	respDiags := diag.Diagnostics{}
+// SyncState fetches the server's current state for a published image and
+// updates the provided model. It then applies this updated model as the
+// new state in Terraform.
+func (_ PublishImageResource) SyncState(ctx context.Context, tfState *tfsdk.State, server lxd.InstanceServer, m PublishImageModel) diag.Diagnostics {
+	var respDiags diag.Diagnostics
 
 	_, imageFingerprint := splitImageResourceID(m.ResourceID.ValueString())
 
 	image, _, err := server.GetImage(imageFingerprint)
 	if err != nil {
 		if errors.IsNotFoundError(err) {
-			return false, nil
+			tfState.RemoveResource(ctx)
+			return nil
 		}
 
 		respDiags.AddError(fmt.Sprintf("Failed to retrieve published image"), err.Error())
-		return true, respDiags
+		return respDiags
 	}
 
 	configAliases, diags := ToAliasList(ctx, m.Aliases)
@@ -492,15 +455,15 @@ func (m *PublishImageModel) Sync(ctx context.Context, server lxd.InstanceServer)
 	aliasSet, diags := ToAliasSetType(ctx, aliases)
 	respDiags.Append(diags...)
 
-	if respDiags.HasError() {
-		return true, respDiags
-	}
-
 	m.Fingerprint = types.StringValue(image.Fingerprint)
 	m.Architecture = types.StringValue(image.Architecture)
 	m.CreatedAt = types.Int64Value(image.CreatedAt.Unix())
 	m.Public = types.BoolValue(image.Public)
 	m.Aliases = aliasSet
 
-	return true, nil
+	if respDiags.HasError() {
+		return respDiags
+	}
+
+	return tfState.Set(ctx, m)
 }
