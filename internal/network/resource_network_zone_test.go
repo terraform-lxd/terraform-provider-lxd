@@ -54,13 +54,14 @@ func TestAccNetworkZone_description(t *testing.T) {
 	})
 }
 
-// TODO:
-//   - Precheck "projects_networks_zones" extension
 func TestAccNetworkZone_project(t *testing.T) {
 	projectName := petname.Name()
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:                 func() { acctest.PreCheck(t) },
+		PreCheck: func() {
+			acctest.PreCheck(t)
+			acctest.PreCheckAPIExtensions(t, "projects_networks_zones")
+		},
 		ProtoV6ProviderFactories: acctest.ProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{

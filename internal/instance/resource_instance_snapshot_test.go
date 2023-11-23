@@ -32,8 +32,7 @@ func TestAccInstanceSnapshot_stateless(t *testing.T) {
 	})
 }
 
-// TODO:
-// - Requires CRIU
+// TODO: Test requires CRIU
 // func TestAccInstanceSnapshot_stateful(t *testing.T) {
 // 	instanceName := petname.Generate(2, "-")
 // 	snapshotName := petname.Generate(2, "-")

@@ -62,26 +62,27 @@ func TestAccStorageVolume_instanceAttach(t *testing.T) {
 	})
 }
 
-// TODO:
-// - clustering precheck
-// func TestAccStorageVolume_target(t *testing.T) {
-// 	volumeName := petname.Generate(2, "-")
+func TestAccStorageVolume_target(t *testing.T) {
+	volumeName := petname.Generate(2, "-")
 
-// 	resource.Test(t, resource.TestCase{
-// 		PreCheck:                 func() { acctest.PreCheck(t) },
-// 		ProtoV6ProviderFactories: acctest.ProtoV6ProviderFactories,
-// 		Steps: []resource.TestStep{
-// 			{
-// 				Config: testAccStorageVolume_target(volumeName),
-// 				Check: resource.ComposeTestCheckFunc(
-// 					resource.TestCheckResourceAttr("lxd_volume.volume1", "name", volumeName),
-// 					resource.TestCheckResourceAttr("lxd_volume.volume1", "pool", "default"),
-// 					resource.TestCheckResourceAttr("lxd_volume.volume1", "target", "node2"),
-// 				),
-// 			},
-// 		},
-// 	})
-// }
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			acctest.PreCheck(t)
+			acctest.PreCheckClustering(t)
+		},
+		ProtoV6ProviderFactories: acctest.ProtoV6ProviderFactories,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccStorageVolume_target(volumeName),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr("lxd_volume.volume1", "name", volumeName),
+					resource.TestCheckResourceAttr("lxd_volume.volume1", "pool", "default"),
+					resource.TestCheckResourceAttr("lxd_volume.volume1", "target", "node2"),
+				),
+			},
+		},
+	})
+}
 
 func TestAccStorageVolume_project(t *testing.T) {
 	volumeName := petname.Generate(2, "-")

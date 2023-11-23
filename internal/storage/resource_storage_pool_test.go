@@ -201,26 +201,27 @@ func TestAccStoragePool_project(t *testing.T) {
 	})
 }
 
-// TODO:
-//   - requires clustering precheck
-// func TestAccStoragePool_target(t *testing.T) {
-// 	poolName := petname.Generate(2, "-")
-// 	driverName := "dir"
+func TestAccStoragePool_target(t *testing.T) {
+	poolName := petname.Generate(2, "-")
+	driverName := "dir"
 
-// 	resource.Test(t, resource.TestCase{
-// 		PreCheck:                 func() { acctest.PreCheck(t) },
-// 		ProtoV6ProviderFactories: acctest.ProtoV6ProviderFactories,
-// 		Steps: []resource.TestStep{
-// 			{
-// 				Config: testAccStoragePool_target(poolName, driverName),
-// 				Check: resource.ComposeTestCheckFunc(
-// 					resource.TestCheckResourceAttr("lxd_storage_pool.storage_pool1", "name", poolName),
-// 					resource.TestCheckResourceAttr("lxd_storage_pool.storage_pool1", "driver", driverName),
-// 				),
-// 			},
-// 		},
-// 	})
-// }
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			acctest.PreCheck(t)
+			acctest.PreCheckClustering(t)
+		},
+		ProtoV6ProviderFactories: acctest.ProtoV6ProviderFactories,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccStoragePool_target(poolName, driverName),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr("lxd_storage_pool.storage_pool1", "name", poolName),
+					resource.TestCheckResourceAttr("lxd_storage_pool.storage_pool1", "driver", driverName),
+				),
+			},
+		},
+	})
+}
 
 func TestAccStoragePool_importBasic(t *testing.T) {
 	poolName := petname.Generate(2, "-")

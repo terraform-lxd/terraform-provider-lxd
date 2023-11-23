@@ -345,7 +345,7 @@ func (r StorageVolumeResource) ImportState(ctx context.Context, req resource.Imp
 // updates the provided model. It then applies this updated model as the
 // new state in Terraform.
 func (r StorageVolumeResource) SyncState(ctx context.Context, tfState *tfsdk.State, server lxd.InstanceServer, m StorageVolumeModel) diag.Diagnostics {
-	respDiags := diag.Diagnostics{}
+	var respDiags diag.Diagnostics
 
 	poolName := m.Pool.ValueString()
 	volName := m.Name.ValueString()

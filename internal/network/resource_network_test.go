@@ -133,26 +133,27 @@ func TestAccNetwork_typeMacvlan(t *testing.T) {
 	})
 }
 
-// TODO:
-//   - Precheck for clustered mode.
-// func TestAccNetwork_target(t *testing.T) {
-// 	resource.Test(t, resource.TestCase{
-// 		PreCheck:                 func() { acctest.PreCheck(t) },
-// 		ProtoV6ProviderFactories: acctest.ProtoV6ProviderFactories,
-// 		Steps: []resource.TestStep{
-// 			{
-// 				Config: testAccNetwork_target(),
-// 				Check: resource.ComposeTestCheckFunc(
-// 					resource.TestCheckResourceAttr("lxd_network.cluster_network_node1", "name", "cluster_network"),
-// 					resource.TestCheckResourceAttr("lxd_network.cluster_network_node2", "name", "cluster_network"),
-// 					resource.TestCheckResourceAttr("lxd_network.cluster_network", "name", "cluster_network"),
-// 					resource.TestCheckResourceAttr("lxd_network.cluster_network", "type", "bridge"),
-// 					resource.TestCheckResourceAttr("lxd_network.cluster_network", "config.ipv4.address", "10.150.19.1/24"),
-// 				),
-// 			},
-// 		},
-// 	})
-// }
+func TestAccNetwork_target(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			acctest.PreCheck(t)
+			acctest.PreCheckClustering(t)
+		},
+		ProtoV6ProviderFactories: acctest.ProtoV6ProviderFactories,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccNetwork_target(),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr("lxd_network.cluster_network_node1", "name", "cluster_network"),
+					resource.TestCheckResourceAttr("lxd_network.cluster_network_node2", "name", "cluster_network"),
+					resource.TestCheckResourceAttr("lxd_network.cluster_network", "name", "cluster_network"),
+					resource.TestCheckResourceAttr("lxd_network.cluster_network", "type", "bridge"),
+					resource.TestCheckResourceAttr("lxd_network.cluster_network", "config.ipv4.address", "10.150.19.1/24"),
+				),
+			},
+		},
+	})
+}
 
 func TestAccNetwork_project(t *testing.T) {
 	projectName := petname.Name()
