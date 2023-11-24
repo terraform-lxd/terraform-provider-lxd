@@ -77,7 +77,6 @@ func NewLxdProvider(lxdConfig *lxd_config.Config, refreshInterval time.Duration,
 		remotes:                 make(map[string]LxdProviderRemoteConfig),
 		servers:                 make(map[string]lxd.Server),
 	}
-
 }
 
 // InstanceServer returns a LXD InstanceServer client for the given remote.
@@ -102,7 +101,6 @@ func (p *LxdProviderConfig) InstanceServer(remoteName string, project string, ta
 	instServer = instServer.UseTarget(target)
 
 	return instServer, nil
-
 }
 
 // ImageServer returns a LXD ImageServer client for the given remote.
@@ -211,8 +209,8 @@ func (p *LxdProviderConfig) createLxdServerClient(remote LxdProviderRemoteConfig
 	p.setLxdConfigRemote(remote.Name, lxdRemote)
 
 	if remote.Scheme == "https" {
-		p.mux.RLock()
 		// If the LXD remote's certificate does not exist on the client...
+		p.mux.RLock()
 		certPath := p.lxdConfig.ServerCertPath(remote.Name)
 		p.mux.RUnlock()
 
@@ -228,7 +226,7 @@ func (p *LxdProviderConfig) createLxdServerClient(remote LxdProviderRemoteConfig
 				// Either PKI isn't being used or certificates haven't been
 				// exchanged. Try to add the remote server certificate.
 				if p.acceptServerCertificate {
-					err := fetchLxdServerCertificate(lxdRemote.Addr, certPath)
+					err := p.fetchLxdServerCertificate(remote.Name)
 					if err != nil {
 						return fmt.Errorf("Failed to get remote server certificate: %v", err)
 					}
@@ -262,16 +260,55 @@ func (p *LxdProviderConfig) createLxdServerClient(remote LxdProviderRemoteConfig
 	return nil
 }
 
-// connectToLxdServer makes a simple GET request to the servers API to ensure
-// connection can be successfully established.
-func connectToLxdServer(instServer lxd.InstanceServer) error {
-	if instServer == nil {
-		return fmt.Errorf("Instance server is nil")
-	}
+// fetchServerCertificate will attempt to retrieve a remote LXD server's
+// certificate and save it to the servercerts path.
+func (p *LxdProviderConfig) fetchLxdServerCertificate(remoteName string) error {
+	lxdRemote := p.getLxdConfigRemote(remoteName)
 
-	_, _, err := instServer.GetServer()
+	certificate, err := lxd_shared.GetRemoteCertificate(lxdRemote.Addr, "terraform-provider-lxd/2.0")
 	if err != nil {
 		return err
+	}
+
+	certDir := p.lxdConfig.ConfigPath("servercerts")
+	err = os.MkdirAll(certDir, 0750)
+	if err != nil {
+		return err
+	}
+
+	certPath := fmt.Sprintf("%s/%s.crt", certDir, remoteName)
+	certFile, err := os.Create(certPath)
+	if err != nil {
+		return err
+	}
+
+	defer certFile.Close()
+
+	return pem.Encode(certFile, &pem.Block{Type: "CERTIFICATE", Bytes: certificate.Raw})
+}
+
+// verifyLXDVersion verifies whether the version of target LXD server matches the
+// provider's required version contraint.
+func verifyLxdServerVersion(instServer lxd.InstanceServer) error {
+	server, _, err := instServer.GetServer()
+	if err != nil {
+		return err
+	}
+
+	serverVersion := server.Environment.ServerVersion
+	if serverVersion == "" {
+		// If server version is empty, it means that authentication
+		// has failed, therefore we can ignore version check.
+		return nil
+	}
+
+	ok, err := utils.CheckVersion(serverVersion, supportedLXDVersions)
+	if err != nil {
+		return err
+	}
+
+	if !ok {
+		return fmt.Errorf("LXD server with version %q does not meet the required version constraint: %q", serverVersion, supportedLXDVersions)
 	}
 
 	return nil
@@ -310,45 +347,16 @@ func authenticateToLxdServer(instServer lxd.InstanceServer, password string) err
 	return nil
 }
 
-// fetchServerCertificate will attempt to retrieve a remote LXD server's
-// certificate and save it to the servercerts path.
-func fetchLxdServerCertificate(address string, certPath string) error {
-	certificate, err := lxd_shared.GetRemoteCertificate(address, "terraform-provider-lxd/2.0")
+// connectToLxdServer makes a simple GET request to the servers API to ensure
+// connection can be successfully established.
+func connectToLxdServer(instServer lxd.InstanceServer) error {
+	if instServer == nil {
+		return fmt.Errorf("Instance server is nil")
+	}
+
+	_, _, err := instServer.GetServer()
 	if err != nil {
 		return err
-	}
-
-	err = os.MkdirAll(filepath.Dir(certPath), 0750)
-	if err != nil {
-		return fmt.Errorf("Failed to create server cert dir: %v", err)
-	}
-
-	certFile, err := os.Create(certPath)
-	if err != nil {
-		return err
-	}
-
-	defer certFile.Close()
-
-	return pem.Encode(certFile, &pem.Block{Type: "CERTIFICATE", Bytes: certificate.Raw})
-}
-
-// verifyLXDVersion verifies whether the version of target LXD server matches the
-// provider's required version contraint.
-func verifyLxdServerVersion(instServer lxd.InstanceServer) error {
-	server, _, err := instServer.GetServer()
-	if err != nil {
-		return err
-	}
-
-	serverVersion := server.Environment.ServerVersion
-	ok, err := utils.CheckVersion(serverVersion, supportedLXDVersions)
-	if err != nil {
-		return err
-	}
-
-	if !ok {
-		return fmt.Errorf("LXD server with version %q does not meet the required version constraint: %q", serverVersion, supportedLXDVersions)
 	}
 
 	return nil
@@ -457,7 +465,6 @@ func (p *LxdProviderConfig) SelectRemote(name string) string {
 func (p *LxdProviderConfig) getLxdConfigRemote(name string) lxd_config.Remote {
 	p.mux.RLock()
 	defer p.mux.RUnlock()
-
 	return p.lxdConfig.Remotes[name]
 }
 
@@ -465,7 +472,6 @@ func (p *LxdProviderConfig) getLxdConfigRemote(name string) lxd_config.Remote {
 func (p *LxdProviderConfig) setLxdConfigRemote(name string, remote lxd_config.Remote) {
 	p.mux.Lock()
 	defer p.mux.Unlock()
-
 	p.lxdConfig.Remotes[name] = remote
 }
 
@@ -474,9 +480,7 @@ func (p *LxdProviderConfig) setLxdConfigRemote(name string, remote lxd_config.Re
 func (p *LxdProviderConfig) getLxdConfigInstanceServer(remoteName string) (lxd.InstanceServer, error) {
 	p.mux.RLock()
 	defer p.mux.RUnlock()
-
-	instServer, err := p.lxdConfig.GetInstanceServer(remoteName)
-	return instServer, err
+	return p.lxdConfig.GetInstanceServer(remoteName)
 }
 
 // getLxdConfigImageServer will retrieve an LXD ImageServer client
@@ -484,9 +488,7 @@ func (p *LxdProviderConfig) getLxdConfigInstanceServer(remoteName string) (lxd.I
 func (p *LxdProviderConfig) getLxdConfigImageServer(remoteName string) (lxd.ImageServer, error) {
 	p.mux.RLock()
 	defer p.mux.RUnlock()
-
-	imgServer, err := p.lxdConfig.GetImageServer(remoteName)
-	return imgServer, err
+	return p.lxdConfig.GetImageServer(remoteName)
 }
 
 // RefreshInterval returns a time interval on which provider should
