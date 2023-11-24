@@ -213,11 +213,32 @@ The following attributes are exported:
 
 ## Importing
 
-Networks can be imported with the following command:
+Import ID syntax: `[<remote>:][<project>/]<name>`
 
-```shell
-$ terraform import lxd_network.my_network [<remote>:][<project>/]<network_name>
-```
+* `<remote>` - *Optional* - Remote name.
+* `<project>` - *Optional* - Project name.
+* `<name>` - **Required** - Network name.
 
 -> Clustered networks cannot be imported.
 
+### Import example
+
+Example using terraform import command:
+
+```shell
+$ terraform import lxd_network.mynet proj/net1
+```
+
+Example using the import block (only available in Terraform v1.5.0 and later):
+
+```hcl
+resource "lxd_network" "mynet" {
+  name    = "net1"
+  project = "proj"
+}
+
+import {
+    to = lxd_network.mynet
+    id = "proj/net1"
+}
+```

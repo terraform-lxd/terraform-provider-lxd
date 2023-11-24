@@ -58,4 +58,4 @@ The following attributes are exported:
 
 ## Notes
 
-* The container must be stopped
+* Image can be published only if the container is stopped.

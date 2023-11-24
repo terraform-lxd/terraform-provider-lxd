@@ -181,9 +181,36 @@ resource "lxd_instance" "instance1" {
 
 ## Importing
 
-Existing instances can be imported with the following syntax:
+Import ID syntax: `[<remote>:][<project>/]<name>[,image=<image>]`
+
+* `<remote>` - *Optional* - Remote name.
+* `<project>` - *Optional* - Project name.
+* `<name>` - **Required** - Instance name.
+* `image=<image>` - *Optional* - The image used by the instance.
+
+~> **Warning:** Importing the instance without specifying `image` will lead to its replacement
+   upon the next apply, rather than an in-place update.
+
+### Import example
+
+Example using terraform import command:
 
 ```shell
-$ terraform import lxd_instance.my_instance [<remote>:][<project>/]<instance_name>
+$ terraform import lxd_instance.myinst proj/c1,image=images:alpine/3.18/amd64
+```
+
+Example using the import block (only available in Terraform v1.5.0 and later):
+
+```hcl
+resource "lxd_instance" "myinst" {
+  name    = "c1"
+  project = "proj"
+  image   = "images:alpine/3.18/amd64"
+}
+
+import {
+    to = lxd_instance.myinst
+    id = "proj/c1,image=images:alpine/3.18/amd64"
+}
 ```
 

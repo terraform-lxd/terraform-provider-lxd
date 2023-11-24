@@ -70,8 +70,33 @@ for more details on how to create a storage pool in clustered mode.
 
 ## Importing
 
-Storage pools can be imported with the following command:
+Import ID syntax: `[<remote>:][<project>/]<name>`
+
+* `<remote>` - *Optional* - Remote name.
+* `<project>` - *Optional* - Project name.
+* `<name>` - **Required** - Storage pool name.
+
+-> Clustered networks cannot be imported.
+
+### Import example
+
+Example using terraform import command:
 
 ```shell
-$ terraform import lxd_storage_pool.my_pool [<remote>:][<project>/]<pool_name>
+$ terraform import lxd_storage_pool.mypool proj/pool1
+```
+
+Example using the import block (only available in Terraform v1.5.0 and later):
+
+```hcl
+resource "lxd_storage_pool" "mypool" {
+  name    = "pool1"
+  project = "proj"
+  driver  = "zfs"
+}
+
+import {
+    to = lxd_storage_pool.mypool
+    id = "proj/pool1"
+}
 ```

@@ -70,9 +70,32 @@ No attributes are exported.
 
 ## Importing
 
-Network zone records can be imported with the following command:
+Import ID syntax: `[<remote>:][<project>]/<zone>/<name>`
+
+* `<remote>` - *Optional* - Remote name.
+* `<project>` - *Optional* - Project name.
+* `<zone>` - **Required** - Network zone name.
+* `<name>` - **Required** - Network zone record name.
+
+### Import example
+
+Example using terraform import command:
 
 ```shell
-$ terraform import lxd_network_zone_record.my_record [<remote>:][<project>]/<zone_name>/<record_name>
+$ terraform import lxd_network_zone_record.myrecord proj/zone1/record1
 ```
 
+Example using the import block (only available in Terraform v1.5.0 and later):
+
+```hcl
+resource "lxd_network_zone_record" "myrecord" {
+  name    = "record1"
+  zone    = "zone1"
+  project = "proj"
+}
+
+import {
+    to = lxd_network_zone_record.myrecord
+    id = "proj/zone1/record1"
+}
+```

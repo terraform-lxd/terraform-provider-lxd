@@ -77,6 +77,36 @@ Profiles can be imported with the following command:
 $ terraform import lxd_profile.my_profile [<remote>:][<project>/]<profile_name>
 ```
 
+## Importing
+
+Import ID syntax: `[<remote>:][<project>/]<name>`
+
+* `<remote>` - *Optional* - Remote name.
+* `<project>` - *Optional* - Project name.
+* `<name>` - **Required** - Profile name.
+
+### Import example
+
+Example using terraform import command:
+
+```shell
+$ terraform import lxd_profile.myprofile proj/profile1
+```
+
+Example using the import block (only available in Terraform v1.5.0 and later):
+
+```hcl
+resource "lxd_profile" "myprofile" {
+  name    = "profile1"
+  project = "proj"
+}
+
+import {
+    to = lxd_profile.myprofile
+    id = "proj/profile1"
+}
+```
+
 ## Notes
 
 * The order in which profiles are specified is important. LXD applies profiles

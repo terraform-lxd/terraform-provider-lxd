@@ -49,13 +49,42 @@ The following attributes are exported:
 
 ## Importing
 
-Storage pool volumes can be imported with the following command:
+Import ID syntax: `[<remote>:][<project>]/<pool>/<name>[,content_type=<ct>]`
+
+* `<remote>` - *Optional* - Remote name.
+* `<project>` - *Optional* - Project name.
+* `<pool>` - **Required** - Storage pool name.
+* `<name>` - **Required** - Volume name.
+* `content_type=<ct>` - *Optional* - Content type of the volume.
+
+-> Currently, only volumes of type `custom` can be imported.
+
+~> **Warning:** Importing the volume without specifying `content_type` will lead to its replacement
+   upon the next apply, rather than an in-place update.
+
+### Import example
+
+Example using terraform import command:
 
 ```shell
-$ terraform import lxd_volume.my_vol [<remote>:][<project>]/<pool_name>/<volume_name>
+$ terraform import lxd_volume.myvol proj/pool1/vol1,content_type=filesystem
 ```
 
--> Only volumes of type `custom` can be imported.
+Example using the import block (only available in Terraform v1.5.0 and later):
+
+```hcl
+resource "lxd_volume" "myvol" {
+  name    = "vol1"
+  pool    = "pool1"
+  project = "proj"
+}
+
+import {
+    to = lxd_volume.myvol
+    id = "proj/pool1/vol1,content_type=filesystem"
+}
+```
+
 
 ## Notes
 
