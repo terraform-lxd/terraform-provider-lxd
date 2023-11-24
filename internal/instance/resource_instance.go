@@ -282,7 +282,9 @@ func (r InstanceResource) Schema(_ context.Context, _ resource.SchemaRequest, re
 						"mode": schema.StringAttribute{
 							Optional: true,
 							Computed: true,
-							Default:  stringdefault.StaticString("0775"),
+							PlanModifiers: []planmodifier.String{
+								stringplanmodifier.UseStateForUnknown(),
+							},
 						},
 
 						"create_directories": schema.BoolAttribute{

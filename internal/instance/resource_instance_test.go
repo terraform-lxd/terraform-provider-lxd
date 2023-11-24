@@ -406,29 +406,28 @@ func TestAccInstance_fileUploadContent(t *testing.T) {
 	})
 }
 
-// TODO: Plan is flip-flopping on file mode (between computed and actual mode).
-// func TestAccInstance_fileUploadSource(t *testing.T) {
-// 	instanceName := petname.Generate(2, "-")
+func TestAccInstance_fileUploadSource(t *testing.T) {
+	instanceName := petname.Generate(2, "-")
 
-// 	resource.Test(t, resource.TestCase{
-// 		PreCheck:                 func() { acctest.PreCheck(t) },
-// 		ProtoV6ProviderFactories: acctest.ProtoV6ProviderFactories,
-// 		Steps: []resource.TestStep{
-// 			{
-// 				Config: testAccInstance_fileUploadSource(instanceName),
-// 				Check: resource.ComposeTestCheckFunc(
-// 					resource.TestCheckResourceAttr("lxd_instance.instance1", "name", instanceName),
-// 					resource.TestCheckResourceAttr("lxd_instance.instance1", "status", "Running"),
-// 					resource.TestCheckResourceAttr("lxd_instance.instance1", "file.#", "1"),
-// 					resource.TestCheckResourceAttr("lxd_instance.instance1", "file.0.mode", "0644"),
-// 					resource.TestCheckResourceAttr("lxd_instance.instance1", "file.0.source", "../acctest/fixtures/test-file.txt"),
-// 					resource.TestCheckResourceAttr("lxd_instance.instance1", "file.0.target_file", "/foo/bar.txt"),
-// 					resource.TestCheckResourceAttr("lxd_instance.instance1", "file.0.create_directories", "true"),
-// 				),
-// 			},
-// 		},
-// 	})
-// }
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { acctest.PreCheck(t) },
+		ProtoV6ProviderFactories: acctest.ProtoV6ProviderFactories,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccInstance_fileUploadSource(instanceName),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr("lxd_instance.instance1", "name", instanceName),
+					resource.TestCheckResourceAttr("lxd_instance.instance1", "status", "Running"),
+					resource.TestCheckResourceAttr("lxd_instance.instance1", "file.#", "1"),
+					resource.TestCheckResourceAttr("lxd_instance.instance1", "file.0.mode", "0644"),
+					resource.TestCheckResourceAttr("lxd_instance.instance1", "file.0.source", "../acctest/fixtures/test-file.txt"),
+					resource.TestCheckResourceAttr("lxd_instance.instance1", "file.0.target_file", "/foo/bar.txt"),
+					resource.TestCheckResourceAttr("lxd_instance.instance1", "file.0.create_directories", "true"),
+				),
+			},
+		},
+	})
+}
 
 func TestAccInstance_configLimits(t *testing.T) {
 	instanceName := petname.Generate(2, "-")
