@@ -39,5 +39,5 @@ func testProvider() *provider_config.LxdProviderConfig {
 // CLI command executed to create a provider server to which the CLI can
 // reattach.
 var ProtoV6ProviderFactories = map[string]func() (tfprotov6.ProviderServer, error){
-	"lxd": providerserver.NewProtocol6WithError(provider.NewLxdProvider("test")()),
+	"lxd": providerserver.NewProtocol6WithError(provider.NewLxdProvider("test", "2s")()),
 }

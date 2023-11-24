@@ -48,13 +48,21 @@ type LxdProviderModel struct {
 
 // LxdProvider ...
 type LxdProvider struct {
-	version string
+	version         string
+	refreshInterval string
 }
 
 // New returns LXD provider with the given version set.
-func NewLxdProvider(version string) func() provider.Provider {
+func NewLxdProvider(version string, refreshInterval string) func() provider.Provider {
+	if refreshInterval == "" {
+		refreshInterval = "10s"
+	}
+
 	return func() provider.Provider {
-		return &LxdProvider{version: version}
+		return &LxdProvider{
+			version:         version,
+			refreshInterval: refreshInterval,
+		}
 	}
 }
 
@@ -97,25 +105,14 @@ func (p *LxdProvider) Schema(_ context.Context, _ provider.SchemaRequest, resp *
 				Description: "LXD Remote",
 				NestedObject: schema.NestedBlockObject{
 					Attributes: map[string]schema.Attribute{
-						"address": schema.StringAttribute{
-							Optional:    true,
-							Description: "The FQDN or IP where the LXD daemon can be contacted. (default = \"\" (read from lxc config))",
-						},
-
-						"default": schema.BoolAttribute{
-							Optional:    true,
-							Description: "Set this remote as default.",
-						},
-
 						"name": schema.StringAttribute{
 							Required:    true,
 							Description: "Name of the LXD remote. Required when lxd_scheme set to https, to enable locating server certificate.",
 						},
 
-						"password": schema.StringAttribute{
+						"address": schema.StringAttribute{
 							Optional:    true,
-							Sensitive:   true,
-							Description: "The password for the remote.",
+							Description: "The FQDN or IP where the LXD daemon can be contacted. (default = \"\" (read from lxc config))",
 						},
 
 						"port": schema.StringAttribute{
@@ -129,6 +126,17 @@ func (p *LxdProvider) Schema(_ context.Context, _ provider.SchemaRequest, resp *
 							Validators: []validator.String{
 								stringvalidator.OneOf("unix", "https"),
 							},
+						},
+
+						"password": schema.StringAttribute{
+							Optional:    true,
+							Sensitive:   true,
+							Description: "The password for the remote.",
+						},
+
+						"default": schema.BoolAttribute{
+							Optional:    true,
+							Description: "Set this remote as default.",
 						},
 					},
 				},
@@ -171,7 +179,7 @@ func (p *LxdProvider) Configure(ctx context.Context, req provider.ConfigureReque
 	// Determine custom refresh interval. Default is 10 seconds.
 	refreshIntervalString := data.RefreshInterval.ValueString()
 	if refreshIntervalString == "" {
-		refreshIntervalString = "10s"
+		refreshIntervalString = p.refreshInterval
 	}
 
 	refreshInterval, err := time.ParseDuration(refreshIntervalString)

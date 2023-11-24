@@ -24,11 +24,12 @@ func main() {
 	flag.Parse()
 
 	opts := providerserver.ServeOpts{
-		Address: "registry.terraform.io/terraform-lxd/lxd",
-		Debug:   debug,
+		Address:         "registry.terraform.io/terraform-lxd/lxd",
+		Debug:           debug,
+		ProtocolVersion: 6,
 	}
 
-	err := providerserver.Serve(context.Background(), provider.NewLxdProvider("dev"), opts)
+	err := providerserver.Serve(context.Background(), provider.NewLxdProvider("dev", "10s"), opts)
 	if err != nil {
 		log.Fatal(err.Error())
 	}
