@@ -271,21 +271,20 @@ func (r StoragePoolResource) Delete(ctx context.Context, req resource.DeleteRequ
 }
 
 func (r StoragePoolResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
-	remote, project, name, diag := common.SplitImportID(req.ID, "storage_pool")
+	meta := common.ImportMetadata{
+		ResourceName:   "storage_pool",
+		RequiredFields: []string{"name"},
+	}
+
+	fields, diag := meta.ParseImportID(req.ID)
 	if diag != nil {
 		resp.Diagnostics.Append(diag)
 		return
 	}
 
-	if remote != "" {
-		resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("remote"), remote)...)
+	for k, v := range fields {
+		resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root(k), v)...)
 	}
-
-	if project != "" {
-		resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("project"), project)...)
-	}
-
-	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("name"), name)...)
 }
 
 // SyncState fetches the server's current state for a storage pool and updates

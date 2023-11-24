@@ -291,21 +291,20 @@ func (r ProfileResource) Delete(ctx context.Context, req resource.DeleteRequest,
 }
 
 func (r ProfileResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
-	remote, project, name, diag := common.SplitImportID(req.ID, "profile")
+	meta := common.ImportMetadata{
+		ResourceName:   "profile",
+		RequiredFields: []string{"name"},
+	}
+
+	fields, diag := meta.ParseImportID(req.ID)
 	if diag != nil {
 		resp.Diagnostics.Append(diag)
 		return
 	}
 
-	if remote != "" {
-		resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("remote"), remote)...)
+	for k, v := range fields {
+		resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root(k), v)...)
 	}
-
-	if project != "" {
-		resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("project"), project)...)
-	}
-
-	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("name"), name)...)
 }
 
 // SyncState fetches the server's current state for a profile and updates

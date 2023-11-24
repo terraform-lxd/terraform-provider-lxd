@@ -3,7 +3,6 @@ package storage
 import (
 	"context"
 	"fmt"
-	"strings"
 
 	lxd "github.com/canonical/lxd/client"
 	"github.com/canonical/lxd/shared/api"
@@ -309,36 +308,24 @@ func (r StorageVolumeResource) Delete(ctx context.Context, req resource.DeleteRe
 }
 
 func (r StorageVolumeResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
-	remote, project, name, diag := common.SplitImportID(req.ID, "volume")
+	meta := common.ImportMetadata{
+		ResourceName:   "volume",
+		RequiredFields: []string{"pool", "name"},
+		AllowedOptions: []string{"content_type"},
+	}
+
+	fields, diag := meta.ParseImportID(req.ID)
 	if diag != nil {
 		resp.Diagnostics.Append(diag)
 		return
 	}
 
-	// Split name into pool and volume name.
-	split := strings.SplitN(name, "/", 2)
-	if len(split) != 2 {
-		resp.Diagnostics.AddError(
-			fmt.Sprintf("Invalid import format: %q", req.ID),
-			"Valid import:\nimport lxd_volume.<resource_name> [<remote>:][<project>]/<pool_name>/<volume_name>",
-		)
-		return
+	for k, v := range fields {
+		resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root(k), v)...)
 	}
 
-	poolName := split[0]
-	volName := split[1]
-
-	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("pool"), poolName)...)
-	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("name"), volName)...)
+	// Currently, only "custom" volumes can be imported.
 	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("type"), "custom")...)
-
-	if remote != "" {
-		resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("remote"), remote)...)
-	}
-
-	if project != "" {
-		resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("project"), project)...)
-	}
 }
 
 // SyncState fetches the server's current state for a storage volume and

@@ -177,38 +177,6 @@ func (r InstanceResource) Schema(_ context.Context, _ resource.SchemaRequest, re
 				},
 			},
 
-			// Output.
-			"ipv4_address": schema.StringAttribute{
-				Computed: true,
-				PlanModifiers: []planmodifier.String{
-					stringplanmodifier.UseStateForUnknown(),
-				},
-			},
-
-			// Output.
-			"ipv6_address": schema.StringAttribute{
-				Computed: true,
-				PlanModifiers: []planmodifier.String{
-					stringplanmodifier.UseStateForUnknown(),
-				},
-			},
-
-			// Output.
-			"mac_address": schema.StringAttribute{
-				Computed: true,
-				PlanModifiers: []planmodifier.String{
-					stringplanmodifier.UseStateForUnknown(),
-				},
-			},
-
-			// Output.
-			"status": schema.StringAttribute{
-				Computed: true,
-				PlanModifiers: []planmodifier.String{
-					stringplanmodifier.UseStateForUnknown(),
-				},
-			},
-
 			"config": schema.MapAttribute{
 				Optional:    true,
 				Computed:    true,
@@ -216,6 +184,36 @@ func (r InstanceResource) Schema(_ context.Context, _ resource.SchemaRequest, re
 				Default:     mapdefault.StaticValue(types.MapValueMust(types.StringType, map[string]attr.Value{})),
 				Validators: []validator.Map{
 					mapvalidator.KeysAre(configKeyValidator{}),
+				},
+			},
+
+			// Computed.
+
+			"ipv4_address": schema.StringAttribute{
+				Computed: true,
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.UseStateForUnknown(),
+				},
+			},
+
+			"ipv6_address": schema.StringAttribute{
+				Computed: true,
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.UseStateForUnknown(),
+				},
+			},
+
+			"mac_address": schema.StringAttribute{
+				Computed: true,
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.UseStateForUnknown(),
+				},
+			},
+
+			"status": schema.StringAttribute{
+				Computed: true,
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.UseStateForUnknown(),
 				},
 			},
 		},
@@ -757,21 +755,21 @@ func (r InstanceResource) Delete(ctx context.Context, req resource.DeleteRequest
 }
 
 func (r *InstanceResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
-	remote, project, name, diag := common.SplitImportID(req.ID, "instance")
+	meta := common.ImportMetadata{
+		ResourceName:   "instance",
+		RequiredFields: []string{"name"},
+		AllowedOptions: []string{"image"},
+	}
+
+	fields, diag := meta.ParseImportID(req.ID)
 	if diag != nil {
 		resp.Diagnostics.Append(diag)
 		return
 	}
 
-	if remote != "" {
-		resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("remote"), remote)...)
+	for k, v := range fields {
+		resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root(k), v)...)
 	}
-
-	if project != "" {
-		resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("project"), project)...)
-	}
-
-	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("name"), name)...)
 }
 
 // SyncState fetches the server's current state for an instance and updates

@@ -3,7 +3,6 @@ package network
 import (
 	"context"
 	"fmt"
-	"strings"
 
 	lxd "github.com/canonical/lxd/client"
 	"github.com/canonical/lxd/shared/api"
@@ -304,35 +303,20 @@ func (r NetworkZoneRecordResource) Delete(ctx context.Context, req resource.Dele
 }
 
 func (r NetworkZoneRecordResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
-	remote, project, name, diag := common.SplitImportID(req.ID, "network_zone_record")
+	meta := common.ImportMetadata{
+		ResourceName:   "network_zone_record",
+		RequiredFields: []string{"zone", "name"},
+	}
+
+	fields, diag := meta.ParseImportID(req.ID)
 	if diag != nil {
 		resp.Diagnostics.Append(diag)
 		return
 	}
 
-	// Split name into network zone name and record name.
-	split := strings.SplitN(name, "/", 2)
-	if len(split) != 2 {
-		resp.Diagnostics.AddError(
-			fmt.Sprintf("Invalid import format: %q", req.ID),
-			"Valid import:\nimport lxd_network_zone_record.<resource_name> [<remote>:][<project>]/<zone_name>/<record_name>",
-		)
-		return
+	for k, v := range fields {
+		resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root(k), v)...)
 	}
-
-	zoneName := split[0]
-	recordName := split[1]
-
-	if remote != "" {
-		resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("remote"), remote)...)
-	}
-
-	if project != "" {
-		resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("project"), project)...)
-	}
-
-	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("name"), recordName)...)
-	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("zone"), zoneName)...)
 }
 
 // SyncState fetches the server's current state for a network zone record and
