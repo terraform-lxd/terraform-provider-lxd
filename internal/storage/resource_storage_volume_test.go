@@ -77,7 +77,7 @@ func TestAccStorageVolume_target(t *testing.T) {
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("lxd_volume.volume1", "name", volumeName),
 					resource.TestCheckResourceAttr("lxd_volume.volume1", "pool", "default"),
-					resource.TestCheckResourceAttr("lxd_volume.volume1", "target", "node2"),
+					resource.TestCheckResourceAttr("lxd_volume.volume1", "target", "node-2"),
 				),
 			},
 		},
@@ -220,8 +220,8 @@ func testAccStorageVolume_target(volumeName string) string {
 	return fmt.Sprintf(`
 resource "lxd_volume" "volume1" {
   name   = "%s"
-  target = "node2"
   pool   = "default"
+  target = "node-2"
 }
 	`, volumeName)
 }

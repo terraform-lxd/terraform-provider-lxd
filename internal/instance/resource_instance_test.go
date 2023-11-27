@@ -505,7 +505,13 @@ func TestAccInstance_target(t *testing.T) {
 			{
 				Config: testAccInstance_target(instanceName, "node-2"),
 				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr("lxd_instance.instance1", "name", fmt.Sprintf("%s-1", instanceName)),
+					resource.TestCheckResourceAttr("lxd_instance.instance1", "status", "Running"),
+					resource.TestCheckResourceAttr("lxd_instance.instance1", "image", "images:alpine/3.18/amd64"),
 					resource.TestCheckResourceAttr("lxd_instance.instance1", "target", "node-2"),
+					resource.TestCheckResourceAttr("lxd_instance.instance2", "name", fmt.Sprintf("%s-2", instanceName)),
+					resource.TestCheckResourceAttr("lxd_instance.instance2", "status", "Running"),
+					resource.TestCheckResourceAttr("lxd_instance.instance2", "image", "images:alpine/3.18/amd64"),
 					resource.TestCheckResourceAttr("lxd_instance.instance2", "target", "node-2"),
 				),
 			},

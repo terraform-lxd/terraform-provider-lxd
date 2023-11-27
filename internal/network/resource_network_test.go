@@ -134,6 +134,8 @@ func TestAccNetwork_typeMacvlan(t *testing.T) {
 }
 
 func TestAccNetwork_target(t *testing.T) {
+	networkName := petname.Name()
+
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			acctest.PreCheck(t)
@@ -142,11 +144,15 @@ func TestAccNetwork_target(t *testing.T) {
 		ProtoV6ProviderFactories: acctest.ProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccNetwork_target(),
+				Config: testAccNetwork_target(networkName),
 				Check: resource.ComposeTestCheckFunc(
-					resource.TestCheckResourceAttr("lxd_network.cluster_network_node1", "name", "cluster_network"),
-					resource.TestCheckResourceAttr("lxd_network.cluster_network_node2", "name", "cluster_network"),
-					resource.TestCheckResourceAttr("lxd_network.cluster_network", "name", "cluster_network"),
+					resource.TestCheckResourceAttr("lxd_network.cluster_network_node1", "name", networkName),
+					resource.TestCheckResourceAttr("lxd_network.cluster_network_node1", "target", "node-1"),
+					resource.TestCheckResourceAttr("lxd_network.cluster_network_node1", "config.bridge.external_interfaces", "nosuchint"),
+					resource.TestCheckResourceAttr("lxd_network.cluster_network_node2", "name", networkName),
+					resource.TestCheckResourceAttr("lxd_network.cluster_network_node2", "target", "node-2"),
+					resource.TestCheckResourceAttr("lxd_network.cluster_network_node2", "config.bridge.external_interfaces", "nosuchint"),
+					resource.TestCheckResourceAttr("lxd_network.cluster_network", "name", networkName),
 					resource.TestCheckResourceAttr("lxd_network.cluster_network", "type", "bridge"),
 					resource.TestCheckResourceAttr("lxd_network.cluster_network", "config.ipv4.address", "10.150.19.1/24"),
 				),
@@ -361,11 +367,11 @@ resource "lxd_network" "eth1" {
 `
 }
 
-func testAccNetwork_target() string {
-	return `
+func testAccNetwork_target(networkName string) string {
+	return fmt.Sprintf(`
 resource "lxd_network" "cluster_network_node1" {
-  name   = "cluster_network"
-  target = "node1"
+  name   = "%[1]s"
+  target = "node-1"
 
   config = {
     "bridge.external_interfaces" = "nosuchint"
@@ -373,8 +379,8 @@ resource "lxd_network" "cluster_network_node1" {
 }
 
 resource "lxd_network" "cluster_network_node2" {
-  name   = "cluster_network"
-  target = "node2"
+  name   = "%[1]s"
+  target = "node-2"
 
   config = {
     "bridge.external_interfaces" = "nosuchint"
@@ -392,7 +398,7 @@ resource "lxd_network" "cluster_network" {
     "ipv4.address" = "10.150.19.1/24"
   }
 }
-`
+`, networkName)
 }
 
 func testAccNetwork_project(project string) string {

@@ -266,6 +266,12 @@ func (r StoragePoolResource) Delete(ctx context.Context, req resource.DeleteRequ
 	poolName := state.Name.ValueString()
 	err = server.DeleteStoragePool(poolName)
 	if err != nil {
+		// When clustered storage pool is removed, per target storage
+		// pools will no longer exist.
+		if errors.IsNotFoundError(err) {
+			return
+		}
+
 		resp.Diagnostics.AddError(fmt.Sprintf("Failed to remove storage pool %q", poolName), err.Error())
 	}
 }

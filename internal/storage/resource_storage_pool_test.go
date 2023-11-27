@@ -215,6 +215,12 @@ func TestAccStoragePool_target(t *testing.T) {
 			{
 				Config: testAccStoragePool_target(poolName, driverName),
 				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr("lxd_storage_pool.storage_pool1_node2", "name", poolName),
+					resource.TestCheckResourceAttr("lxd_storage_pool.storage_pool1_node2", "driver", driverName),
+					resource.TestCheckResourceAttr("lxd_storage_pool.storage_pool1_node1", "target", "node-1"),
+					resource.TestCheckResourceAttr("lxd_storage_pool.storage_pool1_node2", "name", poolName),
+					resource.TestCheckResourceAttr("lxd_storage_pool.storage_pool1_node2", "driver", driverName),
+					resource.TestCheckResourceAttr("lxd_storage_pool.storage_pool1_node2", "target", "node-2"),
 					resource.TestCheckResourceAttr("lxd_storage_pool.storage_pool1", "name", poolName),
 					resource.TestCheckResourceAttr("lxd_storage_pool.storage_pool1", "driver", driverName),
 				),
@@ -337,13 +343,13 @@ func testAccStoragePool_target(name, driver string) string {
 resource "lxd_storage_pool" "storage_pool1_node1" {
   name   = "%[1]s"
   driver = "%[2]s"
-  target = "node1"
+  target = "node-1"
 }
 
 resource "lxd_storage_pool" "storage_pool1_node2" {
   name   = "%[1]s"
   driver = "%[2]s"
-  target = "node2"
+  target = "node-2"
 }
 
 resource "lxd_storage_pool" "storage_pool1" {

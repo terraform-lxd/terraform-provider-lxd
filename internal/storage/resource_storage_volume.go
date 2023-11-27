@@ -134,7 +134,8 @@ func (r StorageVolumeResource) Schema(_ context.Context, _ resource.SchemaReques
 			// Computed.
 
 			"location": schema.StringAttribute{
-				Optional: true,
+				Computed: true,
+				Default:  stringdefault.StaticString(""),
 			},
 		},
 	}

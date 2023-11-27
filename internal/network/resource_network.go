@@ -276,6 +276,12 @@ func (r NetworkResource) Delete(ctx context.Context, req resource.DeleteRequest,
 	networkName := state.Name.ValueString()
 	err = server.DeleteNetwork(networkName)
 	if err != nil {
+		// When clustered network is removed, per target networks
+		// will no longer exist.
+		if errors.IsNotFoundError(err) {
+			return
+		}
+
 		resp.Diagnostics.AddError(fmt.Sprintf("Failed to remove network %q", networkName), err.Error())
 	}
 }
