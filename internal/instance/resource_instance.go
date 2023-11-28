@@ -303,7 +303,7 @@ func (r InstanceResource) Schema(_ context.Context, _ resource.SchemaRequest, re
 
 func (r *InstanceResource) Configure(_ context.Context, req resource.ConfigureRequest, resp *resource.ConfigureResponse) {
 	// Set instance update timeout (for starting/stopping the instance).
-	r.updateTimeout = int(time.Duration(time.Minute * 5).Seconds())
+	r.updateTimeout = int(time.Duration(5 * time.Minute).Seconds())
 
 	data := req.ProviderData
 	if data == nil {
@@ -365,6 +365,7 @@ func (r InstanceResource) Create(ctx context.Context, req resource.CreateRequest
 	imageServer, err := r.provider.ImageServer(imageRemote)
 	if err != nil {
 		resp.Diagnostics.Append(errors.NewImageServerError(err))
+		return
 	}
 
 	// Extract profiles, devices, config and limits.
