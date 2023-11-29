@@ -11,6 +11,9 @@ import (
 	provider_config "github.com/terraform-lxd/terraform-provider-lxd/internal/provider-config"
 )
 
+// TestImage is a constant that specifies the default image used in all tests.
+const TestImage = "images:alpine/3.18/amd64"
+
 var testProviderConfig *provider_config.LxdProviderConfig
 var testProviderMutex sync.Mutex
 

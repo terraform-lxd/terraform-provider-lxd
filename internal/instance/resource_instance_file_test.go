@@ -88,7 +88,7 @@ func testAccInstanceFile_content(name string) string {
 	return fmt.Sprintf(`
 resource "lxd_instance" "instance1" {
   name  = "%s"
-  image = "images:alpine/3.18/amd64"
+  image = "%s"
 }
 
 resource "lxd_instance_file" "file1" {
@@ -97,14 +97,14 @@ resource "lxd_instance_file" "file1" {
   content            = "Hello, World!\n"
   create_directories = true
 }
-	`, name)
+	`, name, acctest.TestImage)
 }
 
 func testAccInstanceFile_source(name string) string {
 	return fmt.Sprintf(`
 resource "lxd_instance" "instance1" {
   name  = "%s"
-  image = "images:alpine/3.18/amd64"
+  image = "%s"
 }
 
 resource "lxd_instance_file" "file1" {
@@ -113,7 +113,7 @@ resource "lxd_instance_file" "file1" {
   source             = "../acctest/fixtures/test-file.txt"
   create_directories = true
 }
-	`, name)
+	`, name, acctest.TestImage)
 }
 
 func testAccInstanceFile_project(project, instance string) string {
@@ -121,14 +121,14 @@ func testAccInstanceFile_project(project, instance string) string {
 resource "lxd_project" "project1" {
   name = "%s"
   config = {
-  "features.images"   = false
-  "features.profiles" = false
+    "features.images"   = false
+    "features.profiles" = false
   }
 }
 
 resource "lxd_instance" "instance1" {
   name    = "%s"
-  image   = "images:alpine/3.18/amd64"
+  image   = "%s"
   project = lxd_project.project1.name
 }
 
@@ -139,5 +139,5 @@ resource "lxd_instance_file" "file1" {
   source   	     = "../acctest/fixtures/test-file.txt"
   create_directories = true
 }
-	`, project, instance)
+	`, project, instance, acctest.TestImage)
 }

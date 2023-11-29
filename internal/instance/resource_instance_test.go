@@ -22,7 +22,7 @@ func TestAccInstance_basic(t *testing.T) {
 					resource.TestCheckResourceAttr("lxd_instance.instance1", "name", instanceName),
 					resource.TestCheckResourceAttr("lxd_instance.instance1", "status", "Running"),
 					resource.TestCheckResourceAttr("lxd_instance.instance1", "ephemeral", "false"),
-					resource.TestCheckResourceAttr("lxd_instance.instance1", "image", "images:alpine/3.18/amd64"),
+					resource.TestCheckResourceAttr("lxd_instance.instance1", "image", acctest.TestImage),
 					resource.TestCheckResourceAttr("lxd_instance.instance1", "profiles.#", "1"),
 					resource.TestCheckResourceAttr("lxd_instance.instance1", "profiles.0", "default"),
 				),
@@ -106,7 +106,7 @@ func TestAccInstance_remoteImage(t *testing.T) {
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("lxd_instance.instance1", "name", instanceName),
 					resource.TestCheckResourceAttr("lxd_instance.instance1", "status", "Running"),
-					resource.TestCheckResourceAttr("lxd_instance.instance1", "image", "images:alpine/3.18/amd64"),
+					resource.TestCheckResourceAttr("lxd_instance.instance1", "image", acctest.TestImage),
 				),
 			},
 		},
@@ -507,11 +507,11 @@ func TestAccInstance_target(t *testing.T) {
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("lxd_instance.instance1", "name", fmt.Sprintf("%s-1", instanceName)),
 					resource.TestCheckResourceAttr("lxd_instance.instance1", "status", "Running"),
-					resource.TestCheckResourceAttr("lxd_instance.instance1", "image", "images:alpine/3.18/amd64"),
+					resource.TestCheckResourceAttr("lxd_instance.instance1", "image", acctest.TestImage),
 					resource.TestCheckResourceAttr("lxd_instance.instance1", "target", "node-2"),
 					resource.TestCheckResourceAttr("lxd_instance.instance2", "name", fmt.Sprintf("%s-2", instanceName)),
 					resource.TestCheckResourceAttr("lxd_instance.instance2", "status", "Running"),
-					resource.TestCheckResourceAttr("lxd_instance.instance2", "image", "images:alpine/3.18/amd64"),
+					resource.TestCheckResourceAttr("lxd_instance.instance2", "image", acctest.TestImage),
 					resource.TestCheckResourceAttr("lxd_instance.instance2", "target", "node-2"),
 				),
 			},
@@ -583,9 +583,8 @@ func TestAccInstance_importBasic(t *testing.T) {
 			},
 			{
 				ResourceName:                         resourceName,
-				ImportStateId:                        instanceName,
+				ImportStateId:                        fmt.Sprintf("%s,image=%s", instanceName, acctest.TestImage),
 				ImportStateVerifyIdentifierAttribute: "name",
-				ImportStateVerify:                    false, // State of "image" and "config" will be inconsistent.
 				ImportState:                          true,
 			},
 		},
@@ -606,9 +605,8 @@ func TestAccInstance_importProject(t *testing.T) {
 			},
 			{
 				ResourceName:                         resourceName,
-				ImportStateId:                        fmt.Sprintf("%s/%s", projectName, instanceName),
+				ImportStateId:                        fmt.Sprintf("%s/%s,image=%s", projectName, instanceName, acctest.TestImage),
 				ImportStateVerifyIdentifierAttribute: "name",
-				ImportStateVerify:                    false, // State of "image" and "config" will be inconsistent.
 				ImportState:                          true,
 			},
 		},
@@ -618,108 +616,108 @@ func TestAccInstance_importProject(t *testing.T) {
 func testAccInstance_basic(name string) string {
 	return fmt.Sprintf(`
 resource "lxd_instance" "instance1" {
-  name     = "%s"
-  image    = "images:alpine/3.18/amd64"
+  name  = "%s"
+  image = "%s"
 }
-	`, name)
+	`, name, acctest.TestImage)
 }
 
 func testAccInstance_basicEphemeral(name string) string {
 	return fmt.Sprintf(`
 resource "lxd_instance" "instance1" {
   name      = "%s"
-  image     = "images:alpine/3.18/amd64"
+  image     = "%s"
   profiles  = ["default"]
   ephemeral = true
 }
-	`, name)
+	`, name, acctest.TestImage)
 }
 
 func testAccInstance_container(name string) string {
 	return fmt.Sprintf(`
 resource "lxd_instance" "instance1" {
   name            = "%s"
+  image           = "%s"
   type            = "container"
-  image           = "images:alpine/3.18/amd64"
   start_on_create = false
 }
-	`, name)
+	`, name, acctest.TestImage)
 }
 
 func testAccInstance_virtualmachine(name string) string {
 	return fmt.Sprintf(`
 resource "lxd_instance" "instance1" {
   name  = "%s"
+  image = "%s"
   type  = "virtual-machine"
-  image = "images:alpine/3.18/amd64"
 
   # Alpine images do not support secureboot
   config = {
     "security.secureboot" = false
   }
 }
-	`, name)
+	`, name, acctest.TestImage)
 }
 
 func testAccInstance_config(name string) string {
 	return fmt.Sprintf(`
 resource "lxd_instance" "instance1" {
   name  = "%s"
-  image = "images:alpine/3.18/amd64"
+  image = "%s"
   config = {
     "boot.autostart" = 1
   }
 }
-	`, name)
+	`, name, acctest.TestImage)
 }
 
 func testAccInstance_updateConfig1(name string) string {
 	return fmt.Sprintf(`
 resource "lxd_instance" "instance1" {
   name  = "%s"
-  image = "images:alpine/3.18"
+  image = "%s"
   config = {
     "user.dummy"     = 5
     "boot.autostart" = 1
   }
 }
-	`, name)
+	`, name, acctest.TestImage)
 }
 
 func testAccInstance_updateConfig2(name string) string {
 	return fmt.Sprintf(`
 resource "lxd_instance" "instance1" {
   name  = "%s"
-  image = "images:alpine/3.18"
+  image = "%s"
   config = {
     "user.dummy"     = 5
     "user.user-data" = "#cloud-config"
   }
 }
-	`, name)
+	`, name, acctest.TestImage)
 }
 
 func testAccInstance_updateConfig3(name string) string {
 	return fmt.Sprintf(`
 resource "lxd_instance" "instance1" {
   name  = "%s"
-  image = "images:alpine/3.18"
+  image = "%s"
   config = {
     "user.dummy"             = 5
     "user.user-data"         = "#cloud-config"
     "cloud-init.vendor-data" = "#cloud-config"
   }
 }
-	`, name)
+	`, name, acctest.TestImage)
 }
 
 func testAccInstance_addProfile_1(instanceName string) string {
 	return fmt.Sprintf(`
 resource "lxd_instance" "instance1" {
   name  = "%s"
-  image = "images:alpine/3.18"
+  image = "%s"
 }
-	`, instanceName)
+	`, instanceName, acctest.TestImage)
 }
 
 func testAccInstance_addProfile_2(profileName, instanceName string) string {
@@ -730,10 +728,10 @@ resource "lxd_profile" "profile1" {
 
 resource "lxd_instance" "instance1" {
   name     = "%s"
-  image    = "images:alpine/3.18"
-  profiles = ["default", "${lxd_profile.profile1.name}"]
+  image    = "%s"
+  profiles = ["default", lxd_profile.profile1.name]
 }
-	`, profileName, instanceName)
+	`, profileName, instanceName, acctest.TestImage)
 }
 
 func testAccInstance_removeProfile_1(profileName, instanceName string) string {
@@ -744,10 +742,10 @@ resource "lxd_profile" "profile1" {
 
 resource "lxd_instance" "instance1" {
   name     = "%s"
-  image    = "images:alpine/3.18"
-  profiles = ["default", "${lxd_profile.profile1.name}"]
+  image    = "%s"
+  profiles = ["default", lxd_profile.profile1.name]
 }
-	`, profileName, instanceName)
+	`, profileName, instanceName, acctest.TestImage)
 }
 
 func testAccInstance_removeProfile_2(profileName, instanceName string) string {
@@ -758,10 +756,10 @@ resource "lxd_profile" "profile1" {
 
 resource "lxd_instance" "instance1" {
   name     = "%s"
-  image    = "images:alpine/3.18"
+  image    = "%s"
   profiles = ["default"]
 }
-	`, profileName, instanceName)
+	`, profileName, instanceName, acctest.TestImage)
 }
 
 func testAccInstance_noProfile(name string) string {
@@ -773,7 +771,7 @@ resource "lxd_storage_pool" "pool1" {
 
 resource "lxd_instance" "instance1" {
   name             = "%[1]s"
-  image            = "images:alpine/3.18/amd64"
+  image            = "%s"
   profiles         = []
   wait_for_network = false
 
@@ -786,14 +784,14 @@ resource "lxd_instance" "instance1" {
     }
   }
 }
-	`, name)
+	`, name, acctest.TestImage)
 }
 
 func testAccInstance_device_1(name string) string {
 	return fmt.Sprintf(`
 resource "lxd_instance" "instance1" {
   name  = "%s"
-  image = "images:alpine/3.18/amd64"
+  image = "%s"
 
   device {
     name = "shared"
@@ -804,14 +802,14 @@ resource "lxd_instance" "instance1" {
     }
   }
 }
-	`, name)
+	`, name, acctest.TestImage)
 }
 
 func testAccInstance_device_2(name string) string {
 	return fmt.Sprintf(`
 resource "lxd_instance" "instance1" {
   name  = "%s"
-  image = "images:alpine/3.18/amd64"
+  image = "%s"
 
   device {
     name = "shared"
@@ -822,23 +820,23 @@ resource "lxd_instance" "instance1" {
     }
   }
 }
-	`, name)
+	`, name, acctest.TestImage)
 }
 
 func testAccInstance_addDevice_1(name string) string {
 	return fmt.Sprintf(`
 resource "lxd_instance" "instance1" {
   name  = "%s"
-  image = "images:alpine/3.18/amd64"
+  image = "%s"
 }
-	`, name)
+	`, name, acctest.TestImage)
 }
 
 func testAccInstance_addDevice_2(name string) string {
 	return fmt.Sprintf(`
 resource "lxd_instance" "instance1" {
   name  = "%s"
-  image = "images:alpine/3.18/amd64"
+  image = "%s"
 
   device {
     name = "shared"
@@ -849,14 +847,14 @@ resource "lxd_instance" "instance1" {
     }
   }
 }
-	`, name)
+	`, name, acctest.TestImage)
 }
 
 func testAccInstance_removeDevice_1(name string) string {
 	return fmt.Sprintf(`
 resource "lxd_instance" "instance1" {
-  name = "%s"
-  image = "images:alpine/3.18/amd64"
+  name  = "%s"
+  image = "%s"
 
   device {
     name = "shared"
@@ -867,23 +865,23 @@ resource "lxd_instance" "instance1" {
     }
   }
 }
-	`, name)
+	`, name, acctest.TestImage)
 }
 
 func testAccInstance_removeDevice_2(name string) string {
 	return fmt.Sprintf(`
 resource "lxd_instance" "instance1" {
   name  = "%s"
-  image = "images:alpine/3.18/amd64"
+  image = "%s"
 }
-	`, name)
+	`, name, acctest.TestImage)
 }
 
 func testAccInstance_fileUploadContent_1(name string) string {
 	return fmt.Sprintf(`
 resource "lxd_instance" "instance1" {
   name  = "%s"
-  image = "images:alpine/3.18/amd64"
+  image = "%s"
 
   file {
     content            = "Hello, World!\n"
@@ -892,14 +890,14 @@ resource "lxd_instance" "instance1" {
     create_directories = true
   }
 }
-	`, name)
+	`, name, acctest.TestImage)
 }
 
 func testAccInstance_fileUploadContent_2(name string) string {
 	return fmt.Sprintf(`
 resource "lxd_instance" "instance1" {
   name  = "%s"
-  image = "images:alpine/3.18/amd64"
+  image = "%s"
 
   file {
     content            = "Hello, World!\n"
@@ -908,14 +906,14 @@ resource "lxd_instance" "instance1" {
     create_directories = true
   }
 }
-	`, name)
+	`, name, acctest.TestImage)
 }
 
 func testAccInstance_fileUploadContent_3(name string) string {
 	return fmt.Sprintf(`
 resource "lxd_instance" "instance1" {
   name  = "%s"
-  image = "images:alpine/3.18/amd64"
+  image = "%s"
 
   file {
     content            = "Goodbye, World!\n"
@@ -924,14 +922,14 @@ resource "lxd_instance" "instance1" {
     create_directories = false
   }
 }
-	`, name)
+	`, name, acctest.TestImage)
 }
 
 func testAccInstance_fileUploadSource(name string) string {
 	return fmt.Sprintf(`
 resource "lxd_instance" "instance1" {
   name  = "%s"
-  image = "images:alpine/3.18/amd64"
+  image = "%s"
 
   file {
     source             = "../acctest/fixtures/test-file.txt"
@@ -940,46 +938,46 @@ resource "lxd_instance" "instance1" {
     create_directories = true
   }
 }
-	`, name)
+	`, name, acctest.TestImage)
 }
 
 func testAccInstance_remoteImage(name string) string {
 	return fmt.Sprintf(`
 resource "lxd_instance" "instance1" {
   name  = "%s"
-  image = "images:alpine/3.18/amd64"
+  image = "%s"
 }
-	`, name)
+	`, name, acctest.TestImage)
 }
 
 func testAccInstance_configLimits_1(name string) string {
 	return fmt.Sprintf(`
 resource "lxd_instance" "instance1" {
   name  = "%s"
-  image = "images:alpine/3.18/amd64"
+  image = "%s"
 
   limits = {
     "cpu" = 1
   }
 }
-	`, name)
+	`, name, acctest.TestImage)
 }
 
 func testAccInstance_configLimits_2(name string) string {
 	return fmt.Sprintf(`
 resource "lxd_instance" "instance1" {
   name  = "%s"
-  image = "images:alpine/3.18/amd64"
+  image = "%s"
 
   limits = {
     "cpu"    = 2
     "memory" = "128MiB"
   }
 }
-	`, name)
+	`, name, acctest.TestImage)
 }
 
-func testAccInstance_accessInterface(networkName1, instanceName string) string {
+func testAccInstance_accessInterface(networkName, instanceName string) string {
 	return fmt.Sprintf(`
 resource "lxd_network" "network1" {
   name = "%s"
@@ -991,7 +989,7 @@ resource "lxd_network" "network1" {
 
 resource "lxd_instance" "instance1" {
   name  = "%s"
-  image = "images:alpine/3.18/amd64"
+  image = "%s"
 
   config = {
     "user.access_interface" = "eth0"
@@ -1009,23 +1007,23 @@ resource "lxd_instance" "instance1" {
     }
   }
 }
-	`, networkName1, instanceName)
+	`, networkName, instanceName, acctest.TestImage)
 }
 
 func testAccInstance_target(name string, target string) string {
 	return fmt.Sprintf(`
 resource "lxd_instance" "instance1" {
-  name   = "%s-1"
-  image  = "images:alpine/3.18/amd64"
-  target = "%s"
+  name   = "%[1]s-1"
+  image  = "%[3]s"
+  target = "%[2]s"
 }
 
 resource "lxd_instance" "instance2" {
-  name   = "%s-2"
-  image  = "images:alpine/3.18/amd64"
-  target = "%s"
+  name   = "%[1]s-2"
+  image  = "%[3]s"
+  target = "%[2]s"
 }
-	`, name, target, name, target)
+	`, name, target, acctest.TestImage)
 }
 
 func testAccInstance_project(projectName string, instanceName string) string {
@@ -1039,11 +1037,11 @@ resource "lxd_project" "project1" {
 }
 
 resource "lxd_instance" "instance1" {
-  name = "%s"
-  image = "images:alpine/3.18/amd64"
+  name  = "%s"
+  image = "%s"
   project = lxd_project.project1.name
 }
-	`, projectName, instanceName)
+	`, projectName, instanceName, acctest.TestImage)
 }
 
 func testAccInstance_removeProject_1(projectName, instanceName string) string {
@@ -1057,11 +1055,11 @@ resource "lxd_project" "project1" {
 }
 
 resource "lxd_instance" "instance1" {
-  name = "%s"
-  image = "images:alpine/3.18/amd64"
+  name    = "%s"
+  image   = "%s"
   project = lxd_project.project1.name
 }
-	`, projectName, instanceName)
+	`, projectName, instanceName, acctest.TestImage)
 }
 
 func testAccInstance_removeProject_2(projectName, instanceName string) string {
@@ -1072,7 +1070,7 @@ resource "lxd_project" "project1" {
 
 resource "lxd_instance" "instance1" {
   name  = "%s"
-  image = "images:alpine/3.18/amd64"
+  image = "%s"
 }
-	`, projectName, instanceName)
+	`, projectName, instanceName, acctest.TestImage)
 }

@@ -121,7 +121,7 @@ func testAccInstanceSnapshot_basic(cName, sName string, stateful bool) string {
 	return fmt.Sprintf(`
 resource "lxd_instance" "instance1" {
   name  = "%s"
-  image = "images:alpine/3.18"
+  image = "%s"
 }
 
 resource "lxd_snapshot" "snapshot1" {
@@ -129,14 +129,14 @@ resource "lxd_snapshot" "snapshot1" {
   name     = "%s"
   stateful = "%v"
 }
-	`, cName, sName, stateful)
+	`, cName, acctest.TestImage, sName, stateful)
 }
 
 func testAccInstanceSnapshot_multiple1(cName, sName string) string {
 	return fmt.Sprintf(`
 resource "lxd_instance" "instance1" {
   name  = "%s"
-  image = "images:alpine/3.18"
+  image = "%s"
 }
 
 resource "lxd_snapshot" "snapshot1" {
@@ -144,14 +144,14 @@ resource "lxd_snapshot" "snapshot1" {
   instance = lxd_instance.instance1.name
   stateful = false
 }
-	`, cName, sName)
+	`, cName, acctest.TestImage, sName)
 }
 
 func testAccInstanceSnapshot_multiple2(cName, sName1, sName2 string) string {
 	return fmt.Sprintf(`
 resource "lxd_instance" "instance1" {
   name = "%s"
-  image = "images:alpine/3.18"
+  image = "%s"
 }
 
 resource "lxd_snapshot" "snapshot1" {
@@ -165,30 +165,30 @@ resource "lxd_snapshot" "snapshot2" {
   instance = lxd_instance.instance1.name
   stateful = "false"
 }
-	`, cName, sName1, sName2)
+	`, cName, acctest.TestImage, sName1, sName2)
 }
 func testAccInstanceSnapshot_project(project, instance, snapshot string) string {
 	return fmt.Sprintf(`
 resource "lxd_project" "project1" {
   name = "%s"
   config = {
-	"features.storage.volumes" = false
-	"features.images"          = false
-	"features.profiles"        = false
+    "features.storage.volumes" = false
+    "features.images"          = false
+    "features.profiles"        = false
   }
 }
 
 resource "lxd_instance" "instance1" {
   name    = "%s"
-  image   = "images:alpine/3.18"
+  image   = "%s"
   project = lxd_project.project1.name
 }
 
 resource "lxd_snapshot" "snapshot1" {
-  instance = lxd_instance.instance1.name
   name     = "%s"
+  instance = lxd_instance.instance1.name
   stateful = false
   project  = lxd_project.project1.name
 }
-	`, project, instance, snapshot)
+	`, project, instance, acctest.TestImage, snapshot)
 }

@@ -200,7 +200,7 @@ resource "lxd_volume" "volume1" {
 
 resource "lxd_instance" "instance1" {
   name            = "%s"
-  image           = "images:alpine/3.18/amd64"
+  image           = "%s"
   start_on_create = false
 
   device {
@@ -213,7 +213,7 @@ resource "lxd_instance" "instance1" {
     }
   }
 }
-	`, poolName, volumeName, instanceName)
+	`, poolName, volumeName, instanceName, acctest.TestImage)
 }
 
 func testAccStorageVolume_target(volumeName string) string {
@@ -231,7 +231,7 @@ func testAccStorageVolume_project(projectName, volumeName string) string {
 resource "lxd_project" "project1" {
   name = "%s"
   config = {
-	"features.storage.volumes" = false
+    "features.storage.volumes" = false
   }
 }
 
@@ -246,14 +246,14 @@ resource "lxd_volume" "volume1" {
 func testAccStorageVolume_contentType(poolName, volumeName string) string {
 	return fmt.Sprintf(`
 resource "lxd_storage_pool" "pool1" {
- 	name   = "%s"
- 	driver = "zfs"
+  name   = "%s"
+  driver = "zfs"
 }
 
 resource "lxd_volume" "volume1" {
- 	name         = "%s"
- 	pool         = lxd_storage_pool.pool1.name
- 	content_type = "block"
+  name         = "%s"
+  pool         = lxd_storage_pool.pool1.name
+  content_type = "block"
 }
 	`, poolName, volumeName)
 }

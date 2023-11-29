@@ -289,13 +289,13 @@ resource "lxd_profile" "profile1" {
 
 resource "lxd_instance" "instance1" {
   name     = "%s"
-  image    = "images:alpine/3.18"
+  image    = "%s"
   profiles = ["default", lxd_profile.profile1.name]
 }
-`, profileName, instanceName)
+`, profileName, instanceName, acctest.TestImage)
 }
 
-func testAccNetwork_updateConfig_1(name string) string {
+func testAccNetwork_updateConfig_1(instanceName string) string {
 	return fmt.Sprintf(`
 resource "lxd_network" "eth1" {
   name = "eth1"
@@ -309,8 +309,8 @@ resource "lxd_network" "eth1" {
 # be deleted, but must be updated in-place.
 resource "lxd_instance" "instance1" {
   name             = "%s"
-  image            = "images:alpine/3.18"
-  wait_for_network = false
+  image            = "%s"
+  wait_for_network = true
 
   device {
     name = "eth0"
@@ -321,10 +321,10 @@ resource "lxd_instance" "instance1" {
     }
   }
 }
-  `, name)
+  `, instanceName, acctest.TestImage)
 }
 
-func testAccNetwork_updateConfig_2(name string) string {
+func testAccNetwork_updateConfig_2(instanceName string) string {
 	return fmt.Sprintf(`
 resource "lxd_network" "eth1" {
   name = "eth1"
@@ -339,7 +339,7 @@ resource "lxd_network" "eth1" {
 # be deleted, but must be updated in-place.
 resource "lxd_instance" "instance1" {
   name             = "%s"
-  image            = "images:alpine/3.18"
+  image            = "%s"
   wait_for_network = false
 
   device {
@@ -351,7 +351,7 @@ resource "lxd_instance" "instance1" {
     }
   }
 }
-  `, name)
+  `, instanceName, acctest.TestImage)
 }
 
 func testAccNetwork_typeMacvlan() string {
@@ -389,8 +389,8 @@ resource "lxd_network" "cluster_network_node2" {
 
 resource "lxd_network" "cluster_network" {
   depends_on = [
-    "lxd_network.cluster_network_node1",
-    "lxd_network.cluster_network_node2",
+    lxd_network.cluster_network_node1,
+    lxd_network.cluster_network_node2,
   ]
 
   name = lxd_network.cluster_network_node1.name

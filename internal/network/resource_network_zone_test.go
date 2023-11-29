@@ -149,8 +149,8 @@ func testAccNetworkZone_project(project string) string {
 resource "lxd_project" "project1" {
   name = "%s"
   config = {
-	"features.networks" = false
-	"features.networks.zones" = true
+    "features.networks"       = false
+    "features.networks.zones" = true
   }
 }
 

@@ -441,10 +441,10 @@ resource "lxd_profile" "profile1" {
 
 resource "lxd_instance" "instance1" {
   name     = "%s"
-  image    = "images:alpine/3.18"
+  image    = "%s"
   profiles = ["default", lxd_profile.profile1.name]
 }
-	`, profileName, instanceName)
+	`, profileName, instanceName, acctest.TestImage)
 }
 
 func testAccProfile_instanceDevice(profileName, instanceName string) string {
@@ -463,10 +463,10 @@ resource "lxd_profile" "profile1" {
 
 resource "lxd_instance" "instance1" {
   name     = "%s"
-  image    = "images:alpine/3.18"
+  image    = "%s"
   profiles = ["default", lxd_profile.profile1.name]
 }
-	`, profileName, instanceName)
+	`, profileName, instanceName, acctest.TestImage)
 }
 
 func testAccProfile_project(projectName, profileName string) string {

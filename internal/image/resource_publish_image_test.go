@@ -110,7 +110,7 @@ func testAccPublishImage_basic(name string) string {
 	return fmt.Sprintf(`
 resource "lxd_instance" "instance1" {
   name            = "%s"
-  image           = "images:alpine/3.18/amd64"
+  image           = "%s"
   start_on_create = false
 }
 
@@ -118,14 +118,14 @@ resource "lxd_publish_image" "pimg" {
   instance = lxd_instance.instance1.name
   aliases  = ["test_basic"]
 }
-	`, name)
+	`, name, acctest.TestImage)
 }
 
 func testAccPublishImage_aliases(name string, aliases ...string) string {
 	return fmt.Sprintf(`
 resource "lxd_instance" "instance1" {
   name            = "%s"
-  image           = "images:alpine/3.18/amd64"
+  image           = "%s"
   start_on_create = false
 }
 
@@ -133,24 +133,24 @@ resource "lxd_publish_image" "pimg" {
   instance = lxd_instance.instance1.name
   aliases  = ["%s"]
 }
-	`, name, strings.Join(toStringSlice(aliases), "\",\""))
+	`, name, acctest.TestImage, strings.Join(toStringSlice(aliases), "\",\""))
 }
 
 func testAccPublishImage_properties(name string, properties map[string]string) string {
 	return fmt.Sprintf(`
 resource "lxd_instance" "instance1" {
   name            = "%s"
-  image           = "images:alpine/3.18/amd64"
+  image           = "%s"
   start_on_create = false
 }
 
 resource "lxd_publish_image" "pimg" {
   instance = lxd_instance.instance1.name
   properties = {
-  	%s
+    %s
   }
 }
-	`, name, strings.Join(formatProperties(properties), "\n"))
+	`, name, acctest.TestImage, strings.Join(formatProperties(properties), "\n"))
 }
 
 func testAccPublishImage_project(project, instance string) string {
@@ -158,15 +158,15 @@ func testAccPublishImage_project(project, instance string) string {
 resource "lxd_project" "project1" {
   name = "%s"
   config = {
-	"features.storage.volumes" = false
-	"features.images"          = false
-	"features.profiles"        = false
+    "features.storage.volumes" = false
+    "features.images"          = false
+    "features.profiles"        = false
   }
 }
 
 resource "lxd_instance" "instance1" {
   name            = "%s"
-  image           = "images:alpine/3.18/amd64"
+  image           = "%s"
   project         = lxd_project.project1.name
   start_on_create = false
 }
@@ -175,7 +175,7 @@ resource "lxd_publish_image" "pimg" {
   instance = lxd_instance.instance1.name
   project  = lxd_project.project1.name
 }
-	`, project, instance)
+	`, project, instance, acctest.TestImage)
 }
 
 func toStringSlice(slice []string) []string {

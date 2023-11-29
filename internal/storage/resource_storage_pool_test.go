@@ -314,7 +314,7 @@ resource "lxd_storage_pool" "storage_pool1" {
   name   = "%s"
   driver = "%s"
   config = {
-	size = "128MiB"
+    size = "128MiB"
   }
 }
 	`, name, driver)
@@ -326,7 +326,7 @@ resource "lxd_project" "project1" {
   name        = "%s"
   description = "Terraform provider test project"
   config = {
-	"features.storage.volumes" = false
+    "features.storage.volumes" = false
   }
 }
 
@@ -354,8 +354,8 @@ resource "lxd_storage_pool" "storage_pool1_node2" {
 
 resource "lxd_storage_pool" "storage_pool1" {
   depends_on = [
-    "lxd_storage_pool.storage_pool1_node1",
-    "lxd_storage_pool.storage_pool1_node2",
+    lxd_storage_pool.storage_pool1_node1,
+    lxd_storage_pool.storage_pool1_node2,
   ]
 
   name   = "%[1]s"

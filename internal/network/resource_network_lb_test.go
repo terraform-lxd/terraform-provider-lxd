@@ -6,12 +6,12 @@ import (
 	"testing"
 
 	"github.com/canonical/lxd/shared/api"
+	petname "github.com/dustinkirkland/golang-petname"
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
 	"github.com/terraform-lxd/terraform-provider-lxd/internal/acctest"
 )
 
 func TestAccNetworkLB_basic(t *testing.T) {
-
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { acctest.PreCheck(t) },
 		ProtoV6ProviderFactories: acctest.ProtoV6ProviderFactories,
@@ -62,6 +62,8 @@ func TestAccNetworkLB_withConfig(t *testing.T) {
 }
 
 func TestAccNetworkLB_withBackend(t *testing.T) {
+	instanceName := petname.Generate(2, "")
+
 	backend := api.NetworkLoadBalancerBackend{
 		Name:          "backend",
 		Description:   "Backend",
@@ -70,10 +72,9 @@ func TestAccNetworkLB_withBackend(t *testing.T) {
 	}
 
 	port := api.NetworkLoadBalancerPort{
-		Description:   "Port 8080/tcp",
-		Protocol:      "tcp",
-		ListenPort:    "8080",
-		TargetBackend: []string{"backend"},
+		Description: "Port 8080/tcp",
+		Protocol:    "tcp",
+		ListenPort:  "8080",
 	}
 
 	resource.Test(t, resource.TestCase{
@@ -81,7 +82,7 @@ func TestAccNetworkLB_withBackend(t *testing.T) {
 		ProtoV6ProviderFactories: acctest.ProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccNetworkLB_withBackendAndPort(backend, port),
+				Config: testAccNetworkLB_withBackendAndPort(instanceName, backend, port),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("lxd_network.ovnbr", "name", "ovnbr"),
 					resource.TestCheckResourceAttr("lxd_network.ovn", "name", "ovn"),
@@ -97,8 +98,8 @@ func TestAccNetworkLB_withBackend(t *testing.T) {
 					resource.TestCheckResourceAttr("lxd_network_lb.test", "port.0.protocol", port.Protocol),
 					resource.TestCheckResourceAttr("lxd_network_lb.test", "port.0.listen_port", port.ListenPort),
 					resource.TestCheckResourceAttr("lxd_network_lb.test", "port.0.target_backend.#", "1"),
-					resource.TestCheckResourceAttr("lxd_network_lb.test", "port.0.target_backend.0", port.TargetBackend[0]),
-					resource.TestCheckResourceAttr("lxd_instance.instance", "name", "tfc1"),
+					resource.TestCheckResourceAttr("lxd_network_lb.test", "port.0.target_backend.0", backend.Name),
+					resource.TestCheckResourceAttr("lxd_instance.instance", "name", instanceName),
 					resource.TestCheckResourceAttr("lxd_instance.instance", "status", "Running"),
 					resource.TestCheckResourceAttr("lxd_instance.instance", "ipv4_address", backend.TargetAddress),
 				),
@@ -141,28 +142,23 @@ resource "lxd_network_lb" "test" {
 	return fmt.Sprintf("%s\n%s", ovnNetworkResource(), lbRes)
 }
 
-func testAccNetworkLB_withBackendAndPort(backend api.NetworkLoadBalancerBackend, port api.NetworkLoadBalancerPort) string {
-	portTargetBackend := make([]string, 0, len(port.TargetBackend))
-	for _, b := range port.TargetBackend {
-		portTargetBackend = append(portTargetBackend, fmt.Sprintf("%q", b))
-	}
-
+func testAccNetworkLB_withBackendAndPort(instanceName string, backend api.NetworkLoadBalancerBackend, port api.NetworkLoadBalancerPort) string {
 	args := []any{
-		backend.TargetAddress,                 // 1
-		backend.Name,                          // 2
-		backend.Description,                   // 3
-		backend.TargetAddress,                 // 4
-		backend.TargetPort,                    // 5
-		port.Description,                      // 6
-		port.Protocol,                         // 7
-		port.ListenPort,                       // 8
-		strings.Join(portTargetBackend, ", "), // 9
+		instanceName,          // 1
+		acctest.TestImage,     // 2
+		backend.Name,          // 3
+		backend.Description,   // 4
+		backend.TargetAddress, // 5
+		backend.TargetPort,    // 6
+		port.Description,      // 7
+		port.Protocol,         // 8
+		port.ListenPort,       // 9
 	}
 
 	lbRes := fmt.Sprintf(`
 resource "lxd_instance" "instance" {
-  name      = "tfc1"
-  image     = "images:alpine/3.18"
+  name      = "%[1]s"
+  image     = "%[2]s"
   ephemeral = false
 
   device {
@@ -170,7 +166,7 @@ resource "lxd_instance" "instance" {
     type = "nic"
     properties = {
       "network"      = lxd_network.ovn.name
-      "ipv4.address" = %[1]q
+      "ipv4.address" = "%[5]s"
     }
   }
 }
@@ -181,17 +177,17 @@ resource "lxd_network_lb" "test" {
   description    = "Load Balancer with Backend and Port"
 
   backend {
-    name           = %[2]q
-    description    = %[3]q
-    target_address = %[4]q
-    target_port    = %[5]q
+    name           = "%[3]s"
+    description    = "%[4]s"
+    target_address = "%[5]s"
+    target_port    = "%[6]s"
   }
 
   port {
-    description    = %[6]q
-    protocol       = %[7]q
-    listen_port    = %[8]q
-    target_backend = [%[9]s]
+    description    = "%[7]s"
+    protocol       = "%[8]s"
+    listen_port    = "%[9]s"
+    target_backend = ["%[3]s"]
   }
 }
 `, args...)
@@ -223,9 +219,9 @@ resource "lxd_network" "ovn" {
   config = {
     "network"      = lxd_network.ovnbr.name
     "ipv4.address" = "10.0.0.1/24"
-    "ipv4.nat" : "true"
+    "ipv4.nat"     = "true"
     "ipv6.address" = "fd42::1/64"
-    "ipv6.nat" : "true"
+    "ipv6.nat"     = "true"
   }
 }
 `

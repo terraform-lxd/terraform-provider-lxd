@@ -87,6 +87,9 @@ func (p *LxdProviderConfig) InstanceServer(remoteName string, project string, ta
 		return nil, err
 	}
 
+	p.mux.RLock()
+	defer p.mux.RUnlock()
+
 	connInfo, err := server.GetConnectionInfo()
 	if err != nil {
 		return nil, err
@@ -110,6 +113,9 @@ func (p *LxdProviderConfig) ImageServer(remoteName string) (lxd.ImageServer, err
 	if err != nil {
 		return nil, err
 	}
+
+	p.mux.RLock()
+	defer p.mux.RUnlock()
 
 	connInfo, err := server.GetConnectionInfo()
 	if err != nil {
@@ -251,6 +257,9 @@ func (p *LxdProviderConfig) createLxdServerClient(remote LxdProviderRemoteConfig
 			return err
 		}
 
+		p.mux.Lock()
+		defer p.mux.Unlock()
+
 		err = authenticateToLxdServer(instServer, remote.Password)
 		if err != nil {
 			return err
@@ -318,9 +327,6 @@ func verifyLxdServerVersion(instServer lxd.InstanceServer) error {
 // If successful, the LXD server becomes trusted to the LXD client,
 // and vice-versa.
 func authenticateToLxdServer(instServer lxd.InstanceServer, password string) error {
-	mutex.Lock()
-	defer mutex.Unlock()
-
 	server, _, err := instServer.GetServer()
 	if err != nil {
 		return err
