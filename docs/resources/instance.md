@@ -141,6 +141,25 @@ The `file` block supports:
 * `create_directories` - *Optional* - Whether to create the directories leading
 	to the target if they do not exist.
 
+The `exec` block supports:
+
+* `command` - **Required** - The command to be executed and its arguments, if any (list of strings).
+
+* `triggers` - *Optional* - A list of arbitrary strings that, when changed, will force the command
+  to be rerun.
+
+* `environment` - *Optional* - Map of additional environment variables.
+  (Variables `PATH`, `LANG`, `HOME`, and `USER` are set by default, unless passed by the user.)
+
+* `working_dir` - *Optional* - The directory in which the command should run.
+
+* `record_output` - *Optional* - When set to true, `stdout` and `stderr` attributes will be
+  populated (exported). Defaults to `false`.
+
+* `uid` - *Optional* - The user ID for running command. Defaults to `0` (root).
+
+* `gid` - *Optional* - The group ID for running command. Defaults to `0` (root).
+
 ## Attribute Reference
 
 The following attributes are exported:
@@ -166,12 +185,81 @@ To specify an interface, do the following:
 
 ```hcl
 resource "lxd_instance" "instance1" {
-  name = "instance1"
-  image = "images:alpine/3.5/amd64"
-  profiles = ["default"]
+  name  = "c1"
+  image = "images:alpine/3.18/amd64"
 
   config = {
     "user.access_interface" = "eth0"
+  }
+}
+```
+
+## Executing Commands in Instances
+
+The `exec` block in an LXD instance configuration is used to execute commands. You can specify
+multiple exec blocks, with each block requiring a command defined as a list of strings.
+
+### Simple Commands
+
+For simple and short commands, you can specify the entire command as a single string in the list.
+In this case, if the list contains only one string, the provider automatically splits it into
+multiple arguments based on spaces.
+
+```hcl
+resource "lxd_instance" "inst" {
+  name  = "c1"
+  image = "images:alpine/3.18/amd64"
+
+  exec {
+    command = ["ls -lah"]
+  }
+}
+```
+
+### Complex Commands and Environment Access
+
+For more complex commands or when access to the environment is required, use the `<shell> -c` syntax.
+
+```hcl
+resource "lxd_instance" "inst" {
+  name  = "c1"
+  image = "images:alpine/3.18/amd64"
+
+  exec {
+    command = ["sh", "-c", "echo $ENV_KEY"]
+
+    environment = {
+      "ENV_KEY" = "ENV_VALUE"
+    }
+  }
+
+  exec {
+    command     = ["sh", "-c", "cat os-release | tr -d '\n'"]
+    working_dir = "/etc"
+  }
+}
+```
+
+### Capturing Command Output
+
+To capture and access a command's output, set `record_output` to true. The command's standard output
+and standard error will then be accessible through the exported attributes `stdout` and `stderr`, respectively.
+
+```hcl
+resource "lxd_instance" "inst" {
+  name  = "c1"
+  image = "images:alpine/3.18/amd64"
+
+  exec {
+    command       = ["uname"]
+    record_output = true
+  }
+}
+
+output "exec-output" {
+  value = {
+    "out" = lxd_instance.inst.exec[0].stdout # "Linux\n"
+    "err" = lxd_instance.inst.exec[0].stderr # ""
   }
 }
 ```
