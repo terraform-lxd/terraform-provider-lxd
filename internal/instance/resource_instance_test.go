@@ -552,6 +552,89 @@ func TestAccInstance_fileUploadSource(t *testing.T) {
 	})
 }
 
+func TestAccInstance_execOutput(t *testing.T) {
+	instanceName := petname.Generate(2, "-")
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { acctest.PreCheck(t) },
+		ProtoV6ProviderFactories: acctest.ProtoV6ProviderFactories,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccInstance_exec(instanceName),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr("lxd_instance.instance1", "name", instanceName),
+					resource.TestCheckResourceAttr("lxd_instance.instance1", "status", "Running"),
+					resource.TestCheckResourceAttr("lxd_instance.instance1", "exec.#", "1"),
+					resource.TestCheckResourceAttr("lxd_instance.instance1", "exec.0.stdout", ""),
+					resource.TestCheckResourceAttr("lxd_instance.instance1", "exec.0.stderr", ""),
+				),
+			},
+			{
+				Config: testAccInstance_execOutput(instanceName),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr("lxd_instance.instance1", "name", instanceName),
+					resource.TestCheckResourceAttr("lxd_instance.instance1", "status", "Running"),
+					resource.TestCheckResourceAttr("lxd_instance.instance1", "exec.#", "1"),
+					resource.TestCheckResourceAttr("lxd_instance.instance1", "exec.0.stdout", "Linux\n"),
+					resource.TestCheckResourceAttr("lxd_instance.instance1", "exec.0.stderr", ""),
+				),
+			},
+			{
+				Config: testAccInstance_exec(instanceName),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr("lxd_instance.instance1", "name", instanceName),
+					resource.TestCheckResourceAttr("lxd_instance.instance1", "status", "Running"),
+					resource.TestCheckResourceAttr("lxd_instance.instance1", "exec.#", "1"),
+					resource.TestCheckResourceAttr("lxd_instance.instance1", "exec.0.stdout", ""),
+					resource.TestCheckResourceAttr("lxd_instance.instance1", "exec.0.stderr", ""),
+				),
+			},
+		},
+	})
+}
+
+func TestAccInstance_execWorkingDir(t *testing.T) {
+	instanceName := petname.Generate(2, "-")
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { acctest.PreCheck(t) },
+		ProtoV6ProviderFactories: acctest.ProtoV6ProviderFactories,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccInstance_execWorkingDir(instanceName),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr("lxd_instance.instance1", "name", instanceName),
+					resource.TestCheckResourceAttr("lxd_instance.instance1", "status", "Running"),
+					resource.TestCheckResourceAttr("lxd_instance.instance1", "exec.#", "1"),
+					resource.TestCheckResourceAttr("lxd_instance.instance1", "exec.0.stdout", "ID=alpine"),
+					resource.TestCheckResourceAttr("lxd_instance.instance1", "exec.0.stderr", ""),
+				),
+			},
+		},
+	})
+}
+
+func TestAccInstance_execEnvironment(t *testing.T) {
+	instanceName := petname.Generate(2, "-")
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { acctest.PreCheck(t) },
+		ProtoV6ProviderFactories: acctest.ProtoV6ProviderFactories,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccInstance_execEnvironment(instanceName),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr("lxd_instance.instance1", "name", instanceName),
+					resource.TestCheckResourceAttr("lxd_instance.instance1", "status", "Running"),
+					resource.TestCheckResourceAttr("lxd_instance.instance1", "exec.#", "1"),
+					resource.TestCheckResourceAttr("lxd_instance.instance1", "exec.0.stdout", "It works.\n"),
+					resource.TestCheckResourceAttr("lxd_instance.instance1", "exec.0.stderr", ""),
+				),
+			},
+		},
+	})
+}
+
 func TestAccInstance_configLimits(t *testing.T) {
 	instanceName := petname.Generate(2, "-")
 
@@ -1130,6 +1213,67 @@ resource "lxd_instance" "instance1" {
   }
 }
 	`, name, acctest.TestImage)
+}
+
+func testAccInstance_exec(instanceName string) string {
+	return fmt.Sprintf(`
+resource "lxd_instance" "instance1" {
+  name  = "%s"
+  image = "%s"
+
+  exec {
+    command       = ["uname"]
+    record_output = false
+  }
+}
+	`, instanceName, acctest.TestImage)
+}
+
+func testAccInstance_execOutput(instanceName string) string {
+	return fmt.Sprintf(`
+resource "lxd_instance" "instance1" {
+  name  = "%s"
+  image = "%s"
+
+  exec {
+    command       = ["uname"]
+    triggers      = ["rerun"]
+    record_output = true
+  }
+}
+	`, instanceName, acctest.TestImage)
+}
+
+func testAccInstance_execWorkingDir(instanceName string) string {
+	return fmt.Sprintf(`
+resource "lxd_instance" "instance1" {
+  name  = "%s"
+  image = "%s"
+
+  exec {
+    command       = ["sh", "-c", "cat os-release | grep '^ID' | tr -d '\n'"]
+    working_dir   = "/etc"
+    record_output = true
+  }
+}
+	`, instanceName, acctest.TestImage)
+}
+
+func testAccInstance_execEnvironment(instanceName string) string {
+	return fmt.Sprintf(`
+resource "lxd_instance" "instance1" {
+  name  = "%s"
+  image = "%s"
+
+  exec {
+    command       = ["sh", "-c", "echo $ENV_TEST"]
+    record_output = true
+    environment = {
+	"ENV_TEST" = "It works."
+    }
+  }
+}
+	`, instanceName, acctest.TestImage)
 }
 
 func testAccInstance_remoteImage(name string) string {

@@ -18,6 +18,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/booldefault"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/boolplanmodifier"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/listdefault"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/mapdefault"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringdefault"
@@ -41,6 +42,7 @@ type InstanceModel struct {
 	Running        types.Bool   `tfsdk:"running"`
 	WaitForNetwork types.Bool   `tfsdk:"wait_for_network"`
 	Profiles       types.List   `tfsdk:"profiles"`
+	Exec           types.List   `tfsdk:"exec"`
 	Devices        types.Set    `tfsdk:"device"`
 	Files          types.Set    `tfsdk:"file"`
 	Limits         types.Map    `tfsdk:"limits"`
@@ -286,6 +288,81 @@ func (r InstanceResource) Schema(_ context.Context, _ resource.SchemaRequest, re
 					},
 				},
 			},
+
+			"exec": schema.ListNestedBlock{
+				Description: "Run command within the instance",
+				NestedObject: schema.NestedBlockObject{
+					Attributes: map[string]schema.Attribute{
+						"command": schema.ListAttribute{
+							Description: "Command to run within the instance",
+							Required:    true,
+							ElementType: types.StringType,
+							Validators: []validator.List{
+								listvalidator.SizeAtLeast(1),
+							},
+						},
+
+						"environment": schema.MapAttribute{
+							Description: "Map of additional environment variables",
+							Optional:    true,
+							Computed:    true,
+							ElementType: types.StringType,
+							Default:     mapdefault.StaticValue(types.MapValueMust(types.StringType, map[string]attr.Value{})),
+							Validators: []validator.Map{
+								mapvalidator.KeysAre(stringvalidator.LengthAtLeast(1)),
+								mapvalidator.ValueStringsAre(stringvalidator.LengthAtLeast(1)),
+							},
+						},
+
+						"working_dir": schema.StringAttribute{
+							Description: "The directory in which the command should run",
+							Optional:    true,
+							Computed:    true,
+							Default:     stringdefault.StaticString(""),
+							Validators: []validator.String{
+								stringvalidator.LengthAtLeast(1),
+							},
+						},
+
+						"record_output": schema.BoolAttribute{
+							Description: "Whether to record command's output (stdout and stderr)",
+							Optional:    true,
+							Computed:    true,
+							Default:     booldefault.StaticBool(false),
+						},
+
+						"uid": schema.Int64Attribute{
+							Description: "The user ID for running command",
+							Optional:    true,
+						},
+
+						"gid": schema.Int64Attribute{
+							Description: "The group ID for running command",
+							Optional:    true,
+						},
+
+						"triggers": schema.ListAttribute{
+							Description: "A list of arbitrary strings that, when changed, will force the command to be rerun",
+							Optional:    true,
+							Computed:    true,
+							ElementType: types.StringType,
+							Default:     listdefault.StaticValue(types.ListValueMust(types.StringType, []attr.Value{})),
+						},
+
+						// Computed.
+
+						"stdout": schema.StringAttribute{
+							Description: "Command standard output (if recorded)",
+							Computed:    true,
+						},
+
+						"stderr": schema.StringAttribute{
+							Description: "Command standard error (if recorded)",
+							Computed:    true,
+						},
+					},
+				},
+			},
 		},
 	}
 }
@@ -504,6 +581,27 @@ func (r InstanceResource) Create(ctx context.Context, req resource.CreateRequest
 				return
 			}
 		}
+
+		// Execute commands.
+		execs, diags := common.ToExecList(ctx, plan.Exec)
+		if diags.HasError() {
+			resp.Diagnostics.Append(diags...)
+			return
+		}
+
+		for i := range execs {
+			diags := execs[i].Execute(ctx, server, instance.Name)
+			if diags.HasError() {
+				resp.Diagnostics.Append(diags...)
+				return
+			}
+		}
+
+		plan.Exec, diags = common.ToExecListType(ctx, execs)
+		if diags.HasError() {
+			resp.Diagnostics.Append(diags...)
+			return
+		}
 	}
 
 	// Update Terraform state.
@@ -690,6 +788,43 @@ func (r InstanceResource) Update(ctx context.Context, req resource.UpdateRequest
 			resp.Diagnostics.AddError(fmt.Sprintf("Failed to upload file to instance %q", instanceName), err.Error())
 			return
 		}
+	}
+
+	oldExecs, diags := common.ToExecList(ctx, state.Exec)
+	resp.Diagnostics.Append(diags...)
+
+	newExecs, diags := common.ToExecList(ctx, plan.Exec)
+	resp.Diagnostics.Append(diags...)
+
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	// Execute new commands.
+	for i := range newExecs {
+		if i < len(oldExecs) {
+			// Copy computed fields in case the command has
+			// not changed.
+			newExecs[i].Output = oldExecs[i].Output
+			newExecs[i].Error = oldExecs[i].Error
+
+			// Skip unchanged execs.
+			if newExecs[i].Equal(oldExecs[i]) {
+				continue
+			}
+		}
+
+		diags := newExecs[i].Execute(ctx, server, instanceName)
+		if diags.HasError() {
+			resp.Diagnostics.Append(diags...)
+			return
+		}
+	}
+
+	plan.Exec, diags = common.ToExecListType(ctx, newExecs)
+	if diags.HasError() {
+		resp.Diagnostics.Append(diags...)
+		return
 	}
 
 	// Update Terraform state.
