@@ -143,7 +143,7 @@ func TestAccStorageVolume_importBasic(t *testing.T) {
 				ResourceName:                         resourceName,
 				ImportStateId:                        fmt.Sprintf("/%s/%s", poolName, volName),
 				ImportStateVerifyIdentifierAttribute: "name",
-				ImportStateVerify:                    false,
+				ImportStateVerify:                    true,
 				ImportState:                          true,
 			},
 		},
@@ -163,10 +163,11 @@ func TestAccStorageVolume_importProject(t *testing.T) {
 				Config: testAccStorageVolume_project(projectName, volName),
 			},
 			{
-				ResourceName:      resourceName,
-				ImportStateId:     fmt.Sprintf("%s/default/%s", projectName, volName),
-				ImportStateVerify: false, // Content-type missing (but is imported).
-				ImportState:       true,
+				ResourceName:                         resourceName,
+				ImportStateId:                        fmt.Sprintf("%s/default/%s", projectName, volName),
+				ImportStateVerifyIdentifierAttribute: "name",
+				ImportStateVerify:                    true,
+				ImportState:                          true,
 			},
 		},
 	})

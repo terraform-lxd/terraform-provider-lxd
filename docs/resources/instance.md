@@ -208,8 +208,8 @@ resource "lxd_instance" "myinst" {
 }
 
 import {
-    to = lxd_instance.myinst
-    id = "proj/c1,image=images:alpine/3.18/amd64"
+  to = lxd_instance.myinst
+  id = "proj/c1,image=images:alpine/3.18/amd64"
 }
 ```
 

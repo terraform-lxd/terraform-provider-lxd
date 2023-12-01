@@ -102,8 +102,8 @@ resource "lxd_profile" "myprofile" {
 }
 
 import {
-    to = lxd_profile.myprofile
-    id = "proj/profile1"
+  to = lxd_profile.myprofile
+  id = "proj/profile1"
 }
 ```
 

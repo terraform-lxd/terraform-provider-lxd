@@ -95,7 +95,7 @@ resource "lxd_network_zone_record" "myrecord" {
 }
 
 import {
-    to = lxd_network_zone_record.myrecord
-    id = "proj/zone1/record1"
+  to = lxd_network_zone_record.myrecord
+  id = "proj/zone1/record1"
 }
 ```

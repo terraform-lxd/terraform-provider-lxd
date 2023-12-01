@@ -49,25 +49,21 @@ The following attributes are exported:
 
 ## Importing
 
-Import ID syntax: `[<remote>:][<project>]/<pool>/<name>[,content_type=<ct>]`
+Import ID syntax: `[<remote>:][<project>]/<pool>/<name>`
 
 * `<remote>` - *Optional* - Remote name.
 * `<project>` - *Optional* - Project name.
 * `<pool>` - **Required** - Storage pool name.
 * `<name>` - **Required** - Volume name.
-* `content_type=<ct>` - *Optional* - Content type of the volume.
 
 -> Currently, only volumes of type `custom` can be imported.
-
-~> **Warning:** Importing the volume without specifying `content_type` will lead to its replacement
-   upon the next apply, rather than an in-place update.
 
 ### Import example
 
 Example using terraform import command:
 
 ```shell
-$ terraform import lxd_volume.myvol proj/pool1/vol1,content_type=filesystem
+$ terraform import lxd_volume.myvol proj/pool1/vol1
 ```
 
 Example using the import block (only available in Terraform v1.5.0 and later):
@@ -80,8 +76,8 @@ resource "lxd_volume" "myvol" {
 }
 
 import {
-    to = lxd_volume.myvol
-    id = "proj/pool1/vol1,content_type=filesystem"
+  to = lxd_volume.myvol
+  id = "proj/pool1/vol1"
 }
 ```
 

@@ -238,8 +238,8 @@ resource "lxd_network" "mynet" {
 }
 
 import {
-    to = lxd_network.mynet
-    id = "proj/net1"
+  to = lxd_network.mynet
+  id = "proj/net1"
 }
 ```
 

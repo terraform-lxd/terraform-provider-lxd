@@ -312,7 +312,6 @@ func (r StorageVolumeResource) ImportState(ctx context.Context, req resource.Imp
 	meta := common.ImportMetadata{
 		ResourceName:   "volume",
 		RequiredFields: []string{"pool", "name"},
-		AllowedOptions: []string{"content_type"},
 	}
 
 	fields, diag := meta.ParseImportID(req.ID)
@@ -359,11 +358,14 @@ func (r StorageVolumeResource) SyncState(ctx context.Context, tfState *tfsdk.Sta
 	respDiags.Append(diags...)
 
 	m.Name = types.StringValue(vol.Name)
+	m.Type = types.StringValue(vol.Type)
 	m.Description = types.StringValue(vol.Description)
+	m.ContentType = types.StringValue(vol.ContentType)
 	m.Config = config
 
-	if vol.Location != "" && vol.Location != "none" {
-		m.Location = types.StringValue(vol.Location)
+	m.Location = types.StringValue(vol.Location)
+	if vol.Location == "none" {
+		m.Location = types.StringValue("")
 	}
 
 	if respDiags.HasError() {

@@ -96,8 +96,8 @@ resource "lxd_storage_pool" "mypool" {
 }
 
 import {
-    to = lxd_storage_pool.mypool
-    id = "proj/pool1"
+  to = lxd_storage_pool.mypool
+  id = "proj/pool1"
 }
 ```
 

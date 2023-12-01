@@ -82,8 +82,8 @@ resource "lxd_network_zone" "myzone" {
 }
 
 import {
-    to = lxd_network_zone.myzone
-    id = "proj/zone1"
+  to = lxd_network_zone.myzone
+  id = "proj/zone1"
 }
 ```
 
