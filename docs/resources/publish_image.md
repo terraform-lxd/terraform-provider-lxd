@@ -11,9 +11,9 @@ resource "lxd_cached_image" "xenial" {
 }
 
 resource "lxd_instance" "test1" {
-  name            = "test1"
-  image           = lxd_cached_image.xenial.fingerprint
-  start_on_create = false
+  name    = "test1"
+  image   = lxd_cached_image.xenial.fingerprint
+  running = false
 }
 
 resource "lxd_publish_image" "test1" {
