@@ -200,9 +200,9 @@ resource "lxd_volume" "volume1" {
 }
 
 resource "lxd_instance" "instance1" {
-  name            = "%s"
-  image           = "%s"
-  start_on_create = false
+  name    = "%s"
+  image   = "%s"
+  running = false
 
   device {
     name = "volume1"
