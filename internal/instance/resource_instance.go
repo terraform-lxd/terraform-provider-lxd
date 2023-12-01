@@ -29,6 +29,7 @@ import (
 	"github.com/terraform-lxd/terraform-provider-lxd/internal/common"
 	"github.com/terraform-lxd/terraform-provider-lxd/internal/errors"
 	provider_config "github.com/terraform-lxd/terraform-provider-lxd/internal/provider-config"
+	"github.com/terraform-lxd/terraform-provider-lxd/internal/utils"
 )
 
 type InstanceModel struct {
@@ -37,7 +38,7 @@ type InstanceModel struct {
 	Type           types.String `tfsdk:"type"`
 	Image          types.String `tfsdk:"image"`
 	Ephemeral      types.Bool   `tfsdk:"ephemeral"`
-	StartOnCreate  types.Bool   `tfsdk:"start_on_create"`
+	Running        types.Bool   `tfsdk:"running"`
 	WaitForNetwork types.Bool   `tfsdk:"wait_for_network"`
 	Profiles       types.List   `tfsdk:"profiles"`
 	Devices        types.Set    `tfsdk:"device"`
@@ -57,8 +58,7 @@ type InstanceModel struct {
 
 // InstanceResource represent LXD instance resource.
 type InstanceResource struct {
-	provider      *provider_config.LxdProviderConfig
-	updateTimeout int
+	provider *provider_config.LxdProviderConfig
 }
 
 // NewInstanceResource returns a new instance resource.
@@ -114,7 +114,7 @@ func (r InstanceResource) Schema(_ context.Context, _ resource.SchemaRequest, re
 				},
 			},
 
-			"start_on_create": schema.BoolAttribute{
+			"running": schema.BoolAttribute{
 				Optional: true,
 				Computed: true,
 				Default:  booldefault.StaticBool(true),
@@ -192,30 +192,18 @@ func (r InstanceResource) Schema(_ context.Context, _ resource.SchemaRequest, re
 
 			"ipv4_address": schema.StringAttribute{
 				Computed: true,
-				PlanModifiers: []planmodifier.String{
-					stringplanmodifier.UseStateForUnknown(),
-				},
 			},
 
 			"ipv6_address": schema.StringAttribute{
 				Computed: true,
-				PlanModifiers: []planmodifier.String{
-					stringplanmodifier.UseStateForUnknown(),
-				},
 			},
 
 			"mac_address": schema.StringAttribute{
 				Computed: true,
-				PlanModifiers: []planmodifier.String{
-					stringplanmodifier.UseStateForUnknown(),
-				},
 			},
 
 			"status": schema.StringAttribute{
 				Computed: true,
-				PlanModifiers: []planmodifier.String{
-					stringplanmodifier.UseStateForUnknown(),
-				},
 			},
 		},
 
@@ -303,9 +291,6 @@ func (r InstanceResource) Schema(_ context.Context, _ resource.SchemaRequest, re
 }
 
 func (r *InstanceResource) Configure(_ context.Context, req resource.ConfigureRequest, resp *resource.ConfigureResponse) {
-	// Set instance update timeout (for starting/stopping the instance).
-	r.updateTimeout = int(time.Duration(5 * time.Minute).Seconds())
-
 	data := req.ProviderData
 	if data == nil {
 		return
@@ -431,15 +416,13 @@ func (r InstanceResource) Create(ctx context.Context, req resource.CreateRequest
 		}
 	}
 
-	// Create instance. It will not be running after this API call.
+	// Create the instance. It will not be running after this API call.
 	opCreate, err := server.CreateInstanceFromImage(imageServer, *imageInfo, instance)
-	if err != nil {
-		resp.Diagnostics.AddError(fmt.Sprintf("Failed to create instance %q", instance.Name), err.Error())
-		return
+	if err == nil {
+		// Wait for the instance to be created.
+		err = opCreate.Wait()
 	}
 
-	// Wait for the instance to be created.
-	err = opCreate.Wait()
 	if err != nil {
 		resp.Diagnostics.AddError(fmt.Sprintf("Failed to create instance %q", instance.Name), err.Error())
 		return
@@ -470,58 +453,20 @@ func (r InstanceResource) Create(ctx context.Context, req resource.CreateRequest
 		}
 	}
 
-	if plan.StartOnCreate.ValueBool() {
-		// Start instance.
-		startReq := api.InstanceStatePut{
-			Action:  "start",
-			Force:   false,
-			Timeout: r.updateTimeout,
-		}
-
-		opStart, err := server.UpdateInstanceState(instance.Name, startReq, "")
-		if err != nil {
-			// Instance has been created, but daemon rejected start request.
-			resp.Diagnostics.AddError(fmt.Sprintf("LXD server rejected request to start instance %q", instance.Name), err.Error())
+	if plan.Running.ValueBool() {
+		// Start the instance.
+		diag := startInstance(ctx, server, instance.Name, r.provider.RefreshInterval())
+		if diag != nil {
+			resp.Diagnostics.Append(diag)
 			return
 		}
 
-		err = opStart.Wait()
-		if err != nil {
-			resp.Diagnostics.AddError(fmt.Sprintf("Failed to start instance %q", instance.Name), err.Error())
-			return
-		}
-
-		// Even though op.Wait has completed, wait until we can see
-		// the instance is running via a new API call.
-		stateConf := &retry.StateChangeConf{
-			Target:     []string{"Running"},
-			Timeout:    3 * time.Minute,
-			MinTimeout: 3 * time.Second,
-			Delay:      r.provider.RefreshInterval(),
-			Refresh:    instanceStateRefreshFunc(server, instance.Name),
-		}
-
-		_, err = stateConf.WaitForStateContext(ctx)
-		if err != nil {
-			resp.Diagnostics.AddError(fmt.Sprintf("Failed to wait for instance %q to become active", instance.Name), err.Error())
-			return
-		}
-
+		// Wait for the instance to obtain an IP address. This is
+		// possible only if instance is running.
 		if plan.WaitForNetwork.ValueBool() {
-			// LXD will return "Running" even if "inet" has not yet
-			// been set. Therefore wait until we see an "inet" IP
-			// before reading the state.
-			networkConf := &retry.StateChangeConf{
-				Target:     []string{"OK"},
-				Timeout:    3 * time.Minute,
-				MinTimeout: 3 * time.Second,
-				Delay:      r.provider.RefreshInterval(),
-				Refresh:    instanceNetworkStateRefreshFunc(server, instance.Name),
-			}
-
-			_, err = networkConf.WaitForStateContext(ctx)
-			if err != nil {
-				resp.Diagnostics.AddError(fmt.Sprintf("Failed to wait for instance %q network information", instance.Name), err.Error())
+			diag := waitInstanceNetwork(ctx, server, instance.Name, r.provider.RefreshInterval())
+			if diag != nil {
+				resp.Diagnostics.Append(diag)
 				return
 			}
 		}
@@ -555,6 +500,11 @@ func (r InstanceResource) Read(ctx context.Context, req resource.ReadRequest, re
 	resp.Diagnostics.Append(diags...)
 }
 
+// Update updates the instance in the following order:
+// - Ensure instance state (stopped/running)
+// - Update configuration (config, limits, devices, profiles)
+// - Upload files
+// - Run exec commands
 func (r InstanceResource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
 	var plan InstanceModel
 	var state InstanceModel
@@ -580,6 +530,42 @@ func (r InstanceResource) Update(ctx context.Context, req resource.UpdateRequest
 	}
 
 	instanceName := plan.Name.ValueString()
+	instanceState, _, err := server.GetInstanceState(instanceName)
+	if err != nil {
+		resp.Diagnostics.AddError(fmt.Sprintf("Failed to retrieve state of instance %q", instanceName), err.Error())
+		return
+	}
+
+	// First ensure the desired state of the instance (stopped/running).
+	// This ensures we fail fast if instance runs into an issue.
+	instRunning := (instanceState.Status == api.Running.String() && instanceState.Processes > 0)
+	if !instRunning && plan.Running.ValueBool() {
+		diag := startInstance(ctx, server, instanceName, r.provider.RefreshInterval())
+		if diag != nil {
+			resp.Diagnostics.Append(diag)
+			return
+		}
+
+		// If instance is freshly started, we should also wait for
+		// network (if user requested that).
+		if plan.WaitForNetwork.ValueBool() {
+			diag := waitInstanceNetwork(ctx, server, instanceName, r.provider.RefreshInterval())
+			if diag != nil {
+				resp.Diagnostics.Append(diag)
+				return
+			}
+		}
+	} else if instRunning && !plan.Running.ValueBool() {
+		// Stop the instance gracefully and do not ignore not found
+		// error.
+		diag := stopInstance(ctx, server, instanceName, r.provider.RefreshInterval(), false, false)
+		if diag != nil {
+			resp.Diagnostics.Append(diag)
+			return
+		}
+	}
+
+	// Get instance.
 	instance, etag, err := server.GetInstance(instanceName)
 	if err != nil {
 		resp.Diagnostics.AddError(fmt.Sprintf("Failed to retrieve existing instance %q", instanceName), err.Error())
@@ -612,7 +598,6 @@ func (r InstanceResource) Update(ctx context.Context, req resource.UpdateRequest
 		config[key] = v
 	}
 
-	// Update instance.
 	newInstance := api.InstancePut{
 		Description:  plan.Description.ValueString(),
 		Ephemeral:    plan.Ephemeral.ValueBool(),
@@ -624,13 +609,13 @@ func (r InstanceResource) Update(ctx context.Context, req resource.UpdateRequest
 		Devices:      devices,
 	}
 
+	// Update the instance.
 	opUpdate, err := server.UpdateInstance(instanceName, newInstance, etag)
-	if err != nil {
-		resp.Diagnostics.AddError(fmt.Sprintf("Failed to update instance %q", instance.Name), err.Error())
-		return
+	if err == nil {
+		// Wait for the instance to be deleted.
+		err = opUpdate.Wait()
 	}
 
-	err = opUpdate.Wait()
 	if err != nil {
 		resp.Diagnostics.AddError(fmt.Sprintf("Failed to update instance %q", instance.Name), err.Error())
 		return
@@ -701,57 +686,22 @@ func (r InstanceResource) Delete(ctx context.Context, req resource.DeleteRequest
 
 	instanceName := state.Name.ValueString()
 
-	ct, etag, _ := server.GetInstanceState(instanceName)
-	if ct.Status == "Running" {
-		stopReq := api.InstanceStatePut{
-			Action:  "stop",
-			Timeout: r.updateTimeout,
-		}
-
-		opStop, err := server.UpdateInstanceState(instanceName, stopReq, etag)
-		if err != nil {
-			resp.Diagnostics.AddError(fmt.Sprintf("Failed to stop instance %q", instanceName), err.Error())
-			return
-		}
-
-		err = opStop.Wait()
-		if err != nil {
-			resp.Diagnostics.AddError(fmt.Sprintf("Failed waiting for instance %q to stop", instanceName), err.Error())
-			return
-		}
-
-		// Even though op.Wait has completed, wait until we can see the instance has
-		// stopped via a new API call.
-		stateConf := &retry.StateChangeConf{
-			Target:     []string{"Stopped"},
-			Timeout:    3 * time.Minute,
-			MinTimeout: 3 * time.Second,
-			Delay:      r.provider.RefreshInterval(),
-			Refresh:    instanceStateRefreshFunc(server, instanceName),
-		}
-
-		_, err = stateConf.WaitForStateContext(ctx)
-		if err != nil {
-			if errors.IsNotFoundError(err) {
-				// Ephemeral instances will be deleted when they are stopped
-				// so we can just return here and end the Delete call early.
-				return
-			}
-
-			resp.Diagnostics.AddError(fmt.Sprintf("Failed waiting for instance %q to stop", instanceName), err.Error())
-			return
-		}
-	}
-
-	opDelete, err := server.DeleteInstance(instanceName)
-	if err != nil {
-		resp.Diagnostics.AddError(fmt.Sprintf("Failed to remove instance %q", instanceName), err.Error())
+	// Force stop the instance, because we are deleting it anyway.
+	// Also ignore an error if instance is not found.
+	diag := stopInstance(ctx, server, instanceName, r.provider.RefreshInterval(), true, true)
+	if diag != nil {
+		resp.Diagnostics.Append(diag)
 		return
 	}
 
-	// Wait for the instance to be deleted.
-	err = opDelete.Wait()
-	if err != nil {
+	// Delete the instance.
+	opDelete, err := server.DeleteInstance(instanceName)
+	if err == nil {
+		// Wait for the instance to be deleted.
+		err = opDelete.WaitContext(ctx)
+	}
+
+	if err != nil && !errors.IsNotFoundError(err) {
 		resp.Diagnostics.AddError(fmt.Sprintf("Failed to remove instance %q", instanceName), err.Error())
 	}
 }
@@ -874,6 +824,10 @@ func (r InstanceResource) SyncState(ctx context.Context, tfState *tfsdk.State, s
 	devices, diags := common.ToDeviceSetType(ctx, instance.Devices)
 	respDiags.Append(diags...)
 
+	if respDiags.HasError() {
+		return respDiags
+	}
+
 	m.Name = types.StringValue(instance.Name)
 	m.Description = types.StringValue(instance.Description)
 	m.Status = types.StringValue(instance.Status)
@@ -883,12 +837,16 @@ func (r InstanceResource) SyncState(ctx context.Context, tfState *tfsdk.State, s
 	m.Devices = devices
 	m.Config = config
 
+	// Set "running" attribute based on the instance's current status, so
+	// that we can get it into desired state on next apply.
+	m.Running = types.BoolValue(instanceState.Status == api.Running.String())
+
+	// If the LXD server does not support virtualization or the instances
+	// API is not available, instance.Type might be a blank string. In that
+	// case we fall back to "container" to avoid constant changes to the
+	// resource definition.
 	m.Type = types.StringValue(instance.Type)
 	if instance.Type == "" {
-		// If the LXD server does not support virtualization or the
-		// instances API is not available, instance.Type might be a
-		// blank string. In that case we fall back to "container"
-		// to avoid constant changes to the resource definition.
 		m.Type = types.StringValue("container")
 	}
 
@@ -898,17 +856,8 @@ func (r InstanceResource) SyncState(ctx context.Context, tfState *tfsdk.State, s
 	}
 
 	// Ensure default value is set (to prevent plan diff on import).
-	if m.StartOnCreate.IsNull() {
-		m.StartOnCreate = types.BoolValue(true)
-	}
-
-	// Ensure default value is set (to prevent plan diff on import).
 	if m.WaitForNetwork.IsNull() {
 		m.WaitForNetwork = types.BoolValue(true)
-	}
-
-	if respDiags.HasError() {
-		return respDiags
 	}
 
 	return tfState.Set(ctx, &m)
@@ -942,9 +891,103 @@ func ToProfileListType(ctx context.Context, profiles []string) (types.List, diag
 	return types.ListValueFrom(ctx, types.StringType, profiles)
 }
 
-// networkStateRefreshFunc returns function that refreshes instance's status.
-func instanceStateRefreshFunc(server lxd.InstanceServer, instanceName string) retry.StateRefreshFunc {
-	return func() (any, string, error) {
+// startInstance starts an instance with the given name. It waits for its
+// status to become ready and for number of processes to be more then 0.
+// This way we ensure the instance is both running and successfully
+// connected to the LXD server.
+func startInstance(ctx context.Context, server lxd.InstanceServer, instanceName string, refInterval time.Duration) diag.Diagnostic {
+	st, etag, err := server.GetInstanceState(instanceName)
+	if err != nil {
+		return diag.NewErrorDiagnostic(fmt.Sprintf("Failed to retrieve state of instance %q", instanceName), err.Error())
+	}
+
+	// Return if already running.
+	if st.Status == api.Running.String() && st.Processes > 0 {
+		return nil
+	}
+
+	startReq := api.InstanceStatePut{
+		Action:  "start",
+		Force:   false,
+		Timeout: utils.ContextTimeout(ctx, 3*time.Minute),
+	}
+
+	// Start the instance.
+	op, err := server.UpdateInstanceState(instanceName, startReq, etag)
+	if err == nil {
+		err = op.WaitContext(ctx)
+	}
+
+	if err != nil {
+		return diag.NewErrorDiagnostic(fmt.Sprintf("Failed to start instance %q", instanceName), err.Error())
+	}
+
+	instanceStartedCheck := func() (any, string, error) {
+		st, _, err := server.GetInstanceState(instanceName)
+		if err != nil {
+			return st, "Error", err
+		}
+
+		// Beside checking for status "Running", we also need to ensure
+		// that number of procceses is higher then "0". For VMs this is
+		// only true if LXD agent is also connected to the LXD and has
+		// reported the proccess count.
+		if st.Status == api.Running.String() && st.Processes <= 0 {
+			return st, "Running (initializing)", nil
+		}
+
+		return st, st.Status, nil
+	}
+
+	// Even though op.Wait has completed, wait until we can see
+	// the instance is fully started via a new API call.
+	stateConf := &retry.StateChangeConf{
+		Target:     []string{api.Running.String()},
+		Timeout:    3 * time.Minute,
+		MinTimeout: 3 * time.Second,
+		Delay:      refInterval,
+		Refresh:    instanceStartedCheck,
+	}
+
+	_, err = stateConf.WaitForStateContext(ctx)
+	if err != nil {
+		return diag.NewErrorDiagnostic(fmt.Sprintf("Failed to wait for instance %q to start", instanceName), err.Error())
+	}
+
+	return nil
+}
+
+// stopInstance stops an instance with the given name. It waits wither for
+// its status to become Stopped or for the instance to be not found (in case
+// of ephemeral instances).
+func stopInstance(ctx context.Context, server lxd.InstanceServer, instanceName string, refInterval time.Duration, force bool, ignoreNotFound bool) diag.Diagnostic {
+	is, etag, err := server.GetInstanceState(instanceName)
+	if err != nil {
+		return diag.NewErrorDiagnostic(fmt.Sprintf("Failed to retrieve state of instance %q", instanceName), err.Error())
+	}
+
+	// Return if already sopped.
+	if is.Status == api.Stopped.String() {
+		return nil
+	}
+
+	stopReq := api.InstanceStatePut{
+		Action:  "stop",
+		Force:   force,
+		Timeout: utils.ContextTimeout(ctx, 3*time.Minute),
+	}
+
+	// Stop the instance.
+	op, err := server.UpdateInstanceState(instanceName, stopReq, etag)
+	if err == nil {
+		err = op.WaitContext(ctx)
+	}
+
+	if err != nil {
+		return diag.NewErrorDiagnostic(fmt.Sprintf("Failed to stop instance %q", instanceName), err.Error())
+	}
+
+	instanceStoppedCheck := func() (any, string, error) {
 		st, _, err := server.GetInstanceState(instanceName)
 		if err != nil {
 			return st, "Error", err
@@ -952,12 +995,36 @@ func instanceStateRefreshFunc(server lxd.InstanceServer, instanceName string) re
 
 		return st, st.Status, nil
 	}
+
+	stateConf := &retry.StateChangeConf{
+		Target:     []string{api.Stopped.String()},
+		Timeout:    3 * time.Minute,
+		MinTimeout: 3 * time.Second,
+		Delay:      refInterval,
+		Refresh:    instanceStoppedCheck,
+	}
+
+	// Even though op.Wait has completed, wait until we can see
+	// the instance is stopped via a new API call.
+	_, err = stateConf.WaitForStateContext(ctx)
+	if err != nil {
+		if ignoreNotFound && errors.IsNotFoundError(err) {
+			return nil
+		}
+
+		return diag.NewErrorDiagnostic(fmt.Sprintf("Failed to wait for instance %q to stop", instanceName), err.Error())
+	}
+
+	return nil
 }
 
-// instanceNetworkStateRefreshFunc returns function that checks
-// whether instance has received an IP address.
-func instanceNetworkStateRefreshFunc(server lxd.InstanceServer, instanceName string) retry.StateRefreshFunc {
-	return func() (any, string, error) {
+// waitInstanceNetwork wait for an instance with the given name to receive
+// an IP address. This should be called only if we know the instance is
+// running.
+func waitInstanceNetwork(ctx context.Context, server lxd.InstanceServer, instanceName string, refInterval time.Duration) diag.Diagnostic {
+	// instanceNetworkCheck function checks whether instance has
+	// received an IP address.
+	instanceNetworkCheck := func() (any, string, error) {
 		st, _, err := server.GetInstanceState(instanceName)
 		if err != nil {
 			return st, "Error", err
@@ -975,8 +1042,25 @@ func instanceNetworkStateRefreshFunc(server lxd.InstanceServer, instanceName str
 			}
 		}
 
-		return st, "NOT FOUND", nil
+		return st, "Waiting for network", nil
 	}
+
+	// LXD will return "Running" even if "inet" has not yet
+	// been set. Therefore, wait until we see an "inet" IP.
+	networkConf := &retry.StateChangeConf{
+		Target:     []string{"OK"},
+		Timeout:    3 * time.Minute,
+		MinTimeout: 3 * time.Second,
+		Delay:      refInterval,
+		Refresh:    instanceNetworkCheck,
+	}
+
+	_, err := networkConf.WaitForStateContext(ctx)
+	if err != nil {
+		return diag.NewErrorDiagnostic(fmt.Sprintf("Failed to wait for instance %q to get an IP address", instanceName), err.Error())
+	}
+
+	return nil
 }
 
 // findIPv4Address searches the network for last IPv4 address. If an IP address
