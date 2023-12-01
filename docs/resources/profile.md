@@ -53,7 +53,7 @@ resource "lxd_instance" "test1" {
 * `project` - *Optional* - Name of the project where the profile will be stored.
 
 * `remote` - *Optional* - The remote in which the resource will be created. If
-	it is not provided, the default provider remote is used.
+	not provided, the provider's default remote will be used.
 
 The `device` block supports:
 

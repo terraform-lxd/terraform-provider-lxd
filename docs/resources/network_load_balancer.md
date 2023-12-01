@@ -73,7 +73,7 @@ resource "lxd_network_lb" "load_balancer" {
 * `project` - *Optional* - Name of the project where the load balancer will be spawned.
 
 * `remote` - *Optional* - The remote in which the resource will be created. If
-	it is not provided, the default provider remote is used.
+	not provided, the provider's default remote will be used.
 
 The `backend` block supports:
 

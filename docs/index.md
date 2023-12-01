@@ -86,7 +86,7 @@ The `remote` block supports:
 * `default` - *Optional* - Whether this should be the default remote.
 	This remote will then be used when one is not specified in a resource.
 	Valid values are `true` and `false`.
-	If you choose to _not_ set default=true on an `remote` and do not specify
+	If you choose to _not_ set default=true on a `remote` and do not specify
 	a remote in a resource, this provider will attempt to connect to an LXD
 	server running on the same host through the UNIX socket. See `Undefined Remote`
 	for more information.
@@ -103,7 +103,7 @@ The `remote` block supports:
 
 ## Undefined Remote
 
-If you choose to _not_ define an `remote`, this provider will attempt
+If you choose to _not_ define a `remote`, this provider will attempt
 to connect to an LXD server running on the same host through the UNIX
 socket.
 

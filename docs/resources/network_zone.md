@@ -51,7 +51,7 @@ See the `lxd_network_zone_record` resource for information on how to configure n
 * `project` - *Optional* - Name of the project where the network zone will be created.
 
 * `remote` - *Optional* - The remote in which the resource will be created. If
-	it is not provided, the default provider remote is used.
+	not provided, the provider's default remote will be used.
 
 ## Attribute Reference
 

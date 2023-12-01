@@ -11,9 +11,8 @@ resource "lxd_cached_image" "xenial" {
 }
 
 resource "lxd_instance" "test1" {
-  name  = "test1"
-  image = lxd_cached_image.xenial.fingerprint
-
+  name            = "test1"
+  image           = lxd_cached_image.xenial.fingerprint
   start_on_create = false
 }
 
@@ -44,7 +43,7 @@ resource "lxd_publish_image" "test1" {
 * `project` - *Optional* - Name of the project where the published image will be stored.
 
 * `remote` - *Optional* - The remote in which the resource will be created. If
-	it is not provided, the default provider's remote is used.
+	not provided, the provider's default remote will be used.
 
 ## Attribute Reference
 
@@ -58,4 +57,4 @@ The following attributes are exported:
 
 ## Notes
 
-* Image can be published only if the container is stopped.
+* Image can only be published if the instance is stopped.

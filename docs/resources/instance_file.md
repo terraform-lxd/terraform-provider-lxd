@@ -42,7 +42,7 @@ resource "lxd_instance_file" "file1" {
 * `gid` - *Optional* - The GID of the file. Must be an unquoted integer.
   Defaults to `0`.
 
-* `mode` - *Optional* - The octal permissions of the file, must be quoted. Defaults to `0775`.
+* `mode` - *Optional* - The octal permissions of the file, must be quoted. Defaults to `0755`.
 
 * `create_directories` - *Optional* - Whether to create the directories leading
 	to the target if they do not exist.
@@ -52,7 +52,7 @@ resource "lxd_instance_file" "file1" {
 * `project` - *Optional* - Name of the project where the instance to which this file will be appended exist.
 
 * `remote` - *Optional* - The remote in which the resource will be created. If
-	it is not provided, the default provider remote is used.
+	not provided, the provider's default remote will be used.
 
 
 ## Attribute Reference

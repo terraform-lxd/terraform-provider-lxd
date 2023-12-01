@@ -8,9 +8,8 @@ An instance can take a number of configuration and device options. A full refere
 
 ```hcl
 resource "lxd_instance" "container1" {
-  name      = "container1"
-  image     = "images:ubuntu/22.04"
-  ephemeral = false
+  name  = "container1"
+  image = "images:ubuntu/22.04"
 
   config = {
     "boot.autostart" = true
@@ -110,7 +109,7 @@ resource "lxd_instance" "container2" {
 * `project` - *Optional* - Name of the project where the instance will be spawned.
 
 * `remote` - *Optional* - The remote in which the resource will be created. If
-	it is not provided, the default provider remote is used.
+	not provided, the provider's default remote will be used.
 
 * `target` - *Optional* - Specify a target node in a cluster.
 
@@ -129,7 +128,7 @@ The `file` block supports:
 * `content` - *__Required__ unless source is used* - The _contents_ of the file.
 	Use the `file()` function to read in the content of a file from disk.
 
-* `source` - *__Required__ unless content is used* The source path to a file to
+* `source` - *__Required__ unless content is used* - The source path to a file to
 	copy to the instance.
 
 * `target_file` - **Required** - The absolute path of the file on the instance,
@@ -139,7 +138,7 @@ The `file` block supports:
 
 * `gid` - *Optional* - The GID of the file. Must be an unquoted integer.
 
-* `mode` - *Optional* - The octal permissions of the file, must be quoted. Defaults to `0775`.
+* `mode` - *Optional* - The octal permissions of the file, must be quoted. Defaults to `0755`.
 
 * `create_directories` - *Optional* - Whether to create the directories leading
 	to the target if they do not exist.

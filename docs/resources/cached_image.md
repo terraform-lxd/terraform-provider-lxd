@@ -35,8 +35,8 @@ resource "lxd_instance" "test1" {
 
 * `project` - *Optional* - Name of the project where the image will be stored.
 
-* `remote` - *Optional* - The remote in which the resource will be created. If it
-	is not provided, the default provider remove will be used.
+* `remote` - *Optional* - The remote in which the resource will be created. If
+	not provided, the provider's default remote will be used.
 
 ## Attribute Reference
 
