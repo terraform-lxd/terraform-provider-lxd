@@ -13,7 +13,10 @@ import (
 
 func TestAccNetworkLB_basic(t *testing.T) {
 	resource.Test(t, resource.TestCase{
-		PreCheck:                 func() { acctest.PreCheck(t) },
+		PreCheck: func() {
+			acctest.PreCheck(t)
+			acctest.PreCheckAPIExtensions(t, "network_load_balancer")
+		},
 		ProtoV6ProviderFactories: acctest.ProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
@@ -41,7 +44,10 @@ func TestAccNetworkLB_withConfig(t *testing.T) {
 	}
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:                 func() { acctest.PreCheck(t) },
+		PreCheck: func() {
+			acctest.PreCheck(t)
+			acctest.PreCheckAPIExtensions(t, "network_load_balancer")
+		},
 		ProtoV6ProviderFactories: acctest.ProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
@@ -78,7 +84,10 @@ func TestAccNetworkLB_withBackend(t *testing.T) {
 	}
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:                 func() { acctest.PreCheck(t) },
+		PreCheck: func() {
+			acctest.PreCheck(t)
+			acctest.PreCheckAPIExtensions(t, "network_load_balancer")
+		},
 		ProtoV6ProviderFactories: acctest.ProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{

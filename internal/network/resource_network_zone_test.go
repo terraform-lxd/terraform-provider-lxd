@@ -11,7 +11,10 @@ import (
 
 func TestAccNetworkZone_basic(t *testing.T) {
 	resource.Test(t, resource.TestCase{
-		PreCheck:                 func() { acctest.PreCheck(t) },
+		PreCheck: func() {
+			acctest.PreCheck(t)
+			acctest.PreCheckAPIExtensions(t, "projects_networks_zones")
+		},
 		ProtoV6ProviderFactories: acctest.ProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
@@ -102,7 +105,10 @@ func TestAccNetworkZone_importProject(t *testing.T) {
 	projectName := petname.Name()
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:                 func() { acctest.PreCheck(t) },
+		PreCheck: func() {
+			acctest.PreCheck(t)
+			acctest.PreCheckAPIExtensions(t, "projects_networks_zones")
+		},
 		ProtoV6ProviderFactories: acctest.ProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
