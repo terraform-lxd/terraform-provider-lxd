@@ -321,6 +321,40 @@ func (r *InstanceResource) ModifyPlan(ctx context.Context, req resource.ModifyPl
 	}
 }
 
+func (r InstanceResource) ValidateConfig(ctx context.Context, req resource.ValidateConfigRequest, resp *resource.ValidateConfigResponse) {
+	if req.Config.Raw.IsNull() {
+		return
+	}
+
+	var config InstanceModel
+
+	diags := req.Config.Get(ctx, &config)
+	resp.Diagnostics.Append(diags...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	running := true
+	ephemeral := false
+
+	if !config.Ephemeral.IsNull() && !config.Ephemeral.IsUnknown() {
+		ephemeral = config.Ephemeral.ValueBool()
+	}
+
+	if !config.Running.IsNull() && !config.Running.IsUnknown() {
+		running = config.Running.ValueBool()
+	}
+
+	// Ephemeral instance cannot be stopped.
+	if ephemeral && !running {
+		resp.Diagnostics.AddAttributeError(
+			path.Root("running"),
+			fmt.Sprintf("Instance %q is ephemeral and cannot be stopped", config.Name.ValueString()),
+			fmt.Sprintf("Ephemeral instances are removed when stopped, therefore attribute %q must be set to %q.", "running", "true"),
+		)
+	}
+}
+
 func (r InstanceResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
 	var plan InstanceModel
 
@@ -416,7 +450,7 @@ func (r InstanceResource) Create(ctx context.Context, req resource.CreateRequest
 		}
 	}
 
-	// Create the instance. It will not be running after this API call.
+	// Initialize the instance. Instance will no be running after this call.
 	opCreate, err := server.CreateInstanceFromImage(imageServer, *imageInfo, instance)
 	if err == nil {
 		// Wait for the instance to be created.
@@ -461,8 +495,8 @@ func (r InstanceResource) Create(ctx context.Context, req resource.CreateRequest
 			return
 		}
 
-		// Wait for the instance to obtain an IP address. This is
-		// possible only if instance is running.
+		// Wait for the instance to obtain an IP address if network
+		// availability is requested by the user.
 		if plan.WaitForNetwork.ValueBool() {
 			diag := waitInstanceNetwork(ctx, server, instance.Name, r.provider.RefreshInterval())
 			if diag != nil {
@@ -612,7 +646,7 @@ func (r InstanceResource) Update(ctx context.Context, req resource.UpdateRequest
 	// Update the instance.
 	opUpdate, err := server.UpdateInstance(instanceName, newInstance, etag)
 	if err == nil {
-		// Wait for the instance to be deleted.
+		// Wait for the instance to be updated.
 		err = opUpdate.Wait()
 	}
 
@@ -829,26 +863,19 @@ func (r InstanceResource) SyncState(ctx context.Context, tfState *tfsdk.State, s
 	}
 
 	m.Name = types.StringValue(instance.Name)
+	m.Type = types.StringValue(instance.Type)
 	m.Description = types.StringValue(instance.Description)
-	m.Status = types.StringValue(instance.Status)
 	m.Ephemeral = types.BoolValue(instance.Ephemeral)
+	m.Status = types.StringValue(instance.Status)
 	m.Profiles = profiles
 	m.Limits = limits
 	m.Devices = devices
 	m.Config = config
 
-	// Set "running" attribute based on the instance's current status, so
-	// that we can get it into desired state on next apply.
+	// Update "running" attribute based on the instance's current status.
+	// This way, terraform will detect the change if the current status
+	// does not match the expected one.
 	m.Running = types.BoolValue(instanceState.Status == api.Running.String())
-
-	// If the LXD server does not support virtualization or the instances
-	// API is not available, instance.Type might be a blank string. In that
-	// case we fall back to "container" to avoid constant changes to the
-	// resource definition.
-	m.Type = types.StringValue(instance.Type)
-	if instance.Type == "" {
-		m.Type = types.StringValue("container")
-	}
 
 	m.Target = types.StringValue("")
 	if server.IsClustered() || instance.Location != "none" {
@@ -891,10 +918,8 @@ func ToProfileListType(ctx context.Context, profiles []string) (types.List, diag
 	return types.ListValueFrom(ctx, types.StringType, profiles)
 }
 
-// startInstance starts an instance with the given name. It waits for its
-// status to become ready and for number of processes to be more then 0.
-// This way we ensure the instance is both running and successfully
-// connected to the LXD server.
+// startInstance starts an instance with the given name. It also waits
+// for it to become fully operational.
 func startInstance(ctx context.Context, server lxd.InstanceServer, instanceName string, refInterval time.Duration) diag.Diagnostic {
 	st, etag, err := server.GetInstanceState(instanceName)
 	if err != nil {
@@ -957,9 +982,9 @@ func startInstance(ctx context.Context, server lxd.InstanceServer, instanceName 
 	return nil
 }
 
-// stopInstance stops an instance with the given name. It waits wither for
-// its status to become Stopped or for the instance to be not found (in case
-// of ephemeral instances).
+// stopInstance stops an instance with the given name. It waits for its
+// status to become Stopped or the instance to be removed (not found) in
+// case of an ephemeral instance.
 func stopInstance(ctx context.Context, server lxd.InstanceServer, instanceName string, refInterval time.Duration, force bool, ignoreNotFound bool) diag.Diagnostic {
 	is, etag, err := server.GetInstanceState(instanceName)
 	if err != nil {
@@ -1018,9 +1043,9 @@ func stopInstance(ctx context.Context, server lxd.InstanceServer, instanceName s
 	return nil
 }
 
-// waitInstanceNetwork wait for an instance with the given name to receive
-// an IP address. This should be called only if we know the instance is
-// running.
+// waitInstanceNetwork waits for an instance with the given name to receive
+// an IPv4 address on any interface (excluding loopback). This should be
+// called only if the instance is running.
 func waitInstanceNetwork(ctx context.Context, server lxd.InstanceServer, instanceName string, refInterval time.Duration) diag.Diagnostic {
 	// instanceNetworkCheck function checks whether instance has
 	// received an IP address.

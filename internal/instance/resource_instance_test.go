@@ -2,6 +2,7 @@ package instance_test
 
 import (
 	"fmt"
+	"regexp"
 	"testing"
 
 	petname "github.com/dustinkirkland/golang-petname"
@@ -47,6 +48,21 @@ func TestAccInstance_ephemeral(t *testing.T) {
 					resource.TestCheckResourceAttr("lxd_instance.instance1", "profiles.#", "1"),
 					resource.TestCheckResourceAttr("lxd_instance.instance1", "profiles.0", "default"),
 				),
+			},
+		},
+	})
+}
+
+func TestAccInstance_ephemeralStopped(t *testing.T) {
+	instanceName := petname.Generate(2, "-")
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { acctest.PreCheck(t) },
+		ProtoV6ProviderFactories: acctest.ProtoV6ProviderFactories,
+		Steps: []resource.TestStep{
+			{
+				Config:      testAccInstance_ephemeralStopped(instanceName),
+				ExpectError: regexp.MustCompile(fmt.Sprintf("Instance %q is ephemeral and cannot be stopped", instanceName)),
 			},
 		},
 	})
@@ -717,6 +733,16 @@ resource "lxd_instance" "instance1" {
   ephemeral = true
 }
 	`, name, acctest.TestImage)
+}
+
+func testAccInstance_ephemeralStopped(name string) string {
+	return fmt.Sprintf(`
+resource "lxd_instance" "instance1" {
+  name      = "%s"
+  image     = "%s"
+  running   = false
+  ephemeral = true
+}`, name, acctest.TestImage)
 }
 
 func testAccInstance_container(name string) string {
