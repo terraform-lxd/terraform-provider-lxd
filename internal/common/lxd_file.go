@@ -18,8 +18,8 @@ import (
 
 type InstanceFileModel struct {
 	Content    types.String `tfsdk:"content"`
-	Source     types.String `tfsdk:"source"`
-	TargetFile types.String `tfsdk:"target_file"`
+	SourcePath types.String `tfsdk:"source_path"`
+	TargetPath types.String `tfsdk:"target_path"`
 	UserID     types.Int64  `tfsdk:"uid"`
 	GroupID    types.Int64  `tfsdk:"gid"`
 	Mode       types.String `tfsdk:"mode"`
@@ -42,7 +42,7 @@ func ToFileMap(ctx context.Context, fileSet types.Set) (map[string]InstanceFileM
 	// Convert list into map.
 	fileMap := make(map[string]InstanceFileModel, len(files))
 	for _, f := range files {
-		fileMap[f.TargetFile.ValueString()] = f
+		fileMap[f.TargetPath.ValueString()] = f
 	}
 
 	return fileMap, diags
@@ -59,13 +59,13 @@ func ToFileSetType(ctx context.Context, fileMap map[string]InstanceFileModel) (t
 }
 
 // InstanceFileDelete deletes a file from an instance.
-func InstanceFileDelete(server lxd.InstanceServer, instanceName string, targetFile string) error {
-	targetFile, err := toAbsFilePath(targetFile)
+func InstanceFileDelete(server lxd.InstanceServer, instanceName string, targetPath string) error {
+	targetPath, err := toAbsFilePath(targetPath)
 	if err != nil {
 		return err
 	}
 
-	err = server.DeleteInstanceFile(instanceName, targetFile)
+	err = server.DeleteInstanceFile(instanceName, targetPath)
 	if err != nil && !errors.IsNotFoundError(err) {
 		return err
 	}
@@ -76,13 +76,13 @@ func InstanceFileDelete(server lxd.InstanceServer, instanceName string, targetFi
 // InstanceFileUpload uploads a file to an instance.
 func InstanceFileUpload(server lxd.InstanceServer, instanceName string, file InstanceFileModel) error {
 	content := file.Content.ValueString()
-	source := file.Source.ValueString()
+	sourcePath := file.SourcePath.ValueString()
 
-	if content != "" && source != "" {
-		return fmt.Errorf("File %q and %q are mutually exclusive.", "content", "source")
+	if content != "" && sourcePath != "" {
+		return fmt.Errorf("File %q and %q are mutually exclusive.", "content", "source_path")
 	}
 
-	targetFile, err := toAbsFilePath(file.TargetFile.ValueString())
+	targetPath, err := toAbsFilePath(file.TargetPath.ValueString())
 	if err != nil {
 		return err
 	}
@@ -117,8 +117,8 @@ func InstanceFileUpload(server lxd.InstanceServer, instanceName string, file Ins
 	}
 
 	// If a source was specified, read the contents of the source file.
-	if source != "" {
-		path, err := homedir.Expand(source)
+	if sourcePath != "" {
+		path, err := homedir.Expand(sourcePath)
 		if err != nil {
 			return fmt.Errorf("Unable to determine source file path: %v", err)
 		}
@@ -133,15 +133,15 @@ func InstanceFileUpload(server lxd.InstanceServer, instanceName string, file Ins
 	}
 
 	if file.CreateDirs.ValueBool() {
-		err := recursiveMkdir(server, instanceName, path.Dir(targetFile), *args)
+		err := recursiveMkdir(server, instanceName, path.Dir(targetPath), *args)
 		if err != nil {
-			return fmt.Errorf("Could not create directories for file %q: %v", targetFile, err)
+			return fmt.Errorf("Could not create directories for file %q: %v", targetPath, err)
 		}
 	}
 
-	err = server.CreateInstanceFile(instanceName, targetFile, *args)
+	err = server.CreateInstanceFile(instanceName, targetPath, *args)
 	if err != nil {
-		return fmt.Errorf("Could not upload file %q: %v", targetFile, err)
+		return fmt.Errorf("Could not upload file %q: %v", targetPath, err)
 	}
 
 	return nil
@@ -201,16 +201,16 @@ func recursiveMkdir(server lxd.InstanceServer, instanceName string, p string, ar
 
 // toAbsFilePath returns absolute path of the given path and ensures that
 // the path is not a directory.
-func toAbsFilePath(filePath string) (string, error) {
-	targetFile, err := filepath.Abs(filePath)
+func toAbsFilePath(path string) (string, error) {
+	targetPath, err := filepath.Abs(path)
 	if err != nil {
 		return "", fmt.Errorf("Failed to determine absoulute target file path: %v", err)
 	}
 
-	isDir := strings.HasSuffix(targetFile, "/")
+	isDir := strings.HasSuffix(targetPath, "/")
 	if isDir {
-		return "", fmt.Errorf("Target file %q cannot be a directory: %v", targetFile, err)
+		return "", fmt.Errorf("Target file %q cannot be a directory: %v", targetPath, err)
 	}
 
-	return targetFile, nil
+	return targetPath, nil
 }

@@ -35,8 +35,8 @@ type InstanceFileModel struct {
 
 	// common.InstanceFileModel
 	Content    types.String `tfsdk:"content"`
-	Source     types.String `tfsdk:"source"`
-	TargetFile types.String `tfsdk:"target_file"`
+	SourcePath types.String `tfsdk:"source_path"`
+	TargetPath types.String `tfsdk:"target_path"`
 	UserID     types.Int64  `tfsdk:"uid"`
 	GroupID    types.Int64  `tfsdk:"gid"`
 	Mode       types.String `tfsdk:"mode"`
@@ -99,7 +99,7 @@ func (r InstanceFileResource) Schema(_ context.Context, _ resource.SchemaRequest
 				},
 			},
 
-			"source": schema.StringAttribute{
+			"source_path": schema.StringAttribute{
 				Optional: true,
 				PlanModifiers: []planmodifier.String{
 					stringplanmodifier.RequiresReplace(),
@@ -108,13 +108,13 @@ func (r InstanceFileResource) Schema(_ context.Context, _ resource.SchemaRequest
 					// Specify all attributes at one field to
 					// produce only one meaningful error.
 					stringvalidator.ExactlyOneOf(
-						path.MatchRoot("source"),
+						path.MatchRoot("source_path"),
 						path.MatchRoot("content"),
 					),
 				},
 			},
 
-			"target_file": schema.StringAttribute{
+			"target_path": schema.StringAttribute{
 				Required: true,
 				PlanModifiers: []planmodifier.String{
 					stringplanmodifier.RequiresReplace(),
@@ -208,8 +208,8 @@ func (r InstanceFileResource) Create(ctx context.Context, req resource.CreateReq
 
 	file := common.InstanceFileModel{
 		Content:    plan.Content,
-		Source:     plan.Source,
-		TargetFile: plan.TargetFile,
+		SourcePath: plan.SourcePath,
+		TargetPath: plan.TargetPath,
 		UserID:     plan.UserID,
 		GroupID:    plan.GroupID,
 		Mode:       plan.Mode,
@@ -218,14 +218,14 @@ func (r InstanceFileResource) Create(ctx context.Context, req resource.CreateReq
 	}
 
 	// Upload file.
-	targetFile := plan.TargetFile.ValueString()
+	targetPath := plan.TargetPath.ValueString()
 	err = common.InstanceFileUpload(server, instanceName, file)
 	if err != nil {
-		resp.Diagnostics.AddError(fmt.Sprintf("Failed to create file %q on instance %q", targetFile, instanceName), err.Error())
+		resp.Diagnostics.AddError(fmt.Sprintf("Failed to create file %q on instance %q", targetPath, instanceName), err.Error())
 		return
 	}
 
-	fileID := createFileResourceID(remote, instanceName, targetFile)
+	fileID := createFileResourceID(remote, instanceName, targetPath)
 	plan.ResourceID = types.StringValue(fileID)
 
 	// Update Terraform state.
@@ -243,7 +243,7 @@ func (r InstanceFileResource) Read(ctx context.Context, req resource.ReadRequest
 		return
 	}
 
-	remote, instanceName, targetFile := splitFileResourceID(state.ResourceID.ValueString())
+	remote, instanceName, targetPath := splitFileResourceID(state.ResourceID.ValueString())
 
 	project := state.Project.ValueString()
 	server, err := r.provider.InstanceServer(remote, project, "")
@@ -264,13 +264,13 @@ func (r InstanceFileResource) Read(ctx context.Context, req resource.ReadRequest
 	}
 
 	// Fetch file
-	_, file, err := server.GetInstanceFile(instanceName, targetFile)
+	_, file, err := server.GetInstanceFile(instanceName, targetPath)
 	if err != nil {
-		resp.Diagnostics.AddError(fmt.Sprintf("Failed to retrieve file %q from instance %q", targetFile, instanceName), err.Error())
+		resp.Diagnostics.AddError(fmt.Sprintf("Failed to retrieve file %q from instance %q", targetPath, instanceName), err.Error())
 	}
 
 	state.Instance = types.StringValue(instanceName)
-	state.TargetFile = types.StringValue(targetFile)
+	state.TargetPath = types.StringValue(targetPath)
 	state.UserID = types.Int64Value(file.UID)
 	state.GroupID = types.Int64Value(file.GID)
 	state.Mode = types.StringValue(fmt.Sprintf("%04o", file.Mode))
@@ -315,8 +315,8 @@ func (r InstanceFileResource) Delete(ctx context.Context, req resource.DeleteReq
 
 	file := common.InstanceFileModel{
 		Content:    state.Content,
-		Source:     state.Source,
-		TargetFile: state.TargetFile,
+		SourcePath: state.SourcePath,
+		TargetPath: state.TargetPath,
 		UserID:     state.UserID,
 		GroupID:    state.GroupID,
 		Mode:       state.Mode,
@@ -332,13 +332,14 @@ func (r InstanceFileResource) Delete(ctx context.Context, req resource.DeleteReq
 	}
 }
 
-// createFileResourceID creates new file ID by concatenating remote, instnaceName, and
-// targetFile using colon.
-func createFileResourceID(remote string, instanceName string, targetFile string) string {
-	return fmt.Sprintf("%s:%s:%s", remote, instanceName, targetFile)
+// createFileResourceID creates new file ID by concatenating remote,
+// instnaceName, and targetPath using colon.
+func createFileResourceID(remote string, instanceName string, targetPath string) string {
+	return fmt.Sprintf("%s:%s:%s", remote, instanceName, targetPath)
 }
 
-// splitFileResourceID splits file ID into remote, intanceName, and targetFile strings.
+// splitFileResourceID splits file ID into remote, intanceName, and
+// targetPath strings.
 func splitFileResourceID(id string) (string, string, string) {
 	pieces := strings.SplitN(id, ":", 3)
 	return pieces[0], pieces[1], pieces[2]

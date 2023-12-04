@@ -374,7 +374,7 @@ func TestAccInstance_fileUploadContent(t *testing.T) {
 					resource.TestCheckResourceAttr("lxd_instance.instance1", "file.#", "1"),
 					resource.TestCheckResourceAttr("lxd_instance.instance1", "file.0.mode", "0644"),
 					resource.TestCheckResourceAttr("lxd_instance.instance1", "file.0.content", "Hello, World!\n"),
-					resource.TestCheckResourceAttr("lxd_instance.instance1", "file.0.target_file", "/foo/bar.txt"),
+					resource.TestCheckResourceAttr("lxd_instance.instance1", "file.0.target_path", "/foo/bar.txt"),
 					resource.TestCheckResourceAttr("lxd_instance.instance1", "file.0.create_directories", "true"),
 				),
 			},
@@ -386,7 +386,7 @@ func TestAccInstance_fileUploadContent(t *testing.T) {
 					resource.TestCheckResourceAttr("lxd_instance.instance1", "file.#", "1"),
 					resource.TestCheckResourceAttr("lxd_instance.instance1", "file.0.mode", "0777"),
 					resource.TestCheckResourceAttr("lxd_instance.instance1", "file.0.content", "Hello, World!\n"),
-					resource.TestCheckResourceAttr("lxd_instance.instance1", "file.0.target_file", "/foo/bar.txt"),
+					resource.TestCheckResourceAttr("lxd_instance.instance1", "file.0.target_path", "/foo/bar.txt"),
 					resource.TestCheckResourceAttr("lxd_instance.instance1", "file.0.create_directories", "true"),
 				),
 			},
@@ -398,7 +398,7 @@ func TestAccInstance_fileUploadContent(t *testing.T) {
 					resource.TestCheckResourceAttr("lxd_instance.instance1", "file.#", "1"),
 					resource.TestCheckResourceAttr("lxd_instance.instance1", "file.0.mode", "0777"),
 					resource.TestCheckResourceAttr("lxd_instance.instance1", "file.0.content", "Goodbye, World!\n"),
-					resource.TestCheckResourceAttr("lxd_instance.instance1", "file.0.target_file", "/foo/bar.txt"),
+					resource.TestCheckResourceAttr("lxd_instance.instance1", "file.0.target_path", "/foo/bar.txt"),
 					resource.TestCheckResourceAttr("lxd_instance.instance1", "file.0.create_directories", "false"),
 				),
 			},
@@ -420,8 +420,8 @@ func TestAccInstance_fileUploadSource(t *testing.T) {
 					resource.TestCheckResourceAttr("lxd_instance.instance1", "status", "Running"),
 					resource.TestCheckResourceAttr("lxd_instance.instance1", "file.#", "1"),
 					resource.TestCheckResourceAttr("lxd_instance.instance1", "file.0.mode", "0644"),
-					resource.TestCheckResourceAttr("lxd_instance.instance1", "file.0.source", "../acctest/fixtures/test-file.txt"),
-					resource.TestCheckResourceAttr("lxd_instance.instance1", "file.0.target_file", "/foo/bar.txt"),
+					resource.TestCheckResourceAttr("lxd_instance.instance1", "file.0.source_path", "../acctest/fixtures/test-file.txt"),
+					resource.TestCheckResourceAttr("lxd_instance.instance1", "file.0.target_path", "/foo/bar.txt"),
 					resource.TestCheckResourceAttr("lxd_instance.instance1", "file.0.create_directories", "true"),
 				),
 			},
@@ -887,7 +887,7 @@ resource "lxd_instance" "instance1" {
 
   file {
     content            = "Hello, World!\n"
-    target_file        = "/foo/bar.txt"
+    target_path        = "/foo/bar.txt"
     mode               = "0644"
     create_directories = true
   }
@@ -903,7 +903,7 @@ resource "lxd_instance" "instance1" {
 
   file {
     content            = "Hello, World!\n"
-    target_file        = "/foo/bar.txt"
+    target_path        = "/foo/bar.txt"
     mode               = "0777"
     create_directories = true
   }
@@ -919,7 +919,7 @@ resource "lxd_instance" "instance1" {
 
   file {
     content            = "Goodbye, World!\n"
-    target_file        = "/foo/bar.txt"
+    target_path        = "/foo/bar.txt"
     mode               = "0777"
     create_directories = false
   }
@@ -934,8 +934,8 @@ resource "lxd_instance" "instance1" {
   image = "%s"
 
   file {
-    source             = "../acctest/fixtures/test-file.txt"
-    target_file        = "/foo/bar.txt"
+    source_path        = "../acctest/fixtures/test-file.txt"
+    target_path        = "/foo/bar.txt"
     mode               = "0644"
     create_directories = true
   }

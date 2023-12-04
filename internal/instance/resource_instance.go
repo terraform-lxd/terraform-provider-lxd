@@ -262,11 +262,11 @@ func (r InstanceResource) Schema(_ context.Context, _ resource.SchemaRequest, re
 							Optional: true,
 						},
 
-						"source": schema.StringAttribute{
+						"source_path": schema.StringAttribute{
 							Optional: true,
 						},
 
-						"target_file": schema.StringAttribute{
+						"target_path": schema.StringAttribute{
 							Required: true,
 						},
 
@@ -653,8 +653,8 @@ func (r InstanceResource) Update(ctx context.Context, req resource.UpdateRequest
 			continue
 		}
 
-		targetFile := f.TargetFile.ValueString()
-		err := common.InstanceFileDelete(server, instanceName, targetFile)
+		targetPath := f.TargetPath.ValueString()
+		err := common.InstanceFileDelete(server, instanceName, targetPath)
 		if err != nil {
 			resp.Diagnostics.AddError(fmt.Sprintf("Failed to delete file from instance %q", instanceName), err.Error())
 			return

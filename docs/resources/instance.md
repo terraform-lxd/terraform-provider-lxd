@@ -125,13 +125,13 @@ The `device` block supports:
 
 The `file` block supports:
 
-* `content` - *__Required__ unless source is used* - The _contents_ of the file.
+* `content` - *__Required__ unless source_path is used* - The _contents_ of the file.
 	Use the `file()` function to read in the content of a file from disk.
 
-* `source` - *__Required__ unless content is used* - The source path to a file to
+* `source_path` - *__Required__ unless content is used* - The source path to a file to
 	copy to the instance.
 
-* `target_file` - **Required** - The absolute path of the file on the instance,
+* `target_path` - **Required** - The absolute path of the file on the instance,
 	including the filename.
 
 * `uid` - *Optional* - The UID of the file. Must be an unquoted integer.
