@@ -6,10 +6,10 @@ default: build
 
 test:
 	go get -d -t ./...
-	go test -parallel $$(nproc) -race -timeout 60m -v ./lxd
+	go test -parallel $$(nproc) -race -timeout 60m -v ./internal/...
 
 testacc:
-	TF_LOG=$(TF_LOG) TF_ACC=1 go test -parallel 4 -v -race $(TESTARGS) -timeout 60m ./lxd
+	TF_LOG=$(TF_LOG) TF_ACC=1 go test -parallel 4 -v -race $(TESTARGS) -timeout 60m ./internal/...
 
 build:
 	go build -v

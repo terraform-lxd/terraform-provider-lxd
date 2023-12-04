@@ -23,14 +23,14 @@ resource "lxd_network_zone" "zone" {
 resource "lxd_network_zone_record" "record" {
   name = "ns"
   zone = lxd_network_zone.zone.id
-  
+
   entry {
-      type = "CNAME"
+      type  = "CNAME"
       value = "<lxd.host.name>."
   }
-  
+
   entry {
-      type = "A"
+      type  = "A"
       value = "<lxd.host.ip>"
   }
 }
@@ -40,23 +40,29 @@ See the `lxd_network_zone` resource for information on how to configure network 
 
 ## Argument Reference
 
-* `remote` - *Optional* - The remote in which the resource will be created. If
-	it is not provided, the default provider remote is used.
+* `name` - **Required** - Name of the network zone record.
 
-* `name` - *Required* - Name of the network zone record.
+* `zone` - **Required** - Name of the zone to add the entries of this record.
 
-* `zone` - *Required* - Name of the zone to add the entries of this record.
+* `description` - *Optional* - Description of the network zone.
 
 * `entry` - *Optional* - Entry in network zone record - see below.
 
 * `config` - *Optional* - Map of key/value pairs of
 	[network zone_config settings](https://documentation.ubuntu.com/lxd/en/latest/howto/network_zones/#configuration-options).
 
+* `project` - *Optional* - Name of the project where the network zone record will be created.
+
+* `remote` - *Optional* - The remote in which the resource will be created. If
+	not provided, the provider's default remote will be used.
+
 The `entry` block supports:
 
-* `type` - *Required* - The entry type. Valid values are DNS record type, e.g. `A`, `AAAA`, `CNAME`, `TXT`, etc.
+* `type` - **Required** - Entry type. Valid values are DNS record type, e.g. `A`, `AAAA`, `CNAME`, `TXT`, etc.
 
-* `value` - *Required* - The entry value.
+* `value` - **Required** - Entry value.
+
+* `ttl` - *Optional* - Entry time to live (TTL).
 
 ## Attribute Reference
 
@@ -64,9 +70,32 @@ No attributes are exported.
 
 ## Importing
 
-Network zone records can be imported by doing:
+Import ID syntax: `[<remote>:][<project>]/<zone>/<name>`
+
+* `<remote>` - *Optional* - Remote name.
+* `<project>` - *Optional* - Project name.
+* `<zone>` - **Required** - Network zone name.
+* `<name>` - **Required** - Network zone record name.
+
+### Import example
+
+Example using terraform import command:
 
 ```shell
-$ terraform import lxd_network_zone_record.my_record <name of network zone> <name of record>
+$ terraform import lxd_network_zone_record.myrecord proj/zone1/record1
 ```
 
+Example using the import block (only available in Terraform v1.5.0 and later):
+
+```hcl
+resource "lxd_network_zone_record" "myrecord" {
+  name    = "record1"
+  zone    = "zone1"
+  project = "proj"
+}
+
+import {
+  to = lxd_network_zone_record.myrecord
+  id = "proj/zone1/record1"
+}
+```

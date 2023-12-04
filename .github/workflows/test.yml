@@ -52,6 +52,7 @@ jobs:
 
       - name: Configure OVN
         run: |
+          sudo apt-get update
           sudo apt-get install --no-install-recommends --yes \
             ovn-host \
             ovn-central \

@@ -8,9 +8,6 @@ Copies an existing LXD volume.
 resource "lxd_storage_pool" "pool1" {
   name   = "mypool"
   driver = "dir"
-  config = {
-    source = "/var/lib/lxd/storage-pools/mypool"
-  }
 }
 
 resource "lxd_volume" "volume1" {
@@ -28,23 +25,28 @@ resource "lxd_volume_copy" "volume1_copy" {
 
 ## Argument Reference
 
-* `name` - *Required* - Name of the storage volume.
+* `name` - **Required** - Name of the storage volume.
 
-* `remote` - *Optional* - The remote in which the resource will be created. If
-	it is not provided, the default provider remote is used.
+* `pool` - **Required** - The storage pool that will receive the copy of the volume copy.
 
-* `target` - *Optional* - Specify a target node in a cluster.
+* `source_pool` - **Required** - The storage pool that hosts the existing volume to use as the source.
 
-* `pool` - *Required* - The Storage Pool to host the volume copy.
+* `source_name` - **Required** - Name of the existing storage volume that is to be copied.
 
 * `source_remote` - *Optional* - The remote from which the source volume is to be copied. If
 	it is not provided, the default provider remote is used.
 
-* `source_pool` - *Required* - The Storage Pool that hosts the existing volume that is to be copied.
+* `project` - *Optional* - Name of the target project where the volume will be copied to.
 
-* `source_name` - *Required* - Name of the existing storage volume that is to be copied.
+* `remote` - *Optional* - The remote in which the resource will be created. If
+	not provided, the provider's default remote will be used.
 
+* `target` - *Optional* - Specify a target node in a cluster.
+
+## Attribute Reference
+
+No attributes are exported.
 
 ## Notes
 
-[LXD move/copy documentation](https://documentation.ubuntu.com/lxd/en/latest/howto/storage_move_volume/).
+* [LXD move/copy documentation](https://documentation.ubuntu.com/lxd/en/latest/howto/storage_move_volume/).

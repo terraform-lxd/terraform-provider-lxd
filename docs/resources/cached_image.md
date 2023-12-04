@@ -19,16 +19,13 @@ resource "lxd_instance" "test1" {
 
 ## Argument Reference
 
-* `remote` - *Optional* - The remote in which the resource will be created. If it
-	is not provided, the default provider remove will be used.
+* `source_image` - **Required** - Fingerprint or alias of image to pull.
 
-* `source_remote` - *Required* - Name of the LXD remote from where image will
+* `source_remote` - **Required** - Name of the LXD remote from where image will
 	be pulled.
 
-* `source_image` - *Required* - Fingerprint or alias of image to pull.
-
-* `type` - *Optional* - Type of image to cache. Must be one of `container` or `virtual-machine`.
-  Defaults to `container`.
+* `type` - *Optional* - Type of image to cache. Must be one of `container` or
+  `virtual-machine`. Defaults to `container`.
 
 * `aliases` - *Optional* - A list of aliases to assign to the image after
 	pulling.
@@ -37,6 +34,9 @@ resource "lxd_instance" "test1" {
 	the remote. Valid values are `true` and `false`. Defaults to `true`.
 
 * `project` - *Optional* - Name of the project where the image will be stored.
+
+* `remote` - *Optional* - The remote in which the resource will be created. If
+	not provided, the provider's default remote will be used.
 
 ## Attribute Reference
 

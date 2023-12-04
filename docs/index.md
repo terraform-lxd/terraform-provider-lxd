@@ -37,7 +37,7 @@ provider "lxd" {
   generate_client_certificates = true
   accept_remote_certificate    = true
 
-  lxd_remote {
+  remote {
     name     = "lxd-server-1"
     scheme   = "https"
     address  = "10.1.1.8"
@@ -45,7 +45,7 @@ provider "lxd" {
     default  = true
   }
 
-  lxd_remote {
+  remote {
     name     = "lxd-server-2"
     scheme   = "https"
     address  = "10.1.2.8"
@@ -58,8 +58,8 @@ provider "lxd" {
 
 The following arguments are supported:
 
-* `lxd_remote` - *Required* - Specifies an LXD remote (LXD server) to connect
-	to. See the `lxd_remote` reference below for details.
+* `remote` - *Optional* - Specifies an LXD remote (LXD server) to connect
+	to. See the `remote` reference below for details.
 
 * `config_dir` - *Optional* - The directory to look for existing LXD
 	configuration. Defaults to `$HOME/snap/lxd/common/config` (and fallbacks to `$HOME/.config/lxc`).
@@ -79,14 +79,14 @@ The following arguments are supported:
 	Defaults to "10s", or 10 seconds. Valid values are a Go-style parsable time
 	duration (`10s`, `1m`, `5h`).
 
-The `lxd_remote` block supports:
+The `remote` block supports:
 
 * `address` - *Optional* - The address of the LXD remote.
 
 * `default` - *Optional* - Whether this should be the default remote.
 	This remote will then be used when one is not specified in a resource.
 	Valid values are `true` and `false`.
-	If you choose to _not_ set default=true on an `lxd_remote` and do not specify
+	If you choose to _not_ set default=true on a `remote` and do not specify
 	a remote in a resource, this provider will attempt to connect to an LXD
 	server running on the same host through the UNIX socket. See `Undefined Remote`
 	for more information.
@@ -103,13 +103,13 @@ The `lxd_remote` block supports:
 
 ## Undefined Remote
 
-If you choose to _not_ define an `lxd_remote`, this provider will attempt
+If you choose to _not_ define a `remote`, this provider will attempt
 to connect to an LXD server running on the same host through the UNIX
 socket.
 
 ## Environment Variable Remote
 
-It is possible to define a single `lxd_remote` through environment variables.
+It is possible to define a single `remote` through environment variables.
 The required variables are:
 
 * `LXD_REMOTE` - The name of the remote.

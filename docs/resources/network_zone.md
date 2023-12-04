@@ -23,12 +23,12 @@ resource "lxd_network_zone" "zone" {
 resource "lxd_network_zone_record" "record" {
   name = "ns"
   zone = lxd_network_zone.zone.id
-  
+
   entry {
-      type = "CNAME"
+      type  = "CNAME"
       value = "<lxd.host.name>."
   }
-  
+
   entry {
       type = "A"
       value = "<lxd.host.ip>"
@@ -41,15 +41,17 @@ See the `lxd_network_zone_record` resource for information on how to configure n
 
 ## Argument Reference
 
-* `remote` - *Optional* - The remote in which the resource will be created. If
-	it is not provided, the default provider remote is used.
+* `name` - **Required** - Name of the network zone.
 
-* `name` - *Required* - Name of the network zone.
+* `description` - *Optional* - Description of the network zone.
 
 * `config` - *Optional* - Map of key/value pairs of
 	[network zone_config settings](https://documentation.ubuntu.com/lxd/en/latest/howto/network_zones/#configuration-options).
 
 * `project` - *Optional* - Name of the project where the network zone will be created.
+
+* `remote` - *Optional* - The remote in which the resource will be created. If
+	not provided, the provider's default remote will be used.
 
 ## Attribute Reference
 
@@ -57,9 +59,31 @@ No attributes are exported.
 
 ## Importing
 
-Network zones can be imported by doing:
+Import ID syntax: `[<remote>:][<project>/]<name>`
+
+* `<remote>` - *Optional* - Remote name.
+* `<project>` - *Optional* - Project name.
+* `<name>` - **Required** - Network zone name.
+
+### Import example
+
+Example using terraform import command:
 
 ```shell
-$ terraform import lxd_network_zone.my_network_zone <name of network zone>
+$ terraform import lxd_network_zone.myzone proj/zone1
+```
+
+Example using the import block (only available in Terraform v1.5.0 and later):
+
+```hcl
+resource "lxd_network_zone" "myzone" {
+  name    = "zone1"
+  project = "proj"
+}
+
+import {
+  to = lxd_network_zone.myzone
+  id = "proj/zone1"
+}
 ```
 
