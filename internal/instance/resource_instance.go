@@ -169,8 +169,9 @@ func (r InstanceResource) Schema(_ context.Context, _ resource.SchemaRequest, re
 
 			"target": schema.StringAttribute{
 				Optional: true,
+				Computed: true,
 				PlanModifiers: []planmodifier.String{
-					stringplanmodifier.RequiresReplace(),
+					stringplanmodifier.RequiresReplaceIfConfigured(),
 				},
 				Validators: []validator.String{
 					stringvalidator.LengthAtLeast(1),
@@ -891,8 +892,19 @@ func (r InstanceResource) SyncState(ctx context.Context, tfState *tfsdk.State, s
 		m.Type = types.StringValue("container")
 	}
 
-	if instance.Location != "" && instance.Location != "none" {
+	m.Target = types.StringValue("")
+	if server.IsClustered() || instance.Location != "none" {
 		m.Target = types.StringValue(instance.Location)
+	}
+
+	// Ensure default value is set (to prevent plan diff on import).
+	if m.StartOnCreate.IsNull() {
+		m.StartOnCreate = types.BoolValue(true)
+	}
+
+	// Ensure default value is set (to prevent plan diff on import).
+	if m.WaitForNetwork.IsNull() {
+		m.WaitForNetwork = types.BoolValue(true)
 	}
 
 	if respDiags.HasError() {

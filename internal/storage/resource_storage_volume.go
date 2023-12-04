@@ -116,8 +116,9 @@ func (r StorageVolumeResource) Schema(_ context.Context, _ resource.SchemaReques
 
 			"target": schema.StringAttribute{
 				Optional: true,
+				Computed: true,
 				PlanModifiers: []planmodifier.String{
-					stringplanmodifier.RequiresReplace(),
+					stringplanmodifier.RequiresReplaceIfConfigured(),
 				},
 				Validators: []validator.String{
 					stringvalidator.LengthAtLeast(1),
@@ -135,7 +136,6 @@ func (r StorageVolumeResource) Schema(_ context.Context, _ resource.SchemaReques
 
 			"location": schema.StringAttribute{
 				Computed: true,
-				Default:  stringdefault.StaticString(""),
 			},
 		},
 	}
@@ -359,13 +359,14 @@ func (r StorageVolumeResource) SyncState(ctx context.Context, tfState *tfsdk.Sta
 
 	m.Name = types.StringValue(vol.Name)
 	m.Type = types.StringValue(vol.Type)
+	m.Location = types.StringValue(vol.Location)
 	m.Description = types.StringValue(vol.Description)
 	m.ContentType = types.StringValue(vol.ContentType)
 	m.Config = config
 
-	m.Location = types.StringValue(vol.Location)
-	if vol.Location == "none" {
-		m.Location = types.StringValue("")
+	m.Target = types.StringValue("")
+	if server.IsClustered() || vol.Location != "none" {
+		m.Target = types.StringValue(vol.Location)
 	}
 
 	if respDiags.HasError() {
