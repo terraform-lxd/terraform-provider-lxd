@@ -143,12 +143,7 @@ func TestAccStoragePool_config(t *testing.T) {
 	poolName := petname.Generate(2, "-")
 
 	resource.Test(t, resource.TestCase{
-		// 5.0/stable uses core20 which ships with a buggy lvm2 package so skip testing
-		// until 5.0/stable moves to core22, this should happen somewhere in 2024.
-		PreCheck: func() {
-			acctest.PreCheck(t)
-			acctest.PreCheckLxdVersion(t, "> 5.1")
-		},
+		PreCheck:                 func() { acctest.PreCheck(t) },
 		ProtoV6ProviderFactories: acctest.ProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
