@@ -53,6 +53,16 @@ jobs:
           sudo lxd init --auto --trust-password="$LXD_PASSWORD" --network-port="$LXD_PORT" --network-address="$LXD_ADDR"
           sudo chmod 777 /var/snap/lxd/common/lxd/unix.socket
 
+          # 5.0/* currently use core20 which ships with a buggy lvm2 package so
+          # if the base used by the LXD snap is core20, use the external lvm provider
+          # which is the one installed on the runner machine. Since there are plans
+          # to switch 5.0/* to using core22, it's best to autodetect this condition.
+          if snap info lxd --verbose | grep -qxE 'base:\s+core20'; then
+            echo "WARN: Using external lvm command to workaround bug in core20" >&2
+            sudo snap set lxd lvm.external=true
+            sudo snap restart --reload lxd
+          fi
+
       - name: Configure OVN
         run: |
           sudo apt-get update
