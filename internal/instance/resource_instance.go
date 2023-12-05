@@ -383,18 +383,51 @@ func (r *InstanceResource) Configure(_ context.Context, req resource.ConfigureRe
 }
 
 func (r *InstanceResource) ModifyPlan(ctx context.Context, req resource.ModifyPlanRequest, resp *resource.ModifyPlanResponse) {
-	// If resource is being destroyed req.Config will be null.
-	// In such case there is no need for plan modification.
-	if req.Config.Raw.IsNull() {
+	var config *InstanceModel
+	var state *InstanceModel
+	var plan *InstanceModel
+
+	resp.Diagnostics.Append(req.Config.Get(ctx, &config)...)
+	resp.Diagnostics.Append(req.State.Get(ctx, &state)...)
+	resp.Diagnostics.Append(req.Plan.Get(ctx, &plan)...)
+	if resp.Diagnostics.HasError() {
 		return
 	}
 
-	var profiles types.List
-	req.Config.GetAttribute(ctx, path.Root("profiles"), &profiles)
-
-	// If profiles are null, set "default" profile.
-	if profiles.IsNull() {
+	// If profiles in config are null, set "default" profile in plan.
+	if !req.Config.Raw.IsNull() && config.Profiles.IsNull() {
 		resp.Plan.SetAttribute(ctx, path.Root("profiles"), []string{"default"})
+	}
+
+	// Validate if new commands need to be run. Error out if the instance
+	// is planned to be stopped as otherwise it would fail.
+	//
+	// Note: This should be run in ValidateConfig, but we do not have
+	// access to the plan and state there.
+	if !req.Plan.Raw.IsNull() && !plan.Running.ValueBool() {
+		var oldExecs []common.ExecModel
+
+		newExecs, diags := common.ToExecList(ctx, plan.Exec)
+		resp.Diagnostics.Append(diags...)
+
+		if !req.State.Raw.IsNull() {
+			oldExecs, diags = common.ToExecList(ctx, state.Exec)
+			resp.Diagnostics.Append(diags...)
+		}
+
+		if resp.Diagnostics.HasError() {
+			return
+		}
+
+		// If instance is planned to be stopped, and new commands need to be
+		// run, throw an error.
+		if !common.ExecSlicesEqual(oldExecs, newExecs) {
+			resp.Diagnostics.AddAttributeError(
+				path.Root("running"),
+				fmt.Sprintf("Instance %q is planned to be stopped, but exec commands need to be run", plan.Name.ValueString()),
+				"Changes in exec blocks cannot be reflected if instance is planned to be stopped.",
+			)
+		}
 	}
 }
 

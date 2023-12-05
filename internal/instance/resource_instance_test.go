@@ -3,6 +3,7 @@ package instance_test
 import (
 	"fmt"
 	"regexp"
+	"strings"
 	"testing"
 
 	petname "github.com/dustinkirkland/golang-petname"
@@ -593,6 +594,50 @@ func TestAccInstance_execOutput(t *testing.T) {
 	})
 }
 
+func TestAccInstance_execOnStoppedInstance(t *testing.T) {
+	instanceName := petname.Generate(2, "-")
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { acctest.PreCheck(t) },
+		ProtoV6ProviderFactories: acctest.ProtoV6ProviderFactories,
+		Steps: []resource.TestStep{
+			{
+				// Try to add exec blocks on instance that will not be started.
+				Config:      testAccInstance_execOnStoppedInstance(instanceName),
+				ExpectError: regexp.MustCompile(fmt.Sprintf("Instance %q is planned to be stopped, but exec commands need to be run", instanceName)),
+			},
+			{
+				// Start an instance with exec command.
+				Config: testAccInstance_exec(instanceName),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr("lxd_instance.instance1", "name", instanceName),
+					resource.TestCheckResourceAttr("lxd_instance.instance1", "status", "Running"),
+					resource.TestCheckResourceAttr("lxd_instance.instance1", "exec.#", "1"),
+				),
+			},
+			{
+				// Try to change exec block while stopping the instance.
+				Config:      testAccInstance_execOnStoppedInstance(instanceName, "trigger"),
+				ExpectError: regexp.MustCompile(fmt.Sprintf("Instance %q is planned to be stopped, but exec commands need to be run", instanceName)),
+			},
+			{
+				// Stop it without changing exec blocks.
+				Config: testAccInstance_execOnStoppedInstance(instanceName),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr("lxd_instance.instance1", "name", instanceName),
+					resource.TestCheckResourceAttr("lxd_instance.instance1", "status", "Stopped"),
+					resource.TestCheckResourceAttr("lxd_instance.instance1", "exec.#", "1"),
+				),
+			},
+			{
+				// Try to change exec block while instance is stopped.
+				Config:      testAccInstance_execOnStoppedInstance(instanceName, "trigger"),
+				ExpectError: regexp.MustCompile(fmt.Sprintf("Instance %q is planned to be stopped, but exec commands need to be run", instanceName)),
+			},
+		},
+	})
+}
+
 func TestAccInstance_execWorkingDir(t *testing.T) {
 	instanceName := petname.Generate(2, "-")
 
@@ -848,7 +893,8 @@ resource "lxd_instance" "instance1" {
   image     = "%s"
   running   = false
   ephemeral = true
-}`, name, acctest.TestImage)
+}
+	`, name, acctest.TestImage)
 }
 
 func testAccInstance_container(name string) string {
@@ -1215,7 +1261,7 @@ resource "lxd_instance" "instance1" {
 	`, name, acctest.TestImage)
 }
 
-func testAccInstance_exec(instanceName string) string {
+func testAccInstance_exec(instanceName string, triggers ...string) string {
 	return fmt.Sprintf(`
 resource "lxd_instance" "instance1" {
   name  = "%s"
@@ -1223,10 +1269,27 @@ resource "lxd_instance" "instance1" {
 
   exec {
     command       = ["uname"]
+    triggers      = ["%s"]
     record_output = false
   }
 }
-	`, instanceName, acctest.TestImage)
+	`, instanceName, acctest.TestImage, strings.Join(triggers, "\", \""))
+}
+
+func testAccInstance_execOnStoppedInstance(instanceName string, triggers ...string) string {
+	return fmt.Sprintf(`
+resource "lxd_instance" "instance1" {
+  name    = "%s"
+  image   = "%s"
+  running = false
+
+  exec {
+    command       = ["uname"]
+    triggers      = ["%s"]
+    record_output = false
+  }
+}
+	`, instanceName, acctest.TestImage, strings.Join(triggers, "\", \""))
 }
 
 func testAccInstance_execOutput(instanceName string) string {
