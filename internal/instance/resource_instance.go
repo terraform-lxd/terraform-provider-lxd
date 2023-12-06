@@ -572,8 +572,7 @@ func (r InstanceResource) Update(ctx context.Context, req resource.UpdateRequest
 
 	// First ensure the desired state of the instance (stopped/running).
 	// This ensures we fail fast if instance runs into an issue.
-	instRunning := (instanceState.Status == api.Running.String() && instanceState.Processes > 0)
-	if !instRunning && plan.Running.ValueBool() {
+	if plan.Running.ValueBool() && !isInstanceOperational(*instanceState) {
 		diag := startInstance(ctx, server, instanceName, r.provider.RefreshInterval())
 		if diag != nil {
 			resp.Diagnostics.Append(diag)
@@ -589,10 +588,9 @@ func (r InstanceResource) Update(ctx context.Context, req resource.UpdateRequest
 				return
 			}
 		}
-	} else if instRunning && !plan.Running.ValueBool() {
-		// Stop the instance gracefully and do not ignore not found
-		// error.
-		diag := stopInstance(ctx, server, instanceName, r.provider.RefreshInterval(), false, false)
+	} else if !plan.Running.ValueBool() && !isInstanceStopped(*instanceState) {
+		// Stop the instance gracefully.
+		_, diag := stopInstance(ctx, server, instanceName, r.provider.RefreshInterval(), false)
 		if diag != nil {
 			resp.Diagnostics.Append(diag)
 			return
@@ -721,9 +719,13 @@ func (r InstanceResource) Delete(ctx context.Context, req resource.DeleteRequest
 	instanceName := state.Name.ValueString()
 
 	// Force stop the instance, because we are deleting it anyway.
-	// Also ignore an error if instance is not found.
-	diag := stopInstance(ctx, server, instanceName, r.provider.RefreshInterval(), true, true)
+	isFound, diag := stopInstance(ctx, server, instanceName, r.provider.RefreshInterval(), true)
 	if diag != nil {
+		// Ephemeral instances will be removed when stopped.
+		if !isFound {
+			return
+		}
+
 		resp.Diagnostics.Append(diag)
 		return
 	}
@@ -926,8 +928,8 @@ func startInstance(ctx context.Context, server lxd.InstanceServer, instanceName 
 		return diag.NewErrorDiagnostic(fmt.Sprintf("Failed to retrieve state of instance %q", instanceName), err.Error())
 	}
 
-	// Return if already running.
-	if st.Status == api.Running.String() && st.Processes > 0 {
+	// Return if the instance is already fully operational.
+	if isInstanceOperational(*st) {
 		return nil
 	}
 
@@ -953,11 +955,9 @@ func startInstance(ctx context.Context, server lxd.InstanceServer, instanceName 
 			return st, "Error", err
 		}
 
-		// Beside checking for status "Running", we also need to ensure
-		// that number of procceses is higher then "0". For VMs this is
-		// only true if LXD agent is also connected to the LXD and has
-		// reported the proccess count.
-		if st.Status == api.Running.String() && st.Processes <= 0 {
+		// If instance is running, but not yet fully operationl, it
+		// means that the instance is still initializing.
+		if isInstanceRunning(*st) && !isInstanceOperational(*st) {
 			return st, "Running (initializing)", nil
 		}
 
@@ -984,16 +984,17 @@ func startInstance(ctx context.Context, server lxd.InstanceServer, instanceName 
 
 // stopInstance stops an instance with the given name. It waits for its
 // status to become Stopped or the instance to be removed (not found) in
-// case of an ephemeral instance.
-func stopInstance(ctx context.Context, server lxd.InstanceServer, instanceName string, refInterval time.Duration, force bool, ignoreNotFound bool) diag.Diagnostic {
-	is, etag, err := server.GetInstanceState(instanceName)
+// case of an ephemeral instance. In the latter case, false is returned
+// along an error.
+func stopInstance(ctx context.Context, server lxd.InstanceServer, instanceName string, refInterval time.Duration, force bool) (bool, diag.Diagnostic) {
+	st, etag, err := server.GetInstanceState(instanceName)
 	if err != nil {
-		return diag.NewErrorDiagnostic(fmt.Sprintf("Failed to retrieve state of instance %q", instanceName), err.Error())
+		return true, diag.NewErrorDiagnostic(fmt.Sprintf("Failed to retrieve state of instance %q", instanceName), err.Error())
 	}
 
-	// Return if already sopped.
-	if is.Status == api.Stopped.String() {
-		return nil
+	// Return if the instance is already stopped.
+	if isInstanceStopped(*st) {
+		return true, nil
 	}
 
 	stopReq := api.InstanceStatePut{
@@ -1009,7 +1010,7 @@ func stopInstance(ctx context.Context, server lxd.InstanceServer, instanceName s
 	}
 
 	if err != nil {
-		return diag.NewErrorDiagnostic(fmt.Sprintf("Failed to stop instance %q", instanceName), err.Error())
+		return true, diag.NewErrorDiagnostic(fmt.Sprintf("Failed to stop instance %q", instanceName), err.Error())
 	}
 
 	instanceStoppedCheck := func() (any, string, error) {
@@ -1033,14 +1034,11 @@ func stopInstance(ctx context.Context, server lxd.InstanceServer, instanceName s
 	// the instance is stopped via a new API call.
 	_, err = stateConf.WaitForStateContext(ctx)
 	if err != nil {
-		if ignoreNotFound && errors.IsNotFoundError(err) {
-			return nil
-		}
-
-		return diag.NewErrorDiagnostic(fmt.Sprintf("Failed to wait for instance %q to stop", instanceName), err.Error())
+		found := !errors.IsNotFoundError(err)
+		return found, diag.NewErrorDiagnostic(fmt.Sprintf("Failed to wait for instance %q to stop", instanceName), err.Error())
 	}
 
-	return nil
+	return true, nil
 }
 
 // waitInstanceNetwork waits for an instance with the given name to receive
@@ -1086,6 +1084,25 @@ func waitInstanceNetwork(ctx context.Context, server lxd.InstanceServer, instanc
 	}
 
 	return nil
+}
+
+// isInstanceOperational determines if an instance is fully operational based
+// on its state. It returns true if the instance is running and the reported
+// process count is positive. Checking for a positive process count is esential
+// for virtual machines, which can report this metric only if the LXD agent has
+// started and has established a connection to the LXD server.
+func isInstanceOperational(s api.InstanceState) bool {
+	return isInstanceRunning(s) && s.Processes > 0
+}
+
+// isInstanceRunning returns true if its status is either "Running" or "Ready".
+func isInstanceRunning(s api.InstanceState) bool {
+	return s.StatusCode == api.Running || s.StatusCode == api.Ready
+}
+
+// isInstanceStopped returns true if instance's status "Stopped".
+func isInstanceStopped(s api.InstanceState) bool {
+	return s.StatusCode == api.Stopped
 }
 
 // findIPv4Address searches the network for last IPv4 address. If an IP address
