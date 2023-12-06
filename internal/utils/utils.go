@@ -1,15 +1,18 @@
 package utils
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"sort"
 	"strings"
+	"time"
 
 	"github.com/hashicorp/go-version"
 )
 
-// CheckVersion checks whether the version satisfies the provided version constraints.
+// CheckVersion checks whether the version satisfies the provided version
+// constraints.
 func CheckVersion(versionString string, versionConstraint string) (bool, error) {
 	ver, err := version.NewVersion(versionString)
 	if err != nil {
@@ -22,6 +25,17 @@ func CheckVersion(versionString string, versionConstraint string) (bool, error) 
 	}
 
 	return constraint.Check(ver), nil
+}
+
+// ContextTimeout converts context deadline into timeout (time until it runs
+// out). If the context has no deadline, the default timeout is returned.
+func ContextTimeout(ctx context.Context, def time.Duration) int {
+	deadline, ok := ctx.Deadline()
+	if ok {
+		return int(time.Until(deadline).Seconds())
+	}
+
+	return int(def.Seconds())
 }
 
 // HasAnyPrefix checks whether a value has any of the prefixes.

@@ -109,9 +109,9 @@ func TestAccPublishImage_project(t *testing.T) {
 func testAccPublishImage_basic(name string) string {
 	return fmt.Sprintf(`
 resource "lxd_instance" "instance1" {
-  name            = "%s"
-  image           = "%s"
-  start_on_create = false
+  name    = "%s"
+  image   = "%s"
+  running = false
 }
 
 resource "lxd_publish_image" "pimg" {
@@ -124,9 +124,9 @@ resource "lxd_publish_image" "pimg" {
 func testAccPublishImage_aliases(name string, aliases ...string) string {
 	return fmt.Sprintf(`
 resource "lxd_instance" "instance1" {
-  name            = "%s"
-  image           = "%s"
-  start_on_create = false
+  name    = "%s"
+  image   = "%s"
+  running = false
 }
 
 resource "lxd_publish_image" "pimg" {
@@ -139,9 +139,9 @@ resource "lxd_publish_image" "pimg" {
 func testAccPublishImage_properties(name string, properties map[string]string) string {
 	return fmt.Sprintf(`
 resource "lxd_instance" "instance1" {
-  name            = "%s"
-  image           = "%s"
-  start_on_create = false
+  name    = "%s"
+  image   = "%s"
+  running = false
 }
 
 resource "lxd_publish_image" "pimg" {
@@ -165,10 +165,10 @@ resource "lxd_project" "project1" {
 }
 
 resource "lxd_instance" "instance1" {
-  name            = "%s"
-  image           = "%s"
-  project         = lxd_project.project1.name
-  start_on_create = false
+  name    = "%s"
+  image   = "%s"
+  project = lxd_project.project1.name
+  running = false
 }
 
 resource "lxd_publish_image" "pimg" {

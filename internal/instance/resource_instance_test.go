@@ -2,6 +2,7 @@ package instance_test
 
 import (
 	"fmt"
+	"regexp"
 	"testing"
 
 	petname "github.com/dustinkirkland/golang-petname"
@@ -31,7 +32,7 @@ func TestAccInstance_basic(t *testing.T) {
 	})
 }
 
-func TestAccInstance_basicEphemeral(t *testing.T) {
+func TestAccInstance_ephemeral(t *testing.T) {
 	instanceName := petname.Generate(2, "-")
 
 	resource.Test(t, resource.TestCase{
@@ -39,7 +40,7 @@ func TestAccInstance_basicEphemeral(t *testing.T) {
 		ProtoV6ProviderFactories: acctest.ProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccInstance_basicEphemeral(instanceName),
+				Config: testAccInstance_ephemeral(instanceName),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("lxd_instance.instance1", "name", instanceName),
 					resource.TestCheckResourceAttr("lxd_instance.instance1", "status", "Running"),
@@ -52,7 +53,22 @@ func TestAccInstance_basicEphemeral(t *testing.T) {
 	})
 }
 
-func TestAccInstance_typeContainer(t *testing.T) {
+func TestAccInstance_ephemeralStopped(t *testing.T) {
+	instanceName := petname.Generate(2, "-")
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { acctest.PreCheck(t) },
+		ProtoV6ProviderFactories: acctest.ProtoV6ProviderFactories,
+		Steps: []resource.TestStep{
+			{
+				Config:      testAccInstance_ephemeralStopped(instanceName),
+				ExpectError: regexp.MustCompile(fmt.Sprintf("Instance %q is ephemeral and cannot be stopped", instanceName)),
+			},
+		},
+	})
+}
+
+func TestAccInstance_container(t *testing.T) {
 	instanceName := petname.Generate(2, "-")
 
 	resource.Test(t, resource.TestCase{
@@ -65,14 +81,14 @@ func TestAccInstance_typeContainer(t *testing.T) {
 					resource.TestCheckResourceAttr("lxd_instance.instance1", "name", instanceName),
 					resource.TestCheckResourceAttr("lxd_instance.instance1", "type", "container"),
 					resource.TestCheckResourceAttr("lxd_instance.instance1", "status", "Stopped"),
-					resource.TestCheckResourceAttr("lxd_instance.instance1", "start_on_create", "false"),
+					resource.TestCheckResourceAttr("lxd_instance.instance1", "running", "false"),
 				),
 			},
 		},
 	})
 }
 
-func TestAccInstance_typeVirtualMachine(t *testing.T) {
+func TestAccInstance_virtualMachine(t *testing.T) {
 	instanceName := petname.Generate(2, "-")
 
 	resource.Test(t, resource.TestCase{
@@ -83,11 +99,118 @@ func TestAccInstance_typeVirtualMachine(t *testing.T) {
 		ProtoV6ProviderFactories: acctest.ProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccInstance_virtualmachine(instanceName),
+				Config: testAccInstance_virtualMachine(instanceName),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("lxd_instance.instance1", "name", instanceName),
 					resource.TestCheckResourceAttr("lxd_instance.instance1", "type", "virtual-machine"),
 					resource.TestCheckResourceAttr("lxd_instance.instance1", "status", "Running"),
+				),
+			},
+		},
+	})
+}
+
+func TestAccInstance_virtualMachineNoDevLxd(t *testing.T) {
+	instanceName := petname.Generate(2, "-")
+
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			acctest.PreCheck(t)
+			acctest.PreCheckVirtualization(t)
+		},
+		ProtoV6ProviderFactories: acctest.ProtoV6ProviderFactories,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccInstance_virtualMachineNoDevLxd(instanceName),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr("lxd_instance.instance1", "name", instanceName),
+					resource.TestCheckResourceAttr("lxd_instance.instance1", "type", "virtual-machine"),
+					resource.TestCheckResourceAttr("lxd_instance.instance1", "status", "Running"),
+					resource.TestCheckResourceAttr("lxd_instance.instance1", "config.security.devlxd", "false"),
+				),
+			},
+		},
+	})
+}
+
+func TestAccInstance_restartContainer(t *testing.T) {
+	instanceName := petname.Generate(2, "-")
+	instanceType := "container"
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { acctest.PreCheck(t) },
+		ProtoV6ProviderFactories: acctest.ProtoV6ProviderFactories,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccInstance_started(instanceName, instanceType),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr("lxd_instance.instance1", "name", instanceName),
+					resource.TestCheckResourceAttr("lxd_instance.instance1", "type", instanceType),
+					resource.TestCheckResourceAttr("lxd_instance.instance1", "status", "Running"),
+					resource.TestCheckResourceAttr("lxd_instance.instance1", "running", "true"),
+					resource.TestCheckResourceAttrSet("lxd_instance.instance1", "mac_address"),
+					resource.TestCheckResourceAttrSet("lxd_instance.instance1", "ipv4_address"),
+					resource.TestCheckResourceAttrSet("lxd_instance.instance1", "ipv6_address"),
+				),
+			},
+			{
+				Config: testAccInstance_stopped(instanceName, instanceType),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr("lxd_instance.instance1", "name", instanceName),
+					resource.TestCheckResourceAttr("lxd_instance.instance1", "status", "Stopped"),
+					resource.TestCheckResourceAttr("lxd_instance.instance1", "running", "false"),
+				),
+			},
+			{
+				// Verifies that instance is started with network.
+				Config: testAccInstance_started(instanceName, instanceType),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr("lxd_instance.instance1", "name", instanceName),
+					resource.TestCheckResourceAttr("lxd_instance.instance1", "status", "Running"),
+					resource.TestCheckResourceAttr("lxd_instance.instance1", "running", "true"),
+				),
+			},
+		},
+	})
+}
+
+func TestAccInstance_restartVirtualMachine(t *testing.T) {
+	instanceName := petname.Generate(2, "-")
+	instanceType := "virtual-machine"
+
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			acctest.PreCheck(t)
+			acctest.PreCheckVirtualization(t)
+		},
+		ProtoV6ProviderFactories: acctest.ProtoV6ProviderFactories,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccInstance_started(instanceName, instanceType),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr("lxd_instance.instance1", "name", instanceName),
+					resource.TestCheckResourceAttr("lxd_instance.instance1", "type", instanceType),
+					resource.TestCheckResourceAttr("lxd_instance.instance1", "status", "Running"),
+					resource.TestCheckResourceAttr("lxd_instance.instance1", "running", "true"),
+					resource.TestCheckResourceAttrSet("lxd_instance.instance1", "mac_address"),
+					resource.TestCheckResourceAttrSet("lxd_instance.instance1", "ipv4_address"),
+					resource.TestCheckResourceAttrSet("lxd_instance.instance1", "ipv6_address"),
+				),
+			},
+			{
+				Config: testAccInstance_stopped(instanceName, instanceType),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr("lxd_instance.instance1", "name", instanceName),
+					resource.TestCheckResourceAttr("lxd_instance.instance1", "status", "Stopped"),
+					resource.TestCheckResourceAttr("lxd_instance.instance1", "running", "false"),
+				),
+			},
+			{
+				Config: testAccInstance_started(instanceName, instanceType),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr("lxd_instance.instance1", "name", instanceName),
+					resource.TestCheckResourceAttr("lxd_instance.instance1", "status", "Running"),
+					resource.TestCheckResourceAttr("lxd_instance.instance1", "running", "true"),
 				),
 			},
 		},
@@ -624,7 +747,7 @@ resource "lxd_instance" "instance1" {
 	`, name, acctest.TestImage)
 }
 
-func testAccInstance_basicEphemeral(name string) string {
+func testAccInstance_ephemeral(name string) string {
 	return fmt.Sprintf(`
 resource "lxd_instance" "instance1" {
   name      = "%s"
@@ -635,30 +758,96 @@ resource "lxd_instance" "instance1" {
 	`, name, acctest.TestImage)
 }
 
+func testAccInstance_ephemeralStopped(name string) string {
+	return fmt.Sprintf(`
+resource "lxd_instance" "instance1" {
+  name      = "%s"
+  image     = "%s"
+  running   = false
+  ephemeral = true
+}`, name, acctest.TestImage)
+}
+
 func testAccInstance_container(name string) string {
 	return fmt.Sprintf(`
 resource "lxd_instance" "instance1" {
-  name            = "%s"
-  image           = "%s"
-  type            = "container"
-  start_on_create = false
+  name    = "%s"
+  image   = "%s"
+  type    = "container"
+  running = false
 }
 	`, name, acctest.TestImage)
 }
 
-func testAccInstance_virtualmachine(name string) string {
+func testAccInstance_virtualMachine(name string) string {
 	return fmt.Sprintf(`
 resource "lxd_instance" "instance1" {
   name  = "%s"
   image = "%s"
   type  = "virtual-machine"
 
-  # Alpine images do not support secureboot
   config = {
+    # Alpine images do not support secureboot.
     "security.secureboot" = false
   }
 }
 	`, name, acctest.TestImage)
+}
+
+func testAccInstance_virtualMachineNoDevLxd(name string) string {
+	return fmt.Sprintf(`
+resource "lxd_instance" "instance1" {
+  name  = "%s"
+  image = "%s"
+  type  = "virtual-machine"
+
+  config = {
+    # Alpine images do not support secureboot.
+    "security.secureboot" = false
+    "security.devlxd"     = false
+  }
+}
+	`, name, acctest.TestImage)
+}
+
+func testAccInstance_started(name string, instanceType string) string {
+	var config string
+	if instanceType == "virtual-machine" {
+		config = `"security.secureboot" = false`
+	}
+
+	return fmt.Sprintf(`
+resource "lxd_instance" "instance1" {
+  name    = "%s"
+  image   = "%s"
+  type    = "%s"
+  running = true
+
+  config = {
+    %s
+  }
+}
+	`, name, acctest.TestImage, instanceType, config)
+}
+
+func testAccInstance_stopped(name string, instanceType string) string {
+	var config string
+	if instanceType == "virtual-machine" {
+		config = `"security.secureboot" = false`
+	}
+
+	return fmt.Sprintf(`
+resource "lxd_instance" "instance1" {
+  name    = "%s"
+  image   = "%s"
+  type    = "%s"
+  running = false
+
+  config = {
+    %s
+  }
+}
+	`, name, acctest.TestImage, instanceType, config)
 }
 
 func testAccInstance_config(name string) string {

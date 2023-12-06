@@ -83,14 +83,12 @@ resource "lxd_instance" "container2" {
 
 * `type` - *Optional* -  Instance type. Can be `container`, or `virtual-machine`. Defaults to `container`.
 
-* `ephemeral` - *Optional* - Boolean indicating if this instance is ephemeral.
-	Valid values are `true` and `false`. Defaults to `false`.
+* `ephemeral` - *Optional* - Boolean indicating if this instance is ephemeral. Defaults to `false`.
 
-* `wait_for_network` - *Optional* - Boolean indicating if the provider should wait for the instance's network address to become available during creation.
-  If `start_on_create` is set to false, this value has no effect. Valid values are `true` and `false`. Defaults to `true`.
+* `running` - *Optional* - Boolean indicating whether the instance should be started (running). Defaults to `true`.
 
-* `start_on_create` - *Optional* - Boolean indicating if the provider should start the instance during creation. It will not re-start on update runs.
-  Valid values are `true` and `false`. Defaults to `true`.
+* `wait_for_network` - *Optional* - Boolean indicating if the provider should wait for the instance to get an IPv4 address before considering the instance as started.
+  If `running` is set to false or instance is already running (on update), this value has no effect. Defaults to `true`.
 
 * `profiles` - *Optional* - List of LXD config profiles to apply to the new
 	instance. Profile `default` will be applied if profiles are not set (are `null`).
