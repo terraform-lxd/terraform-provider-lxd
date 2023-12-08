@@ -156,6 +156,9 @@ The `exec` block supports:
 * `record_output` - *Optional* - When set to true, `stdout` and `stderr` attributes will be
   populated (exported). Defaults to `false`.
 
+* `fail_on_error` - *Optional* - Boolean indicating whether resource provisioning should stop upon
+  encountering an error during command execution. Defaults to `false`.
+
 * `uid` - *Optional* - The user ID for running command. Defaults to `0` (root).
 
 * `gid` - *Optional* - The group ID for running command. Defaults to `0` (root).
@@ -242,8 +245,10 @@ resource "lxd_instance" "inst" {
 
 ### Capturing Command Output
 
-To capture and access a command's output, set `record_output` to true. The command's standard output
-and standard error will then be accessible through the exported attributes `stdout` and `stderr`, respectively.
+Exit status of the command will be always available after command execution via `exit_code` attribute.
+However, to capture and access a command's output, set `record_output` to true. The command's standard
+output and standard error will then be accessible through the exported attributes `stdout` and `stderr`,
+respectively.
 
 ```hcl
 resource "lxd_instance" "inst" {
@@ -258,8 +263,26 @@ resource "lxd_instance" "inst" {
 
 output "exec-output" {
   value = {
-    "out" = lxd_instance.inst.exec[0].stdout # "Linux\n"
-    "err" = lxd_instance.inst.exec[0].stderr # ""
+    "code" = lxd_instance.inst.exec[0].exit_code # 0
+    "out"  = lxd_instance.inst.exec[0].stdout    # "Linux\n"
+    "err"  = lxd_instance.inst.exec[0].stderr    # ""
+  }
+}
+```
+
+### Fail on Command Error
+
+By default, command failure is ignored. If you want to stop Terraform from provisioning the resources
+if command exits with a non 0 status, set `fail_on_error` attribute to true.
+
+```hcl
+resource "lxd_instance" "inst" {
+  name      = "c1"
+  image     = "images:alpine/3.18/amd64"
+
+  exec {
+    command       = ["invalid-cmd"]
+    fail_on_error = true
   }
 }
 ```
