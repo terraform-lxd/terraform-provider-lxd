@@ -19,8 +19,10 @@ type ExecModel struct {
 	Environment  types.Map    `tfsdk:"environment"`
 	WorkingDir   types.String `tfsdk:"working_dir"`
 	RecordOutput types.Bool   `tfsdk:"record_output"`
+	FailOnError  types.Bool   `tfsdk:"fail_on_error"`
 	UserID       types.Int64  `tfsdk:"uid"`
 	GroupID      types.Int64  `tfsdk:"gid"`
+	ExitCode     types.Int64  `tfsdk:"exit_code"`
 	Output       types.String `tfsdk:"stdout"`
 	Error        types.String `tfsdk:"stderr"`
 }
@@ -29,11 +31,10 @@ func (e *ExecModel) Execute(ctx context.Context, server lxd.InstanceServer, inst
 	var diags diag.Diagnostics
 
 	env := make(map[string]string, len(e.Environment.Elements()))
-	diags.Append(e.Environment.ElementsAs(ctx, &env, false)...)
-
 	command := make([]string, 0, len(e.Command.Elements()))
-	diags.Append(e.Command.ElementsAs(ctx, &command, false)...)
 
+	diags.Append(e.Environment.ElementsAs(ctx, &env, false)...)
+	diags.Append(e.Command.ElementsAs(ctx, &command, false)...)
 	if diags.HasError() {
 		return diags
 	}
@@ -77,11 +78,24 @@ func (e *ExecModel) Execute(ctx context.Context, server lxd.InstanceServer, inst
 		err = opExec.WaitContext(ctx)
 	}
 
-	if err != nil {
-		diags.Append(diag.NewErrorDiagnostic(
+	// Extract exit code from operation's metadata.
+	var exitCode int64
+	opMeta := opExec.Get().Metadata
+	if opMeta != nil {
+		rc, ok := opMeta["return"].(float64)
+		if ok {
+			exitCode = int64(rc)
+		}
+	}
+
+	e.ExitCode = types.Int64Value(exitCode)
+
+	// Fail on error (only if user requested).
+	if e.FailOnError.ValueBool() && (err != nil || exitCode != 0) {
+		diags.AddError(
 			fmt.Sprintf("Failed to execute command on instance %q", instanceName),
-			err.Error(),
-		))
+			fmt.Sprintf("Command %q failed with an error: %v", strings.Join(command, " "), err),
+		)
 		return diags
 	}
 
@@ -156,8 +170,10 @@ func ToExecListType(ctx context.Context, execs []ExecModel) (types.List, diag.Di
 		"environment":   types.MapType{ElemType: types.StringType},
 		"working_dir":   types.StringType,
 		"record_output": types.BoolType,
+		"fail_on_error": types.BoolType,
 		"uid":           types.Int64Type,
 		"gid":           types.Int64Type,
+		"exit_code":     types.Int64Type,
 		"stdout":        types.StringType,
 		"stderr":        types.StringType,
 	}

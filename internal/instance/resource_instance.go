@@ -331,6 +331,13 @@ func (r InstanceResource) Schema(_ context.Context, _ resource.SchemaRequest, re
 							Default:     booldefault.StaticBool(false),
 						},
 
+						"fail_on_error": schema.BoolAttribute{
+							Description: "Whether to fail on command error",
+							Optional:    true,
+							Computed:    true,
+							Default:     booldefault.StaticBool(false),
+						},
+
 						"uid": schema.Int64Attribute{
 							Description: "The user ID for running command",
 							Optional:    true,
@@ -350,6 +357,11 @@ func (r InstanceResource) Schema(_ context.Context, _ resource.SchemaRequest, re
 						},
 
 						// Computed.
+
+						"exit_code": schema.Int64Attribute{
+							Description: "Exit code of the command",
+							Computed:    true,
+						},
 
 						"stdout": schema.StringAttribute{
 							Description: "Command standard output (if recorded)",
@@ -838,6 +850,7 @@ func (r InstanceResource) Update(ctx context.Context, req resource.UpdateRequest
 		if i < len(oldExecs) {
 			// Copy computed fields in case the command has
 			// not changed.
+			newExecs[i].ExitCode = oldExecs[i].ExitCode
 			newExecs[i].Output = oldExecs[i].Output
 			newExecs[i].Error = oldExecs[i].Error
 
