@@ -201,12 +201,13 @@ resource "lxd_instance" "instance1" {
 
 The `exec` block in an LXD instance configuration is used to execute commands. You can specify
 multiple exec blocks, with each block requiring a command defined as a list of strings.
+It's important to note that commands will be executed in the same order as the exec blocks appear
+in the configuration.
 
-### Simple Commands
+### Commands and Environment Access
 
-For simple and short commands, you can specify the entire command as a single string in the list.
-In this case, if the list contains only one string, the provider automatically splits it into
-multiple arguments based on spaces.
+The command should be specified as a list of strings, where the first string is the path to
+an executable, followed by its arguments.
 
 ```hcl
 resource "lxd_instance" "inst" {
@@ -214,14 +215,14 @@ resource "lxd_instance" "inst" {
   image = "images:alpine/3.18/amd64"
 
   exec {
-    command = ["ls -lah"]
+    command = ["ls", "/"]
   }
 }
 ```
 
-### Complex Commands and Environment Access
-
-For more complex commands or when access to the environment is required, use the `<shell> -c` syntax.
+By default, the command executes directly without a shell, meaning shell patterns like variables
+and file redirects are not interpreted. To use environment variables or shell meta-characters
+(e.g., pipes and file redirects), you must specify a shell executable.
 
 ```hcl
 resource "lxd_instance" "inst" {
@@ -229,16 +230,11 @@ resource "lxd_instance" "inst" {
   image = "images:alpine/3.18/amd64"
 
   exec {
-    command = ["sh", "-c", "echo $ENV_KEY"]
+    command = ["/bin/sh", "-c", "echo $ENV_KEY > env.txt"]
 
     environment = {
       "ENV_KEY" = "ENV_VALUE"
     }
-  }
-
-  exec {
-    command     = ["sh", "-c", "cat os-release | tr -d '\n'"]
-    working_dir = "/etc"
   }
 }
 ```
@@ -256,7 +252,7 @@ resource "lxd_instance" "inst" {
   image = "images:alpine/3.18/amd64"
 
   exec {
-    command       = ["uname"]
+    command       = ["hostname"]
     record_output = true
   }
 }
@@ -264,7 +260,7 @@ resource "lxd_instance" "inst" {
 output "exec-output" {
   value = {
     "code" = lxd_instance.inst.exec[0].exit_code # 0
-    "out"  = lxd_instance.inst.exec[0].stdout    # "Linux\n"
+    "out"  = lxd_instance.inst.exec[0].stdout    # "c1\n"
     "err"  = lxd_instance.inst.exec[0].stderr    # ""
   }
 }
