@@ -30,22 +30,17 @@ type ExecModel struct {
 func (e *ExecModel) Execute(ctx context.Context, server lxd.InstanceServer, instanceName string) diag.Diagnostics {
 	var diags diag.Diagnostics
 
+	cmd := make([]string, 0, len(e.Command.Elements()))
 	env := make(map[string]string, len(e.Environment.Elements()))
-	command := make([]string, 0, len(e.Command.Elements()))
 
+	diags.Append(e.Command.ElementsAs(ctx, &cmd, false)...)
 	diags.Append(e.Environment.ElementsAs(ctx, &env, false)...)
-	diags.Append(e.Command.ElementsAs(ctx, &command, false)...)
 	if diags.HasError() {
 		return diags
 	}
 
-	// If command is one liner, split it on spaces.
-	if len(command) == 1 {
-		command = strings.SplitN(command[0], " ", 3)
-	}
-
 	execReq := api.InstanceExecPost{
-		Command:      command,
+		Command:      cmd,
 		Environment:  env,
 		WaitForWS:    true,
 		Interactive:  false,
@@ -94,7 +89,7 @@ func (e *ExecModel) Execute(ctx context.Context, server lxd.InstanceServer, inst
 	if e.FailOnError.ValueBool() && (err != nil || exitCode != 0) {
 		diags.AddError(
 			fmt.Sprintf("Failed to execute command on instance %q", instanceName),
-			fmt.Sprintf("Command %q failed with an error: %v", strings.Join(command, " "), err),
+			fmt.Sprintf("Command %q failed with an error: %v", strings.Join(cmd, " "), err),
 		)
 		return diags
 	}

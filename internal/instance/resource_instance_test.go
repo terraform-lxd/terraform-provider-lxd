@@ -677,7 +677,7 @@ func TestAccInstance_execEnvironment(t *testing.T) {
 					resource.TestCheckResourceAttr("lxd_instance.instance1", "status", "Running"),
 					resource.TestCheckResourceAttr("lxd_instance.instance1", "exec.#", "1"),
 					resource.TestCheckResourceAttr("lxd_instance.instance1", "exec.0.exit_code", "0"),
-					resource.TestCheckResourceAttr("lxd_instance.instance1", "exec.0.stdout", "It works.\n"),
+					resource.TestCheckResourceAttr("lxd_instance.instance1", "exec.0.stdout", "It works."),
 					resource.TestCheckResourceAttr("lxd_instance.instance1", "exec.0.stderr", ""),
 				),
 			},
@@ -700,7 +700,7 @@ func TestAccInstance_execScript(t *testing.T) {
 					resource.TestCheckResourceAttr("lxd_instance.instance1", "file.#", "1"),
 					resource.TestCheckResourceAttr("lxd_instance.instance1", "exec.#", "1"),
 					resource.TestCheckResourceAttr("lxd_instance.instance1", "exec.0.exit_code", "0"),
-					resource.TestCheckResourceAttr("lxd_instance.instance1", "exec.0.stdout", fmt.Sprintf("%s\n", instanceName)),
+					resource.TestCheckResourceAttr("lxd_instance.instance1", "exec.0.stdout", instanceName),
 					resource.TestCheckResourceAttr("lxd_instance.instance1", "exec.0.stderr", ""),
 				),
 			},
@@ -1385,7 +1385,10 @@ resource "lxd_instance" "instance1" {
   image = "%s"
 
   exec {
-    command       = ["sh", "-c", "cat os-release | grep '^ID' | tr -d '\n'"]
+    command = [
+      "/bin/sh", "-c",
+      "cat os-release | grep '^ID' | tr -d '\n'"
+    ]
     working_dir   = "/etc"
     record_output = true
   }
@@ -1400,8 +1403,9 @@ resource "lxd_instance" "instance1" {
   image = "%s"
 
   exec {
-    command       = ["sh", "-c", "echo $ENV_TEST"]
+    command       = ["/bin/sh", "-c", "echo -n $ENV_TEST"]
     record_output = true
+
     environment = {
       "ENV_TEST" = "It works."
     }
@@ -1417,13 +1421,13 @@ resource "lxd_instance" "instance1" {
   image = "%s"
 
   file {
-    source_path        = "../acctest/fixtures/test-script.sh"
-    target_path        = "/root/test-script.sh"
-    mode               = "0700"
+    source_path = "../acctest/fixtures/test-script.sh"
+    target_path = "/root/test-script.sh"
+    mode        = "0700"
   }
 
   exec {
-    command       = ["sh test-script.sh"]
+    command       = ["/bin/sh", "test-script.sh"]
     record_output = true
   }
 }
@@ -1453,7 +1457,7 @@ resource "lxd_instance" "instance1" {
   image = "%s"
 
   exec {
-    command = ["sh", "-c", "ls / | grep 'nothing'"]
+    command = ["/bin/sh", "-c", "ls / | grep 'nothing'"]
   }
 }
 	`, instanceName, acctest.TestImage)
