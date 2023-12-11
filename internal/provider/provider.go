@@ -5,13 +5,11 @@ import (
 	"log"
 	"os"
 	"path/filepath"
-	"time"
 
 	lxd_config "github.com/canonical/lxd/lxc/config"
 	lxd_shared "github.com/canonical/lxd/shared"
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
-	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/provider"
 	"github.com/hashicorp/terraform-plugin-framework/provider/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
@@ -41,27 +39,20 @@ type LxdProviderModel struct {
 	Remotes                    []LxdProviderRemoteModel `tfsdk:"remote"`
 	ConfigDir                  types.String             `tfsdk:"config_dir"`
 	Project                    types.String             `tfsdk:"project"`
-	RefreshInterval            types.String             `tfsdk:"refresh_interval"`
 	AcceptRemoteCertificate    types.Bool               `tfsdk:"accept_remote_certificate"`
 	GenerateClientCertificates types.Bool               `tfsdk:"generate_client_certificates"`
 }
 
 // LxdProvider ...
 type LxdProvider struct {
-	version         string
-	refreshInterval string
+	version string
 }
 
 // New returns LXD provider with the given version set.
-func NewLxdProvider(version string, refreshInterval string) func() provider.Provider {
-	if refreshInterval == "" {
-		refreshInterval = "10s"
-	}
-
+func NewLxdProvider(version string) func() provider.Provider {
 	return func() provider.Provider {
 		return &LxdProvider{
-			version:         version,
-			refreshInterval: refreshInterval,
+			version: version,
 		}
 	}
 }
@@ -87,11 +78,6 @@ func (p *LxdProvider) Schema(_ context.Context, _ provider.SchemaRequest, resp *
 			"accept_remote_certificate": schema.BoolAttribute{
 				Optional:    true,
 				Description: "Accept the server certificate.",
-			},
-
-			"refresh_interval": schema.StringAttribute{
-				Optional:    true,
-				Description: "How often to poll during state changes. (default = 10s)",
 			},
 
 			"project": schema.StringAttribute{
@@ -176,18 +162,6 @@ func (p *LxdProvider) Configure(ctx context.Context, req provider.ConfigureReque
 
 	log.Printf("[DEBUG] LXD Config: %#v", config)
 
-	// Determine custom refresh interval. Default is 10 seconds.
-	refreshIntervalString := data.RefreshInterval.ValueString()
-	if refreshIntervalString == "" {
-		refreshIntervalString = p.refreshInterval
-	}
-
-	refreshInterval, err := time.ParseDuration(refreshIntervalString)
-	if err != nil {
-		resp.Diagnostics.AddAttributeError(path.Root("refresh_interval"), "Invalid refresh interval", err.Error())
-		return
-	}
-
 	// Determine if the LXD server's SSL certificates should be
 	// accepted. If this is set to false and if the remote's
 	// certificates haven't already been accepted, the user will
@@ -227,7 +201,7 @@ func (p *LxdProvider) Configure(ctx context.Context, req provider.ConfigureReque
 	// Initialize global LxdProvider struct.
 	// This struct is used to store information about this Terraform
 	// provider's configuration for reference throughout the lifecycle.
-	lxdProvider := provider_config.NewLxdProvider(config, refreshInterval, acceptServerCertificate)
+	lxdProvider := provider_config.NewLxdProvider(config, acceptServerCertificate)
 
 	// Create LXD remote from environment variables (if defined).
 	// This emulates the Terraform provider "remote" config:
