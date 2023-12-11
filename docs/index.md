@@ -75,10 +75,6 @@ The following arguments are supported:
 	also be set with the `LXD_ACCEPT_SERVER_CERTIFICATE` environment variable.
   Defaults to `false`
 
-* `refresh_interval` - *Optional* - How often to poll during state change.
-	Defaults to "10s", or 10 seconds. Valid values are a Go-style parsable time
-	duration (`10s`, `1m`, `5h`).
-
 The `remote` block supports:
 
 * `address` - *Optional* - The address of the LXD remote.
