@@ -9,6 +9,11 @@ import (
 	"github.com/terraform-lxd/terraform-provider-lxd/internal/provider"
 )
 
+// version indicates provider's version. The appropriate value
+// for the compile binary will be set by the goreleaser.
+// See: https://goreleaser.com/cookbooks/using-main.version/
+var version = "dev"
+
 // Old main for SDKv2.
 //
 // func main() {
@@ -29,7 +34,7 @@ func main() {
 		ProtocolVersion: 6,
 	}
 
-	err := providerserver.Serve(context.Background(), provider.NewLxdProvider("dev", "10s"), opts)
+	err := providerserver.Serve(context.Background(), provider.NewLxdProvider(version, "10s"), opts)
 	if err != nil {
 		log.Fatal(err.Error())
 	}
