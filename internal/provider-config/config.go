@@ -6,7 +6,6 @@ import (
 	"os"
 	"path/filepath"
 	"sync"
-	"time"
 
 	lxd "github.com/canonical/lxd/client"
 	lxd_config "github.com/canonical/lxd/lxc/config"
@@ -39,10 +38,6 @@ type LxdProviderConfig struct {
 	// should be accepted.
 	acceptServerCertificate bool
 
-	// refreshInterval is a custom interval for communicating with remote
-	// LXD servers.
-	refreshInterval time.Duration
-
 	// LXDConfig is the converted form of terraformLXDConfig
 	// in LXD's native data structure. This is lazy-loaded / created
 	// only when a connection to an LXD remote/server happens.
@@ -69,10 +64,9 @@ type LxdProviderConfig struct {
 // NewLxdProvider returns initialized LXD provider structure. This struct is
 // used to store information about this Terraform provider's configuration for
 // reference throughout the lifecycle.
-func NewLxdProvider(lxdConfig *lxd_config.Config, refreshInterval time.Duration, acceptServerCert bool) *LxdProviderConfig {
+func NewLxdProvider(lxdConfig *lxd_config.Config, acceptServerCert bool) *LxdProviderConfig {
 	return &LxdProviderConfig{
 		acceptServerCertificate: acceptServerCert,
-		refreshInterval:         refreshInterval,
 		lxdConfig:               lxdConfig,
 		remotes:                 make(map[string]LxdProviderRemoteConfig),
 		servers:                 make(map[string]lxd.Server),
@@ -495,10 +489,4 @@ func (p *LxdProviderConfig) getLxdConfigImageServer(remoteName string) (lxd.Imag
 	p.mux.RLock()
 	defer p.mux.RUnlock()
 	return p.lxdConfig.GetImageServer(remoteName)
-}
-
-// RefreshInterval returns a time interval on which provider should
-// retry to communicate with the LXD server.
-func (p *LxdProviderConfig) RefreshInterval() time.Duration {
-	return p.refreshInterval
 }

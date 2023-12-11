@@ -10,7 +10,7 @@ import (
 )
 
 // version indicates provider's version. The appropriate value
-// for the compile binary will be set by the goreleaser.
+// for the compiled binary will be set by the goreleaser.
 // See: https://goreleaser.com/cookbooks/using-main.version/
 var version = "dev"
 
@@ -34,7 +34,7 @@ func main() {
 		ProtocolVersion: 6,
 	}
 
-	err := providerserver.Serve(context.Background(), provider.NewLxdProvider(version, "10s"), opts)
+	err := providerserver.Serve(context.Background(), provider.NewLxdProvider(version), opts)
 	if err != nil {
 		log.Fatal(err.Error())
 	}
