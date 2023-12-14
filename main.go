@@ -14,14 +14,6 @@ import (
 // See: https://goreleaser.com/cookbooks/using-main.version/
 var version = "dev"
 
-// Old main for SDKv2.
-//
-// func main() {
-// 	plugin.Serve(&plugin.ServeOpts{
-// 		ProviderFunc: lxd.Provider,
-// 	})
-// }
-
 func main() {
 	var debug bool
 
