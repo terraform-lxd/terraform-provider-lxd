@@ -6,7 +6,7 @@ import (
 	"log"
 
 	"github.com/hashicorp/terraform-plugin-framework/providerserver"
-	"github.com/terraform-lxd/terraform-provider-lxd/internal/provider"
+	"github.com/maveonair/terraform-provider-incus/internal/provider"
 )
 
 // version indicates provider's version. The appropriate value
@@ -18,7 +18,7 @@ var version = "dev"
 //
 // func main() {
 // 	plugin.Serve(&plugin.ServeOpts{
-// 		ProviderFunc: lxd.Provider,
+// 		ProviderFunc: incus.Provider,
 // 	})
 // }
 
@@ -29,12 +29,12 @@ func main() {
 	flag.Parse()
 
 	opts := providerserver.ServeOpts{
-		Address:         "registry.terraform.io/terraform-lxd/lxd",
+		Address:         "registry.terraform.io/maveonair/incus",
 		Debug:           debug,
 		ProtocolVersion: 6,
 	}
 
-	err := providerserver.Serve(context.Background(), provider.NewLxdProvider(version), opts)
+	err := providerserver.Serve(context.Background(), provider.NewIncusProvider(version), opts)
 	if err != nil {
 		log.Fatal(err.Error())
 	}

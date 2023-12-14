@@ -6,7 +6,7 @@ import (
 
 	petname "github.com/dustinkirkland/golang-petname"
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
-	"github.com/terraform-lxd/terraform-provider-lxd/internal/acctest"
+	"github.com/maveonair/terraform-provider-incus/internal/acctest"
 )
 
 func TestAccNetworkZoneRecord_basic(t *testing.T) {
@@ -20,11 +20,11 @@ func TestAccNetworkZoneRecord_basic(t *testing.T) {
 			{
 				Config: testAccNetworkZoneRecord(zoneName, recordName),
 				Check: resource.ComposeTestCheckFunc(
-					resource.TestCheckResourceAttr("lxd_network_zone.zone", "name", zoneName),
-					resource.TestCheckResourceAttr("lxd_network_zone.zone", "config.dns.nameservers", fmt.Sprintf("ns.%s", zoneName)),
-					resource.TestCheckResourceAttr("lxd_network_zone_record.record", "name", recordName),
-					resource.TestCheckResourceAttr("lxd_network_zone_record.record", "zone", zoneName),
-					resource.TestCheckResourceAttr("lxd_network_zone_record.record", "description", "Network zone record"),
+					resource.TestCheckResourceAttr("incus_network_zone.zone", "name", zoneName),
+					resource.TestCheckResourceAttr("incus_network_zone.zone", "config.dns.nameservers", fmt.Sprintf("ns.%s", zoneName)),
+					resource.TestCheckResourceAttr("incus_network_zone_record.record", "name", recordName),
+					resource.TestCheckResourceAttr("incus_network_zone_record.record", "zone", zoneName),
+					resource.TestCheckResourceAttr("incus_network_zone_record.record", "description", "Network zone record"),
 				),
 			},
 		},
@@ -54,19 +54,19 @@ func TestAccNetworkZoneRecord_entries(t *testing.T) {
 			{
 				Config: testAccNetworkZoneRecord_entries_1(zoneName, recordName),
 				Check: resource.ComposeTestCheckFunc(
-					resource.TestCheckResourceAttr("lxd_network_zone.zone", "name", zoneName),
-					resource.TestCheckResourceAttr("lxd_network_zone_record.record", "name", recordName),
-					resource.TestCheckResourceAttr("lxd_network_zone_record.record", "zone", zoneName),
-					resource.TestCheckTypeSetElemNestedAttrs("lxd_network_zone_record.record", "entry.*", entry1),
+					resource.TestCheckResourceAttr("incus_network_zone.zone", "name", zoneName),
+					resource.TestCheckResourceAttr("incus_network_zone_record.record", "name", recordName),
+					resource.TestCheckResourceAttr("incus_network_zone_record.record", "zone", zoneName),
+					resource.TestCheckTypeSetElemNestedAttrs("incus_network_zone_record.record", "entry.*", entry1),
 				),
 			},
 			{
 				Config: testAccNetworkZoneRecord_entries_2(zoneName, recordName),
 				Check: resource.ComposeTestCheckFunc(
-					resource.TestCheckResourceAttr("lxd_network_zone.zone", "name", zoneName),
-					resource.TestCheckResourceAttr("lxd_network_zone_record.record", "name", recordName),
-					resource.TestCheckResourceAttr("lxd_network_zone_record.record", "zone", zoneName),
-					resource.TestCheckTypeSetElemNestedAttrs("lxd_network_zone_record.record", "entry.*", entry2),
+					resource.TestCheckResourceAttr("incus_network_zone.zone", "name", zoneName),
+					resource.TestCheckResourceAttr("incus_network_zone_record.record", "name", recordName),
+					resource.TestCheckResourceAttr("incus_network_zone_record.record", "zone", zoneName),
+					resource.TestCheckTypeSetElemNestedAttrs("incus_network_zone_record.record", "entry.*", entry2),
 				),
 			},
 		},
@@ -74,7 +74,7 @@ func TestAccNetworkZoneRecord_entries(t *testing.T) {
 }
 
 func TestAccNetworkZoneRecord_importBasic(t *testing.T) {
-	resourceName := "lxd_network_zone_record.record"
+	resourceName := "incus_network_zone_record.record"
 	recordName := petname.Generate(2, "-")
 	zoneName := petname.Generate(3, ".")
 
@@ -98,7 +98,7 @@ func TestAccNetworkZoneRecord_importBasic(t *testing.T) {
 
 func testAccNetworkZoneRecord(zoneName, recordName string) string {
 	return fmt.Sprintf(`
-resource "lxd_network_zone" "zone" {
+resource "incus_network_zone" "zone" {
   name = "%[1]s"
 
   config = {
@@ -107,9 +107,9 @@ resource "lxd_network_zone" "zone" {
   }
 }
 
-resource "lxd_network_zone_record" "record" {
+resource "incus_network_zone_record" "record" {
   name        = "%[2]s"
-  zone        = lxd_network_zone.zone.name
+  zone        = incus_network_zone.zone.name
   description = "Network zone record"
 }
 `, zoneName, recordName)
@@ -117,7 +117,7 @@ resource "lxd_network_zone_record" "record" {
 
 func testAccNetworkZoneRecord_entries_1(zoneName, recordName string) string {
 	return fmt.Sprintf(`
-resource "lxd_network_zone" "zone" {
+resource "incus_network_zone" "zone" {
   name = "%[1]s"
 
   config = {
@@ -126,9 +126,9 @@ resource "lxd_network_zone" "zone" {
   }
 }
 
-resource "lxd_network_zone_record" "record" {
+resource "incus_network_zone_record" "record" {
   name = "%[2]s"
-  zone = lxd_network_zone.zone.name
+  zone = incus_network_zone.zone.name
 
   entry {
     type  = "CNAME"
@@ -141,7 +141,7 @@ resource "lxd_network_zone_record" "record" {
 
 func testAccNetworkZoneRecord_entries_2(zoneName, recordName string) string {
 	return fmt.Sprintf(`
-resource "lxd_network_zone" "zone" {
+resource "incus_network_zone" "zone" {
   name = "%[1]s"
 
   config = {
@@ -150,9 +150,9 @@ resource "lxd_network_zone" "zone" {
   }
 }
 
-resource "lxd_network_zone_record" "record" {
+resource "incus_network_zone_record" "record" {
   name = "%[2]s"
-  zone = lxd_network_zone.zone.name
+  zone = incus_network_zone.zone.name
 
   entry {
     type  = "CNAME"

@@ -4,8 +4,6 @@ import (
 	"context"
 	"fmt"
 
-	lxd "github.com/canonical/lxd/client"
-	"github.com/canonical/lxd/shared/api"
 	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
@@ -16,9 +14,11 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/tfsdk"
 	"github.com/hashicorp/terraform-plugin-framework/types"
-	"github.com/terraform-lxd/terraform-provider-lxd/internal/common"
-	"github.com/terraform-lxd/terraform-provider-lxd/internal/errors"
-	provider_config "github.com/terraform-lxd/terraform-provider-lxd/internal/provider-config"
+	incus "github.com/lxc/incus/client"
+	"github.com/lxc/incus/shared/api"
+	"github.com/maveonair/terraform-provider-incus/internal/common"
+	"github.com/maveonair/terraform-provider-incus/internal/errors"
+	provider_config "github.com/maveonair/terraform-provider-incus/internal/provider-config"
 )
 
 // ProjectModel resource data model that matches the schema.
@@ -29,9 +29,9 @@ type ProjectModel struct {
 	Config      types.Map    `tfsdk:"config"`
 }
 
-// ProjectResource represent LXD project resource.
+// ProjectResource represent Incus project resource.
 type ProjectResource struct {
-	provider *provider_config.LxdProviderConfig
+	provider *provider_config.IncusProviderConfig
 }
 
 // NewProjectResource return new project resource.
@@ -84,7 +84,7 @@ func (r *ProjectResource) Configure(_ context.Context, req resource.ConfigureReq
 		return
 	}
 
-	provider, ok := data.(*provider_config.LxdProviderConfig)
+	provider, ok := data.(*provider_config.IncusProviderConfig)
 	if !ok {
 		resp.Diagnostics.Append(errors.NewProviderDataTypeError(req.ProviderData))
 		return
@@ -233,7 +233,7 @@ func (r ProjectResource) Delete(ctx context.Context, req resource.DeleteRequest,
 // SyncState fetches the server's current state for a project and updates
 // the provided model. It then applies this updated model as the new state
 // in Terraform.
-func (r ProjectResource) SyncState(ctx context.Context, tfState *tfsdk.State, server lxd.InstanceServer, m ProjectModel) diag.Diagnostics {
+func (r ProjectResource) SyncState(ctx context.Context, tfState *tfsdk.State, server incus.InstanceServer, m ProjectModel) diag.Diagnostics {
 	var respDiags diag.Diagnostics
 
 	projectName := m.Name.ValueString()

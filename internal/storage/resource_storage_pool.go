@@ -4,8 +4,6 @@ import (
 	"context"
 	"fmt"
 
-	lxd "github.com/canonical/lxd/client"
-	"github.com/canonical/lxd/shared/api"
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/diag"
@@ -19,9 +17,11 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/tfsdk"
 	"github.com/hashicorp/terraform-plugin-framework/types"
-	"github.com/terraform-lxd/terraform-provider-lxd/internal/common"
-	"github.com/terraform-lxd/terraform-provider-lxd/internal/errors"
-	provider_config "github.com/terraform-lxd/terraform-provider-lxd/internal/provider-config"
+	incus "github.com/lxc/incus/client"
+	"github.com/lxc/incus/shared/api"
+	"github.com/maveonair/terraform-provider-incus/internal/common"
+	"github.com/maveonair/terraform-provider-incus/internal/errors"
+	provider_config "github.com/maveonair/terraform-provider-incus/internal/provider-config"
 )
 
 type StoragePoolModel struct {
@@ -34,9 +34,9 @@ type StoragePoolModel struct {
 	Config      types.Map    `tfsdk:"config"`
 }
 
-// StoragePoolResource represent LXD storage pool resource.
+// StoragePoolResource represent Incus storage pool resource.
 type StoragePoolResource struct {
-	provider *provider_config.LxdProviderConfig
+	provider *provider_config.IncusProviderConfig
 }
 
 // NewStoragePoolResource returns a new storage pool resource.
@@ -117,7 +117,7 @@ func (r *StoragePoolResource) Configure(_ context.Context, req resource.Configur
 		return
 	}
 
-	provider, ok := data.(*provider_config.LxdProviderConfig)
+	provider, ok := data.(*provider_config.IncusProviderConfig)
 	if !ok {
 		resp.Diagnostics.Append(errors.NewProviderDataTypeError(req.ProviderData))
 		return
@@ -296,7 +296,7 @@ func (r StoragePoolResource) ImportState(ctx context.Context, req resource.Impor
 // SyncState fetches the server's current state for a storage pool and updates
 // the provided model. It then applies this updated model as the new state
 // in Terraform.
-func (r StoragePoolResource) SyncState(ctx context.Context, tfState *tfsdk.State, server lxd.InstanceServer, m StoragePoolModel) diag.Diagnostics {
+func (r StoragePoolResource) SyncState(ctx context.Context, tfState *tfsdk.State, server incus.InstanceServer, m StoragePoolModel) diag.Diagnostics {
 	var respDiags diag.Diagnostics
 
 	poolName := m.Name.ValueString()

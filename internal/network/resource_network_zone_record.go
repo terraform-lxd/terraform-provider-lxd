@@ -4,8 +4,6 @@ import (
 	"context"
 	"fmt"
 
-	lxd "github.com/canonical/lxd/client"
-	"github.com/canonical/lxd/shared/api"
 	"github.com/hashicorp/terraform-plugin-framework-validators/int64validator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/attr"
@@ -19,9 +17,11 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/tfsdk"
 	"github.com/hashicorp/terraform-plugin-framework/types"
-	"github.com/terraform-lxd/terraform-provider-lxd/internal/common"
-	"github.com/terraform-lxd/terraform-provider-lxd/internal/errors"
-	provider_config "github.com/terraform-lxd/terraform-provider-lxd/internal/provider-config"
+	incus "github.com/lxc/incus/client"
+	"github.com/lxc/incus/shared/api"
+	"github.com/maveonair/terraform-provider-incus/internal/common"
+	"github.com/maveonair/terraform-provider-incus/internal/errors"
+	provider_config "github.com/maveonair/terraform-provider-incus/internal/provider-config"
 )
 
 // NetworkZoneRecordModel resource data model that
@@ -36,9 +36,9 @@ type NetworkZoneRecordModel struct {
 	Config      types.Map    `tfsdk:"config"`
 }
 
-// NetworkZoneRecordResource represent LXD network zone record resource.
+// NetworkZoneRecordResource represent Incus network zone record resource.
 type NetworkZoneRecordResource struct {
-	provider *provider_config.LxdProviderConfig
+	provider *provider_config.IncusProviderConfig
 }
 
 // NewNetworkZoneRecordResource returns a new network zone record resource.
@@ -137,7 +137,7 @@ func (r *NetworkZoneRecordResource) Configure(_ context.Context, req resource.Co
 		return
 	}
 
-	provider, ok := data.(*provider_config.LxdProviderConfig)
+	provider, ok := data.(*provider_config.IncusProviderConfig)
 	if !ok {
 		resp.Diagnostics.Append(errors.NewProviderDataTypeError(req.ProviderData))
 		return
@@ -322,7 +322,7 @@ func (r NetworkZoneRecordResource) ImportState(ctx context.Context, req resource
 // SyncState fetches the server's current state for a network zone record and
 // updates the provided model. It then applies this updated model as the new
 // state in Terraform.
-func (r NetworkZoneRecordResource) SyncState(ctx context.Context, tfState *tfsdk.State, server lxd.InstanceServer, m NetworkZoneRecordModel) diag.Diagnostics {
+func (r NetworkZoneRecordResource) SyncState(ctx context.Context, tfState *tfsdk.State, server incus.InstanceServer, m NetworkZoneRecordModel) diag.Diagnostics {
 	var respDiags diag.Diagnostics
 
 	zoneName := m.Zone.ValueString()
@@ -364,7 +364,7 @@ type NetworkZoneRecordEntryModel struct {
 }
 
 // ToZoneRecordMap converts network zone record of type types.Map
-// into []LxdNetworkZoneEntryModel.
+// into []IncusNetworkZoneEntryModel.
 func ToZoneRecordEntryList(ctx context.Context, entrySet types.Set) ([]api.NetworkZoneRecordEntry, diag.Diagnostics) {
 	if entrySet.IsNull() || entrySet.IsUnknown() {
 		return []api.NetworkZoneRecordEntry{}, nil

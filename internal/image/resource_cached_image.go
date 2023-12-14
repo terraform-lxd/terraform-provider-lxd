@@ -5,8 +5,6 @@ import (
 	"fmt"
 	"strings"
 
-	lxd "github.com/canonical/lxd/client"
-	"github.com/canonical/lxd/shared/api"
 	"github.com/hashicorp/terraform-plugin-framework-validators/setvalidator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/diag"
@@ -22,9 +20,11 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/tfsdk"
 	"github.com/hashicorp/terraform-plugin-framework/types"
-	"github.com/terraform-lxd/terraform-provider-lxd/internal/errors"
-	provider_config "github.com/terraform-lxd/terraform-provider-lxd/internal/provider-config"
-	"github.com/terraform-lxd/terraform-provider-lxd/internal/utils"
+	incus "github.com/lxc/incus/client"
+	"github.com/lxc/incus/shared/api"
+	"github.com/maveonair/terraform-provider-incus/internal/errors"
+	provider_config "github.com/maveonair/terraform-provider-incus/internal/provider-config"
+	"github.com/maveonair/terraform-provider-incus/internal/utils"
 )
 
 // CachedImageModel resource data model that matches the schema.
@@ -45,9 +45,9 @@ type CachedImageModel struct {
 	CopiedAliases types.Set    `tfsdk:"copied_aliases"`
 }
 
-// CachedImageResource represent LXD cached image resource.
+// CachedImageResource represent Incus cached image resource.
 type CachedImageResource struct {
-	provider *provider_config.LxdProviderConfig
+	provider *provider_config.IncusProviderConfig
 }
 
 // NewCachedImageResource return new cached image resource.
@@ -168,7 +168,7 @@ func (r *CachedImageResource) Configure(_ context.Context, req resource.Configur
 		return
 	}
 
-	provider, ok := data.(*provider_config.LxdProviderConfig)
+	provider, ok := data.(*provider_config.IncusProviderConfig)
 	if !ok {
 		resp.Diagnostics.Append(errors.NewProviderDataTypeError(req.ProviderData))
 		return
@@ -240,7 +240,7 @@ func (r CachedImageResource) Create(ctx context.Context, req resource.CreateRequ
 	}
 
 	// Copy image.
-	args := lxd.ImageCopyArgs{
+	args := incus.ImageCopyArgs{
 		Aliases: imageAliases,
 		Public:  false,
 	}
@@ -401,7 +401,7 @@ func (r CachedImageResource) Delete(ctx context.Context, req resource.DeleteRequ
 // SyncState fetches the server's current state for a cached image and
 // updates the provided model. It then applies this updated model as the
 // new state in Terraform.
-func (r CachedImageResource) SyncState(ctx context.Context, tfState *tfsdk.State, server lxd.InstanceServer, m CachedImageModel) diag.Diagnostics {
+func (r CachedImageResource) SyncState(ctx context.Context, tfState *tfsdk.State, server incus.InstanceServer, m CachedImageModel) diag.Diagnostics {
 	var respDiags diag.Diagnostics
 
 	_, imageFingerprint := splitImageResourceID(m.ResourceID.ValueString())

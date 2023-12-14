@@ -1,13 +1,13 @@
-# lxd_instance
+# incus_instance
 
-Manages an LXD instance that can be either a container or virtual machine.
+Manages an Incus instance that can be either a container or virtual machine.
 
-An instance can take a number of configuration and device options. A full reference can be found [here](https://documentation.ubuntu.com/lxd/en/latest/reference/instance_options/).
+An instance can take a number of configuration and device options. A full reference can be found [here](https://documentation.ubuntu.com/incus/en/latest/reference/instance_options/).
 
 ## Basic Example
 
 ```hcl
-resource "lxd_instance" "container1" {
+resource "incus_instance" "container1" {
   name  = "container1"
   image = "images:ubuntu/22.04"
 
@@ -24,17 +24,17 @@ resource "lxd_instance" "container1" {
 ## Example to Attach a Volume
 
 ```hcl
-resource "lxd_storage_pool" "pool1" {
+resource "incus_storage_pool" "pool1" {
   name   = "mypool"
   driver = "zfs"
 }
 
-resource "lxd_volume" "volume1" {
+resource "incus_volume" "volume1" {
   name = "myvolume"
-  pool = lxd_storage_pool.pool1.name
+  pool = incus_storage_pool.pool1.name
 }
 
-resource "lxd_instance" "container1" {
+resource "incus_instance" "container1" {
   name  = "%s"
   image = "ubuntu"
 
@@ -43,8 +43,8 @@ resource "lxd_instance" "container1" {
     type = "disk"
     properties = {
       path   = "/mount/point/in/instance"
-      source = lxd_volume.volume1.name
-      pool   = lxd_storage_pool.pool1.name
+      source = incus_volume.volume1.name
+      pool   = incus_storage_pool.pool1.name
     }
   }
 }
@@ -53,7 +53,7 @@ resource "lxd_instance" "container1" {
 ## Example to proxy/forward ports
 
 ```hcl
-resource "lxd_instance" "container2" {
+resource "incus_instance" "container2" {
   name      = "container2"
   image     = "ubuntu"
   profiles  = ["default"]
@@ -63,7 +63,7 @@ resource "lxd_instance" "container2" {
     name = "http"
     type = "proxy"
     properties = {
-      # Listen on LXD host's TCP port 80
+      # Listen on Incus host's TCP port 80
       listen = "tcp:0.0.0.0:80"
       # And connect to the instance's TCP port 80
       connect = "tcp:127.0.0.1:80"
@@ -74,87 +74,87 @@ resource "lxd_instance" "container2" {
 
 ## Argument Reference
 
-* `name` - **Required** - Name of the instance.
+- `name` - **Required** - Name of the instance.
 
-* `image` - **Required** - Base image from which the instance will be created. Must
-  specify [an image accessible from the provider remote](https://documentation.ubuntu.com/lxd/en/latest/reference/remote_image_servers/).
+- `image` - **Required** - Base image from which the instance will be created. Must
+  specify [an image accessible from the provider remote](https://documentation.ubuntu.com/incus/en/latest/reference/remote_image_servers/).
 
-* `description` - *Optional* - Description of the instance.
+- `description` - _Optional_ - Description of the instance.
 
-* `type` - *Optional* -  Instance type. Can be `container`, or `virtual-machine`. Defaults to `container`.
+- `type` - _Optional_ - Instance type. Can be `container`, or `virtual-machine`. Defaults to `container`.
 
-* `ephemeral` - *Optional* - Boolean indicating if this instance is ephemeral. Defaults to `false`.
+- `ephemeral` - _Optional_ - Boolean indicating if this instance is ephemeral. Defaults to `false`.
 
-* `running` - *Optional* - Boolean indicating whether the instance should be started (running). Defaults to `true`.
+- `running` - _Optional_ - Boolean indicating whether the instance should be started (running). Defaults to `true`.
 
-* `wait_for_network` - *Optional* - Boolean indicating if the provider should wait for the instance to get an IPv4 address before considering the instance as started.
+- `wait_for_network` - _Optional_ - Boolean indicating if the provider should wait for the instance to get an IPv4 address before considering the instance as started.
   If `running` is set to false or instance is already running (on update), this value has no effect. Defaults to `true`.
 
-* `profiles` - *Optional* - List of LXD config profiles to apply to the new
-	instance. Profile `default` will be applied if profiles are not set (are `null`).
+- `profiles` - _Optional_ - List of Incus config profiles to apply to the new
+  instance. Profile `default` will be applied if profiles are not set (are `null`).
   However, if an empty array (`[]`) is set as a value, no profiles will be applied.
 
-* `device` - *Optional* - Device definition. See reference below.
+- `device` - _Optional_ - Device definition. See reference below.
 
-* `file` - *Optional* - File to upload to the instance. See reference below.
+- `file` - _Optional_ - File to upload to the instance. See reference below.
 
-* `limits` - *Optional* - Map of key/value pairs that define the
-	[instance resources limits](https://documentation.ubuntu.com/lxd/en/latest/reference/instance_options/#resource-limits).
+- `limits` - _Optional_ - Map of key/value pairs that define the
+  [instance resources limits](https://documentation.ubuntu.com/incus/en/latest/reference/instance_options/#resource-limits).
 
-* `config` - *Optional* - Map of key/value pairs of
-	[instance config settings](https://documentation.ubuntu.com/lxd/en/latest/reference/instance_options/).
+- `config` - _Optional_ - Map of key/value pairs of
+  [instance config settings](https://documentation.ubuntu.com/incus/en/latest/reference/instance_options/).
 
-* `project` - *Optional* - Name of the project where the instance will be spawned.
+- `project` - _Optional_ - Name of the project where the instance will be spawned.
 
-* `remote` - *Optional* - The remote in which the resource will be created. If
-	not provided, the provider's default remote will be used.
+- `remote` - _Optional_ - The remote in which the resource will be created. If
+  not provided, the provider's default remote will be used.
 
-* `target` - *Optional* - Specify a target node in a cluster.
+- `target` - _Optional_ - Specify a target node in a cluster.
 
 The `device` block supports:
 
-* `name` - **Required** - Name of the device.
+- `name` - **Required** - Name of the device.
 
-* `type` - **Required** - Type of the device Must be one of none, disk, nic,
-	unix-char, unix-block, usb, gpu, infiniband, proxy, unix-hotplug, tpm, pci.
+- `type` - **Required** - Type of the device Must be one of none, disk, nic,
+  unix-char, unix-block, usb, gpu, infiniband, proxy, unix-hotplug, tpm, pci.
 
-* `properties`- **Required** - Map of key/value pairs of
-	[device properties](https://documentation.ubuntu.com/lxd/en/latest/reference/devices/).
+- `properties`- **Required** - Map of key/value pairs of
+  [device properties](https://documentation.ubuntu.com/incus/en/latest/reference/devices/).
 
 The `file` block supports:
 
-* `content` - *__Required__ unless source_path is used* - The _contents_ of the file.
-	Use the `file()` function to read in the content of a file from disk.
+- `content` - _**Required** unless source_path is used_ - The _contents_ of the file.
+  Use the `file()` function to read in the content of a file from disk.
 
-* `source_path` - *__Required__ unless content is used* - The source path to a file to
-	copy to the instance.
+- `source_path` - _**Required** unless content is used_ - The source path to a file to
+  copy to the instance.
 
-* `target_path` - **Required** - The absolute path of the file on the instance,
-	including the filename.
+- `target_path` - **Required** - The absolute path of the file on the instance,
+  including the filename.
 
-* `uid` - *Optional* - The UID of the file. Must be an unquoted integer.
+- `uid` - _Optional_ - The UID of the file. Must be an unquoted integer.
 
-* `gid` - *Optional* - The GID of the file. Must be an unquoted integer.
+- `gid` - _Optional_ - The GID of the file. Must be an unquoted integer.
 
-* `mode` - *Optional* - The octal permissions of the file, must be quoted. Defaults to `0755`.
+- `mode` - _Optional_ - The octal permissions of the file, must be quoted. Defaults to `0755`.
 
-* `create_directories` - *Optional* - Whether to create the directories leading
-	to the target if they do not exist.
+- `create_directories` - _Optional_ - Whether to create the directories leading
+  to the target if they do not exist.
 
 ## Attribute Reference
 
 The following attributes are exported:
 
-* `ipv4_address` - The IPv4 Address of the instance. See Instance Network
+- `ipv4_address` - The IPv4 Address of the instance. See Instance Network
   Access for more details.
 
-* `ipv6_address` - The IPv6 Address of the instance. See Instance Network
+- `ipv6_address` - The IPv6 Address of the instance. See Instance Network
   Access for more details.
 
-* `mac_address` - The MAC address of the detected NIC. See Instance Network
+- `mac_address` - The MAC address of the detected NIC. See Instance Network
   Access for more details.
 
-* `status` - The status of the instance.
+- `status` - The status of the instance.
 
 ## Instance Network Access
 
@@ -165,7 +165,7 @@ Terraform will use the _last_ address detected. Global IPv6 address will be favo
 To specify an interface, do the following:
 
 ```hcl
-resource "lxd_instance" "instance1" {
+resource "incus_instance" "instance1" {
   name = "instance1"
   image = "images:alpine/3.5/amd64"
   profiles = ["default"]
@@ -180,41 +180,41 @@ resource "lxd_instance" "instance1" {
 
 Import ID syntax: `[<remote>:][<project>/]<name>[,image=<image>]`
 
-* `<remote>` - *Optional* - Remote name.
-* `<project>` - *Optional* - Project name.
-* `<name>` - **Required** - Instance name.
-* `image=<image>` - *Optional* - The image used by the instance.
+- `<remote>` - _Optional_ - Remote name.
+- `<project>` - _Optional_ - Project name.
+- `<name>` - **Required** - Instance name.
+- `image=<image>` - _Optional_ - The image used by the instance.
 
 ~> **Warning:** Importing the instance without specifying `image` will lead to its replacement
-   upon the next apply, rather than an in-place update.
+upon the next apply, rather than an in-place update.
 
 ### Import example
 
 Example using terraform import command:
 
 ```shell
-$ terraform import lxd_instance.myinst proj/c1,image=images:alpine/3.18/amd64
+$ terraform import incus_instance.myinst proj/c1,image=images:alpine/3.18/amd64
 ```
 
 Example using the import block (only available in Terraform v1.5.0 and later):
 
 ```hcl
-resource "lxd_instance" "myinst" {
+resource "incus_instance" "myinst" {
   name    = "c1"
   project = "proj"
   image   = "images:alpine/3.18/amd64"
 }
 
 import {
-  to = lxd_instance.myinst
+  to = incus_instance.myinst
   id = "proj/c1,image=images:alpine/3.18/amd64"
 }
 ```
 
 ## Notes
 
-* The instance resource `config` includes some keys that can be automatically generated by the LXD.
+- The instance resource `config` includes some keys that can be automatically generated by the Incus.
   If these keys are not explicitly defined by the user, they will be omitted from the Terraform
   state and treated as computed values.
-    - `image.*`
-    - `volatile.*`
+  - `image.*`
+  - `volatile.*`

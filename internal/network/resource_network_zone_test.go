@@ -6,7 +6,7 @@ import (
 
 	petname "github.com/dustinkirkland/golang-petname"
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
-	"github.com/terraform-lxd/terraform-provider-lxd/internal/acctest"
+	"github.com/maveonair/terraform-provider-incus/internal/acctest"
 )
 
 func TestAccNetworkZone_basic(t *testing.T) {
@@ -20,10 +20,10 @@ func TestAccNetworkZone_basic(t *testing.T) {
 			{
 				Config: testAccNetworkZone_basic(),
 				Check: resource.ComposeTestCheckFunc(
-					resource.TestCheckResourceAttr("lxd_network_zone.zone", "name", "custom.example.org"),
-					resource.TestCheckResourceAttr("lxd_network_zone.zone", "config.%", "2"),
-					resource.TestCheckResourceAttr("lxd_network_zone.zone", "config.dns.nameservers", "ns.custom.example.org"),
-					resource.TestCheckResourceAttr("lxd_network_zone.zone", "config.peers.ns.address", "127.0.0.1"),
+					resource.TestCheckResourceAttr("incus_network_zone.zone", "name", "custom.example.org"),
+					resource.TestCheckResourceAttr("incus_network_zone.zone", "config.%", "2"),
+					resource.TestCheckResourceAttr("incus_network_zone.zone", "config.dns.nameservers", "ns.custom.example.org"),
+					resource.TestCheckResourceAttr("incus_network_zone.zone", "config.peers.ns.address", "127.0.0.1"),
 				),
 			},
 		},
@@ -38,19 +38,19 @@ func TestAccNetworkZone_description(t *testing.T) {
 			{
 				Config: testAccNetworkZone_desc(),
 				Check: resource.ComposeTestCheckFunc(
-					resource.TestCheckResourceAttr("lxd_network_zone.zone", "name", "custom.example.org"),
-					resource.TestCheckResourceAttr("lxd_network_zone.zone", "description", "descriptive"),
-					resource.TestCheckResourceAttr("lxd_network_zone.zone", "config.%", "2"),
-					resource.TestCheckResourceAttr("lxd_network_zone.zone", "config.dns.nameservers", "ns.custom.example.org"),
-					resource.TestCheckResourceAttr("lxd_network_zone.zone", "config.peers.ns.address", "127.0.0.1"),
+					resource.TestCheckResourceAttr("incus_network_zone.zone", "name", "custom.example.org"),
+					resource.TestCheckResourceAttr("incus_network_zone.zone", "description", "descriptive"),
+					resource.TestCheckResourceAttr("incus_network_zone.zone", "config.%", "2"),
+					resource.TestCheckResourceAttr("incus_network_zone.zone", "config.dns.nameservers", "ns.custom.example.org"),
+					resource.TestCheckResourceAttr("incus_network_zone.zone", "config.peers.ns.address", "127.0.0.1"),
 				),
 			},
 			{
 				// Ensure no changes on reapply.
 				Config: testAccNetworkZone_desc(),
 				Check: resource.ComposeTestCheckFunc(
-					resource.TestCheckResourceAttr("lxd_network_zone.zone", "name", "custom.example.org"),
-					resource.TestCheckResourceAttr("lxd_network_zone.zone", "description", "descriptive"),
+					resource.TestCheckResourceAttr("incus_network_zone.zone", "name", "custom.example.org"),
+					resource.TestCheckResourceAttr("incus_network_zone.zone", "description", "descriptive"),
 				),
 			},
 		},
@@ -70,9 +70,9 @@ func TestAccNetworkZone_project(t *testing.T) {
 			{
 				Config: testAccNetworkZone_project(projectName),
 				Check: resource.ComposeTestCheckFunc(
-					resource.TestCheckResourceAttr("lxd_project.project1", "name", projectName),
-					resource.TestCheckResourceAttr("lxd_network_zone.zone", "name", "custom.example.org"),
-					resource.TestCheckResourceAttr("lxd_network_zone.zone", "project", projectName),
+					resource.TestCheckResourceAttr("incus_project.project1", "name", projectName),
+					resource.TestCheckResourceAttr("incus_network_zone.zone", "name", "custom.example.org"),
+					resource.TestCheckResourceAttr("incus_network_zone.zone", "project", projectName),
 				),
 			},
 		},
@@ -80,7 +80,7 @@ func TestAccNetworkZone_project(t *testing.T) {
 }
 
 func TestAccNetworkZone_importBasic(t *testing.T) {
-	resourceName := "lxd_network_zone.zone"
+	resourceName := "incus_network_zone.zone"
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { acctest.PreCheck(t) },
@@ -101,7 +101,7 @@ func TestAccNetworkZone_importBasic(t *testing.T) {
 }
 
 func TestAccNetworkZone_importProject(t *testing.T) {
-	resourceName := "lxd_network_zone.zone"
+	resourceName := "incus_network_zone.zone"
 	projectName := petname.Name()
 
 	resource.Test(t, resource.TestCase{
@@ -127,7 +127,7 @@ func TestAccNetworkZone_importProject(t *testing.T) {
 
 func testAccNetworkZone_basic() string {
 	return `
-resource "lxd_network_zone" "zone" {
+resource "incus_network_zone" "zone" {
   name = "custom.example.org"
   config = {
     "dns.nameservers" = "ns.custom.example.org"
@@ -139,7 +139,7 @@ resource "lxd_network_zone" "zone" {
 
 func testAccNetworkZone_desc() string {
 	return `
-resource "lxd_network_zone" "zone" {
+resource "incus_network_zone" "zone" {
   name        = "custom.example.org"
   description = "descriptive"
   config = {
@@ -152,7 +152,7 @@ resource "lxd_network_zone" "zone" {
 
 func testAccNetworkZone_project(project string) string {
 	return fmt.Sprintf(`
-resource "lxd_project" "project1" {
+resource "incus_project" "project1" {
   name = "%s"
   config = {
     "features.networks"       = false
@@ -160,9 +160,9 @@ resource "lxd_project" "project1" {
   }
 }
 
-resource "lxd_network_zone" "zone" {
+resource "incus_network_zone" "zone" {
   name    = "custom.example.org"
-  project = lxd_project.project1.name
+  project = incus_project.project1.name
 
   config = {
     "dns.nameservers"  = "ns.custom.example.org"

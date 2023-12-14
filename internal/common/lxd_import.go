@@ -5,7 +5,7 @@ import (
 	"strings"
 
 	"github.com/hashicorp/terraform-plugin-framework/diag"
-	"github.com/terraform-lxd/terraform-provider-lxd/internal/utils"
+	"github.com/maveonair/terraform-provider-incus/internal/utils"
 )
 
 // ImportMetadata defines import ID properties that are used when parsing
@@ -159,7 +159,7 @@ func newImportIDError(m ImportMetadata, importId string, err error) diag.Diagnos
 	return diag.NewErrorDiagnostic(
 		fmt.Sprintf("Invalid import ID: %q", importId),
 		fmt.Sprintf(
-			"%v.\n\nValid import format:\nimport lxd_%s.<resource> %s%s%s%s",
+			"%v.\n\nValid import format:\nimport incus_%s.<resource> %s%s%s%s",
 			err, m.ResourceName, remote, project, fields, options,
 		),
 	)

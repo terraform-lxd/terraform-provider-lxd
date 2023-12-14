@@ -1,17 +1,17 @@
-# lxd_network
+# incus_network
 
-Manages an LXD network.
+Manages an Incus network.
 
-You must be using LXD 2.3 or later. See
-[this](https://www.stgraber.org/2016/10/27/network-management-with-lxd-2-3/)
-blog post for details about LXD networking and the
-[configuration reference](https://documentation.ubuntu.com/lxd/en/latest/explanation/networks/)
+You must be using Incus 2.3 or later. See
+[this](https://www.stgraber.org/2016/10/27/network-management-with-incus-2-3/)
+blog post for details about Incus networking and the
+[configuration reference](https://documentation.ubuntu.com/incus/en/latest/explanation/networks/)
 for all network details.
 
 ## Example Usage
 
 ```hcl
-resource "lxd_network" "new_default" {
+resource "incus_network" "new_default" {
   name = "new_default"
 
   config = {
@@ -22,7 +22,7 @@ resource "lxd_network" "new_default" {
   }
 }
 
-resource "lxd_profile" "profile1" {
+resource "incus_profile" "profile1" {
   name = "profile1"
 
   device {
@@ -31,7 +31,7 @@ resource "lxd_profile" "profile1" {
 
     properties = {
       nictype = "bridged"
-      parent  = "${lxd_network.new_default.name}"
+      parent  = "${incus_network.new_default.name}"
     }
   }
 
@@ -46,21 +46,21 @@ resource "lxd_profile" "profile1" {
   }
 }
 
-resource "lxd_instance" "test1" {
+resource "incus_instance" "test1" {
   name      = "test1"
   image     = "ubuntu"
   ephemeral = false
-  profiles  = ["${lxd_profile.profile1.name}"]
+  profiles  = ["${incus_profile.profile1.name}"]
 }
 ```
 
 ## Multiple Network Example
 
-This example uses the "default" LXD nework on `eth0` (unspecified) and a
+This example uses the "default" Incus nework on `eth0` (unspecified) and a
 custom network on `eth1`
 
 ```hcl
-resource "lxd_network" "internal" {
+resource "incus_network" "internal" {
   name = "internal"
 
   config = {
@@ -68,7 +68,7 @@ resource "lxd_network" "internal" {
   }
 }
 
-resource "lxd_profile" "profile1" {
+resource "incus_profile" "profile1" {
   name = "profile1"
 
   device {
@@ -77,7 +77,7 @@ resource "lxd_profile" "profile1" {
 
     properties = {
       nictype = "bridged"
-      parent  = "${lxd_network.internal.name}"
+      parent  = "${incus_network.internal.name}"
     }
   }
 
@@ -92,11 +92,11 @@ resource "lxd_profile" "profile1" {
   }
 }
 
-resource "lxd_instance" "test1" {
+resource "incus_instance" "test1" {
   name      = "test1"
   image     = "ubuntu"
   ephemeral = false
-  profiles  = ["default", "${lxd_profile.profile1.name}"]
+  profiles  = ["default", "${incus_profile.profile1.name}"]
 
   provisioner "local-exec" {
     command = "lxc exec local:${self.name} dhclient eth1"
@@ -109,7 +109,7 @@ resource "lxd_instance" "test1" {
 Tunnel "server":
 
 ```hcl
-resource "lxd_network" "vxtun" {
+resource "incus_network" "vxtun" {
   name = "vxtun"
 
   config = {
@@ -126,7 +126,7 @@ resource "lxd_network" "vxtun" {
 Tunnel "client":
 
 ```hcl
-resource "lxd_network" "vxtun" {
+resource "incus_network" "vxtun" {
   name = "vxtun"
 
   config = {
@@ -150,20 +150,20 @@ define the network on each node in the cluster. Then you can create
 the actual network:
 
 ```hcl
-resource "lxd_network" "my_network_node1" {
+resource "incus_network" "my_network_node1" {
   name   = "my_network"
   target = "node1"
 }
 
-resource "lxd_network" "my_network_node2" {
+resource "incus_network" "my_network_node2" {
   name   = "my_network"
   target = "node2"
 }
 
-resource "lxd_network" "my_network" {
+resource "incus_network" "my_network" {
   depends_on = [
-    "lxd_network.my_network_node1",
-    "lxd_network.my_network_node2",
+    "incus_network.my_network_node1",
+    "incus_network.my_network_node2",
   ]
 
   name = "my_network"
@@ -177,47 +177,46 @@ resource "lxd_network" "my_network" {
 }
 ```
 
-Please see the [LXD Clustering documentation](https://documentation.ubuntu.com/lxd/en/latest/howto/cluster_config_networks/)
+Please see the [Incus Clustering documentation](https://documentation.ubuntu.com/incus/en/latest/howto/cluster_config_networks/)
 for more details on how to create a network in clustered mode.
-
 
 ## Argument Reference
 
-* `name` - **Required** - Name of the network. This is usually the device the
-	network will appear as to containers.
+- `name` - **Required** - Name of the network. This is usually the device the
+  network will appear as to containers.
 
-* `description` - *Optional* - Description of the network.
+- `description` - _Optional_ - Description of the network.
 
-* `type` - *Optional* - The type of network to create. Can be one of: bridge,
+- `type` - _Optional_ - The type of network to create. Can be one of: bridge,
   macvlan, sriov, ovn, or physical. If no type is specified, a bridge network
   is created.
 
-* `config` - *Optional* - Map of key/value pairs of
-	[network config settings](https://documentation.ubuntu.com/lxd/en/latest/networks/).
+- `config` - _Optional_ - Map of key/value pairs of
+  [network config settings](https://documentation.ubuntu.com/incus/en/latest/networks/).
 
-* `project` - *Optional* - Name of the project where the network will be created.
+- `project` - _Optional_ - Name of the project where the network will be created.
 
-* `remote` - *Optional* - The remote in which the resource will be created. If
-	not provided, the provider's default remote will be used.
+- `remote` - _Optional_ - The remote in which the resource will be created. If
+  not provided, the provider's default remote will be used.
 
-* `target` - *Optional* - Specify a target node in a cluster.
+- `target` - _Optional_ - Specify a target node in a cluster.
 
 ## Attribute Reference
 
 The following attributes are exported:
 
-* `type` - The type of network. Can be one of: bridge, macvlan, sriov, ovn or
+- `type` - The type of network. Can be one of: bridge, macvlan, sriov, ovn or
   physical.
 
-* `managed` - Whether or not the network is managed.
+- `managed` - Whether or not the network is managed.
 
 ## Importing
 
 Import ID syntax: `[<remote>:][<project>/]<name>`
 
-* `<remote>` - *Optional* - Remote name.
-* `<project>` - *Optional* - Project name.
-* `<name>` - **Required** - Network name.
+- `<remote>` - _Optional_ - Remote name.
+- `<project>` - _Optional_ - Project name.
+- `<name>` - **Required** - Network name.
 
 -> Clustered networks cannot be imported.
 
@@ -226,31 +225,31 @@ Import ID syntax: `[<remote>:][<project>/]<name>`
 Example using terraform import command:
 
 ```shell
-$ terraform import lxd_network.mynet proj/net1
+$ terraform import incus_network.mynet proj/net1
 ```
 
 Example using the import block (only available in Terraform v1.5.0 and later):
 
 ```hcl
-resource "lxd_network" "mynet" {
+resource "incus_network" "mynet" {
   name    = "net1"
   project = "proj"
 }
 
 import {
-  to = lxd_network.mynet
+  to = incus_network.mynet
   id = "proj/net1"
 }
 ```
 
 ## Notes
 
-* The network resource `config` includes some keys that can be automatically generated by the LXD.
+- The network resource `config` includes some keys that can be automatically generated by the Incus.
   If these keys are not explicitly defined by the user, they will be omitted from the Terraform
   state and treated as computed values.
-    - `bridge.mtu`
-    - `ipv4.nat`
-    - `ipv4.address`
-    - `ipv6.nat`
-    - `ipv6.address`
-    - `volatile.*`
+  - `bridge.mtu`
+  - `ipv4.nat`
+  - `ipv4.address`
+  - `ipv6.nat`
+  - `ipv6.address`
+  - `volatile.*`

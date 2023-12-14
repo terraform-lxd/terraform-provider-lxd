@@ -4,8 +4,6 @@ import (
 	"context"
 	"fmt"
 
-	lxd "github.com/canonical/lxd/client"
-	"github.com/canonical/lxd/shared/api"
 	"github.com/hashicorp/terraform-plugin-framework-validators/mapvalidator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/attr"
@@ -20,9 +18,11 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/tfsdk"
 	"github.com/hashicorp/terraform-plugin-framework/types"
-	"github.com/terraform-lxd/terraform-provider-lxd/internal/common"
-	"github.com/terraform-lxd/terraform-provider-lxd/internal/errors"
-	provider_config "github.com/terraform-lxd/terraform-provider-lxd/internal/provider-config"
+	incus "github.com/lxc/incus/client"
+	"github.com/lxc/incus/shared/api"
+	"github.com/maveonair/terraform-provider-incus/internal/common"
+	"github.com/maveonair/terraform-provider-incus/internal/errors"
+	provider_config "github.com/maveonair/terraform-provider-incus/internal/provider-config"
 )
 
 type ProfileModel struct {
@@ -34,9 +34,9 @@ type ProfileModel struct {
 	Config      types.Map    `tfsdk:"config"`
 }
 
-// ProfileResource represent LXD profile resource.
+// ProfileResource represent Incus profile resource.
 type ProfileResource struct {
-	provider *provider_config.LxdProviderConfig
+	provider *provider_config.IncusProviderConfig
 }
 
 // NewProfileResource returns a new profile resource.
@@ -135,7 +135,7 @@ func (r *ProfileResource) Configure(_ context.Context, req resource.ConfigureReq
 		return
 	}
 
-	provider, ok := data.(*provider_config.LxdProviderConfig)
+	provider, ok := data.(*provider_config.IncusProviderConfig)
 	if !ok {
 		resp.Diagnostics.Append(errors.NewProviderDataTypeError(req.ProviderData))
 		return
@@ -310,7 +310,7 @@ func (r ProfileResource) ImportState(ctx context.Context, req resource.ImportSta
 // SyncState fetches the server's current state for a profile and updates
 // the provided model. It then applies this updated model as the new state
 // in Terraform.
-func (r ProfileResource) SyncState(ctx context.Context, tfState *tfsdk.State, server lxd.InstanceServer, m ProfileModel) diag.Diagnostics {
+func (r ProfileResource) SyncState(ctx context.Context, tfState *tfsdk.State, server incus.InstanceServer, m ProfileModel) diag.Diagnostics {
 	var respDiags diag.Diagnostics
 
 	profileName := m.Name.ValueString()

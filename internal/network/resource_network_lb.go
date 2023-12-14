@@ -4,8 +4,6 @@ import (
 	"context"
 	"fmt"
 
-	lxd "github.com/canonical/lxd/client"
-	"github.com/canonical/lxd/shared/api"
 	"github.com/hashicorp/terraform-plugin-framework-validators/setvalidator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/attr"
@@ -18,9 +16,11 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/tfsdk"
 	"github.com/hashicorp/terraform-plugin-framework/types"
-	"github.com/terraform-lxd/terraform-provider-lxd/internal/common"
-	"github.com/terraform-lxd/terraform-provider-lxd/internal/errors"
-	provider_config "github.com/terraform-lxd/terraform-provider-lxd/internal/provider-config"
+	incus "github.com/lxc/incus/client"
+	"github.com/lxc/incus/shared/api"
+	"github.com/maveonair/terraform-provider-incus/internal/common"
+	"github.com/maveonair/terraform-provider-incus/internal/errors"
+	provider_config "github.com/maveonair/terraform-provider-incus/internal/provider-config"
 )
 
 // NetworkLBModel resource data model that matches the schema.
@@ -35,21 +35,21 @@ type NetworkLBModel struct {
 	Config        types.Map    `tfsdk:"config"`
 }
 
-// LxdNetworkLBResource represent LXD network load balancer resource.
-type LxdNetworkLBResource struct {
-	provider *provider_config.LxdProviderConfig
+// IncusNetworkLBResource represent Incus network load balancer resource.
+type IncusNetworkLBResource struct {
+	provider *provider_config.IncusProviderConfig
 }
 
 // NewNetworkLBResource returns a new network load balancer resource.
 func NewNetworkLBResource() resource.Resource {
-	return &LxdNetworkLBResource{}
+	return &IncusNetworkLBResource{}
 }
 
-func (r LxdNetworkLBResource) Metadata(_ context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
+func (r IncusNetworkLBResource) Metadata(_ context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
 	resp.TypeName = fmt.Sprintf("%s_network_lb", req.ProviderTypeName)
 }
 
-func (r LxdNetworkLBResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *resource.SchemaResponse) {
+func (r IncusNetworkLBResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *resource.SchemaResponse) {
 	resp.Schema = schema.Schema{
 		Attributes: map[string]schema.Attribute{
 			"network": schema.StringAttribute{
@@ -163,13 +163,13 @@ func (r LxdNetworkLBResource) Schema(_ context.Context, _ resource.SchemaRequest
 	}
 }
 
-func (r *LxdNetworkLBResource) Configure(_ context.Context, req resource.ConfigureRequest, resp *resource.ConfigureResponse) {
+func (r *IncusNetworkLBResource) Configure(_ context.Context, req resource.ConfigureRequest, resp *resource.ConfigureResponse) {
 	data := req.ProviderData
 	if data == nil {
 		return
 	}
 
-	provider, ok := data.(*provider_config.LxdProviderConfig)
+	provider, ok := data.(*provider_config.IncusProviderConfig)
 	if !ok {
 		resp.Diagnostics.Append(errors.NewProviderDataTypeError(req.ProviderData))
 		return
@@ -178,7 +178,7 @@ func (r *LxdNetworkLBResource) Configure(_ context.Context, req resource.Configu
 	r.provider = provider
 }
 
-func (r LxdNetworkLBResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
+func (r IncusNetworkLBResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
 	var plan NetworkLBModel
 
 	diags := req.Plan.Get(ctx, &plan)
@@ -234,7 +234,7 @@ func (r LxdNetworkLBResource) Create(ctx context.Context, req resource.CreateReq
 	resp.Diagnostics.Append(diags...)
 }
 
-func (r LxdNetworkLBResource) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
+func (r IncusNetworkLBResource) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
 	var state NetworkLBModel
 
 	diags := req.State.Get(ctx, &state)
@@ -256,7 +256,7 @@ func (r LxdNetworkLBResource) Read(ctx context.Context, req resource.ReadRequest
 	resp.Diagnostics.Append(diags...)
 }
 
-func (r LxdNetworkLBResource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
+func (r IncusNetworkLBResource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
 	var plan NetworkLBModel
 
 	diags := req.Plan.Get(ctx, &plan)
@@ -315,7 +315,7 @@ func (r LxdNetworkLBResource) Update(ctx context.Context, req resource.UpdateReq
 	resp.Diagnostics.Append(diags...)
 }
 
-func (r LxdNetworkLBResource) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {
+func (r IncusNetworkLBResource) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {
 	var state NetworkLBModel
 
 	diags := req.State.Get(ctx, &state)
@@ -345,7 +345,7 @@ func (r LxdNetworkLBResource) Delete(ctx context.Context, req resource.DeleteReq
 // SyncState fetches the server's current state for an network load balancer
 // and updates the provided model. It then applies this updated model as the
 // new state in Terraform.
-func (r LxdNetworkLBResource) SyncState(ctx context.Context, tfState *tfsdk.State, server lxd.InstanceServer, m NetworkLBModel) diag.Diagnostics {
+func (r IncusNetworkLBResource) SyncState(ctx context.Context, tfState *tfsdk.State, server incus.InstanceServer, m NetworkLBModel) diag.Diagnostics {
 	var respDiags diag.Diagnostics
 
 	networkName := m.Network.ValueString()
@@ -383,7 +383,7 @@ func (r LxdNetworkLBResource) SyncState(ctx context.Context, tfState *tfsdk.Stat
 	return tfState.Set(ctx, &m)
 }
 
-type LxdNetworkLBBackendModel struct {
+type IncusNetworkLBBackendModel struct {
 	Name          types.String `tfsdk:"name"`
 	Description   types.String `tfsdk:"description"`
 	TargetAddress types.String `tfsdk:"target_address"`
@@ -397,7 +397,7 @@ func ToLBBackendList(ctx context.Context, backendsSet types.Set) ([]api.NetworkL
 		return []api.NetworkLoadBalancerBackend{}, nil
 	}
 
-	modelBackends := make([]LxdNetworkLBBackendModel, 0, len(backendsSet.Elements()))
+	modelBackends := make([]IncusNetworkLBBackendModel, 0, len(backendsSet.Elements()))
 	diags := backendsSet.ElementsAs(ctx, &modelBackends, false)
 	if diags.HasError() {
 		return nil, diags
@@ -421,9 +421,9 @@ func ToLBBackendList(ctx context.Context, backendsSet types.Set) ([]api.NetworkL
 
 // ToLBBackendList converts list of API network LB backends into types.Set.
 func ToLBBackendSetType(ctx context.Context, backends []api.NetworkLoadBalancerBackend) (types.Set, diag.Diagnostics) {
-	backendList := make([]LxdNetworkLBBackendModel, 0, len(backends))
+	backendList := make([]IncusNetworkLBBackendModel, 0, len(backends))
 	for _, b := range backends {
-		backend := LxdNetworkLBBackendModel{
+		backend := IncusNetworkLBBackendModel{
 			Name:          types.StringValue(b.Name),
 			Description:   types.StringValue(b.Description),
 			TargetAddress: types.StringValue(b.TargetAddress),

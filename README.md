@@ -1,15 +1,15 @@
-# terraform-provider-lxd
+# terraform-provider-incus
 
-LXD Resource provider for Terraform
+Incus Resource provider for Terraform
 
 ## Prerequisites
 
 - [Terraform](http://terraform.io)
-- [LXD](https://ubuntu.com/lxd)
+- [Incus](https://linuxcontainers.org/incus)
 
 ## Installation
 
-This provider is published in the [Terraform Registry](https://registry.terraform.io/providers/terraform-lxd/lxd/).
+This provider is published in the [Terraform Registry](https://registry.terraform.io/providers/terraform-incus/incus/).
 
 Follow the official instructions for declaring providers in your Terraform configuration
 [here](https://www.terraform.io/docs/configuration/provider-requirements.html).
@@ -21,8 +21,8 @@ Add the following to your Terraform configuration:
 ```hcl
 terraform {
   required_providers {
-    lxd = {
-      source = "terraform-lxd/lxd"
+    incus = {
+      source = "maveonair/incus"
     }
   }
 }
@@ -37,7 +37,7 @@ terraform {
 3. Compile from sources to a development binary:
 
 ```shell
-cd terraform-provider-lxd
+cd terraform-provider-incus
 go build -v
 ```
 
@@ -47,7 +47,7 @@ go build -v
 $ cat ~/.terraformrc
 provider_installation {
   dev_overrides {
-    "terraform-lxd/lxd" = "/home/<REPLACE_ME>/git/terraform-provider-lxd"
+    "maveonair/incus" = "/home/<REPLACE_ME>/git/terraform-provider-incus"
   }
 }
 ```
@@ -55,7 +55,7 @@ provider_installation {
 #### Testing
 
 There are two test suites, unit and acceptance. By default the acceptance tests are not run as they require a functional
-LXD environment.
+Incus environment.
 
 ##### Unit tests
 
@@ -79,7 +79,7 @@ Full documentation can be found in the [`docs`](docs) directory.
 
 ## Known Limitations
 
-Many of the base LXD images don't include an SSH server, therefore terraform
+Many of the base Incus images don't include an SSH server, therefore terraform
 will be unable to execute any `provisioners`. Either use the base ubuntu images
 from the `ubuntu` or `ubuntu-daily` or manually prepare a base image that
 includes SSH.

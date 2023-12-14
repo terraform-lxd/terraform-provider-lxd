@@ -7,22 +7,23 @@ import (
 	"path/filepath"
 	"sync"
 
-	lxd "github.com/canonical/lxd/client"
-	lxd_config "github.com/canonical/lxd/lxc/config"
-	lxd_shared "github.com/canonical/lxd/shared"
-	lxd_api "github.com/canonical/lxd/shared/api"
-	"github.com/terraform-lxd/terraform-provider-lxd/internal/utils"
+	incus "github.com/lxc/incus/client"
+	incus_api "github.com/lxc/incus/shared/api"
+	incus_config "github.com/lxc/incus/shared/cliconfig"
+	incus_localtls "github.com/lxc/incus/shared/tls"
+	incus_shared "github.com/lxc/incus/shared/util"
+	"github.com/maveonair/terraform-provider-incus/internal/utils"
 )
 
-// supportedLXDVersions defines LXD versions that are supported by the provider.
-const supportedLXDVersions = ">= 4.0.0"
+// supportedIncusVersions defines Incus versions that are supported by the provider.
+const supportedIncusVersions = ">= 0.3.0"
 
 // A global mutex.
 var mutex sync.RWMutex
 
-// LxdProviderRemoteConfig represents LXD remote/server data as defined
+// IncusProviderRemoteConfig represents Incus remote/server data as defined
 // in a user's Terraform schema/configuration.
-type LxdProviderRemoteConfig struct {
+type IncusProviderRemoteConfig struct {
 	Name         string
 	Address      string
 	Port         string
@@ -31,51 +32,51 @@ type LxdProviderRemoteConfig struct {
 	Bootstrapped bool
 }
 
-// LxdProviderConfig contains the Provider configuration and initialized
+// IncusProviderConfig contains the Provider configuration and initialized
 // remote servers.
-type LxdProviderConfig struct {
-	// AcceptServerCertificates toggles if an LXD remote SSL certificate
+type IncusProviderConfig struct {
+	// AcceptServerCertificates toggles if an Incus remote SSL certificate
 	// should be accepted.
 	acceptServerCertificate bool
 
-	// LXDConfig is the converted form of terraformLXDConfig
-	// in LXD's native data structure. This is lazy-loaded / created
-	// only when a connection to an LXD remote/server happens.
-	// https://github.com/canonical/lxd/blob/main/lxc/config/config.go
-	lxdConfig *lxd_config.Config
+	// IncusConfig is the converted form of terraformIncusConfig
+	// in Incus's native data structure. This is lazy-loaded / created
+	// only when a connection to an Incus remote/server happens.
+	// https://github.com/lxc/incus/blob/main/shared/cliconfig/config.go
+	incusConfig *incus_config.Config
 
-	// remotes is a map of LXD remotes which the user has defined in
+	// remotes is a map of Incus remotes which the user has defined in
 	// the Terraform schema/configuration.
-	remotes map[string]LxdProviderRemoteConfig
+	remotes map[string]IncusProviderRemoteConfig
 
-	// servers is a map of client connections to LXD remote servers.
-	// These are lazy-loaded / created only when a connection to an LXD
+	// servers is a map of client connections to Incus remote servers.
+	// These are lazy-loaded / created only when a connection to an Incus
 	// remote/server is established.
 	//
-	// While a client can also be retrieved from LXDConfig, this map serves
+	// While a client can also be retrieved from IncusConfig, this map serves
 	// an additional purpose of ensuring Terraform has successfully
-	// connected and authenticated to each defined LXD server/remote.
-	servers map[string]lxd.Server
+	// connected and authenticated to each defined Incus server/remote.
+	servers map[string]incus.Server
 
 	// This is a mutex used to handle concurrent reads/writes.
 	mux sync.RWMutex
 }
 
-// NewLxdProvider returns initialized LXD provider structure. This struct is
+// NewIncusProvider returns initialized Incus provider structure. This struct is
 // used to store information about this Terraform provider's configuration for
 // reference throughout the lifecycle.
-func NewLxdProvider(lxdConfig *lxd_config.Config, acceptServerCert bool) *LxdProviderConfig {
-	return &LxdProviderConfig{
+func NewIncusProvider(incusConfig *incus_config.Config, acceptServerCert bool) *IncusProviderConfig {
+	return &IncusProviderConfig{
 		acceptServerCertificate: acceptServerCert,
-		lxdConfig:               lxdConfig,
-		remotes:                 make(map[string]LxdProviderRemoteConfig),
-		servers:                 make(map[string]lxd.Server),
+		incusConfig:             incusConfig,
+		remotes:                 make(map[string]IncusProviderRemoteConfig),
+		servers:                 make(map[string]incus.Server),
 	}
 }
 
-// InstanceServer returns a LXD InstanceServer client for the given remote.
+// InstanceServer returns a Incus InstanceServer client for the given remote.
 // An error is returned if the remote is not a InstanceServer.
-func (p *LxdProviderConfig) InstanceServer(remoteName string, project string, target string) (lxd.InstanceServer, error) {
+func (p *IncusProviderConfig) InstanceServer(remoteName string, project string, target string) (incus.InstanceServer, error) {
 	server, err := p.server(remoteName)
 	if err != nil {
 		return nil, err
@@ -89,20 +90,20 @@ func (p *LxdProviderConfig) InstanceServer(remoteName string, project string, ta
 		return nil, err
 	}
 
-	if connInfo.Protocol != "lxd" {
+	if connInfo.Protocol != "incus" {
 		return nil, fmt.Errorf("Remote %q (%s) is not an InstanceServer", remoteName, connInfo.Protocol)
 	}
 
-	instServer := server.(lxd.InstanceServer)
+	instServer := server.(incus.InstanceServer)
 	instServer = instServer.UseProject(project)
 	instServer = instServer.UseTarget(target)
 
 	return instServer, nil
 }
 
-// ImageServer returns a LXD ImageServer client for the given remote.
+// ImageServer returns a Incus ImageServer client for the given remote.
 // An error is returned if the remote is not an ImageServer.
-func (p *LxdProviderConfig) ImageServer(remoteName string) (lxd.ImageServer, error) {
+func (p *IncusProviderConfig) ImageServer(remoteName string) (incus.ImageServer, error) {
 	server, err := p.server(remoteName)
 	if err != nil {
 		return nil, err
@@ -116,8 +117,8 @@ func (p *LxdProviderConfig) ImageServer(remoteName string) (lxd.ImageServer, err
 		return nil, err
 	}
 
-	if connInfo.Protocol == "simplestreams" || connInfo.Protocol == "lxd" {
-		return server.(lxd.ImageServer), nil
+	if connInfo.Protocol == "simplestreams" || connInfo.Protocol == "incus" {
+		return server.(incus.ImageServer), nil
 	}
 
 	err = fmt.Errorf("Remote %q (%s / %s) is not an ImageServer", remoteName, connInfo.Protocol, connInfo.Addresses[0])
@@ -126,13 +127,13 @@ func (p *LxdProviderConfig) ImageServer(remoteName string) (lxd.ImageServer, err
 
 // getServer returns a server for the named remote. The returned server
 // can be either of type ImageServer or InstanceServer.
-func (p *LxdProviderConfig) server(remoteName string) (lxd.Server, error) {
-	// If remoteName is empty, use default LXD remote (most likely "local").
+func (p *IncusProviderConfig) server(remoteName string) (incus.Server, error) {
+	// If remoteName is empty, use default Incus remote (most likely "local").
 	if remoteName == "" {
-		remoteName = p.lxdConfig.DefaultRemote
+		remoteName = p.incusConfig.DefaultRemote
 	}
 
-	// Check if there is an already initialized LXD server.
+	// Check if there is an already initialized Incus server.
 	p.mux.Lock()
 	server, ok := p.servers[remoteName]
 	p.mux.Unlock()
@@ -143,48 +144,48 @@ func (p *LxdProviderConfig) server(remoteName string) (lxd.Server, error) {
 	// If the server is not already created, create a new one.
 	remote := p.remote(remoteName)
 	if remote != nil && !remote.Bootstrapped {
-		err := p.createLxdServerClient(*remote)
+		err := p.createIncusServerClient(*remote)
 		if err != nil {
 			return nil, fmt.Errorf("Unable to create server client for remote %q: %v", remoteName, err)
 		}
 	}
 
-	lxdRemoteConfig := p.getLxdConfigRemote(remoteName)
+	incusRemoteConfig := p.getIncusConfigRemote(remoteName)
 
 	// If remote address is not provided or is only set to the prefix for
-	// Unix sockets (`unix://`) then determine which LXD directory
+	// Unix sockets (`unix://`) then determine which Incus directory
 	// contains a writable unix socket.
-	if lxdRemoteConfig.Addr == "" || lxdRemoteConfig.Addr == "unix://" {
-		lxdDir, err := determineLxdDir()
+	if incusRemoteConfig.Addr == "" || incusRemoteConfig.Addr == "unix://" {
+		incusDir, err := determineIncusDir()
 		if err != nil {
 			return nil, err
 		}
 
-		_ = os.Setenv("LXD_DIR", lxdDir)
+		_ = os.Setenv("Incus_DIR", incusDir)
 	}
 
 	var err error
 
-	switch lxdRemoteConfig.Protocol {
+	switch incusRemoteConfig.Protocol {
 	case "simplestreams":
-		server, err = p.getLxdConfigImageServer(remoteName)
+		server, err = p.getIncusConfigImageServer(remoteName)
 		if err != nil {
 			return nil, err
 		}
 	default:
-		server, err = p.getLxdConfigInstanceServer(remoteName)
+		server, err = p.getIncusConfigInstanceServer(remoteName)
 		if err != nil {
 			return nil, err
 		}
 
-		// Ensure that LXD version meets the provider's version constraint.
-		err := verifyLxdServerVersion(server.(lxd.InstanceServer))
+		// Ensure that Incus version meets the provider's version constraint.
+		err := verifyIncusServerVersion(server.(incus.InstanceServer))
 		if err != nil {
 			return nil, fmt.Errorf("Remote %q: %v", remoteName, err)
 		}
 	}
 
-	// Add the server to the lxdServer map (cache).
+	// Add the server to the incusServer map (cache).
 	p.mux.Lock()
 	defer p.mux.Unlock()
 
@@ -193,40 +194,40 @@ func (p *LxdProviderConfig) server(remoteName string) (lxd.Server, error) {
 	return server, nil
 }
 
-// createLxdServerClient will create an LXD client for a given remote.
-// The client is then stored in the lxdProvider.Config collection of clients.
-func (p *LxdProviderConfig) createLxdServerClient(remote LxdProviderRemoteConfig) error {
+// createIncusServerClient will create an Incus client for a given remote.
+// The client is then stored in the incusProvider.Config collection of clients.
+func (p *IncusProviderConfig) createIncusServerClient(remote IncusProviderRemoteConfig) error {
 	if remote.Address == "" {
 		return nil
 	}
 
-	daemonAddr, err := determineLxdDaemonAddr(remote)
+	daemonAddr, err := determineIncusDaemonAddr(remote)
 	if err != nil {
 		return fmt.Errorf("Unable to determine daemon address for remote %q: %v", remote.Name, err)
 	}
 
-	lxdRemote := lxd_config.Remote{Addr: daemonAddr}
-	p.setLxdConfigRemote(remote.Name, lxdRemote)
+	incusRemote := incus_config.Remote{Addr: daemonAddr}
+	p.setIncusConfigRemote(remote.Name, incusRemote)
 
 	if remote.Scheme == "https" {
-		// If the LXD remote's certificate does not exist on the client...
+		// If the Incus remote's certificate does not exist on the client...
 		p.mux.RLock()
-		certPath := p.lxdConfig.ServerCertPath(remote.Name)
+		certPath := p.incusConfig.ServerCertPath(remote.Name)
 		p.mux.RUnlock()
 
-		if !lxd_shared.PathExists(certPath) {
+		if !incus_shared.PathExists(certPath) {
 			// Try to obtain an early connection to the remote server.
 			// If it succeeds, then either the certificates between
 			// the remote and the client have already been exchanged
 			// or PKI is being used.
-			instServer, _ := p.getLxdConfigInstanceServer(remote.Name)
+			instServer, _ := p.getIncusConfigInstanceServer(remote.Name)
 
-			err := connectToLxdServer(instServer)
+			err := connectToIncusServer(instServer)
 			if err != nil {
 				// Either PKI isn't being used or certificates haven't been
 				// exchanged. Try to add the remote server certificate.
 				if p.acceptServerCertificate {
-					err := p.fetchLxdServerCertificate(remote.Name)
+					err := p.fetchIncusServerCertificate(remote.Name)
 					if err != nil {
 						return fmt.Errorf("Failed to get remote server certificate: %v", err)
 					}
@@ -254,7 +255,7 @@ func (p *LxdProviderConfig) createLxdServerClient(remote LxdProviderRemoteConfig
 		p.mux.Lock()
 		defer p.mux.Unlock()
 
-		err = authenticateToLxdServer(instServer, remote.Password)
+		err = authenticateToIncusServer(instServer, remote.Password)
 		if err != nil {
 			return err
 		}
@@ -263,17 +264,17 @@ func (p *LxdProviderConfig) createLxdServerClient(remote LxdProviderRemoteConfig
 	return nil
 }
 
-// fetchServerCertificate will attempt to retrieve a remote LXD server's
+// fetchServerCertificate will attempt to retrieve a remote Incus server's
 // certificate and save it to the servercerts path.
-func (p *LxdProviderConfig) fetchLxdServerCertificate(remoteName string) error {
-	lxdRemote := p.getLxdConfigRemote(remoteName)
+func (p *IncusProviderConfig) fetchIncusServerCertificate(remoteName string) error {
+	incusRemote := p.getIncusConfigRemote(remoteName)
 
-	certificate, err := lxd_shared.GetRemoteCertificate(lxdRemote.Addr, "terraform-provider-lxd/2.0")
+	certificate, err := incus_localtls.GetRemoteCertificate(incusRemote.Addr, "terraform-provider-incus/2.0")
 	if err != nil {
 		return err
 	}
 
-	certDir := p.lxdConfig.ConfigPath("servercerts")
+	certDir := p.incusConfig.ConfigPath("servercerts")
 	err = os.MkdirAll(certDir, 0750)
 	if err != nil {
 		return err
@@ -290,9 +291,9 @@ func (p *LxdProviderConfig) fetchLxdServerCertificate(remoteName string) error {
 	return pem.Encode(certFile, &pem.Block{Type: "CERTIFICATE", Bytes: certificate.Raw})
 }
 
-// verifyLXDVersion verifies whether the version of target LXD server matches the
+// verifyIncusVersion verifies whether the version of target Incus server matches the
 // provider's required version contraint.
-func verifyLxdServerVersion(instServer lxd.InstanceServer) error {
+func verifyIncusServerVersion(instServer incus.InstanceServer) error {
 	server, _, err := instServer.GetServer()
 	if err != nil {
 		return err
@@ -305,22 +306,22 @@ func verifyLxdServerVersion(instServer lxd.InstanceServer) error {
 		return nil
 	}
 
-	ok, err := utils.CheckVersion(serverVersion, supportedLXDVersions)
+	ok, err := utils.CheckVersion(serverVersion, supportedIncusVersions)
 	if err != nil {
 		return err
 	}
 
 	if !ok {
-		return fmt.Errorf("LXD server with version %q does not meet the required version constraint: %q", serverVersion, supportedLXDVersions)
+		return fmt.Errorf("Incus server with version %q does not meet the required version constraint: %q", serverVersion, supportedIncusVersions)
 	}
 
 	return nil
 }
 
-// authenticateToLXDServer authenticates to a given remote LXD server.
-// If successful, the LXD server becomes trusted to the LXD client,
+// authenticateToIncusServer authenticates to a given remote Incus server.
+// If successful, the Incus server becomes trusted to the Incus client,
 // and vice-versa.
-func authenticateToLxdServer(instServer lxd.InstanceServer, password string) error {
+func authenticateToIncusServer(instServer incus.InstanceServer, token string) error {
 	server, _, err := instServer.GetServer()
 	if err != nil {
 		return err
@@ -330,8 +331,8 @@ func authenticateToLxdServer(instServer lxd.InstanceServer, password string) err
 		return nil
 	}
 
-	req := lxd_api.CertificatesPost{}
-	req.Password = password
+	req := incus_api.CertificatesPost{}
+	req.TrustToken = token
 	req.Type = "client"
 
 	err = instServer.CreateCertificate(req)
@@ -347,9 +348,9 @@ func authenticateToLxdServer(instServer lxd.InstanceServer, password string) err
 	return nil
 }
 
-// connectToLxdServer makes a simple GET request to the servers API to ensure
+// connectToIncusServer makes a simple GET request to the servers API to ensure
 // connection can be successfully established.
-func connectToLxdServer(instServer lxd.InstanceServer) error {
+func connectToIncusServer(instServer incus.InstanceServer) error {
 	if instServer == nil {
 		return fmt.Errorf("Instance server is nil")
 	}
@@ -362,8 +363,8 @@ func connectToLxdServer(instServer lxd.InstanceServer) error {
 	return nil
 }
 
-// determineLxdDaemonAddr determines address of the LXD server daemon.
-func determineLxdDaemonAddr(remote LxdProviderRemoteConfig) (string, error) {
+// determineIncusDaemonAddr determines address of the Incus server daemon.
+func determineIncusDaemonAddr(remote IncusProviderRemoteConfig) (string, error) {
 	var daemonAddr string
 
 	if remote.Address != "" {
@@ -378,55 +379,54 @@ func determineLxdDaemonAddr(remote LxdProviderRemoteConfig) (string, error) {
 	return daemonAddr, nil
 }
 
-// determineLxdDir determines which standard LXD directory contains a writable UNIX socket.
-// If environment variable LXD_DIR or LXD_SOCKET is set, the function will return LXD directory
+// determineIncusDir determines which standard Incus directory contains a writable UNIX socket.
+// If environment variable Incus_DIR or Incus_SOCKET is set, the function will return Incus directory
 // based on the value from any of those variables.
-func determineLxdDir() (string, error) {
-	lxdSocket, ok := os.LookupEnv("LXD_SOCKET")
+func determineIncusDir() (string, error) {
+	incusSocket, ok := os.LookupEnv("Incus_SOCKET")
 	if ok {
-		if utils.IsSocketWritable(lxdSocket) {
-			return filepath.Dir(lxdSocket), nil
+		if utils.IsSocketWritable(incusSocket) {
+			return filepath.Dir(incusSocket), nil
 		}
 
-		return "", fmt.Errorf("Environment variable LXD_SOCKET points to either a non-existing or non-writable unix socket")
+		return "", fmt.Errorf("Environment variable Incus_SOCKET points to either a non-existing or non-writable unix socket")
 	}
 
-	lxdDir, ok := os.LookupEnv("LXD_DIR")
+	incusDir, ok := os.LookupEnv("Incus_DIR")
 	if ok {
-		socketPath := filepath.Join(lxdDir, "unix.socket")
+		socketPath := filepath.Join(incusDir, "unix.socket")
 		if utils.IsSocketWritable(socketPath) {
-			return lxdDir, nil
+			return incusDir, nil
 		}
 
-		return "", fmt.Errorf("Environment variable LXD_DIR points to a LXD directory that does not contain a writable unix socket")
+		return "", fmt.Errorf("Environment variable Incus_DIR points to a Incus directory that does not contain a writable unix socket")
 	}
 
-	lxdDirs := []string{
-		"/var/lib/lxd",
-		"/var/snap/lxd/common/lxd",
+	incusDirs := []string{
+		"/var/lib/incus",
 	}
 
-	// Iterate over LXD directories and find a writable unix socket.
-	for _, lxdDir := range lxdDirs {
-		socketPath := filepath.Join(lxdDir, "unix.socket")
+	// Iterate over Incus directories and find a writable unix socket.
+	for _, incusDir := range incusDirs {
+		socketPath := filepath.Join(incusDir, "unix.socket")
 		if utils.IsSocketWritable(socketPath) {
-			return lxdDir, nil
+			return incusDir, nil
 		}
 	}
 
-	return "", fmt.Errorf("LXD socket with write permissions not found. Searched LXD directories: %v", lxdDirs)
+	return "", fmt.Errorf("Incus socket with write permissions not found. Searched Incus directories: %v", incusDirs)
 }
 
 /* Getters & Setters */
 
-// remote returns LXD remote with the given name or default otherwise.
-func (p *LxdProviderConfig) remote(name string) *LxdProviderRemoteConfig {
+// remote returns Incus remote with the given name or default otherwise.
+func (p *IncusProviderConfig) remote(name string) *IncusProviderRemoteConfig {
 	p.mux.RLock()
 	defer p.mux.RUnlock()
 
 	remote, ok := p.remotes[name]
 	if !ok {
-		remote, ok = p.remotes[p.lxdConfig.DefaultRemote]
+		remote, ok = p.remotes[p.incusConfig.DefaultRemote]
 		if !ok {
 			return nil
 		}
@@ -435,13 +435,13 @@ func (p *LxdProviderConfig) remote(name string) *LxdProviderRemoteConfig {
 	return &remote
 }
 
-// SetRemote set LXD remote for the given name.
-func (p *LxdProviderConfig) SetRemote(remote LxdProviderRemoteConfig, isDefault bool) {
+// SetRemote set Incus remote for the given name.
+func (p *IncusProviderConfig) SetRemote(remote IncusProviderRemoteConfig, isDefault bool) {
 	p.mux.Lock()
 	defer p.mux.Unlock()
 
 	if isDefault {
-		p.lxdConfig.DefaultRemote = remote.Name
+		p.incusConfig.DefaultRemote = remote.Name
 	}
 
 	p.remotes[remote.Name] = remote
@@ -449,7 +449,7 @@ func (p *LxdProviderConfig) SetRemote(remote LxdProviderRemoteConfig, isDefault 
 
 // SelectRemote returns the specified remote name if it exists, or the default
 // remote name otherwise.
-func (p *LxdProviderConfig) SelectRemote(name string) string {
+func (p *IncusProviderConfig) SelectRemote(name string) string {
 	p.mux.RLock()
 	defer p.mux.RUnlock()
 
@@ -458,35 +458,35 @@ func (p *LxdProviderConfig) SelectRemote(name string) string {
 		return name
 	}
 
-	return p.lxdConfig.DefaultRemote
+	return p.incusConfig.DefaultRemote
 }
 
-// setLxdServer set LXD server for the given name.
-func (p *LxdProviderConfig) getLxdConfigRemote(name string) lxd_config.Remote {
+// setIncusServer set Incus server for the given name.
+func (p *IncusProviderConfig) getIncusConfigRemote(name string) incus_config.Remote {
 	p.mux.RLock()
 	defer p.mux.RUnlock()
-	return p.lxdConfig.Remotes[name]
+	return p.incusConfig.Remotes[name]
 }
 
-// setLxdServer set LXD server for the given name.
-func (p *LxdProviderConfig) setLxdConfigRemote(name string, remote lxd_config.Remote) {
+// setIncusServer set Incus server for the given name.
+func (p *IncusProviderConfig) setIncusConfigRemote(name string, remote incus_config.Remote) {
 	p.mux.Lock()
 	defer p.mux.Unlock()
-	p.lxdConfig.Remotes[name] = remote
+	p.incusConfig.Remotes[name] = remote
 }
 
-// getLxdConfigInstanceServer will retrieve an LXD InstanceServer client
+// getIncusConfigInstanceServer will retrieve an Incus InstanceServer client
 // in a conncurrent-safe way.
-func (p *LxdProviderConfig) getLxdConfigInstanceServer(remoteName string) (lxd.InstanceServer, error) {
+func (p *IncusProviderConfig) getIncusConfigInstanceServer(remoteName string) (incus.InstanceServer, error) {
 	p.mux.RLock()
 	defer p.mux.RUnlock()
-	return p.lxdConfig.GetInstanceServer(remoteName)
+	return p.incusConfig.GetInstanceServer(remoteName)
 }
 
-// getLxdConfigImageServer will retrieve an LXD ImageServer client
+// getIncusConfigImageServer will retrieve an Incus ImageServer client
 // in a conncurrent-safe way.
-func (p *LxdProviderConfig) getLxdConfigImageServer(remoteName string) (lxd.ImageServer, error) {
+func (p *IncusProviderConfig) getIncusConfigImageServer(remoteName string) (incus.ImageServer, error) {
 	p.mux.RLock()
 	defer p.mux.RUnlock()
-	return p.lxdConfig.GetImageServer(remoteName)
+	return p.incusConfig.GetImageServer(remoteName)
 }

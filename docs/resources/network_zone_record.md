@@ -1,17 +1,17 @@
-# lxd_network_zone_record
+# incus_network_zone_record
 
-Manages an LXD network zone record.
+Manages an Incus network zone record.
 
-You must be using LXD 4.20 or later. See
-[this](https://discuss.linuxcontainers.org/t/lxd-built-in-dns-server/12033)
-forum post for details about LXD network zones and the
-[configuration reference](https://documentation.ubuntu.com/lxd/en/latest/howto/network_zones/)
+You must be using Incus 4.20 or later. See
+[this](https://discuss.linuxcontainers.org/t/incus-built-in-dns-server/12033)
+forum post for details about Incus network zones and the
+[configuration reference](https://documentation.ubuntu.com/incus/en/latest/howto/network_zones/)
 for all network zone details.
 
 ## Example Usage
 
 ```hcl
-resource "lxd_network_zone" "zone" {
+resource "incus_network_zone" "zone" {
   name = "custom.example.org"
 
   config = {
@@ -20,49 +20,49 @@ resource "lxd_network_zone" "zone" {
   }
 }
 
-resource "lxd_network_zone_record" "record" {
+resource "incus_network_zone_record" "record" {
   name = "ns"
-  zone = lxd_network_zone.zone.id
+  zone = incus_network_zone.zone.id
 
   entry {
       type  = "CNAME"
-      value = "<lxd.host.name>."
+      value = "<incus.host.name>."
   }
 
   entry {
       type  = "A"
-      value = "<lxd.host.ip>"
+      value = "<incus.host.ip>"
   }
 }
 ```
 
-See the `lxd_network_zone` resource for information on how to configure network zones.
+See the `incus_network_zone` resource for information on how to configure network zones.
 
 ## Argument Reference
 
-* `name` - **Required** - Name of the network zone record.
+- `name` - **Required** - Name of the network zone record.
 
-* `zone` - **Required** - Name of the zone to add the entries of this record.
+- `zone` - **Required** - Name of the zone to add the entries of this record.
 
-* `description` - *Optional* - Description of the network zone.
+- `description` - _Optional_ - Description of the network zone.
 
-* `entry` - *Optional* - Entry in network zone record - see below.
+- `entry` - _Optional_ - Entry in network zone record - see below.
 
-* `config` - *Optional* - Map of key/value pairs of
-	[network zone_config settings](https://documentation.ubuntu.com/lxd/en/latest/howto/network_zones/#configuration-options).
+- `config` - _Optional_ - Map of key/value pairs of
+  [network zone_config settings](https://documentation.ubuntu.com/incus/en/latest/howto/network_zones/#configuration-options).
 
-* `project` - *Optional* - Name of the project where the network zone record will be created.
+- `project` - _Optional_ - Name of the project where the network zone record will be created.
 
-* `remote` - *Optional* - The remote in which the resource will be created. If
-	not provided, the provider's default remote will be used.
+- `remote` - _Optional_ - The remote in which the resource will be created. If
+  not provided, the provider's default remote will be used.
 
 The `entry` block supports:
 
-* `type` - **Required** - Entry type. Valid values are DNS record type, e.g. `A`, `AAAA`, `CNAME`, `TXT`, etc.
+- `type` - **Required** - Entry type. Valid values are DNS record type, e.g. `A`, `AAAA`, `CNAME`, `TXT`, etc.
 
-* `value` - **Required** - Entry value.
+- `value` - **Required** - Entry value.
 
-* `ttl` - *Optional* - Entry time to live (TTL).
+- `ttl` - _Optional_ - Entry time to live (TTL).
 
 ## Attribute Reference
 
@@ -72,30 +72,30 @@ No attributes are exported.
 
 Import ID syntax: `[<remote>:][<project>]/<zone>/<name>`
 
-* `<remote>` - *Optional* - Remote name.
-* `<project>` - *Optional* - Project name.
-* `<zone>` - **Required** - Network zone name.
-* `<name>` - **Required** - Network zone record name.
+- `<remote>` - _Optional_ - Remote name.
+- `<project>` - _Optional_ - Project name.
+- `<zone>` - **Required** - Network zone name.
+- `<name>` - **Required** - Network zone record name.
 
 ### Import example
 
 Example using terraform import command:
 
 ```shell
-$ terraform import lxd_network_zone_record.myrecord proj/zone1/record1
+$ terraform import incus_network_zone_record.myrecord proj/zone1/record1
 ```
 
 Example using the import block (only available in Terraform v1.5.0 and later):
 
 ```hcl
-resource "lxd_network_zone_record" "myrecord" {
+resource "incus_network_zone_record" "myrecord" {
   name    = "record1"
   zone    = "zone1"
   project = "proj"
 }
 
 import {
-  to = lxd_network_zone_record.myrecord
+  to = incus_network_zone_record.myrecord
   id = "proj/zone1/record1"
 }
 ```

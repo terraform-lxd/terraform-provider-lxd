@@ -1,0 +1,252 @@
+package incus
+
+import (
+	"log"
+	"strings"
+
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+	"github.com/lxc/incus/shared/api"
+)
+
+func resourceIncusVolume() *schema.Resource {
+	return &schema.Resource{
+		Create: resourceIncusVolumeCreate,
+		Update: resourceIncusVolumeUpdate,
+		Delete: resourceIncusVolumeDelete,
+		Exists: resourceIncusVolumeExists,
+		Read:   resourceIncusVolumeRead,
+
+		Schema: map[string]*schema.Schema{
+			"name": {
+				Type:     schema.TypeString,
+				ForceNew: true,
+				Required: true,
+			},
+
+			"remote": {
+				Type:     schema.TypeString,
+				ForceNew: true,
+				Optional: true,
+				Default:  "",
+			},
+
+			"target": {
+				Type:     schema.TypeString,
+				Optional: true,
+				ForceNew: true,
+			},
+
+			"pool": {
+				Type:     schema.TypeString,
+				ForceNew: true,
+				Required: true,
+			},
+
+			"type": {
+				Type:     schema.TypeString,
+				ForceNew: true,
+				Optional: true,
+				Default:  "custom",
+			},
+
+			"config": {
+				Type:     schema.TypeMap,
+				Optional: true,
+				ForceNew: false,
+			},
+
+			"expanded_config": {
+				Type:     schema.TypeMap,
+				Computed: true,
+			},
+			"location": {
+				Type:     schema.TypeString,
+				Computed: true,
+			},
+
+			"project": {
+				Type:     schema.TypeString,
+				Optional: true,
+				ForceNew: true,
+			},
+
+			"content_type": {
+				Type:     schema.TypeString,
+				Optional: true,
+				ForceNew: true,
+				Default:  "filesystem",
+			},
+		},
+	}
+}
+
+func resourceIncusVolumeCreate(d *schema.ResourceData, meta interface{}) error {
+	p := meta.(*incusProvider)
+	server, err := p.GetInstanceServer(p.selectRemote(d))
+	if err != nil {
+		return err
+	}
+
+	if v, ok := d.GetOk("project"); ok && v != "" {
+		project := v.(string)
+		server = server.UseProject(project)
+	}
+
+	if v, ok := d.GetOk("target"); ok && v != "" {
+		target := v.(string)
+		server = server.UseTarget(target)
+	}
+
+	name := d.Get("name").(string)
+	pool := d.Get("pool").(string)
+	volType := d.Get("type").(string)
+	config := resourceIncusConfigMap(d.Get("config"))
+	content_type := d.Get("content_type").(string)
+
+	log.Printf("Attempting to create volume %s", name)
+	volume := api.StorageVolumesPost{}
+	volume.Name = name
+	volume.Type = volType
+	volume.Config = config
+	volume.ContentType = content_type
+	if err := server.CreateStoragePoolVolume(pool, volume); err != nil {
+		return err
+	}
+
+	v := newVolumeID(pool, name, volType)
+	d.SetId(v.String())
+
+	return resourceIncusVolumeRead(d, meta)
+}
+
+func resourceIncusVolumeRead(d *schema.ResourceData, meta interface{}) error {
+	p := meta.(*incusProvider)
+	server, err := p.GetInstanceServer(p.selectRemote(d))
+	if err != nil {
+		return err
+	}
+
+	if v, ok := d.GetOk("project"); ok && v != "" {
+		project := v.(string)
+		server = server.UseProject(project)
+	}
+
+	if v, ok := d.GetOk("target"); ok && v != "" {
+		target := v.(string)
+		server = server.UseTarget(target)
+	}
+
+	v := newVolumeIDFromResourceID(d.Id())
+	volume, _, err := server.GetStoragePoolVolume(v.pool, v.volType, v.name)
+	if err != nil {
+		return err
+	}
+
+	log.Printf("[DEBUG] Retrieved volume %s: %#v", v.name, volume)
+
+	// remove volatile entries from Config map
+	newConfig := map[string]string{}
+	for k, v := range volume.Config {
+		if !strings.Contains(k, "volatile") {
+			newConfig[k] = v
+		}
+	}
+
+	d.Set("config", newConfig)
+	d.Set("expanded_config", volume.Config)
+	d.Set("location", volume.Location)
+	d.Set("content_type", volume.ContentType)
+
+	return nil
+}
+
+func resourceIncusVolumeUpdate(d *schema.ResourceData, meta interface{}) error {
+	p := meta.(*incusProvider)
+	server, err := p.GetInstanceServer(p.selectRemote(d))
+	if err != nil {
+		return err
+	}
+
+	if v, ok := d.GetOk("project"); ok && v != "" {
+		project := v.(string)
+		server = server.UseProject(project)
+	}
+
+	if v, ok := d.GetOk("target"); ok && v != "" {
+		target := v.(string)
+		server = server.UseTarget(target)
+	}
+
+	if d.HasChange("config") {
+		v := newVolumeIDFromResourceID(d.Id())
+		volume, etag, err := server.GetStoragePoolVolume(v.pool, v.volType, v.name)
+		if err != nil {
+			return err
+		}
+
+		config := resourceIncusConfigMap(d.Get("config"))
+		volume.Config = config
+
+		log.Printf("[DEBUG] Updated volume config: %#v", volume)
+
+		post := api.StorageVolumePut{}
+		post.Config = config
+		if err := server.UpdateStoragePoolVolume(v.pool, v.volType, v.name, post, etag); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func resourceIncusVolumeDelete(d *schema.ResourceData, meta interface{}) (err error) {
+	p := meta.(*incusProvider)
+	server, err := p.GetInstanceServer(p.selectRemote(d))
+	if err != nil {
+		return err
+	}
+
+	if v, ok := d.GetOk("project"); ok && v != "" {
+		project := v.(string)
+		server = server.UseProject(project)
+	}
+
+	if v, ok := d.GetOk("target"); ok && v != "" {
+		target := v.(string)
+		server = server.UseTarget(target)
+	}
+
+	v := newVolumeIDFromResourceID(d.Id())
+
+	return server.DeleteStoragePoolVolume(v.pool, v.volType, v.name)
+}
+
+func resourceIncusVolumeExists(d *schema.ResourceData, meta interface{}) (exists bool, err error) {
+	p := meta.(*incusProvider)
+	server, err := p.GetInstanceServer(p.selectRemote(d))
+	if err != nil {
+		return false, err
+	}
+
+	if v, ok := d.GetOk("project"); ok && v != "" {
+		project := v.(string)
+		server = server.UseProject(project)
+	}
+
+	if v, ok := d.GetOk("target"); ok && v != "" {
+		target := v.(string)
+		server = server.UseTarget(target)
+	}
+
+	exists = false
+
+	v := newVolumeIDFromResourceID(d.Id())
+	_, _, err = server.GetStoragePoolVolume(v.pool, v.volType, v.name)
+	if err == nil {
+		exists = true
+	} else if isNotFoundError(err) {
+		err = nil
+	}
+
+	return
+}
