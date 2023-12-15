@@ -403,8 +403,7 @@ func determineLxdDir() (string, error) {
 	}
 
 	lxdDirs := []string{
-		"/var/lib/lxd",
-		"/var/snap/lxd/common/lxd",
+		"/var/lib/incus",
 	}
 
 	// Iterate over LXD directories and find a writable unix socket.
