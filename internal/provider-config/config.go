@@ -15,8 +15,8 @@ import (
 	"github.com/lxc/terraform-provider-incus/internal/utils"
 )
 
-// supportedLXDVersions defines LXD versions that are supported by the provider.
-const supportedLXDVersions = ">= 4.0.0"
+// supportedIncusVersions defines Incus versions that are supported by the provider.
+const supportedIncusVersions = ">= 0.1"
 
 // A global mutex.
 var mutex sync.RWMutex
@@ -306,13 +306,13 @@ func verifyLxdServerVersion(instServer lxd.InstanceServer) error {
 		return nil
 	}
 
-	ok, err := utils.CheckVersion(serverVersion, supportedLXDVersions)
+	ok, err := utils.CheckVersion(serverVersion, supportedIncusVersions)
 	if err != nil {
 		return err
 	}
 
 	if !ok {
-		return fmt.Errorf("LXD server with version %q does not meet the required version constraint: %q", serverVersion, supportedLXDVersions)
+		return fmt.Errorf("LXD server with version %q does not meet the required version constraint: %q", serverVersion, supportedIncusVersions)
 	}
 
 	return nil
