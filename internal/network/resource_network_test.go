@@ -126,7 +126,7 @@ func TestAccNetwork_typeMacvlan(t *testing.T) {
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("lxd_network.eth1", "name", "eth1"),
 					resource.TestCheckResourceAttr("lxd_network.eth1", "type", "macvlan"),
-					resource.TestCheckResourceAttr("lxd_network.eth1", "config.parent", "lxdbr0"),
+					resource.TestCheckResourceAttr("lxd_network.eth1", "config.parent", "incusbr0"),
 				),
 			},
 		},
@@ -361,7 +361,7 @@ resource "lxd_network" "eth1" {
   type = "macvlan"
 
   config = {
-    "parent" = "lxdbr0"
+    "parent" = "incusbr0"
   }
 }
 `

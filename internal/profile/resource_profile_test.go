@@ -489,7 +489,7 @@ resource "lxd_profile" "profile1" {
     properties = {
       name    = "bar"
       nictype = "bridged"
-      parent  = "lxdbr0"
+      parent  = "incusbr0"
     }
   }
 }
