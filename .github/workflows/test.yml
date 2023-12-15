@@ -22,11 +22,9 @@ jobs:
       matrix:
         go-version:
           - "1.21"
-        channel:
-          - 5.0/stable
-          - 5.0/candidate
-          - latest/stable
-          - latest/candidate
+        incus-version:
+          - daily
+          - stable
 
     env:
       TF_ACC: "1"
@@ -37,7 +35,6 @@ jobs:
       LXD_GENERATE_CLIENT_CERTS: "true"
       LXD_ACCEPT_SERVER_CERTIFICATE: "true"
       LXD_SCHEME: https
-      LXD_PASSWORD: the-password
 
     steps:
       - uses: actions/checkout@v4
@@ -46,31 +43,29 @@ jobs:
         with:
           go-version: ${{ matrix.go-version }}
 
-      - name: Setup LXD from ${{ matrix.channel }} channel
+      - name: Setup Incus from ${{ matrix.incus-version }} repository
         run: |
-          sudo snap refresh lxd --channel=${{ matrix.channel }}
-          sudo lxd waitready --timeout 60
-          sudo lxd init --auto --trust-password="$LXD_PASSWORD" --network-port="$LXD_PORT" --network-address="$LXD_ADDR"
-          sudo chmod 777 /var/snap/lxd/common/lxd/unix.socket
+          sudo apt-get update
+          sudo apt-get install --no-install-recommends --yes \
+            zfsutils-linux \
+            bind9-dnsutils \
+            jq
+          sudo apt-get remove --purge uidmap --yes
+          sudo rm -f /etc/subuid /etc/subgid
 
-          # 5.0/* currently use core20 which ships with a buggy lvm2 package so
-          # if the base used by the LXD snap is core20, use the external lvm provider
-          # which is the one installed on the runner machine. Since there are plans
-          # to switch 5.0/* to using core22, it's best to autodetect this condition.
-          if snap info lxd --verbose | grep -qxE 'base:\s+core20'; then
-            echo "WARN: Using external lvm command to workaround bug in core20" >&2
-            sudo snap set lxd lvm.external=true
-            sudo snap restart --reload lxd
-          fi
+          curl -sL https://pkgs.zabbly.com/get/incus-${{ matrix.incus-version }} | sudo sh
+          sudo chmod 666 /var/lib/incus/unix.socket
+          sudo incus admin init --auto --network-port="$LXD_PORT" --network-address="$LXD_ADDR"
+
+          LXD_TOKEN=$(incus config trust add terraform --quiet)
+          incus remote add localhost "${LXD_TOKEN}"
 
       - name: Configure OVN
         run: |
           sudo apt-get update
           sudo apt-get install --no-install-recommends --yes \
             ovn-host \
-            ovn-central \
-            bind9-dnsutils \
-            jq
+            ovn-central
 
           sudo ovs-vsctl set open_vswitch . \
             external_ids:ovn-remote=unix:/var/run/ovn/ovnsb_db.sock \
@@ -84,7 +79,8 @@ jobs:
       - uses: hashicorp/setup-terraform@v3
         with:
           terraform_wrapper: false
-      - run: make test
+      - run: |
+          make test
 
   build-platforms:
     runs-on: ubuntu-22.04
