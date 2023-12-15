@@ -27,7 +27,7 @@ type LxdProviderRemoteConfig struct {
 	Name         string
 	Address      string
 	Port         string
-	Password     string
+	Token        string
 	Scheme       string
 	Bootstrapped bool
 }
@@ -255,7 +255,7 @@ func (p *LxdProviderConfig) createLxdServerClient(remote LxdProviderRemoteConfig
 		p.mux.Lock()
 		defer p.mux.Unlock()
 
-		err = authenticateToLxdServer(instServer, remote.Password)
+		err = authenticateToLxdServer(instServer, remote.Token)
 		if err != nil {
 			return err
 		}
