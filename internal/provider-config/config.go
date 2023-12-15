@@ -161,7 +161,7 @@ func (p *LxdProviderConfig) server(remoteName string) (lxd.Server, error) {
 			return nil, err
 		}
 
-		_ = os.Setenv("LXD_DIR", lxdDir)
+		_ = os.Setenv("INCUS_DIR", lxdDir)
 	}
 
 	var err error
@@ -380,26 +380,26 @@ func determineLxdDaemonAddr(remote LxdProviderRemoteConfig) (string, error) {
 }
 
 // determineLxdDir determines which standard LXD directory contains a writable UNIX socket.
-// If environment variable LXD_DIR or LXD_SOCKET is set, the function will return LXD directory
+// If environment variable INCUS_DIR or INCUS_SOCKET is set, the function will return LXD directory
 // based on the value from any of those variables.
 func determineLxdDir() (string, error) {
-	lxdSocket, ok := os.LookupEnv("LXD_SOCKET")
+	lxdSocket, ok := os.LookupEnv("INCUS_SOCKET")
 	if ok {
 		if utils.IsSocketWritable(lxdSocket) {
 			return filepath.Dir(lxdSocket), nil
 		}
 
-		return "", fmt.Errorf("Environment variable LXD_SOCKET points to either a non-existing or non-writable unix socket")
+		return "", fmt.Errorf("Environment variable INCUS_SOCKET points to either a non-existing or non-writable unix socket")
 	}
 
-	lxdDir, ok := os.LookupEnv("LXD_DIR")
+	lxdDir, ok := os.LookupEnv("INCUS_DIR")
 	if ok {
 		socketPath := filepath.Join(lxdDir, "unix.socket")
 		if utils.IsSocketWritable(socketPath) {
 			return lxdDir, nil
 		}
 
-		return "", fmt.Errorf("Environment variable LXD_DIR points to a LXD directory that does not contain a writable unix socket")
+		return "", fmt.Errorf("Environment variable INCUS_DIR points to a LXD directory that does not contain a writable unix socket")
 	}
 
 	lxdDirs := []string{
