@@ -90,7 +90,7 @@ func (p *LxdProviderConfig) InstanceServer(remoteName string, project string, ta
 		return nil, err
 	}
 
-	if connInfo.Protocol != "lxd" {
+	if connInfo.Protocol != "incus" {
 		return nil, fmt.Errorf("Remote %q (%s) is not an InstanceServer", remoteName, connInfo.Protocol)
 	}
 
@@ -117,7 +117,7 @@ func (p *LxdProviderConfig) ImageServer(remoteName string) (lxd.ImageServer, err
 		return nil, err
 	}
 
-	if connInfo.Protocol == "simplestreams" || connInfo.Protocol == "lxd" {
+	if connInfo.Protocol == "simplestreams" || connInfo.Protocol == "incus" {
 		return server.(lxd.ImageServer), nil
 	}
 
