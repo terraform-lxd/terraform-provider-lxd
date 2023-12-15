@@ -26,12 +26,12 @@ import (
 
 // LxdProviderRemoteModel represents provider's schema remote.
 type LxdProviderRemoteModel struct {
-	Name     types.String `tfsdk:"name"`
-	Address  types.String `tfsdk:"address"`
-	Port     types.String `tfsdk:"port"`
-	Password types.String `tfsdk:"password"`
-	Scheme   types.String `tfsdk:"scheme"`
-	Default  types.Bool   `tfsdk:"default"`
+	Name    types.String `tfsdk:"name"`
+	Address types.String `tfsdk:"address"`
+	Port    types.String `tfsdk:"port"`
+	Token   types.String `tfsdk:"token"`
+	Scheme  types.String `tfsdk:"scheme"`
+	Default types.Bool   `tfsdk:"default"`
 }
 
 // LxdProviderModel represents provider's schema.
@@ -214,11 +214,11 @@ func (p *LxdProvider) Configure(ctx context.Context, req provider.ConfigureReque
 	envName := os.Getenv("LXD_REMOTE")
 	if envName != "" {
 		envRemote := provider_config.LxdProviderRemoteConfig{
-			Name:     envName,
-			Address:  os.Getenv("LXD_ADDR"),
-			Port:     os.Getenv("LXD_PORT"),
-			Password: os.Getenv("LXD_PASSWORD"),
-			Scheme:   os.Getenv("LXD_SCHEME"),
+			Name:    envName,
+			Address: os.Getenv("LXD_ADDR"),
+			Port:    os.Getenv("LXD_PORT"),
+			Token:   os.Getenv("LXD_TOKEN"),
+			Scheme:  os.Getenv("LXD_SCHEME"),
 		}
 
 		// This will be the default remote unless overridden by an
@@ -248,11 +248,11 @@ func (p *LxdProvider) Configure(ctx context.Context, req provider.ConfigureReque
 		}
 
 		lxdRemote := provider_config.LxdProviderRemoteConfig{
-			Name:     remote.Name.ValueString(),
-			Password: remote.Password.ValueString(),
-			Address:  remote.Address.ValueString(),
-			Port:     port,
-			Scheme:   scheme,
+			Name:    remote.Name.ValueString(),
+			Token:   remote.Token.ValueString(),
+			Address: remote.Address.ValueString(),
+			Port:    port,
+			Scheme:  scheme,
 		}
 
 		isDefault := remote.Default.ValueBool()
