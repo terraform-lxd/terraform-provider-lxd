@@ -26,10 +26,10 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/tfsdk"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/retry"
-	"github.com/terraform-lxd/terraform-provider-lxd/internal/common"
-	"github.com/terraform-lxd/terraform-provider-lxd/internal/errors"
-	provider_config "github.com/terraform-lxd/terraform-provider-lxd/internal/provider-config"
-	"github.com/terraform-lxd/terraform-provider-lxd/internal/utils"
+	"github.com/lxc/terraform-provider-incus/internal/common"
+	"github.com/lxc/terraform-provider-incus/internal/errors"
+	provider_config "github.com/lxc/terraform-provider-incus/internal/provider-config"
+	"github.com/lxc/terraform-provider-incus/internal/utils"
 )
 
 type InstanceModel struct {

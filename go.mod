@@ -1,4 +1,4 @@
-module github.com/terraform-lxd/terraform-provider-lxd
+module github.com/incus/terraform-provider-incus
 
 go 1.20
 

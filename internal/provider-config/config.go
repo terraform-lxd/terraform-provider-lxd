@@ -11,7 +11,7 @@ import (
 	lxd_config "github.com/canonical/lxd/lxc/config"
 	lxd_shared "github.com/canonical/lxd/shared"
 	lxd_api "github.com/canonical/lxd/shared/api"
-	"github.com/terraform-lxd/terraform-provider-lxd/internal/utils"
+	"github.com/lxc/terraform-provider-incus/internal/utils"
 )
 
 // supportedLXDVersions defines LXD versions that are supported by the provider.

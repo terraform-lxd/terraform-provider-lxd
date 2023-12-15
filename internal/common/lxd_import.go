@@ -5,7 +5,7 @@ import (
 	"strings"
 
 	"github.com/hashicorp/terraform-plugin-framework/diag"
-	"github.com/terraform-lxd/terraform-provider-lxd/internal/utils"
+	"github.com/lxc/terraform-provider-incus/internal/utils"
 )
 
 // ImportMetadata defines import ID properties that are used when parsing

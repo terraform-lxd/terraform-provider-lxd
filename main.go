@@ -6,7 +6,7 @@ import (
 	"log"
 
 	"github.com/hashicorp/terraform-plugin-framework/providerserver"
-	"github.com/terraform-lxd/terraform-provider-lxd/internal/provider"
+	"github.com/lxc/terraform-provider-incus/internal/provider"
 )
 
 // version indicates provider's version. The appropriate value

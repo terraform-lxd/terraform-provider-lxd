@@ -7,7 +7,7 @@ import (
 	petname "github.com/dustinkirkland/golang-petname"
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
 	"github.com/hashicorp/terraform-plugin-testing/plancheck"
-	"github.com/terraform-lxd/terraform-provider-lxd/internal/acctest"
+	"github.com/lxc/terraform-provider-incus/internal/acctest"
 )
 
 func TestAccStorageVolumeCopy_basic(t *testing.T) {

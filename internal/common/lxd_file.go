@@ -12,8 +12,8 @@ import (
 	lxd "github.com/canonical/lxd/client"
 	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/types"
+	"github.com/lxc/terraform-provider-incus/internal/errors"
 	"github.com/mitchellh/go-homedir"
-	"github.com/terraform-lxd/terraform-provider-lxd/internal/errors"
 )
 
 type InstanceFileModel struct {

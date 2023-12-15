@@ -15,13 +15,13 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
-	"github.com/terraform-lxd/terraform-provider-lxd/internal/image"
-	"github.com/terraform-lxd/terraform-provider-lxd/internal/instance"
-	"github.com/terraform-lxd/terraform-provider-lxd/internal/network"
-	"github.com/terraform-lxd/terraform-provider-lxd/internal/profile"
-	"github.com/terraform-lxd/terraform-provider-lxd/internal/project"
-	provider_config "github.com/terraform-lxd/terraform-provider-lxd/internal/provider-config"
-	"github.com/terraform-lxd/terraform-provider-lxd/internal/storage"
+	"github.com/lxc/terraform-provider-incus/internal/image"
+	"github.com/lxc/terraform-provider-incus/internal/instance"
+	"github.com/lxc/terraform-provider-incus/internal/network"
+	"github.com/lxc/terraform-provider-incus/internal/profile"
+	"github.com/lxc/terraform-provider-incus/internal/project"
+	provider_config "github.com/lxc/terraform-provider-incus/internal/provider-config"
+	"github.com/lxc/terraform-provider-incus/internal/storage"
 )
 
 // LxdProviderRemoteModel represents provider's schema remote.

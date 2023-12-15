@@ -8,7 +8,7 @@ import (
 	"github.com/canonical/lxd/shared/api"
 	petname "github.com/dustinkirkland/golang-petname"
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
-	"github.com/terraform-lxd/terraform-provider-lxd/internal/acctest"
+	"github.com/lxc/terraform-provider-incus/internal/acctest"
 )
 
 func TestAccNetworkLB_basic(t *testing.T) {
