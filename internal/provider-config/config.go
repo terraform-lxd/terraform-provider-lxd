@@ -321,7 +321,7 @@ func verifyLxdServerVersion(instServer lxd.InstanceServer) error {
 // authenticateToLXDServer authenticates to a given remote LXD server.
 // If successful, the LXD server becomes trusted to the LXD client,
 // and vice-versa.
-func authenticateToLxdServer(instServer lxd.InstanceServer, password string) error {
+func authenticateToLxdServer(instServer lxd.InstanceServer, token string) error {
 	server, _, err := instServer.GetServer()
 	if err != nil {
 		return err
@@ -332,7 +332,7 @@ func authenticateToLxdServer(instServer lxd.InstanceServer, password string) err
 	}
 
 	req := lxd_api.CertificatesPost{}
-	req.Password = password
+	req.TrustToken = token
 	req.Type = "client"
 
 	err = instServer.CreateCertificate(req)
