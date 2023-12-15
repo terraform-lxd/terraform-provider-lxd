@@ -5,9 +5,9 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/canonical/lxd/shared/api"
 	petname "github.com/dustinkirkland/golang-petname"
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
+	"github.com/lxc/incus/shared/api"
 	"github.com/lxc/terraform-provider-incus/internal/acctest"
 )
 

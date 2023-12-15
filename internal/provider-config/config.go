@@ -7,10 +7,10 @@ import (
 	"path/filepath"
 	"sync"
 
-	lxd "github.com/canonical/lxd/client"
-	lxd_config "github.com/canonical/lxd/lxc/config"
-	lxd_shared "github.com/canonical/lxd/shared"
-	lxd_api "github.com/canonical/lxd/shared/api"
+	lxd "github.com/lxc/incus/client"
+	lxd_api "github.com/lxc/incus/shared/api"
+	lxd_config "github.com/lxc/incus/shared/cliconfig"
+	lxd_shared "github.com/lxc/incus/shared/util"
 	"github.com/lxc/terraform-provider-incus/internal/utils"
 )
 
@@ -41,7 +41,7 @@ type LxdProviderConfig struct {
 	// LXDConfig is the converted form of terraformLXDConfig
 	// in LXD's native data structure. This is lazy-loaded / created
 	// only when a connection to an LXD remote/server happens.
-	// https://github.com/canonical/lxd/blob/main/lxc/config/config.go
+	// https://github.com/lxc/incus/blob/main/lxc/config/config.go
 	lxdConfig *lxd_config.Config
 
 	// remotes is a map of LXD remotes which the user has defined in

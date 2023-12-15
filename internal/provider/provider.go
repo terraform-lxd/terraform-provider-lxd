@@ -6,8 +6,6 @@ import (
 	"os"
 	"path/filepath"
 
-	lxd_config "github.com/canonical/lxd/lxc/config"
-	lxd_shared "github.com/canonical/lxd/shared"
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/provider"
@@ -15,6 +13,8 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
+	lxd_config "github.com/lxc/incus/shared/cliconfig"
+	lxd_shared "github.com/lxc/incus/shared/util"
 	"github.com/lxc/terraform-provider-incus/internal/image"
 	"github.com/lxc/terraform-provider-incus/internal/instance"
 	"github.com/lxc/terraform-provider-incus/internal/network"
