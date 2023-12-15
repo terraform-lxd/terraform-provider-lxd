@@ -6,7 +6,7 @@ import (
 
 	petname "github.com/dustinkirkland/golang-petname"
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
-	"github.com/terraform-lxd/terraform-provider-lxd/internal/acctest"
+	"github.com/lxc/terraform-provider-incus/internal/acctest"
 )
 
 func TestAccProfile_basic(t *testing.T) {
@@ -489,7 +489,7 @@ resource "lxd_profile" "profile1" {
     properties = {
       name    = "bar"
       nictype = "bridged"
-      parent  = "lxdbr0"
+      parent  = "incusbr0"
     }
   }
 }

@@ -47,7 +47,7 @@ eval "$(/usr/local/bin/gimme 1.19)"
 export GOPATH=$HOME/go
 export PATH=$PATH:$GOROOT/bin:$GOPATH/bin
 
-git clone https://github.com/terraform-lxd/terraform-provider-lxd
+git clone https://github.com/lxc/terraform-provider-incus
 
 echo fs.inotify.max_queued_events = 1048576 | sudo tee -a /etc/sysctl.conf
 echo fs.inotify.max_user_instances = 1048576 | sudo tee -a  /etc/sysctl.conf

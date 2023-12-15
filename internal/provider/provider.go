@@ -6,8 +6,6 @@ import (
 	"os"
 	"path/filepath"
 
-	lxd_config "github.com/canonical/lxd/lxc/config"
-	lxd_shared "github.com/canonical/lxd/shared"
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/provider"
@@ -15,23 +13,25 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
-	"github.com/terraform-lxd/terraform-provider-lxd/internal/image"
-	"github.com/terraform-lxd/terraform-provider-lxd/internal/instance"
-	"github.com/terraform-lxd/terraform-provider-lxd/internal/network"
-	"github.com/terraform-lxd/terraform-provider-lxd/internal/profile"
-	"github.com/terraform-lxd/terraform-provider-lxd/internal/project"
-	provider_config "github.com/terraform-lxd/terraform-provider-lxd/internal/provider-config"
-	"github.com/terraform-lxd/terraform-provider-lxd/internal/storage"
+	lxd_config "github.com/lxc/incus/shared/cliconfig"
+	lxd_shared "github.com/lxc/incus/shared/util"
+	"github.com/lxc/terraform-provider-incus/internal/image"
+	"github.com/lxc/terraform-provider-incus/internal/instance"
+	"github.com/lxc/terraform-provider-incus/internal/network"
+	"github.com/lxc/terraform-provider-incus/internal/profile"
+	"github.com/lxc/terraform-provider-incus/internal/project"
+	provider_config "github.com/lxc/terraform-provider-incus/internal/provider-config"
+	"github.com/lxc/terraform-provider-incus/internal/storage"
 )
 
 // LxdProviderRemoteModel represents provider's schema remote.
 type LxdProviderRemoteModel struct {
-	Name     types.String `tfsdk:"name"`
-	Address  types.String `tfsdk:"address"`
-	Port     types.String `tfsdk:"port"`
-	Password types.String `tfsdk:"password"`
-	Scheme   types.String `tfsdk:"scheme"`
-	Default  types.Bool   `tfsdk:"default"`
+	Name    types.String `tfsdk:"name"`
+	Address types.String `tfsdk:"address"`
+	Port    types.String `tfsdk:"port"`
+	Token   types.String `tfsdk:"token"`
+	Scheme  types.String `tfsdk:"scheme"`
+	Default types.Bool   `tfsdk:"default"`
 }
 
 // LxdProviderModel represents provider's schema.
@@ -67,7 +67,7 @@ func (p *LxdProvider) Schema(_ context.Context, _ provider.SchemaRequest, resp *
 		Attributes: map[string]schema.Attribute{
 			"config_dir": schema.StringAttribute{
 				Optional:    true,
-				Description: "The directory to look for existing LXD configuration. (default = $HOME/snap/lxd/common/config:$HOME/.config/lxc)",
+				Description: "The directory to look for existing LXD configuration. (default = $HOME/.config/incus)",
 			},
 
 			"generate_client_certificates": schema.BoolAttribute{
@@ -138,17 +138,10 @@ func (p *LxdProvider) Configure(ctx context.Context, req provider.ConfigureReque
 	diags := req.Config.Get(ctx, &data)
 	resp.Diagnostics.Append(diags...)
 
-	// Determine LXD configuration directory. First check for the presence
-	// of the /var/snap/lxd directory. If the directory exists, return
-	// snap's config path. Otherwise return the fallback path.
+	// Determine LXD configuration directory.
 	configDir := data.ConfigDir.ValueString()
 	if configDir == "" {
-		_, err := os.Stat("/var/snap/lxd")
-		if err == nil || os.IsExist(err) {
-			configDir = "$HOME/snap/lxd/common/config"
-		} else {
-			configDir = "$HOME/.config/lxc"
-		}
+		configDir = "$HOME/.config/incus"
 	}
 
 	// Try to load config.yml from determined configDir. If there's
@@ -214,11 +207,11 @@ func (p *LxdProvider) Configure(ctx context.Context, req provider.ConfigureReque
 	envName := os.Getenv("LXD_REMOTE")
 	if envName != "" {
 		envRemote := provider_config.LxdProviderRemoteConfig{
-			Name:     envName,
-			Address:  os.Getenv("LXD_ADDR"),
-			Port:     os.Getenv("LXD_PORT"),
-			Password: os.Getenv("LXD_PASSWORD"),
-			Scheme:   os.Getenv("LXD_SCHEME"),
+			Name:    envName,
+			Address: os.Getenv("LXD_ADDR"),
+			Port:    os.Getenv("LXD_PORT"),
+			Token:   os.Getenv("LXD_TOKEN"),
+			Scheme:  os.Getenv("LXD_SCHEME"),
 		}
 
 		// This will be the default remote unless overridden by an
@@ -248,11 +241,11 @@ func (p *LxdProvider) Configure(ctx context.Context, req provider.ConfigureReque
 		}
 
 		lxdRemote := provider_config.LxdProviderRemoteConfig{
-			Name:     remote.Name.ValueString(),
-			Password: remote.Password.ValueString(),
-			Address:  remote.Address.ValueString(),
-			Port:     port,
-			Scheme:   scheme,
+			Name:    remote.Name.ValueString(),
+			Token:   remote.Token.ValueString(),
+			Address: remote.Address.ValueString(),
+			Port:    port,
+			Scheme:  scheme,
 		}
 
 		isDefault := remote.Default.ValueBool()

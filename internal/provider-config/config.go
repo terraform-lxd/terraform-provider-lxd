@@ -7,15 +7,16 @@ import (
 	"path/filepath"
 	"sync"
 
-	lxd "github.com/canonical/lxd/client"
-	lxd_config "github.com/canonical/lxd/lxc/config"
-	lxd_shared "github.com/canonical/lxd/shared"
-	lxd_api "github.com/canonical/lxd/shared/api"
-	"github.com/terraform-lxd/terraform-provider-lxd/internal/utils"
+	lxd "github.com/lxc/incus/client"
+	lxd_api "github.com/lxc/incus/shared/api"
+	lxd_config "github.com/lxc/incus/shared/cliconfig"
+	incus_tls "github.com/lxc/incus/shared/tls"
+	lxd_shared "github.com/lxc/incus/shared/util"
+	"github.com/lxc/terraform-provider-incus/internal/utils"
 )
 
-// supportedLXDVersions defines LXD versions that are supported by the provider.
-const supportedLXDVersions = ">= 4.0.0"
+// supportedIncusVersions defines Incus versions that are supported by the provider.
+const supportedIncusVersions = ">= 0.1"
 
 // A global mutex.
 var mutex sync.RWMutex
@@ -26,7 +27,7 @@ type LxdProviderRemoteConfig struct {
 	Name         string
 	Address      string
 	Port         string
-	Password     string
+	Token        string
 	Scheme       string
 	Bootstrapped bool
 }
@@ -41,7 +42,7 @@ type LxdProviderConfig struct {
 	// LXDConfig is the converted form of terraformLXDConfig
 	// in LXD's native data structure. This is lazy-loaded / created
 	// only when a connection to an LXD remote/server happens.
-	// https://github.com/canonical/lxd/blob/main/lxc/config/config.go
+	// https://github.com/lxc/incus/blob/main/lxc/config/config.go
 	lxdConfig *lxd_config.Config
 
 	// remotes is a map of LXD remotes which the user has defined in
@@ -89,7 +90,7 @@ func (p *LxdProviderConfig) InstanceServer(remoteName string, project string, ta
 		return nil, err
 	}
 
-	if connInfo.Protocol != "lxd" {
+	if connInfo.Protocol != "incus" {
 		return nil, fmt.Errorf("Remote %q (%s) is not an InstanceServer", remoteName, connInfo.Protocol)
 	}
 
@@ -116,7 +117,7 @@ func (p *LxdProviderConfig) ImageServer(remoteName string) (lxd.ImageServer, err
 		return nil, err
 	}
 
-	if connInfo.Protocol == "simplestreams" || connInfo.Protocol == "lxd" {
+	if connInfo.Protocol == "simplestreams" || connInfo.Protocol == "incus" {
 		return server.(lxd.ImageServer), nil
 	}
 
@@ -160,7 +161,7 @@ func (p *LxdProviderConfig) server(remoteName string) (lxd.Server, error) {
 			return nil, err
 		}
 
-		_ = os.Setenv("LXD_DIR", lxdDir)
+		_ = os.Setenv("INCUS_DIR", lxdDir)
 	}
 
 	var err error
@@ -254,7 +255,7 @@ func (p *LxdProviderConfig) createLxdServerClient(remote LxdProviderRemoteConfig
 		p.mux.Lock()
 		defer p.mux.Unlock()
 
-		err = authenticateToLxdServer(instServer, remote.Password)
+		err = authenticateToLxdServer(instServer, remote.Token)
 		if err != nil {
 			return err
 		}
@@ -268,7 +269,7 @@ func (p *LxdProviderConfig) createLxdServerClient(remote LxdProviderRemoteConfig
 func (p *LxdProviderConfig) fetchLxdServerCertificate(remoteName string) error {
 	lxdRemote := p.getLxdConfigRemote(remoteName)
 
-	certificate, err := lxd_shared.GetRemoteCertificate(lxdRemote.Addr, "terraform-provider-lxd/2.0")
+	certificate, err := incus_tls.GetRemoteCertificate(lxdRemote.Addr, "terraform-provider-lxd/1.0")
 	if err != nil {
 		return err
 	}
@@ -305,13 +306,13 @@ func verifyLxdServerVersion(instServer lxd.InstanceServer) error {
 		return nil
 	}
 
-	ok, err := utils.CheckVersion(serverVersion, supportedLXDVersions)
+	ok, err := utils.CheckVersion(serverVersion, supportedIncusVersions)
 	if err != nil {
 		return err
 	}
 
 	if !ok {
-		return fmt.Errorf("LXD server with version %q does not meet the required version constraint: %q", serverVersion, supportedLXDVersions)
+		return fmt.Errorf("LXD server with version %q does not meet the required version constraint: %q", serverVersion, supportedIncusVersions)
 	}
 
 	return nil
@@ -320,7 +321,7 @@ func verifyLxdServerVersion(instServer lxd.InstanceServer) error {
 // authenticateToLXDServer authenticates to a given remote LXD server.
 // If successful, the LXD server becomes trusted to the LXD client,
 // and vice-versa.
-func authenticateToLxdServer(instServer lxd.InstanceServer, password string) error {
+func authenticateToLxdServer(instServer lxd.InstanceServer, token string) error {
 	server, _, err := instServer.GetServer()
 	if err != nil {
 		return err
@@ -331,7 +332,7 @@ func authenticateToLxdServer(instServer lxd.InstanceServer, password string) err
 	}
 
 	req := lxd_api.CertificatesPost{}
-	req.Password = password
+	req.TrustToken = token
 	req.Type = "client"
 
 	err = instServer.CreateCertificate(req)
@@ -379,31 +380,30 @@ func determineLxdDaemonAddr(remote LxdProviderRemoteConfig) (string, error) {
 }
 
 // determineLxdDir determines which standard LXD directory contains a writable UNIX socket.
-// If environment variable LXD_DIR or LXD_SOCKET is set, the function will return LXD directory
+// If environment variable INCUS_DIR or INCUS_SOCKET is set, the function will return LXD directory
 // based on the value from any of those variables.
 func determineLxdDir() (string, error) {
-	lxdSocket, ok := os.LookupEnv("LXD_SOCKET")
+	lxdSocket, ok := os.LookupEnv("INCUS_SOCKET")
 	if ok {
 		if utils.IsSocketWritable(lxdSocket) {
 			return filepath.Dir(lxdSocket), nil
 		}
 
-		return "", fmt.Errorf("Environment variable LXD_SOCKET points to either a non-existing or non-writable unix socket")
+		return "", fmt.Errorf("Environment variable INCUS_SOCKET points to either a non-existing or non-writable unix socket")
 	}
 
-	lxdDir, ok := os.LookupEnv("LXD_DIR")
+	lxdDir, ok := os.LookupEnv("INCUS_DIR")
 	if ok {
 		socketPath := filepath.Join(lxdDir, "unix.socket")
 		if utils.IsSocketWritable(socketPath) {
 			return lxdDir, nil
 		}
 
-		return "", fmt.Errorf("Environment variable LXD_DIR points to a LXD directory that does not contain a writable unix socket")
+		return "", fmt.Errorf("Environment variable INCUS_DIR points to a LXD directory that does not contain a writable unix socket")
 	}
 
 	lxdDirs := []string{
-		"/var/lib/lxd",
-		"/var/snap/lxd/common/lxd",
+		"/var/lib/incus",
 	}
 
 	// Iterate over LXD directories and find a writable unix socket.

@@ -3,11 +3,11 @@ package acctest
 import (
 	"sync"
 
-	lxd_config "github.com/canonical/lxd/lxc/config"
 	"github.com/hashicorp/terraform-plugin-framework/providerserver"
 	"github.com/hashicorp/terraform-plugin-go/tfprotov6"
-	"github.com/terraform-lxd/terraform-provider-lxd/internal/provider"
-	provider_config "github.com/terraform-lxd/terraform-provider-lxd/internal/provider-config"
+	lxd_config "github.com/lxc/incus/shared/cliconfig"
+	"github.com/lxc/terraform-provider-incus/internal/provider"
+	provider_config "github.com/lxc/terraform-provider-incus/internal/provider-config"
 )
 
 // TestImage is a constant that specifies the default image used in all tests.

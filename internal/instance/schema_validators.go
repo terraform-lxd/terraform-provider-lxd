@@ -6,7 +6,7 @@ import (
 	"strings"
 
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
-	"github.com/terraform-lxd/terraform-provider-lxd/internal/utils"
+	"github.com/lxc/terraform-provider-incus/internal/utils"
 )
 
 // configKeyValidator ensures config key does not start

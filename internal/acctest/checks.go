@@ -7,7 +7,7 @@ import (
 
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
 	"github.com/hashicorp/terraform-plugin-testing/terraform"
-	"github.com/terraform-lxd/terraform-provider-lxd/internal/utils"
+	"github.com/lxc/terraform-provider-incus/internal/utils"
 )
 
 // PreCheck is a precheck that ensures test requirements, such as existing

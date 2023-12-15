@@ -1,3 +1,4 @@
+GO ?= go
 GOFMT_FILES?=$$(find . -name '*.go' |grep -v vendor)
 TARGETS=darwin/amd64 freebsd/386 freebsd/amd64 freebsd/arm linux/386 linux/amd64 linux/arm openbsd/386 openbsd/amd64 windows/386 windows/amd64
 TF_LOG?=error
@@ -5,14 +6,14 @@ TF_LOG?=error
 default: build
 
 test:
-	go get -d -t ./...
-	go test -parallel $$(nproc) -race -timeout 60m -v ./internal/...
+	$(GO) get -d -t ./...
+	$(GO) test -parallel $$(nproc) -race -timeout 60m -v ./internal/...
 
 testacc:
-	TF_LOG=$(TF_LOG) TF_ACC=1 go test -parallel 4 -v -race $(TESTARGS) -timeout 60m ./internal/...
+	TF_LOG=$(TF_LOG) TF_ACC=1 $(GO) test -parallel 4 -v -race $(TESTARGS) -timeout 60m ./internal/...
 
 build:
-	go build -v
+	$(GO) build -v
 
 targets:
 	gox -osarch='$(TARGETS)' -output="dist/{{.OS}}_{{.Arch}}/terraform-provider-lxd_${TRAVIS_TAG}_x4"
@@ -21,11 +22,11 @@ targets:
 	xargs -0 --verbose --replace={} zip -r -j "dist/terraform-provider-lxd_${TRAVIS_TAG}_{}.zip" "dist/{}"
 
 dev:
-	go build -v
+	$(GO) build -v
 
 vet:
-	@echo "go vet ."
-	@go vet $$(go list ./... | grep -v vendor/) ; if [ $$? -eq 1 ]; then \
+	@echo "$(GO) vet ."
+	@$(GO) vet $$($(GO) list ./... | grep -v vendor/) ; if [ $$? -eq 1 ]; then \
 		echo ""; \
 		echo "Vet found suspicious constructs. Please check the reported constructs"; \
 		echo "and fix them if necessary before submitting the code for review."; \
@@ -60,5 +61,12 @@ static-analysis:
 	else \
 		echo "Missing \"terraform\" command, not checking .tf format" >&2; \
 	fi
+
+.PHONY: update-gomod
+update-gomod:
+	$(GO) get -t -v -d -u ./...
+	$(GO) mod tidy --go=1.20
+	$(GO) get toolchain@none
+	@echo "Dependencies updated"
 
 .PHONY: build test testacc dev vet fmt fmtcheck targets

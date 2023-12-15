@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/canonical/lxd/shared/api"
 	"github.com/hashicorp/terraform-plugin-framework/diag"
+	"github.com/lxc/incus/shared/api"
 )
 
 // IsNotFoundError checks whether the given error is of type NotFound.

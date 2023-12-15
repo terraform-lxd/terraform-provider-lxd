@@ -9,11 +9,11 @@ import (
 	"strconv"
 	"strings"
 
-	lxd "github.com/canonical/lxd/client"
 	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/types"
+	lxd "github.com/lxc/incus/client"
+	"github.com/lxc/terraform-provider-incus/internal/errors"
 	"github.com/mitchellh/go-homedir"
-	"github.com/terraform-lxd/terraform-provider-lxd/internal/errors"
 )
 
 type InstanceFileModel struct {
@@ -148,7 +148,7 @@ func InstanceFileUpload(server lxd.InstanceServer, instanceName string, file Ins
 }
 
 // recursiveMkdir recursively creates directories on target instance.
-// This was copied almost as-is from github.com/canonical/lxd/blob/main/lxc/file.go.
+// This was copied almost as-is from github.com/lxc/incus/blob/main/lxc/file.go.
 func recursiveMkdir(server lxd.InstanceServer, instanceName string, p string, args lxd.InstanceFileArgs) error {
 	// Special case, every instance has a /, so there is nothing to do.
 	if p == "/" {
