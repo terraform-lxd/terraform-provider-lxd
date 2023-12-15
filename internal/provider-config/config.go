@@ -10,6 +10,7 @@ import (
 	lxd "github.com/lxc/incus/client"
 	lxd_api "github.com/lxc/incus/shared/api"
 	lxd_config "github.com/lxc/incus/shared/cliconfig"
+	incus_tls "github.com/lxc/incus/shared/tls"
 	lxd_shared "github.com/lxc/incus/shared/util"
 	"github.com/lxc/terraform-provider-incus/internal/utils"
 )
@@ -268,7 +269,7 @@ func (p *LxdProviderConfig) createLxdServerClient(remote LxdProviderRemoteConfig
 func (p *LxdProviderConfig) fetchLxdServerCertificate(remoteName string) error {
 	lxdRemote := p.getLxdConfigRemote(remoteName)
 
-	certificate, err := lxd_shared.GetRemoteCertificate(lxdRemote.Addr, "terraform-provider-lxd/2.0")
+	certificate, err := incus_tls.GetRemoteCertificate(lxdRemote.Addr, "terraform-provider-lxd/1.0")
 	if err != nil {
 		return err
 	}
