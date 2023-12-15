@@ -67,7 +67,7 @@ func (p *LxdProvider) Schema(_ context.Context, _ provider.SchemaRequest, resp *
 		Attributes: map[string]schema.Attribute{
 			"config_dir": schema.StringAttribute{
 				Optional:    true,
-				Description: "The directory to look for existing LXD configuration. (default = $HOME/snap/lxd/common/config:$HOME/.config/lxc)",
+				Description: "The directory to look for existing LXD configuration. (default = $HOME/.config/incus)",
 			},
 
 			"generate_client_certificates": schema.BoolAttribute{
@@ -138,17 +138,10 @@ func (p *LxdProvider) Configure(ctx context.Context, req provider.ConfigureReque
 	diags := req.Config.Get(ctx, &data)
 	resp.Diagnostics.Append(diags...)
 
-	// Determine LXD configuration directory. First check for the presence
-	// of the /var/snap/lxd directory. If the directory exists, return
-	// snap's config path. Otherwise return the fallback path.
+	// Determine LXD configuration directory.
 	configDir := data.ConfigDir.ValueString()
 	if configDir == "" {
-		_, err := os.Stat("/var/snap/lxd")
-		if err == nil || os.IsExist(err) {
-			configDir = "$HOME/snap/lxd/common/config"
-		} else {
-			configDir = "$HOME/.config/lxc"
-		}
+		configDir = "$HOME/.config/incus"
 	}
 
 	// Try to load config.yml from determined configDir. If there's
