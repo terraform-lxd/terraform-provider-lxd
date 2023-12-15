@@ -62,4 +62,11 @@ static-analysis:
 		echo "Missing \"terraform\" command, not checking .tf format" >&2; \
 	fi
 
+.PHONY: update-gomod
+update-gomod:
+	$(GO) get -t -v -d -u ./...
+	$(GO) mod tidy --go=1.20
+	$(GO) get toolchain@none
+	@echo "Dependencies updated"
+
 .PHONY: build test testacc dev vet fmt fmtcheck targets
