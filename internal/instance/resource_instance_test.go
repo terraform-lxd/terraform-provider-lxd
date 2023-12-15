@@ -126,7 +126,7 @@ func TestAccInstance_virtualMachineNoDevLxd(t *testing.T) {
 					resource.TestCheckResourceAttr("lxd_instance.instance1", "name", instanceName),
 					resource.TestCheckResourceAttr("lxd_instance.instance1", "type", "virtual-machine"),
 					resource.TestCheckResourceAttr("lxd_instance.instance1", "status", "Running"),
-					resource.TestCheckResourceAttr("lxd_instance.instance1", "config.security.devlxd", "false"),
+					resource.TestCheckResourceAttr("lxd_instance.instance1", "config.security.guestapi", "false"),
 				),
 			},
 		},
@@ -804,7 +804,7 @@ resource "lxd_instance" "instance1" {
   config = {
     # Alpine images do not support secureboot.
     "security.secureboot" = false
-    "security.devlxd"     = false
+    "security.guestapi"   = false
   }
 }
 	`, name, acctest.TestImage)
