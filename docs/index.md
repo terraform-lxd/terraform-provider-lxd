@@ -6,7 +6,7 @@ Use Terraform to manage LXD resources.
 
 This provider connects to the LXD daemon over local Unix socket or HTTPS.
 
-It makes use of the [LXD client library](https://github.com/canonical/lxd), which
+It makes use of the [LXD client library](https://github.com/lxc/incus), which
 currently looks in `~/snap/lxd/common/config` (and `~/.config/lxc`) for `client.crt`
 and `client.key` files to authenticate against the LXD daemon.
 
