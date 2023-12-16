@@ -11,7 +11,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
-	lxd "github.com/lxc/incus/client"
+	incus "github.com/lxc/incus/client"
 	"github.com/lxc/incus/shared/api"
 	"github.com/lxc/terraform-provider-incus/internal/errors"
 	provider_config "github.com/lxc/terraform-provider-incus/internal/provider-config"
@@ -28,9 +28,9 @@ type StorageVolumeCopyModel struct {
 	Remote       types.String `tfsdk:"remote"`
 }
 
-// StorageVolumeCopyResource represent LXD storage volume copy resource.
+// StorageVolumeCopyResource represent Incus storage volume copy resource.
 type StorageVolumeCopyResource struct {
-	provider *provider_config.LxdProviderConfig
+	provider *provider_config.IncusProviderConfig
 }
 
 // NewStorageVolumeCopyResource returns a new storage volume copy resource.
@@ -119,7 +119,7 @@ func (r *StorageVolumeCopyResource) Configure(_ context.Context, req resource.Co
 		return
 	}
 
-	provider, ok := data.(*provider_config.LxdProviderConfig)
+	provider, ok := data.(*provider_config.IncusProviderConfig)
 	if !ok {
 		resp.Diagnostics.Append(errors.NewProviderDataTypeError(req.ProviderData))
 		return
@@ -164,7 +164,7 @@ func (r StorageVolumeCopyResource) Create(ctx context.Context, req resource.Crea
 		Type: "custom",
 	}
 
-	args := lxd.StoragePoolVolumeCopyArgs{
+	args := incus.StoragePoolVolumeCopyArgs{
 		Name:       dstName,
 		VolumeOnly: true,
 	}

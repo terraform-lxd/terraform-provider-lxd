@@ -16,10 +16,10 @@ build:
 	$(GO) build -v
 
 targets:
-	gox -osarch='$(TARGETS)' -output="dist/{{.OS}}_{{.Arch}}/terraform-provider-lxd_${TRAVIS_TAG}_x4"
+	gox -osarch='$(TARGETS)' -output="dist/{{.OS}}_{{.Arch}}/terraform-provider-incus_${TRAVIS_TAG}_x4"
 	find dist -maxdepth 1 -mindepth 1 -type d -print0 | \
 	sed -z -e 's,^dist/,,' | \
-	xargs -0 --verbose --replace={} zip -r -j "dist/terraform-provider-lxd_${TRAVIS_TAG}_{}.zip" "dist/{}"
+	xargs -0 --verbose --replace={} zip -r -j "dist/terraform-provider-incus_${TRAVIS_TAG}_{}.zip" "dist/{}"
 
 dev:
 	$(GO) build -v

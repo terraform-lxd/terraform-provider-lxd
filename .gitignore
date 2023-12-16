@@ -1,5 +1,5 @@
-terraform-provider-lxd
-terraform-provider-lxd.iml
+terraform-provider-incus
+terraform-provider-incus.iml
 .idea
 **/*.swp
 settings.json

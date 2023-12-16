@@ -22,16 +22,16 @@ func TestAccNetworkLB_basic(t *testing.T) {
 			{
 				Config: testAccNetworkLB_basic(),
 				Check: resource.ComposeTestCheckFunc(
-					resource.TestCheckResourceAttr("lxd_network.ovnbr", "name", "ovnbr"),
-					resource.TestCheckResourceAttr("lxd_network.ovnbr", "type", "bridge"),
-					resource.TestCheckResourceAttr("lxd_network.ovn", "name", "ovn"),
-					resource.TestCheckResourceAttr("lxd_network.ovn", "type", "ovn"),
-					resource.TestCheckResourceAttr("lxd_network.ovn", "config.ipv4.address", "10.0.0.1/24"),
-					resource.TestCheckResourceAttr("lxd_network.ovn", "config.ipv6.address", "fd42::1/64"),
-					resource.TestCheckResourceAttr("lxd_network_lb.test", "description", "Load Balancer"),
-					resource.TestCheckResourceAttr("lxd_network_lb.test", "listen_address", "10.10.10.200"),
-					resource.TestCheckResourceAttr("lxd_network_lb.test", "network", "ovn"),
-					resource.TestCheckResourceAttr("lxd_network_lb.test", "config.%", "0"),
+					resource.TestCheckResourceAttr("incus_network.ovnbr", "name", "ovnbr"),
+					resource.TestCheckResourceAttr("incus_network.ovnbr", "type", "bridge"),
+					resource.TestCheckResourceAttr("incus_network.ovn", "name", "ovn"),
+					resource.TestCheckResourceAttr("incus_network.ovn", "type", "ovn"),
+					resource.TestCheckResourceAttr("incus_network.ovn", "config.ipv4.address", "10.0.0.1/24"),
+					resource.TestCheckResourceAttr("incus_network.ovn", "config.ipv6.address", "fd42::1/64"),
+					resource.TestCheckResourceAttr("incus_network_lb.test", "description", "Load Balancer"),
+					resource.TestCheckResourceAttr("incus_network_lb.test", "listen_address", "10.10.10.200"),
+					resource.TestCheckResourceAttr("incus_network_lb.test", "network", "ovn"),
+					resource.TestCheckResourceAttr("incus_network_lb.test", "config.%", "0"),
 				),
 			},
 		},
@@ -53,14 +53,14 @@ func TestAccNetworkLB_withConfig(t *testing.T) {
 			{
 				Config: testAccNetworkLB_withConfig(lbConfig),
 				Check: resource.ComposeTestCheckFunc(
-					resource.TestCheckResourceAttr("lxd_network.ovnbr", "name", "ovnbr"),
-					resource.TestCheckResourceAttr("lxd_network.ovn", "name", "ovn"),
-					resource.TestCheckResourceAttr("lxd_network_lb.test", "network", "ovn"),
-					resource.TestCheckResourceAttr("lxd_network_lb.test", "listen_address", "10.10.10.200"),
-					resource.TestCheckResourceAttr("lxd_network_lb.test", "config.%", "1"),
-					resource.TestCheckResourceAttr("lxd_network_lb.test", "config.user.test", "abcd"),
-					resource.TestCheckResourceAttr("lxd_network_lb.test", "port.#", "0"),
-					resource.TestCheckResourceAttr("lxd_network_lb.test", "backend.#", "0"),
+					resource.TestCheckResourceAttr("incus_network.ovnbr", "name", "ovnbr"),
+					resource.TestCheckResourceAttr("incus_network.ovn", "name", "ovn"),
+					resource.TestCheckResourceAttr("incus_network_lb.test", "network", "ovn"),
+					resource.TestCheckResourceAttr("incus_network_lb.test", "listen_address", "10.10.10.200"),
+					resource.TestCheckResourceAttr("incus_network_lb.test", "config.%", "1"),
+					resource.TestCheckResourceAttr("incus_network_lb.test", "config.user.test", "abcd"),
+					resource.TestCheckResourceAttr("incus_network_lb.test", "port.#", "0"),
+					resource.TestCheckResourceAttr("incus_network_lb.test", "backend.#", "0"),
 				),
 			},
 		},
@@ -93,24 +93,24 @@ func TestAccNetworkLB_withBackend(t *testing.T) {
 			{
 				Config: testAccNetworkLB_withBackendAndPort(instanceName, backend, port),
 				Check: resource.ComposeTestCheckFunc(
-					resource.TestCheckResourceAttr("lxd_network.ovnbr", "name", "ovnbr"),
-					resource.TestCheckResourceAttr("lxd_network.ovn", "name", "ovn"),
-					resource.TestCheckResourceAttr("lxd_network_lb.test", "network", "ovn"),
-					resource.TestCheckResourceAttr("lxd_network_lb.test", "listen_address", "10.10.10.200"),
-					resource.TestCheckResourceAttr("lxd_network_lb.test", "backend.#", "1"),
-					resource.TestCheckResourceAttr("lxd_network_lb.test", "backend.0.name", backend.Name),
-					resource.TestCheckResourceAttr("lxd_network_lb.test", "backend.0.description", backend.Description),
-					resource.TestCheckResourceAttr("lxd_network_lb.test", "backend.0.target_address", backend.TargetAddress),
-					resource.TestCheckResourceAttr("lxd_network_lb.test", "backend.0.target_port", backend.TargetPort),
-					resource.TestCheckResourceAttr("lxd_network_lb.test", "port.#", "1"),
-					resource.TestCheckResourceAttr("lxd_network_lb.test", "port.0.description", port.Description),
-					resource.TestCheckResourceAttr("lxd_network_lb.test", "port.0.protocol", port.Protocol),
-					resource.TestCheckResourceAttr("lxd_network_lb.test", "port.0.listen_port", port.ListenPort),
-					resource.TestCheckResourceAttr("lxd_network_lb.test", "port.0.target_backend.#", "1"),
-					resource.TestCheckResourceAttr("lxd_network_lb.test", "port.0.target_backend.0", backend.Name),
-					resource.TestCheckResourceAttr("lxd_instance.instance", "name", instanceName),
-					resource.TestCheckResourceAttr("lxd_instance.instance", "status", "Running"),
-					resource.TestCheckResourceAttr("lxd_instance.instance", "ipv4_address", backend.TargetAddress),
+					resource.TestCheckResourceAttr("incus_network.ovnbr", "name", "ovnbr"),
+					resource.TestCheckResourceAttr("incus_network.ovn", "name", "ovn"),
+					resource.TestCheckResourceAttr("incus_network_lb.test", "network", "ovn"),
+					resource.TestCheckResourceAttr("incus_network_lb.test", "listen_address", "10.10.10.200"),
+					resource.TestCheckResourceAttr("incus_network_lb.test", "backend.#", "1"),
+					resource.TestCheckResourceAttr("incus_network_lb.test", "backend.0.name", backend.Name),
+					resource.TestCheckResourceAttr("incus_network_lb.test", "backend.0.description", backend.Description),
+					resource.TestCheckResourceAttr("incus_network_lb.test", "backend.0.target_address", backend.TargetAddress),
+					resource.TestCheckResourceAttr("incus_network_lb.test", "backend.0.target_port", backend.TargetPort),
+					resource.TestCheckResourceAttr("incus_network_lb.test", "port.#", "1"),
+					resource.TestCheckResourceAttr("incus_network_lb.test", "port.0.description", port.Description),
+					resource.TestCheckResourceAttr("incus_network_lb.test", "port.0.protocol", port.Protocol),
+					resource.TestCheckResourceAttr("incus_network_lb.test", "port.0.listen_port", port.ListenPort),
+					resource.TestCheckResourceAttr("incus_network_lb.test", "port.0.target_backend.#", "1"),
+					resource.TestCheckResourceAttr("incus_network_lb.test", "port.0.target_backend.0", backend.Name),
+					resource.TestCheckResourceAttr("incus_instance.instance", "name", instanceName),
+					resource.TestCheckResourceAttr("incus_instance.instance", "status", "Running"),
+					resource.TestCheckResourceAttr("incus_instance.instance", "ipv4_address", backend.TargetAddress),
 				),
 			},
 		},
@@ -119,8 +119,8 @@ func TestAccNetworkLB_withBackend(t *testing.T) {
 
 func testAccNetworkLB_basic() string {
 	lbRes := `
-resource "lxd_network_lb" "test" {
-  network        = lxd_network.ovn.name
+resource "incus_network_lb" "test" {
+  network        = incus_network.ovn.name
   listen_address = "10.10.10.200"
   description    = "Load Balancer"
 }
@@ -137,8 +137,8 @@ func testAccNetworkLB_withConfig(config map[string]string) string {
 	}
 
 	lbRes := fmt.Sprintf(`
-resource "lxd_network_lb" "test" {
-  network        = lxd_network.ovn.name
+resource "incus_network_lb" "test" {
+  network        = incus_network.ovn.name
   listen_address = "10.10.10.200"
   description    = "Load Balancer with Config"
 
@@ -165,7 +165,7 @@ func testAccNetworkLB_withBackendAndPort(instanceName string, backend api.Networ
 	}
 
 	lbRes := fmt.Sprintf(`
-resource "lxd_instance" "instance" {
+resource "incus_instance" "instance" {
   name      = "%[1]s"
   image     = "%[2]s"
   ephemeral = false
@@ -174,14 +174,14 @@ resource "lxd_instance" "instance" {
     name = "eth0"
     type = "nic"
     properties = {
-      "network"      = lxd_network.ovn.name
+      "network"      = incus_network.ovn.name
       "ipv4.address" = "%[5]s"
     }
   }
 }
 
-resource "lxd_network_lb" "test" {
-  network        = lxd_network.ovn.name
+resource "incus_network_lb" "test" {
+  network        = incus_network.ovn.name
   listen_address = "10.10.10.200"
   description    = "Load Balancer with Backend and Port"
 
@@ -205,10 +205,10 @@ resource "lxd_network_lb" "test" {
 }
 
 // ovnNetworkPreset returns configuration for OVN network and its parent bridge.
-// Network resource "lxd_network.ovn" provides dhcp range "10.0.0.1/24".
+// Network resource "incus_network.ovn" provides dhcp range "10.0.0.1/24".
 func ovnNetworkResource() string {
 	return `
-resource "lxd_network" "ovnbr" {
+resource "incus_network" "ovnbr" {
   name = "ovnbr"
   type = "bridge"
   config = {
@@ -222,11 +222,11 @@ resource "lxd_network" "ovnbr" {
   }
 }
 
-resource "lxd_network" "ovn" {
+resource "incus_network" "ovn" {
   name = "ovn"
   type = "ovn"
   config = {
-    "network"      = lxd_network.ovnbr.name
+    "network"      = incus_network.ovnbr.name
     "ipv4.address" = "10.0.0.1/24"
     "ipv4.nat"     = "true"
     "ipv6.address" = "fd42::1/64"

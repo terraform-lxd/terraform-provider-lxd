@@ -17,7 +17,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/tfsdk"
 	"github.com/hashicorp/terraform-plugin-framework/types"
-	lxd "github.com/lxc/incus/client"
+	incus "github.com/lxc/incus/client"
 	"github.com/lxc/incus/shared/api"
 	"github.com/lxc/terraform-provider-incus/internal/common"
 	"github.com/lxc/terraform-provider-incus/internal/errors"
@@ -39,9 +39,9 @@ type StorageVolumeModel struct {
 	Location types.String `tfsdk:"location"`
 }
 
-// StorageVolumeResource represent LXD storage volume resource.
+// StorageVolumeResource represent Incus storage volume resource.
 type StorageVolumeResource struct {
-	provider *provider_config.LxdProviderConfig
+	provider *provider_config.IncusProviderConfig
 }
 
 // NewStorageVolumeResource returns a new storage volume resource.
@@ -147,7 +147,7 @@ func (r *StorageVolumeResource) Configure(_ context.Context, req resource.Config
 		return
 	}
 
-	provider, ok := data.(*provider_config.LxdProviderConfig)
+	provider, ok := data.(*provider_config.IncusProviderConfig)
 	if !ok {
 		resp.Diagnostics.Append(errors.NewProviderDataTypeError(req.ProviderData))
 		return
@@ -331,7 +331,7 @@ func (r StorageVolumeResource) ImportState(ctx context.Context, req resource.Imp
 // SyncState fetches the server's current state for a storage volume and
 // updates the provided model. It then applies this updated model as the
 // new state in Terraform.
-func (r StorageVolumeResource) SyncState(ctx context.Context, tfState *tfsdk.State, server lxd.InstanceServer, m StorageVolumeModel) diag.Diagnostics {
+func (r StorageVolumeResource) SyncState(ctx context.Context, tfState *tfsdk.State, server incus.InstanceServer, m StorageVolumeModel) diag.Diagnostics {
 	var respDiags diag.Diagnostics
 
 	poolName := m.Pool.ValueString()

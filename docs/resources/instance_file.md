@@ -1,22 +1,22 @@
-# lxd_instance_file
+# incus_instance_file
 
-Manages a file in an LXD instance.
+Manages a file in an Incus instance.
 
-This resource is useful for managing files on an existing LXD instance.
+This resource is useful for managing files on an existing Incus instance.
 If you need to preload files in an instance before the instance first
-starts, use the `file` block in the `lxd_instance` resource.
+starts, use the `file` block in the `incus_instance` resource.
 
 ## Example
 
 ```hcl
-resource "lxd_instance" "instance" {
+resource "incus_instance" "instance" {
   name      = "my-instance"
   image     = "ubuntu"
   ephemeral = false
 }
 
-resource "lxd_instance_file" "file1" {
-  instance           = lxd_instance.instance.name
+resource "incus_instance_file" "file1" {
+  instance           = incus_instance.instance.name
   source_path        = "/path/to/local/file"
   target_path        = "/foo/bar.txt"
   create_directories = true

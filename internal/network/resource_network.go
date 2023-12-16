@@ -16,7 +16,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/tfsdk"
 	"github.com/hashicorp/terraform-plugin-framework/types"
-	lxd "github.com/lxc/incus/client"
+	incus "github.com/lxc/incus/client"
 	"github.com/lxc/incus/shared/api"
 	"github.com/lxc/terraform-provider-incus/internal/common"
 	"github.com/lxc/terraform-provider-incus/internal/errors"
@@ -35,9 +35,9 @@ type NetworkModel struct {
 	Config      types.Map    `tfsdk:"config"`
 }
 
-// NetworkResource represent LXD network resource.
+// NetworkResource represent Incus network resource.
 type NetworkResource struct {
-	provider *provider_config.LxdProviderConfig
+	provider *provider_config.IncusProviderConfig
 }
 
 // NewNetworkResource returns a new network resource.
@@ -128,7 +128,7 @@ func (r *NetworkResource) Configure(_ context.Context, req resource.ConfigureReq
 		return
 	}
 
-	provider, ok := data.(*provider_config.LxdProviderConfig)
+	provider, ok := data.(*provider_config.IncusProviderConfig)
 	if !ok {
 		resp.Diagnostics.Append(errors.NewProviderDataTypeError(req.ProviderData))
 		return
@@ -306,7 +306,7 @@ func (r NetworkResource) ImportState(ctx context.Context, req resource.ImportSta
 // SyncState fetches the server's current state for a network and updates
 // the provided model. It then applies this updated model as the new state
 // in Terraform.
-func (r NetworkResource) SyncState(ctx context.Context, tfState *tfsdk.State, server lxd.InstanceServer, m NetworkModel) diag.Diagnostics {
+func (r NetworkResource) SyncState(ctx context.Context, tfState *tfsdk.State, server incus.InstanceServer, m NetworkModel) diag.Diagnostics {
 	var respDiags diag.Diagnostics
 
 	networkName := m.Name.ValueString()
@@ -345,7 +345,7 @@ func (r NetworkResource) SyncState(ctx context.Context, tfState *tfsdk.State, se
 	return tfState.Set(ctx, &m)
 }
 
-// ComputedKeys returns list of computed LXD config keys.
+// ComputedKeys returns list of computed Incus config keys.
 func (_ NetworkModel) ComputedKeys() []string {
 	return []string{
 		"bridge.mtu",

@@ -24,7 +24,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/tfsdk"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/retry"
-	lxd "github.com/lxc/incus/client"
+	incus "github.com/lxc/incus/client"
 	"github.com/lxc/incus/shared/api"
 	"github.com/lxc/terraform-provider-incus/internal/common"
 	"github.com/lxc/terraform-provider-incus/internal/errors"
@@ -56,9 +56,9 @@ type InstanceModel struct {
 	Status types.String `tfsdk:"status"`
 }
 
-// InstanceResource represent LXD instance resource.
+// InstanceResource represent Incus instance resource.
 type InstanceResource struct {
-	provider *provider_config.LxdProviderConfig
+	provider *provider_config.IncusProviderConfig
 }
 
 // NewInstanceResource returns a new instance resource.
@@ -278,7 +278,7 @@ func (r InstanceResource) Schema(_ context.Context, _ resource.SchemaRequest, re
 							Optional: true,
 						},
 
-						// Append is here just to satisfy the LxdFile model.
+						// Append is here just to satisfy the IncusFile model.
 						"append": schema.BoolAttribute{
 							Computed: true,
 							Default:  booldefault.StaticBool(false),
@@ -296,7 +296,7 @@ func (r *InstanceResource) Configure(_ context.Context, req resource.ConfigureRe
 		return
 	}
 
-	provider, ok := data.(*provider_config.LxdProviderConfig)
+	provider, ok := data.(*provider_config.IncusProviderConfig)
 	if !ok {
 		resp.Diagnostics.Append(errors.NewProviderDataTypeError(req.ProviderData))
 		return
@@ -763,7 +763,7 @@ func (r *InstanceResource) ImportState(ctx context.Context, req resource.ImportS
 // SyncState fetches the server's current state for an instance and updates
 // the provided model. It then applies this updated model as the new state
 // in Terraform.
-func (r InstanceResource) SyncState(ctx context.Context, tfState *tfsdk.State, server lxd.InstanceServer, m InstanceModel) diag.Diagnostics {
+func (r InstanceResource) SyncState(ctx context.Context, tfState *tfsdk.State, server incus.InstanceServer, m InstanceModel) diag.Diagnostics {
 	var respDiags diag.Diagnostics
 
 	instanceName := m.Name.ValueString()
@@ -922,7 +922,7 @@ func ToProfileListType(ctx context.Context, profiles []string) (types.List, diag
 
 // startInstance starts an instance with the given name. It also waits
 // for it to become fully operational.
-func startInstance(ctx context.Context, server lxd.InstanceServer, instanceName string) diag.Diagnostic {
+func startInstance(ctx context.Context, server incus.InstanceServer, instanceName string) diag.Diagnostic {
 	st, etag, err := server.GetInstanceState(instanceName)
 	if err != nil {
 		return diag.NewErrorDiagnostic(fmt.Sprintf("Failed to retrieve state of instance %q", instanceName), err.Error())
@@ -978,7 +978,7 @@ func startInstance(ctx context.Context, server lxd.InstanceServer, instanceName 
 // status to become Stopped or the instance to be removed (not found) in
 // case of an ephemeral instance. In the latter case, false is returned
 // along an error.
-func stopInstance(ctx context.Context, server lxd.InstanceServer, instanceName string, force bool) (bool, diag.Diagnostic) {
+func stopInstance(ctx context.Context, server incus.InstanceServer, instanceName string, force bool) (bool, diag.Diagnostic) {
 	st, etag, err := server.GetInstanceState(instanceName)
 	if err != nil {
 		return true, diag.NewErrorDiagnostic(fmt.Sprintf("Failed to retrieve state of instance %q", instanceName), err.Error())
@@ -1028,7 +1028,7 @@ func stopInstance(ctx context.Context, server lxd.InstanceServer, instanceName s
 // waitInstanceNetwork waits for an instance with the given name to receive
 // an IPv4 address on any interface (excluding loopback). This should be
 // called only if the instance is running.
-func waitInstanceNetwork(ctx context.Context, server lxd.InstanceServer, instanceName string) diag.Diagnostic {
+func waitInstanceNetwork(ctx context.Context, server incus.InstanceServer, instanceName string) diag.Diagnostic {
 	// instanceNetworkCheck function checks whether instance has
 	// received an IP address.
 	instanceNetworkCheck := func() (any, string, error) {
@@ -1077,8 +1077,8 @@ func waitForState(ctx context.Context, refreshFunc retry.StateRefreshFunc, targe
 // isInstanceOperational determines if an instance is fully operational based
 // on its state. It returns true if the instance is running and the reported
 // process count is positive. Checking for a positive process count is esential
-// for virtual machines, which can report this metric only if the LXD agent has
-// started and has established a connection to the LXD server.
+// for virtual machines, which can report this metric only if the Incus agent has
+// started and has established a connection to the Incus server.
 func isInstanceOperational(s api.InstanceState) bool {
 	return isInstanceRunning(s) && s.Processes > 0
 }

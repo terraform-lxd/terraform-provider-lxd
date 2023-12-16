@@ -15,7 +15,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/tfsdk"
 	"github.com/hashicorp/terraform-plugin-framework/types"
-	lxd "github.com/lxc/incus/client"
+	incus "github.com/lxc/incus/client"
 	"github.com/lxc/incus/shared/api"
 	"github.com/lxc/terraform-provider-incus/internal/common"
 	"github.com/lxc/terraform-provider-incus/internal/errors"
@@ -31,9 +31,9 @@ type NetworkZoneModel struct {
 	Config      types.Map    `tfsdk:"config"`
 }
 
-// NetworkZoneResource represent LXD network zone resource.
+// NetworkZoneResource represent Incus network zone resource.
 type NetworkZoneResource struct {
-	provider *provider_config.LxdProviderConfig
+	provider *provider_config.IncusProviderConfig
 }
 
 // NewNetworkZoneResource returns a new network zone resource.
@@ -93,7 +93,7 @@ func (r *NetworkZoneResource) Configure(_ context.Context, req resource.Configur
 		return
 	}
 
-	provider, ok := data.(*provider_config.LxdProviderConfig)
+	provider, ok := data.(*provider_config.IncusProviderConfig)
 	if !ok {
 		resp.Diagnostics.Append(errors.NewProviderDataTypeError(req.ProviderData))
 		return
@@ -260,7 +260,7 @@ func (r NetworkZoneResource) ImportState(ctx context.Context, req resource.Impor
 // SyncState fetches the server's current state for a network zone and
 // updates the provided model. It then applies this updated model as the
 // new state in Terraform.
-func (r NetworkZoneResource) SyncState(ctx context.Context, tfState *tfsdk.State, server lxd.InstanceServer, m NetworkZoneModel) diag.Diagnostics {
+func (r NetworkZoneResource) SyncState(ctx context.Context, tfState *tfsdk.State, server incus.InstanceServer, m NetworkZoneModel) diag.Diagnostics {
 	zoneName := m.Name.ValueString()
 	zone, _, err := server.GetNetworkZone(zoneName)
 	if err != nil {

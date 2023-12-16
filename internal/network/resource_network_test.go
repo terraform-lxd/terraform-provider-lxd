@@ -17,11 +17,11 @@ func TestAccNetwork_basic(t *testing.T) {
 			{
 				Config: testAccNetwork_basic(),
 				Check: resource.ComposeTestCheckFunc(
-					resource.TestCheckResourceAttr("lxd_network.eth1", "name", "eth1"),
-					resource.TestCheckResourceAttr("lxd_network.eth1", "type", "bridge"),
-					resource.TestCheckResourceAttr("lxd_network.eth1", "managed", "true"),
-					resource.TestCheckResourceAttr("lxd_network.eth1", "description", ""),
-					resource.TestCheckResourceAttr("lxd_network.eth1", "config.%", "0"),
+					resource.TestCheckResourceAttr("incus_network.eth1", "name", "eth1"),
+					resource.TestCheckResourceAttr("incus_network.eth1", "type", "bridge"),
+					resource.TestCheckResourceAttr("incus_network.eth1", "managed", "true"),
+					resource.TestCheckResourceAttr("incus_network.eth1", "description", ""),
+					resource.TestCheckResourceAttr("incus_network.eth1", "config.%", "0"),
 				),
 			},
 		},
@@ -36,12 +36,12 @@ func TestAccNetwork_description(t *testing.T) {
 			{
 				Config: testAccNetwork_desc(),
 				Check: resource.ComposeTestCheckFunc(
-					resource.TestCheckResourceAttr("lxd_network.eth1", "name", "eth1"),
-					resource.TestCheckResourceAttr("lxd_network.eth1", "type", "bridge"),
-					resource.TestCheckResourceAttr("lxd_network.eth1", "description", "My network"),
-					resource.TestCheckResourceAttr("lxd_network.eth1", "config.%", "2"),
-					resource.TestCheckResourceAttr("lxd_network.eth1", "config.ipv4.address", "10.150.19.1/24"),
-					resource.TestCheckResourceAttr("lxd_network.eth1", "config.ipv6.address", "fd42:474b:622d:259d::1/64"),
+					resource.TestCheckResourceAttr("incus_network.eth1", "name", "eth1"),
+					resource.TestCheckResourceAttr("incus_network.eth1", "type", "bridge"),
+					resource.TestCheckResourceAttr("incus_network.eth1", "description", "My network"),
+					resource.TestCheckResourceAttr("incus_network.eth1", "config.%", "2"),
+					resource.TestCheckResourceAttr("incus_network.eth1", "config.ipv4.address", "10.150.19.1/24"),
+					resource.TestCheckResourceAttr("incus_network.eth1", "config.ipv6.address", "fd42:474b:622d:259d::1/64"),
 				),
 			},
 		},
@@ -59,20 +59,20 @@ func TestAccNetwork_attach(t *testing.T) {
 			{
 				Config: testAccNetwork_attach(profileName, instanceName),
 				Check: resource.ComposeTestCheckFunc(
-					resource.TestCheckResourceAttr("lxd_network.eth1", "name", "eth1"),
-					resource.TestCheckResourceAttr("lxd_profile.profile1", "name", profileName),
-					resource.TestCheckResourceAttr("lxd_profile.profile1", "device.#", "1"),
-					resource.TestCheckResourceAttr("lxd_profile.profile1", "device.0.name", "eth1"),
-					resource.TestCheckResourceAttr("lxd_profile.profile1", "device.0.type", "nic"),
-					resource.TestCheckResourceAttr("lxd_profile.profile1", "device.0.properties.parent", "eth1"),
-					resource.TestCheckResourceAttr("lxd_instance.instance1", "name", instanceName),
-					resource.TestCheckResourceAttr("lxd_instance.instance1", "status", "Running"),
-					resource.TestCheckResourceAttr("lxd_instance.instance1", "profiles.#", "2"),
-					resource.TestCheckResourceAttr("lxd_instance.instance1", "profiles.0", "default"),
-					resource.TestCheckResourceAttr("lxd_instance.instance1", "profiles.1", profileName),
-					resource.TestCheckResourceAttrSet("lxd_instance.instance1", "ipv4_address"),
-					resource.TestCheckResourceAttrSet("lxd_instance.instance1", "ipv6_address"),
-					resource.TestCheckResourceAttrSet("lxd_instance.instance1", "mac_address"),
+					resource.TestCheckResourceAttr("incus_network.eth1", "name", "eth1"),
+					resource.TestCheckResourceAttr("incus_profile.profile1", "name", profileName),
+					resource.TestCheckResourceAttr("incus_profile.profile1", "device.#", "1"),
+					resource.TestCheckResourceAttr("incus_profile.profile1", "device.0.name", "eth1"),
+					resource.TestCheckResourceAttr("incus_profile.profile1", "device.0.type", "nic"),
+					resource.TestCheckResourceAttr("incus_profile.profile1", "device.0.properties.parent", "eth1"),
+					resource.TestCheckResourceAttr("incus_instance.instance1", "name", instanceName),
+					resource.TestCheckResourceAttr("incus_instance.instance1", "status", "Running"),
+					resource.TestCheckResourceAttr("incus_instance.instance1", "profiles.#", "2"),
+					resource.TestCheckResourceAttr("incus_instance.instance1", "profiles.0", "default"),
+					resource.TestCheckResourceAttr("incus_instance.instance1", "profiles.1", profileName),
+					resource.TestCheckResourceAttrSet("incus_instance.instance1", "ipv4_address"),
+					resource.TestCheckResourceAttrSet("incus_instance.instance1", "ipv6_address"),
+					resource.TestCheckResourceAttrSet("incus_instance.instance1", "mac_address"),
 				),
 			},
 		},
@@ -89,27 +89,27 @@ func TestAccNetwork_updateConfig(t *testing.T) {
 			{
 				Config: testAccNetwork_updateConfig_1(instanceName),
 				Check: resource.ComposeTestCheckFunc(
-					resource.TestCheckResourceAttr("lxd_network.eth1", "name", "eth1"),
-					resource.TestCheckResourceAttr("lxd_network.eth1", "config.ipv4.address", "10.150.19.1/24"),
-					resource.TestCheckResourceAttr("lxd_network.eth1", "config.ipv4.nat", "true"),
-					resource.TestCheckResourceAttr("lxd_instance.instance1", "name", instanceName),
-					resource.TestCheckResourceAttr("lxd_instance.instance1", "status", "Running"),
-					resource.TestCheckResourceAttr("lxd_instance.instance1", "device.#", "1"),
-					resource.TestCheckResourceAttr("lxd_instance.instance1", "device.0.properties.parent", "eth1"),
-					resource.TestCheckResourceAttrSet("lxd_instance.instance1", "ipv4_address"),
-					resource.TestCheckResourceAttrSet("lxd_instance.instance1", "mac_address"),
+					resource.TestCheckResourceAttr("incus_network.eth1", "name", "eth1"),
+					resource.TestCheckResourceAttr("incus_network.eth1", "config.ipv4.address", "10.150.19.1/24"),
+					resource.TestCheckResourceAttr("incus_network.eth1", "config.ipv4.nat", "true"),
+					resource.TestCheckResourceAttr("incus_instance.instance1", "name", instanceName),
+					resource.TestCheckResourceAttr("incus_instance.instance1", "status", "Running"),
+					resource.TestCheckResourceAttr("incus_instance.instance1", "device.#", "1"),
+					resource.TestCheckResourceAttr("incus_instance.instance1", "device.0.properties.parent", "eth1"),
+					resource.TestCheckResourceAttrSet("incus_instance.instance1", "ipv4_address"),
+					resource.TestCheckResourceAttrSet("incus_instance.instance1", "mac_address"),
 				),
 			},
 			{
 				Config: testAccNetwork_updateConfig_2(instanceName),
 				Check: resource.ComposeTestCheckFunc(
-					resource.TestCheckResourceAttr("lxd_network.eth1", "name", "eth1"),
-					resource.TestCheckResourceAttr("lxd_network.eth1", "config.ipv4.address", "10.150.21.1/24"),
-					resource.TestCheckResourceAttr("lxd_network.eth1", "config.ipv4.nat", "false"),
-					resource.TestCheckResourceAttr("lxd_instance.instance1", "name", instanceName),
-					resource.TestCheckResourceAttr("lxd_instance.instance1", "status", "Running"),
-					resource.TestCheckResourceAttr("lxd_instance.instance1", "device.#", "1"),
-					resource.TestCheckResourceAttr("lxd_instance.instance1", "device.0.properties.parent", "eth1"),
+					resource.TestCheckResourceAttr("incus_network.eth1", "name", "eth1"),
+					resource.TestCheckResourceAttr("incus_network.eth1", "config.ipv4.address", "10.150.21.1/24"),
+					resource.TestCheckResourceAttr("incus_network.eth1", "config.ipv4.nat", "false"),
+					resource.TestCheckResourceAttr("incus_instance.instance1", "name", instanceName),
+					resource.TestCheckResourceAttr("incus_instance.instance1", "status", "Running"),
+					resource.TestCheckResourceAttr("incus_instance.instance1", "device.#", "1"),
+					resource.TestCheckResourceAttr("incus_instance.instance1", "device.0.properties.parent", "eth1"),
 				),
 			},
 		},
@@ -124,9 +124,9 @@ func TestAccNetwork_typeMacvlan(t *testing.T) {
 			{
 				Config: testAccNetwork_typeMacvlan(),
 				Check: resource.ComposeTestCheckFunc(
-					resource.TestCheckResourceAttr("lxd_network.eth1", "name", "eth1"),
-					resource.TestCheckResourceAttr("lxd_network.eth1", "type", "macvlan"),
-					resource.TestCheckResourceAttr("lxd_network.eth1", "config.parent", "incusbr0"),
+					resource.TestCheckResourceAttr("incus_network.eth1", "name", "eth1"),
+					resource.TestCheckResourceAttr("incus_network.eth1", "type", "macvlan"),
+					resource.TestCheckResourceAttr("incus_network.eth1", "config.parent", "incusbr0"),
 				),
 			},
 		},
@@ -146,15 +146,15 @@ func TestAccNetwork_target(t *testing.T) {
 			{
 				Config: testAccNetwork_target(networkName),
 				Check: resource.ComposeTestCheckFunc(
-					resource.TestCheckResourceAttr("lxd_network.cluster_network_node1", "name", networkName),
-					resource.TestCheckResourceAttr("lxd_network.cluster_network_node1", "target", "node-1"),
-					resource.TestCheckResourceAttr("lxd_network.cluster_network_node1", "config.bridge.external_interfaces", "nosuchint"),
-					resource.TestCheckResourceAttr("lxd_network.cluster_network_node2", "name", networkName),
-					resource.TestCheckResourceAttr("lxd_network.cluster_network_node2", "target", "node-2"),
-					resource.TestCheckResourceAttr("lxd_network.cluster_network_node2", "config.bridge.external_interfaces", "nosuchint"),
-					resource.TestCheckResourceAttr("lxd_network.cluster_network", "name", networkName),
-					resource.TestCheckResourceAttr("lxd_network.cluster_network", "type", "bridge"),
-					resource.TestCheckResourceAttr("lxd_network.cluster_network", "config.ipv4.address", "10.150.19.1/24"),
+					resource.TestCheckResourceAttr("incus_network.cluster_network_node1", "name", networkName),
+					resource.TestCheckResourceAttr("incus_network.cluster_network_node1", "target", "node-1"),
+					resource.TestCheckResourceAttr("incus_network.cluster_network_node1", "config.bridge.external_interfaces", "nosuchint"),
+					resource.TestCheckResourceAttr("incus_network.cluster_network_node2", "name", networkName),
+					resource.TestCheckResourceAttr("incus_network.cluster_network_node2", "target", "node-2"),
+					resource.TestCheckResourceAttr("incus_network.cluster_network_node2", "config.bridge.external_interfaces", "nosuchint"),
+					resource.TestCheckResourceAttr("incus_network.cluster_network", "name", networkName),
+					resource.TestCheckResourceAttr("incus_network.cluster_network", "type", "bridge"),
+					resource.TestCheckResourceAttr("incus_network.cluster_network", "config.ipv4.address", "10.150.19.1/24"),
 				),
 			},
 		},
@@ -171,9 +171,9 @@ func TestAccNetwork_project(t *testing.T) {
 			{
 				Config: testAccNetwork_project(projectName),
 				Check: resource.ComposeTestCheckFunc(
-					resource.TestCheckResourceAttr("lxd_network.eth1", "name", "eth1"),
-					resource.TestCheckResourceAttr("lxd_network.eth1", "project", projectName),
-					resource.TestCheckResourceAttr("lxd_project.project1", "name", projectName),
+					resource.TestCheckResourceAttr("incus_network.eth1", "name", "eth1"),
+					resource.TestCheckResourceAttr("incus_network.eth1", "project", projectName),
+					resource.TestCheckResourceAttr("incus_project.project1", "name", projectName),
 				),
 			},
 		},
@@ -181,7 +181,7 @@ func TestAccNetwork_project(t *testing.T) {
 }
 
 func TestAccNetwork_importBasic(t *testing.T) {
-	resourceName := "lxd_network.eth1"
+	resourceName := "incus_network.eth1"
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { acctest.PreCheck(t) },
@@ -202,7 +202,7 @@ func TestAccNetwork_importBasic(t *testing.T) {
 }
 
 func TestAccNetwork_importDesc(t *testing.T) {
-	resourceName := "lxd_network.eth1"
+	resourceName := "incus_network.eth1"
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { acctest.PreCheck(t) },
@@ -223,7 +223,7 @@ func TestAccNetwork_importDesc(t *testing.T) {
 }
 
 func TestAccNetwork_importProject(t *testing.T) {
-	resourceName := "lxd_network.eth1"
+	resourceName := "incus_network.eth1"
 	projectName := petname.Name()
 
 	resource.Test(t, resource.TestCase{
@@ -246,7 +246,7 @@ func TestAccNetwork_importProject(t *testing.T) {
 
 func testAccNetwork_basic() string {
 	return `
-resource "lxd_network" "eth1" {
+resource "incus_network" "eth1" {
   name = "eth1"
 }
 `
@@ -254,7 +254,7 @@ resource "lxd_network" "eth1" {
 
 func testAccNetwork_desc() string {
 	return `
-resource "lxd_network" "eth1" {
+resource "incus_network" "eth1" {
   name        = "eth1"
   description = "My network"
   config = {
@@ -267,14 +267,14 @@ resource "lxd_network" "eth1" {
 
 func testAccNetwork_attach(profileName, instanceName string) string {
 	return fmt.Sprintf(`
-resource "lxd_network" "eth1" {
+resource "incus_network" "eth1" {
   name = "eth1"
   config = {
     "ipv4.address" = "10.150.19.1/24"
   }
 }
 
-resource "lxd_profile" "profile1" {
+resource "incus_profile" "profile1" {
   name = "%s"
 
   device {
@@ -282,22 +282,22 @@ resource "lxd_profile" "profile1" {
     type = "nic"
     properties = {
       nictype = "bridged"
-      parent  = lxd_network.eth1.name
+      parent  = incus_network.eth1.name
     }
   }
 }
 
-resource "lxd_instance" "instance1" {
+resource "incus_instance" "instance1" {
   name     = "%s"
   image    = "%s"
-  profiles = ["default", lxd_profile.profile1.name]
+  profiles = ["default", incus_profile.profile1.name]
 }
 `, profileName, instanceName, acctest.TestImage)
 }
 
 func testAccNetwork_updateConfig_1(instanceName string) string {
 	return fmt.Sprintf(`
-resource "lxd_network" "eth1" {
+resource "incus_network" "eth1" {
   name = "eth1"
   config = {
     "ipv4.address" = "10.150.19.1/24"
@@ -307,7 +307,7 @@ resource "lxd_network" "eth1" {
 
 # We do need an instance here to ensure the network cannot
 # be deleted, but must be updated in-place.
-resource "lxd_instance" "instance1" {
+resource "incus_instance" "instance1" {
   name             = "%s"
   image            = "%s"
   wait_for_network = true
@@ -317,7 +317,7 @@ resource "lxd_instance" "instance1" {
     type = "nic"
     properties = {
       nictype = "bridged"
-      parent  = lxd_network.eth1.name
+      parent  = incus_network.eth1.name
     }
   }
 }
@@ -326,7 +326,7 @@ resource "lxd_instance" "instance1" {
 
 func testAccNetwork_updateConfig_2(instanceName string) string {
 	return fmt.Sprintf(`
-resource "lxd_network" "eth1" {
+resource "incus_network" "eth1" {
   name = "eth1"
 
   config = {
@@ -337,7 +337,7 @@ resource "lxd_network" "eth1" {
 
 # We do need an instance here to ensure the network cannot
 # be deleted, but must be updated in-place.
-resource "lxd_instance" "instance1" {
+resource "incus_instance" "instance1" {
   name             = "%s"
   image            = "%s"
   wait_for_network = false
@@ -347,7 +347,7 @@ resource "lxd_instance" "instance1" {
     type = "nic"
     properties = {
       nictype = "bridged"
-      parent  = lxd_network.eth1.name
+      parent  = incus_network.eth1.name
     }
   }
 }
@@ -356,7 +356,7 @@ resource "lxd_instance" "instance1" {
 
 func testAccNetwork_typeMacvlan() string {
 	return `
-resource "lxd_network" "eth1" {
+resource "incus_network" "eth1" {
   name = "eth1"
   type = "macvlan"
 
@@ -369,7 +369,7 @@ resource "lxd_network" "eth1" {
 
 func testAccNetwork_target(networkName string) string {
 	return fmt.Sprintf(`
-resource "lxd_network" "cluster_network_node1" {
+resource "incus_network" "cluster_network_node1" {
   name   = "%[1]s"
   target = "node-1"
 
@@ -378,7 +378,7 @@ resource "lxd_network" "cluster_network_node1" {
   }
 }
 
-resource "lxd_network" "cluster_network_node2" {
+resource "incus_network" "cluster_network_node2" {
   name   = "%[1]s"
   target = "node-2"
 
@@ -387,13 +387,13 @@ resource "lxd_network" "cluster_network_node2" {
   }
 }
 
-resource "lxd_network" "cluster_network" {
+resource "incus_network" "cluster_network" {
   depends_on = [
-    lxd_network.cluster_network_node1,
-    lxd_network.cluster_network_node2,
+    incus_network.cluster_network_node1,
+    incus_network.cluster_network_node2,
   ]
 
-  name = lxd_network.cluster_network_node1.name
+  name = incus_network.cluster_network_node1.name
   config = {
     "ipv4.address" = "10.150.19.1/24"
   }
@@ -403,15 +403,15 @@ resource "lxd_network" "cluster_network" {
 
 func testAccNetwork_project(project string) string {
 	return fmt.Sprintf(`
-resource "lxd_project" "project1" {
+resource "incus_project" "project1" {
   name        = "%s"
   description = "Terraform provider test project"
 }
 
-resource "lxd_network" "eth1" {
+resource "incus_network" "eth1" {
   name    = "eth1"
   type    = "bridge"
-  project = lxd_project.project1.name
+  project = incus_project.project1.name
 }
 	`, project)
 }

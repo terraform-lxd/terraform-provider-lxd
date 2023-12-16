@@ -1,23 +1,23 @@
-# lxd_publish_image
+# incus_publish_image
 
-Create a LXD image from a container
+Create an Incus image from a container
 
 ## Example Usage
 
 ```hcl
-resource "lxd_cached_image" "xenial" {
+resource "incus_cached_image" "xenial" {
   source_remote = "ubuntu"
   source_image  = "xenial/amd64"
 }
 
-resource "lxd_instance" "test1" {
+resource "incus_instance" "test1" {
   name    = "test1"
-  image   = lxd_cached_image.xenial.fingerprint
+  image   = incus_cached_image.xenial.fingerprint
   running = false
 }
 
-resource "lxd_publish_image" "test1" {
-  instance = lxd_instance.test1
+resource "incus_publish_image" "test1" {
+  instance = incus_instance.test1
   aliases  = ["test1_img"]
 }
 ```

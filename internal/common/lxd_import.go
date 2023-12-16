@@ -159,7 +159,7 @@ func newImportIDError(m ImportMetadata, importId string, err error) diag.Diagnos
 	return diag.NewErrorDiagnostic(
 		fmt.Sprintf("Invalid import ID: %q", importId),
 		fmt.Sprintf(
-			"%v.\n\nValid import format:\nimport lxd_%s.<resource> %s%s%s%s",
+			"%v.\n\nValid import format:\nimport incus_%s.<resource> %s%s%s%s",
 			err, m.ResourceName, remote, project, fields, options,
 		),
 	)
