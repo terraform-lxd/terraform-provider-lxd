@@ -14,7 +14,7 @@ type DeviceModel struct {
 	Properties types.Map    `tfsdk:"properties"`
 }
 
-// ToDeviceMap converts deviecs from types.Set into map[string]map[string]string.
+// ToDeviceMap converts devices from types.Set into map[string]map[string]string.
 func ToDeviceMap(ctx context.Context, deviceSet types.Set) (map[string]map[string]string, diag.Diagnostics) {
 	if deviceSet.IsNull() || deviceSet.IsUnknown() {
 		return make(map[string]map[string]string), nil
@@ -47,7 +47,7 @@ func ToDeviceMap(ctx context.Context, deviceSet types.Set) (map[string]map[strin
 	return devices, nil
 }
 
-// ToDeviceSetType converts deviecs from map[string]map[string]string
+// ToDeviceSetType converts devices from map[string]map[string]string
 // into types.Set.
 func ToDeviceSetType(ctx context.Context, devices map[string]map[string]string) (types.Set, diag.Diagnostics) {
 	deviceType := map[string]attr.Type{
