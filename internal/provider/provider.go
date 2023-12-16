@@ -117,7 +117,7 @@ func (p *IncusProvider) Schema(_ context.Context, _ provider.SchemaRequest, resp
 						"token": schema.StringAttribute{
 							Optional:    true,
 							Sensitive:   true,
-							Description: "The token for the remote.",
+							Description: "The trust token for the remote.",
 						},
 
 						"default": schema.BoolAttribute{

@@ -90,7 +90,7 @@ The `remote` block supports:
 
 * `name` - *Optional* - The name of the Incus remote.
 
-* `token` - *Optional* - The token to authenticate to the Incus remote.
+* `token` - *Optional* - The trust token to authenticate to the Incus remote.
 
 * `port` - *Optional* - The port of the Incus remote.
 
@@ -111,7 +111,7 @@ The required variables are:
 * `INCUS_REMOTE` - The name of the remote.
 * `INCUS_ADDR` - The address of the Incus remote.
 * `INCUS_PORT` - The port of the Incus remote.
-* `INCUS_TOKEN` - The token of the Incus remote.
+* `INCUS_TOKEN` - The trust token of the Incus remote.
 * `INCUS_SCHEME` - The scheme to use (`unix` or `https`).
 
 ## PKI Support
