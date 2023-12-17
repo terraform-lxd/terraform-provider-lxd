@@ -20,12 +20,12 @@ func TestAccPublishImage_basic(t *testing.T) {
 			{
 				Config: testAccPublishImage_basic(instanceName),
 				Check: resource.ComposeTestCheckFunc(
-					resource.TestCheckResourceAttr("lxd_instance.instance1", "name", instanceName),
-					resource.TestCheckResourceAttr("lxd_instance.instance1", "status", "Stopped"),
-					resource.TestCheckResourceAttr("lxd_publish_image.pimg", "instance", instanceName),
-					resource.TestCheckResourceAttr("lxd_publish_image.pimg", "aliases.#", "1"),
-					resource.TestCheckResourceAttr("lxd_publish_image.pimg", "aliases.0", "test_basic"),
-					resource.TestCheckResourceAttrSet("lxd_publish_image.pimg", "resource_id"),
+					resource.TestCheckResourceAttr("incus_instance.instance1", "name", instanceName),
+					resource.TestCheckResourceAttr("incus_instance.instance1", "status", "Stopped"),
+					resource.TestCheckResourceAttr("incus_publish_image.pimg", "instance", instanceName),
+					resource.TestCheckResourceAttr("incus_publish_image.pimg", "aliases.#", "1"),
+					resource.TestCheckResourceAttr("incus_publish_image.pimg", "aliases.0", "test_basic"),
+					resource.TestCheckResourceAttrSet("incus_publish_image.pimg", "resource_id"),
 				),
 			},
 		},
@@ -43,13 +43,13 @@ func TestAccPublishImage_aliases(t *testing.T) {
 			{
 				Config: testAccPublishImage_aliases(instanceName, aliases...),
 				Check: resource.ComposeTestCheckFunc(
-					resource.TestCheckResourceAttr("lxd_instance.instance1", "name", instanceName),
-					resource.TestCheckResourceAttr("lxd_instance.instance1", "status", "Stopped"),
-					resource.TestCheckResourceAttr("lxd_publish_image.pimg", "instance", instanceName),
-					resource.TestCheckResourceAttr("lxd_publish_image.pimg", "aliases.#", "2"),
-					resource.TestCheckTypeSetElemAttr("lxd_publish_image.pimg", "aliases.*", aliases[0]),
-					resource.TestCheckTypeSetElemAttr("lxd_publish_image.pimg", "aliases.*", aliases[1]),
-					resource.TestCheckResourceAttrSet("lxd_publish_image.pimg", "resource_id"),
+					resource.TestCheckResourceAttr("incus_instance.instance1", "name", instanceName),
+					resource.TestCheckResourceAttr("incus_instance.instance1", "status", "Stopped"),
+					resource.TestCheckResourceAttr("incus_publish_image.pimg", "instance", instanceName),
+					resource.TestCheckResourceAttr("incus_publish_image.pimg", "aliases.#", "2"),
+					resource.TestCheckTypeSetElemAttr("incus_publish_image.pimg", "aliases.*", aliases[0]),
+					resource.TestCheckTypeSetElemAttr("incus_publish_image.pimg", "aliases.*", aliases[1]),
+					resource.TestCheckResourceAttrSet("incus_publish_image.pimg", "resource_id"),
 				),
 			},
 		},
@@ -67,14 +67,14 @@ func TestAccPublishImage_properties(t *testing.T) {
 			{
 				Config: testAccPublishImage_properties(instanceName, properties),
 				Check: resource.ComposeTestCheckFunc(
-					resource.TestCheckResourceAttr("lxd_instance.instance1", "name", instanceName),
-					resource.TestCheckResourceAttr("lxd_instance.instance1", "status", "Stopped"),
-					resource.TestCheckResourceAttr("lxd_publish_image.pimg", "instance", instanceName),
-					resource.TestCheckResourceAttr("lxd_publish_image.pimg", "aliases.#", "0"),
-					resource.TestCheckResourceAttr("lxd_publish_image.pimg", "properties.%", "2"),
-					resource.TestCheckResourceAttr("lxd_publish_image.pimg", "properties.os", "Alpine"),
-					resource.TestCheckResourceAttr("lxd_publish_image.pimg", "properties.version", "4"),
-					resource.TestCheckResourceAttrSet("lxd_publish_image.pimg", "resource_id"),
+					resource.TestCheckResourceAttr("incus_instance.instance1", "name", instanceName),
+					resource.TestCheckResourceAttr("incus_instance.instance1", "status", "Stopped"),
+					resource.TestCheckResourceAttr("incus_publish_image.pimg", "instance", instanceName),
+					resource.TestCheckResourceAttr("incus_publish_image.pimg", "aliases.#", "0"),
+					resource.TestCheckResourceAttr("incus_publish_image.pimg", "properties.%", "2"),
+					resource.TestCheckResourceAttr("incus_publish_image.pimg", "properties.os", "Alpine"),
+					resource.TestCheckResourceAttr("incus_publish_image.pimg", "properties.version", "4"),
+					resource.TestCheckResourceAttrSet("incus_publish_image.pimg", "resource_id"),
 				),
 			},
 		},
@@ -92,14 +92,14 @@ func TestAccPublishImage_project(t *testing.T) {
 			{
 				Config: testAccPublishImage_project(projectName, instanceName),
 				Check: resource.ComposeTestCheckFunc(
-					resource.TestCheckResourceAttr("lxd_project.project1", "name", projectName),
-					resource.TestCheckResourceAttr("lxd_instance.instance1", "name", instanceName),
-					resource.TestCheckResourceAttr("lxd_instance.instance1", "status", "Stopped"),
-					resource.TestCheckResourceAttr("lxd_publish_image.pimg", "instance", instanceName),
-					resource.TestCheckResourceAttr("lxd_publish_image.pimg", "aliases.#", "0"),
-					resource.TestCheckResourceAttr("lxd_publish_image.pimg", "aliases.#", "0"),
-					resource.TestCheckResourceAttr("lxd_publish_image.pimg", "project", projectName),
-					resource.TestCheckResourceAttrSet("lxd_publish_image.pimg", "resource_id"),
+					resource.TestCheckResourceAttr("incus_project.project1", "name", projectName),
+					resource.TestCheckResourceAttr("incus_instance.instance1", "name", instanceName),
+					resource.TestCheckResourceAttr("incus_instance.instance1", "status", "Stopped"),
+					resource.TestCheckResourceAttr("incus_publish_image.pimg", "instance", instanceName),
+					resource.TestCheckResourceAttr("incus_publish_image.pimg", "aliases.#", "0"),
+					resource.TestCheckResourceAttr("incus_publish_image.pimg", "aliases.#", "0"),
+					resource.TestCheckResourceAttr("incus_publish_image.pimg", "project", projectName),
+					resource.TestCheckResourceAttrSet("incus_publish_image.pimg", "resource_id"),
 				),
 			},
 		},
@@ -108,14 +108,14 @@ func TestAccPublishImage_project(t *testing.T) {
 
 func testAccPublishImage_basic(name string) string {
 	return fmt.Sprintf(`
-resource "lxd_instance" "instance1" {
+resource "incus_instance" "instance1" {
   name    = "%s"
   image   = "%s"
   running = false
 }
 
-resource "lxd_publish_image" "pimg" {
-  instance = lxd_instance.instance1.name
+resource "incus_publish_image" "pimg" {
+  instance = incus_instance.instance1.name
   aliases  = ["test_basic"]
 }
 	`, name, acctest.TestImage)
@@ -123,14 +123,14 @@ resource "lxd_publish_image" "pimg" {
 
 func testAccPublishImage_aliases(name string, aliases ...string) string {
 	return fmt.Sprintf(`
-resource "lxd_instance" "instance1" {
+resource "incus_instance" "instance1" {
   name    = "%s"
   image   = "%s"
   running = false
 }
 
-resource "lxd_publish_image" "pimg" {
-  instance = lxd_instance.instance1.name
+resource "incus_publish_image" "pimg" {
+  instance = incus_instance.instance1.name
   aliases  = ["%s"]
 }
 	`, name, acctest.TestImage, strings.Join(toStringSlice(aliases), "\",\""))
@@ -138,14 +138,14 @@ resource "lxd_publish_image" "pimg" {
 
 func testAccPublishImage_properties(name string, properties map[string]string) string {
 	return fmt.Sprintf(`
-resource "lxd_instance" "instance1" {
+resource "incus_instance" "instance1" {
   name    = "%s"
   image   = "%s"
   running = false
 }
 
-resource "lxd_publish_image" "pimg" {
-  instance = lxd_instance.instance1.name
+resource "incus_publish_image" "pimg" {
+  instance = incus_instance.instance1.name
   properties = {
     %s
   }
@@ -155,7 +155,7 @@ resource "lxd_publish_image" "pimg" {
 
 func testAccPublishImage_project(project, instance string) string {
 	return fmt.Sprintf(`
-resource "lxd_project" "project1" {
+resource "incus_project" "project1" {
   name = "%s"
   config = {
     "features.storage.volumes" = false
@@ -164,16 +164,16 @@ resource "lxd_project" "project1" {
   }
 }
 
-resource "lxd_instance" "instance1" {
+resource "incus_instance" "instance1" {
   name    = "%s"
   image   = "%s"
-  project = lxd_project.project1.name
+  project = incus_project.project1.name
   running = false
 }
 
-resource "lxd_publish_image" "pimg" {
-  instance = lxd_instance.instance1.name
-  project  = lxd_project.project1.name
+resource "incus_publish_image" "pimg" {
+  instance = incus_instance.instance1.name
+  project  = incus_project.project1.name
 }
 	`, project, instance, acctest.TestImage)
 }

@@ -11,7 +11,7 @@ import (
 
 	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/types"
-	lxd "github.com/lxc/incus/client"
+	incus "github.com/lxc/incus/client"
 	"github.com/lxc/terraform-provider-incus/internal/errors"
 	"github.com/mitchellh/go-homedir"
 )
@@ -27,7 +27,7 @@ type InstanceFileModel struct {
 	Append     types.Bool   `tfsdk:"append"`
 }
 
-// ToFileMap converts files from types.Set into map[string]LxdFileModel.
+// ToFileMap converts files from types.Set into map[string]IncusFileModel.
 func ToFileMap(ctx context.Context, fileSet types.Set) (map[string]InstanceFileModel, diag.Diagnostics) {
 	if fileSet.IsNull() || fileSet.IsUnknown() {
 		return make(map[string]InstanceFileModel), nil
@@ -48,7 +48,7 @@ func ToFileMap(ctx context.Context, fileSet types.Set) (map[string]InstanceFileM
 	return fileMap, diags
 }
 
-// ToFileSetType converts files from a map[string]LxdFileModel into types.Set.
+// ToFileSetType converts files from a map[string]IncusFileModel into types.Set.
 func ToFileSetType(ctx context.Context, fileMap map[string]InstanceFileModel) (types.Set, diag.Diagnostics) {
 	files := make([]InstanceFileModel, 0, len(fileMap))
 	for _, v := range fileMap {
@@ -59,7 +59,7 @@ func ToFileSetType(ctx context.Context, fileMap map[string]InstanceFileModel) (t
 }
 
 // InstanceFileDelete deletes a file from an instance.
-func InstanceFileDelete(server lxd.InstanceServer, instanceName string, targetPath string) error {
+func InstanceFileDelete(server incus.InstanceServer, instanceName string, targetPath string) error {
 	targetPath, err := toAbsFilePath(targetPath)
 	if err != nil {
 		return err
@@ -74,7 +74,7 @@ func InstanceFileDelete(server lxd.InstanceServer, instanceName string, targetPa
 }
 
 // InstanceFileUpload uploads a file to an instance.
-func InstanceFileUpload(server lxd.InstanceServer, instanceName string, file InstanceFileModel) error {
+func InstanceFileUpload(server incus.InstanceServer, instanceName string, file InstanceFileModel) error {
 	content := file.Content.ValueString()
 	sourcePath := file.SourcePath.ValueString()
 
@@ -98,7 +98,7 @@ func InstanceFileUpload(server lxd.InstanceServer, instanceName string, file Ins
 	}
 
 	// Build the file creation request, without the content.
-	args := &lxd.InstanceFileArgs{
+	args := &incus.InstanceFileArgs{
 		Type: "file",
 		Mode: int(mode),
 		UID:  file.UserID.ValueInt64(),
@@ -149,7 +149,7 @@ func InstanceFileUpload(server lxd.InstanceServer, instanceName string, file Ins
 
 // recursiveMkdir recursively creates directories on target instance.
 // This was copied almost as-is from github.com/lxc/incus/blob/main/lxc/file.go.
-func recursiveMkdir(server lxd.InstanceServer, instanceName string, p string, args lxd.InstanceFileArgs) error {
+func recursiveMkdir(server incus.InstanceServer, instanceName string, p string, args incus.InstanceFileArgs) error {
 	// Special case, every instance has a /, so there is nothing to do.
 	if p == "/" {
 		return nil
@@ -177,7 +177,7 @@ func recursiveMkdir(server lxd.InstanceServer, instanceName string, p string, ar
 	}
 
 	// Use same arguments as for file upload, only change file type.
-	dirArgs := lxd.InstanceFileArgs{
+	dirArgs := incus.InstanceFileArgs{
 		Type: "directory",
 		Mode: args.Mode,
 		UID:  args.UID,

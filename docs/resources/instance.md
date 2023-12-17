@@ -1,13 +1,13 @@
-# lxd_instance
+# incus_instance
 
-Manages an LXD instance that can be either a container or virtual machine.
+Manages an Incus instance that can be either a container or virtual machine.
 
-An instance can take a number of configuration and device options. A full reference can be found [here](https://documentation.ubuntu.com/lxd/en/latest/reference/instance_options/).
+An instance can take a number of configuration and device options. A full reference can be found [here](https://linuxcontainers.org/incus/docs/main/reference/instance_options/).
 
 ## Basic Example
 
 ```hcl
-resource "lxd_instance" "container1" {
+resource "incus_instance" "container1" {
   name  = "container1"
   image = "images:ubuntu/22.04"
 
@@ -24,17 +24,17 @@ resource "lxd_instance" "container1" {
 ## Example to Attach a Volume
 
 ```hcl
-resource "lxd_storage_pool" "pool1" {
+resource "incus_storage_pool" "pool1" {
   name   = "mypool"
   driver = "zfs"
 }
 
-resource "lxd_volume" "volume1" {
+resource "incus_volume" "volume1" {
   name = "myvolume"
-  pool = lxd_storage_pool.pool1.name
+  pool = incus_storage_pool.pool1.name
 }
 
-resource "lxd_instance" "container1" {
+resource "incus_instance" "container1" {
   name  = "%s"
   image = "ubuntu"
 
@@ -43,8 +43,8 @@ resource "lxd_instance" "container1" {
     type = "disk"
     properties = {
       path   = "/mount/point/in/instance"
-      source = lxd_volume.volume1.name
-      pool   = lxd_storage_pool.pool1.name
+      source = incus_volume.volume1.name
+      pool   = incus_storage_pool.pool1.name
     }
   }
 }
@@ -53,7 +53,7 @@ resource "lxd_instance" "container1" {
 ## Example to proxy/forward ports
 
 ```hcl
-resource "lxd_instance" "container2" {
+resource "incus_instance" "container2" {
   name      = "container2"
   image     = "ubuntu"
   profiles  = ["default"]
@@ -63,7 +63,7 @@ resource "lxd_instance" "container2" {
     name = "http"
     type = "proxy"
     properties = {
-      # Listen on LXD host's TCP port 80
+      # Listen on Incus host's TCP port 80
       listen = "tcp:0.0.0.0:80"
       # And connect to the instance's TCP port 80
       connect = "tcp:127.0.0.1:80"
@@ -77,7 +77,7 @@ resource "lxd_instance" "container2" {
 * `name` - **Required** - Name of the instance.
 
 * `image` - **Required** - Base image from which the instance will be created. Must
-  specify [an image accessible from the provider remote](https://documentation.ubuntu.com/lxd/en/latest/reference/remote_image_servers/).
+  specify [an image accessible from the provider remote](https://linuxcontainers.org/incus/docs/main/reference/remote_image_servers/).
 
 * `description` - *Optional* - Description of the instance.
 
@@ -90,7 +90,7 @@ resource "lxd_instance" "container2" {
 * `wait_for_network` - *Optional* - Boolean indicating if the provider should wait for the instance to get an IPv4 address before considering the instance as started.
   If `running` is set to false or instance is already running (on update), this value has no effect. Defaults to `true`.
 
-* `profiles` - *Optional* - List of LXD config profiles to apply to the new
+* `profiles` - *Optional* - List of Incus config profiles to apply to the new
 	instance. Profile `default` will be applied if profiles are not set (are `null`).
   However, if an empty array (`[]`) is set as a value, no profiles will be applied.
 
@@ -99,10 +99,10 @@ resource "lxd_instance" "container2" {
 * `file` - *Optional* - File to upload to the instance. See reference below.
 
 * `limits` - *Optional* - Map of key/value pairs that define the
-	[instance resources limits](https://documentation.ubuntu.com/lxd/en/latest/reference/instance_options/#resource-limits).
+	[instance resources limits](https://linuxcontainers.org/incus/docs/main/reference/instance_options/#resource-limits).
 
 * `config` - *Optional* - Map of key/value pairs of
-	[instance config settings](https://documentation.ubuntu.com/lxd/en/latest/reference/instance_options/).
+	[instance config settings](https://linuxcontainers.org/incus/docs/main/reference/instance_options/).
 
 * `project` - *Optional* - Name of the project where the instance will be spawned.
 
@@ -119,7 +119,7 @@ The `device` block supports:
 	unix-char, unix-block, usb, gpu, infiniband, proxy, unix-hotplug, tpm, pci.
 
 * `properties`- **Required** - Map of key/value pairs of
-	[device properties](https://documentation.ubuntu.com/lxd/en/latest/reference/devices/).
+	[device properties](https://linuxcontainers.org/incus/docs/main/reference/devices/).
 
 The `file` block supports:
 
@@ -165,7 +165,7 @@ Terraform will use the _last_ address detected. Global IPv6 address will be favo
 To specify an interface, do the following:
 
 ```hcl
-resource "lxd_instance" "instance1" {
+resource "incus_instance" "instance1" {
   name = "instance1"
   image = "images:alpine/3.5/amd64"
   profiles = ["default"]
@@ -193,27 +193,27 @@ Import ID syntax: `[<remote>:][<project>/]<name>[,image=<image>]`
 Example using terraform import command:
 
 ```shell
-$ terraform import lxd_instance.myinst proj/c1,image=images:alpine/3.18/amd64
+$ terraform import incus_instance.myinst proj/c1,image=images:alpine/3.18/amd64
 ```
 
 Example using the import block (only available in Terraform v1.5.0 and later):
 
 ```hcl
-resource "lxd_instance" "myinst" {
+resource "incus_instance" "myinst" {
   name    = "c1"
   project = "proj"
   image   = "images:alpine/3.18/amd64"
 }
 
 import {
-  to = lxd_instance.myinst
+  to = incus_instance.myinst
   id = "proj/c1,image=images:alpine/3.18/amd64"
 }
 ```
 
 ## Notes
 
-* The instance resource `config` includes some keys that can be automatically generated by the LXD.
+* The instance resource `config` includes some keys that can be automatically generated by the Incus.
   If these keys are not explicitly defined by the user, they will be omitted from the Terraform
   state and treated as computed values.
     - `image.*`

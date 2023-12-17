@@ -1,18 +1,18 @@
-# lxd_cached_image
+# incus_cached_image
 
-Manages a locally-stored LXD image.
+Manages a locally-stored Incus image.
 
 ## Example Usage
 
 ```hcl
-resource "lxd_cached_image" "xenial" {
+resource "incus_cached_image" "xenial" {
   source_remote = "ubuntu"
   source_image  = "xenial/amd64"
 }
 
-resource "lxd_instance" "test1" {
+resource "incus_instance" "test1" {
   name      = "test1"
-  image     = lxd_cached_image.xenial.fingerprint
+  image     = incus_cached_image.xenial.fingerprint
   ephemeral = false
 }
 ```
@@ -21,7 +21,7 @@ resource "lxd_instance" "test1" {
 
 * `source_image` - **Required** - Fingerprint or alias of image to pull.
 
-* `source_remote` - **Required** - Name of the LXD remote from where image will
+* `source_remote` - **Required** - Name of the Incus remote from where image will
 	be pulled.
 
 * `type` - *Optional* - Type of image to cache. Must be one of `container` or
@@ -53,4 +53,4 @@ The following attributes are exported:
 
 ## Notes
 
-* See the LXD [documentation](https://documentation.ubuntu.com/lxd/en/latest/howto/images_remote) for more info on default image remotes.
+* See the Incus [documentation](https://linuxcontainers.org/incus/docs/main/howto/images_remote) for more info on default image remotes.

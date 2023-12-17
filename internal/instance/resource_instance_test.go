@@ -20,12 +20,12 @@ func TestAccInstance_basic(t *testing.T) {
 			{
 				Config: testAccInstance_basic(instanceName),
 				Check: resource.ComposeTestCheckFunc(
-					resource.TestCheckResourceAttr("lxd_instance.instance1", "name", instanceName),
-					resource.TestCheckResourceAttr("lxd_instance.instance1", "status", "Running"),
-					resource.TestCheckResourceAttr("lxd_instance.instance1", "ephemeral", "false"),
-					resource.TestCheckResourceAttr("lxd_instance.instance1", "image", acctest.TestImage),
-					resource.TestCheckResourceAttr("lxd_instance.instance1", "profiles.#", "1"),
-					resource.TestCheckResourceAttr("lxd_instance.instance1", "profiles.0", "default"),
+					resource.TestCheckResourceAttr("incus_instance.instance1", "name", instanceName),
+					resource.TestCheckResourceAttr("incus_instance.instance1", "status", "Running"),
+					resource.TestCheckResourceAttr("incus_instance.instance1", "ephemeral", "false"),
+					resource.TestCheckResourceAttr("incus_instance.instance1", "image", acctest.TestImage),
+					resource.TestCheckResourceAttr("incus_instance.instance1", "profiles.#", "1"),
+					resource.TestCheckResourceAttr("incus_instance.instance1", "profiles.0", "default"),
 				),
 			},
 		},
@@ -42,11 +42,11 @@ func TestAccInstance_ephemeral(t *testing.T) {
 			{
 				Config: testAccInstance_ephemeral(instanceName),
 				Check: resource.ComposeTestCheckFunc(
-					resource.TestCheckResourceAttr("lxd_instance.instance1", "name", instanceName),
-					resource.TestCheckResourceAttr("lxd_instance.instance1", "status", "Running"),
-					resource.TestCheckResourceAttr("lxd_instance.instance1", "ephemeral", "true"),
-					resource.TestCheckResourceAttr("lxd_instance.instance1", "profiles.#", "1"),
-					resource.TestCheckResourceAttr("lxd_instance.instance1", "profiles.0", "default"),
+					resource.TestCheckResourceAttr("incus_instance.instance1", "name", instanceName),
+					resource.TestCheckResourceAttr("incus_instance.instance1", "status", "Running"),
+					resource.TestCheckResourceAttr("incus_instance.instance1", "ephemeral", "true"),
+					resource.TestCheckResourceAttr("incus_instance.instance1", "profiles.#", "1"),
+					resource.TestCheckResourceAttr("incus_instance.instance1", "profiles.0", "default"),
 				),
 			},
 		},
@@ -78,10 +78,10 @@ func TestAccInstance_container(t *testing.T) {
 			{
 				Config: testAccInstance_container(instanceName),
 				Check: resource.ComposeTestCheckFunc(
-					resource.TestCheckResourceAttr("lxd_instance.instance1", "name", instanceName),
-					resource.TestCheckResourceAttr("lxd_instance.instance1", "type", "container"),
-					resource.TestCheckResourceAttr("lxd_instance.instance1", "status", "Stopped"),
-					resource.TestCheckResourceAttr("lxd_instance.instance1", "running", "false"),
+					resource.TestCheckResourceAttr("incus_instance.instance1", "name", instanceName),
+					resource.TestCheckResourceAttr("incus_instance.instance1", "type", "container"),
+					resource.TestCheckResourceAttr("incus_instance.instance1", "status", "Stopped"),
+					resource.TestCheckResourceAttr("incus_instance.instance1", "running", "false"),
 				),
 			},
 		},
@@ -101,16 +101,16 @@ func TestAccInstance_virtualMachine(t *testing.T) {
 			{
 				Config: testAccInstance_virtualMachine(instanceName),
 				Check: resource.ComposeTestCheckFunc(
-					resource.TestCheckResourceAttr("lxd_instance.instance1", "name", instanceName),
-					resource.TestCheckResourceAttr("lxd_instance.instance1", "type", "virtual-machine"),
-					resource.TestCheckResourceAttr("lxd_instance.instance1", "status", "Running"),
+					resource.TestCheckResourceAttr("incus_instance.instance1", "name", instanceName),
+					resource.TestCheckResourceAttr("incus_instance.instance1", "type", "virtual-machine"),
+					resource.TestCheckResourceAttr("incus_instance.instance1", "status", "Running"),
 				),
 			},
 		},
 	})
 }
 
-func TestAccInstance_virtualMachineNoDevLxd(t *testing.T) {
+func TestAccInstance_virtualMachineNoDevIncus(t *testing.T) {
 	instanceName := petname.Generate(2, "-")
 
 	resource.Test(t, resource.TestCase{
@@ -121,12 +121,12 @@ func TestAccInstance_virtualMachineNoDevLxd(t *testing.T) {
 		ProtoV6ProviderFactories: acctest.ProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccInstance_virtualMachineNoDevLxd(instanceName),
+				Config: testAccInstance_virtualMachineNoDevIncus(instanceName),
 				Check: resource.ComposeTestCheckFunc(
-					resource.TestCheckResourceAttr("lxd_instance.instance1", "name", instanceName),
-					resource.TestCheckResourceAttr("lxd_instance.instance1", "type", "virtual-machine"),
-					resource.TestCheckResourceAttr("lxd_instance.instance1", "status", "Running"),
-					resource.TestCheckResourceAttr("lxd_instance.instance1", "config.security.guestapi", "false"),
+					resource.TestCheckResourceAttr("incus_instance.instance1", "name", instanceName),
+					resource.TestCheckResourceAttr("incus_instance.instance1", "type", "virtual-machine"),
+					resource.TestCheckResourceAttr("incus_instance.instance1", "status", "Running"),
+					resource.TestCheckResourceAttr("incus_instance.instance1", "config.security.guestapi", "false"),
 				),
 			},
 		},
@@ -144,30 +144,30 @@ func TestAccInstance_restartContainer(t *testing.T) {
 			{
 				Config: testAccInstance_started(instanceName, instanceType),
 				Check: resource.ComposeTestCheckFunc(
-					resource.TestCheckResourceAttr("lxd_instance.instance1", "name", instanceName),
-					resource.TestCheckResourceAttr("lxd_instance.instance1", "type", instanceType),
-					resource.TestCheckResourceAttr("lxd_instance.instance1", "status", "Running"),
-					resource.TestCheckResourceAttr("lxd_instance.instance1", "running", "true"),
-					resource.TestCheckResourceAttrSet("lxd_instance.instance1", "mac_address"),
-					resource.TestCheckResourceAttrSet("lxd_instance.instance1", "ipv4_address"),
-					resource.TestCheckResourceAttrSet("lxd_instance.instance1", "ipv6_address"),
+					resource.TestCheckResourceAttr("incus_instance.instance1", "name", instanceName),
+					resource.TestCheckResourceAttr("incus_instance.instance1", "type", instanceType),
+					resource.TestCheckResourceAttr("incus_instance.instance1", "status", "Running"),
+					resource.TestCheckResourceAttr("incus_instance.instance1", "running", "true"),
+					resource.TestCheckResourceAttrSet("incus_instance.instance1", "mac_address"),
+					resource.TestCheckResourceAttrSet("incus_instance.instance1", "ipv4_address"),
+					resource.TestCheckResourceAttrSet("incus_instance.instance1", "ipv6_address"),
 				),
 			},
 			{
 				Config: testAccInstance_stopped(instanceName, instanceType),
 				Check: resource.ComposeTestCheckFunc(
-					resource.TestCheckResourceAttr("lxd_instance.instance1", "name", instanceName),
-					resource.TestCheckResourceAttr("lxd_instance.instance1", "status", "Stopped"),
-					resource.TestCheckResourceAttr("lxd_instance.instance1", "running", "false"),
+					resource.TestCheckResourceAttr("incus_instance.instance1", "name", instanceName),
+					resource.TestCheckResourceAttr("incus_instance.instance1", "status", "Stopped"),
+					resource.TestCheckResourceAttr("incus_instance.instance1", "running", "false"),
 				),
 			},
 			{
 				// Verifies that instance is started with network.
 				Config: testAccInstance_started(instanceName, instanceType),
 				Check: resource.ComposeTestCheckFunc(
-					resource.TestCheckResourceAttr("lxd_instance.instance1", "name", instanceName),
-					resource.TestCheckResourceAttr("lxd_instance.instance1", "status", "Running"),
-					resource.TestCheckResourceAttr("lxd_instance.instance1", "running", "true"),
+					resource.TestCheckResourceAttr("incus_instance.instance1", "name", instanceName),
+					resource.TestCheckResourceAttr("incus_instance.instance1", "status", "Running"),
+					resource.TestCheckResourceAttr("incus_instance.instance1", "running", "true"),
 				),
 			},
 		},
@@ -188,29 +188,29 @@ func TestAccInstance_restartVirtualMachine(t *testing.T) {
 			{
 				Config: testAccInstance_started(instanceName, instanceType),
 				Check: resource.ComposeTestCheckFunc(
-					resource.TestCheckResourceAttr("lxd_instance.instance1", "name", instanceName),
-					resource.TestCheckResourceAttr("lxd_instance.instance1", "type", instanceType),
-					resource.TestCheckResourceAttr("lxd_instance.instance1", "status", "Running"),
-					resource.TestCheckResourceAttr("lxd_instance.instance1", "running", "true"),
-					resource.TestCheckResourceAttrSet("lxd_instance.instance1", "mac_address"),
-					resource.TestCheckResourceAttrSet("lxd_instance.instance1", "ipv4_address"),
-					resource.TestCheckResourceAttrSet("lxd_instance.instance1", "ipv6_address"),
+					resource.TestCheckResourceAttr("incus_instance.instance1", "name", instanceName),
+					resource.TestCheckResourceAttr("incus_instance.instance1", "type", instanceType),
+					resource.TestCheckResourceAttr("incus_instance.instance1", "status", "Running"),
+					resource.TestCheckResourceAttr("incus_instance.instance1", "running", "true"),
+					resource.TestCheckResourceAttrSet("incus_instance.instance1", "mac_address"),
+					resource.TestCheckResourceAttrSet("incus_instance.instance1", "ipv4_address"),
+					resource.TestCheckResourceAttrSet("incus_instance.instance1", "ipv6_address"),
 				),
 			},
 			{
 				Config: testAccInstance_stopped(instanceName, instanceType),
 				Check: resource.ComposeTestCheckFunc(
-					resource.TestCheckResourceAttr("lxd_instance.instance1", "name", instanceName),
-					resource.TestCheckResourceAttr("lxd_instance.instance1", "status", "Stopped"),
-					resource.TestCheckResourceAttr("lxd_instance.instance1", "running", "false"),
+					resource.TestCheckResourceAttr("incus_instance.instance1", "name", instanceName),
+					resource.TestCheckResourceAttr("incus_instance.instance1", "status", "Stopped"),
+					resource.TestCheckResourceAttr("incus_instance.instance1", "running", "false"),
 				),
 			},
 			{
 				Config: testAccInstance_started(instanceName, instanceType),
 				Check: resource.ComposeTestCheckFunc(
-					resource.TestCheckResourceAttr("lxd_instance.instance1", "name", instanceName),
-					resource.TestCheckResourceAttr("lxd_instance.instance1", "status", "Running"),
-					resource.TestCheckResourceAttr("lxd_instance.instance1", "running", "true"),
+					resource.TestCheckResourceAttr("incus_instance.instance1", "name", instanceName),
+					resource.TestCheckResourceAttr("incus_instance.instance1", "status", "Running"),
+					resource.TestCheckResourceAttr("incus_instance.instance1", "running", "true"),
 				),
 			},
 		},
@@ -227,9 +227,9 @@ func TestAccInstance_remoteImage(t *testing.T) {
 			{
 				Config: testAccInstance_remoteImage(instanceName),
 				Check: resource.ComposeTestCheckFunc(
-					resource.TestCheckResourceAttr("lxd_instance.instance1", "name", instanceName),
-					resource.TestCheckResourceAttr("lxd_instance.instance1", "status", "Running"),
-					resource.TestCheckResourceAttr("lxd_instance.instance1", "image", acctest.TestImage),
+					resource.TestCheckResourceAttr("incus_instance.instance1", "name", instanceName),
+					resource.TestCheckResourceAttr("incus_instance.instance1", "status", "Running"),
+					resource.TestCheckResourceAttr("incus_instance.instance1", "image", acctest.TestImage),
 				),
 			},
 		},
@@ -246,9 +246,9 @@ func TestAccInstance_config(t *testing.T) {
 			{
 				Config: testAccInstance_config(instanceName),
 				Check: resource.ComposeTestCheckFunc(
-					resource.TestCheckResourceAttr("lxd_instance.instance1", "name", instanceName),
-					resource.TestCheckResourceAttr("lxd_instance.instance1", "status", "Running"),
-					resource.TestCheckResourceAttr("lxd_instance.instance1", "config.boot.autostart", "1"),
+					resource.TestCheckResourceAttr("incus_instance.instance1", "name", instanceName),
+					resource.TestCheckResourceAttr("incus_instance.instance1", "status", "Running"),
+					resource.TestCheckResourceAttr("incus_instance.instance1", "config.boot.autostart", "1"),
 				),
 			},
 		},
@@ -265,30 +265,30 @@ func TestAccInstance_updateConfig(t *testing.T) {
 			{
 				Config: testAccInstance_updateConfig1(instanceName),
 				Check: resource.ComposeTestCheckFunc(
-					resource.TestCheckResourceAttr("lxd_instance.instance1", "name", instanceName),
-					resource.TestCheckResourceAttr("lxd_instance.instance1", "status", "Running"),
-					resource.TestCheckResourceAttr("lxd_instance.instance1", "config.boot.autostart", "1"),
-					resource.TestCheckResourceAttr("lxd_instance.instance1", "config.user.dummy", "5"),
+					resource.TestCheckResourceAttr("incus_instance.instance1", "name", instanceName),
+					resource.TestCheckResourceAttr("incus_instance.instance1", "status", "Running"),
+					resource.TestCheckResourceAttr("incus_instance.instance1", "config.boot.autostart", "1"),
+					resource.TestCheckResourceAttr("incus_instance.instance1", "config.user.dummy", "5"),
 				),
 			},
 			{
 				Config: testAccInstance_updateConfig2(instanceName),
 				Check: resource.ComposeTestCheckFunc(
-					resource.TestCheckResourceAttr("lxd_instance.instance1", "name", instanceName),
-					resource.TestCheckResourceAttr("lxd_instance.instance1", "status", "Running"),
-					resource.TestCheckResourceAttr("lxd_instance.instance1", "config.user.dummy", "5"),
-					resource.TestCheckResourceAttr("lxd_instance.instance1", "config.user.user-data", "#cloud-config"),
-					resource.TestCheckNoResourceAttr("lxd_instance.instance1", "config.boot.autostart"),
+					resource.TestCheckResourceAttr("incus_instance.instance1", "name", instanceName),
+					resource.TestCheckResourceAttr("incus_instance.instance1", "status", "Running"),
+					resource.TestCheckResourceAttr("incus_instance.instance1", "config.user.dummy", "5"),
+					resource.TestCheckResourceAttr("incus_instance.instance1", "config.user.user-data", "#cloud-config"),
+					resource.TestCheckNoResourceAttr("incus_instance.instance1", "config.boot.autostart"),
 				),
 			},
 			{
 				Config: testAccInstance_updateConfig3(instanceName),
 				Check: resource.ComposeTestCheckFunc(
-					resource.TestCheckResourceAttr("lxd_instance.instance1", "name", instanceName),
-					resource.TestCheckResourceAttr("lxd_instance.instance1", "status", "Running"),
-					resource.TestCheckResourceAttr("lxd_instance.instance1", "config.user.dummy", "5"),
-					resource.TestCheckResourceAttr("lxd_instance.instance1", "config.user.user-data", "#cloud-config"),
-					resource.TestCheckResourceAttr("lxd_instance.instance1", "config.cloud-init.vendor-data", "#cloud-config"),
+					resource.TestCheckResourceAttr("incus_instance.instance1", "name", instanceName),
+					resource.TestCheckResourceAttr("incus_instance.instance1", "status", "Running"),
+					resource.TestCheckResourceAttr("incus_instance.instance1", "config.user.dummy", "5"),
+					resource.TestCheckResourceAttr("incus_instance.instance1", "config.user.user-data", "#cloud-config"),
+					resource.TestCheckResourceAttr("incus_instance.instance1", "config.cloud-init.vendor-data", "#cloud-config"),
 				),
 			},
 		},
@@ -306,21 +306,21 @@ func TestAccInstance_addProfile(t *testing.T) {
 			{
 				Config: testAccInstance_addProfile_1(instanceName),
 				Check: resource.ComposeTestCheckFunc(
-					resource.TestCheckResourceAttr("lxd_instance.instance1", "name", instanceName),
-					resource.TestCheckResourceAttr("lxd_instance.instance1", "status", "Running"),
-					resource.TestCheckResourceAttr("lxd_instance.instance1", "profiles.#", "1"),
-					resource.TestCheckResourceAttr("lxd_instance.instance1", "profiles.0", "default"),
+					resource.TestCheckResourceAttr("incus_instance.instance1", "name", instanceName),
+					resource.TestCheckResourceAttr("incus_instance.instance1", "status", "Running"),
+					resource.TestCheckResourceAttr("incus_instance.instance1", "profiles.#", "1"),
+					resource.TestCheckResourceAttr("incus_instance.instance1", "profiles.0", "default"),
 				),
 			},
 			{
 				Config: testAccInstance_addProfile_2(profileName, instanceName),
 				Check: resource.ComposeTestCheckFunc(
-					resource.TestCheckResourceAttr("lxd_profile.profile1", "name", profileName),
-					resource.TestCheckResourceAttr("lxd_instance.instance1", "name", instanceName),
-					resource.TestCheckResourceAttr("lxd_instance.instance1", "status", "Running"),
-					resource.TestCheckResourceAttr("lxd_instance.instance1", "profiles.#", "2"),
-					resource.TestCheckResourceAttr("lxd_instance.instance1", "profiles.0", "default"),
-					resource.TestCheckResourceAttr("lxd_instance.instance1", "profiles.1", profileName),
+					resource.TestCheckResourceAttr("incus_profile.profile1", "name", profileName),
+					resource.TestCheckResourceAttr("incus_instance.instance1", "name", instanceName),
+					resource.TestCheckResourceAttr("incus_instance.instance1", "status", "Running"),
+					resource.TestCheckResourceAttr("incus_instance.instance1", "profiles.#", "2"),
+					resource.TestCheckResourceAttr("incus_instance.instance1", "profiles.0", "default"),
+					resource.TestCheckResourceAttr("incus_instance.instance1", "profiles.1", profileName),
 				),
 			},
 		},
@@ -338,22 +338,22 @@ func TestAccInstance_removeProfile(t *testing.T) {
 			{
 				Config: testAccInstance_removeProfile_1(profileName, instanceName),
 				Check: resource.ComposeTestCheckFunc(
-					resource.TestCheckResourceAttr("lxd_profile.profile1", "name", profileName),
-					resource.TestCheckResourceAttr("lxd_instance.instance1", "name", instanceName),
-					resource.TestCheckResourceAttr("lxd_instance.instance1", "status", "Running"),
-					resource.TestCheckResourceAttr("lxd_instance.instance1", "profiles.#", "2"),
-					resource.TestCheckResourceAttr("lxd_instance.instance1", "profiles.0", "default"),
-					resource.TestCheckResourceAttr("lxd_instance.instance1", "profiles.1", profileName),
+					resource.TestCheckResourceAttr("incus_profile.profile1", "name", profileName),
+					resource.TestCheckResourceAttr("incus_instance.instance1", "name", instanceName),
+					resource.TestCheckResourceAttr("incus_instance.instance1", "status", "Running"),
+					resource.TestCheckResourceAttr("incus_instance.instance1", "profiles.#", "2"),
+					resource.TestCheckResourceAttr("incus_instance.instance1", "profiles.0", "default"),
+					resource.TestCheckResourceAttr("incus_instance.instance1", "profiles.1", profileName),
 				),
 			},
 			{
 				Config: testAccInstance_removeProfile_2(profileName, instanceName),
 				Check: resource.ComposeTestCheckFunc(
-					resource.TestCheckResourceAttr("lxd_profile.profile1", "name", profileName),
-					resource.TestCheckResourceAttr("lxd_instance.instance1", "name", instanceName),
-					resource.TestCheckResourceAttr("lxd_instance.instance1", "status", "Running"),
-					resource.TestCheckResourceAttr("lxd_instance.instance1", "profiles.#", "1"),
-					resource.TestCheckResourceAttr("lxd_instance.instance1", "profiles.0", "default"),
+					resource.TestCheckResourceAttr("incus_profile.profile1", "name", profileName),
+					resource.TestCheckResourceAttr("incus_instance.instance1", "name", instanceName),
+					resource.TestCheckResourceAttr("incus_instance.instance1", "status", "Running"),
+					resource.TestCheckResourceAttr("incus_instance.instance1", "profiles.#", "1"),
+					resource.TestCheckResourceAttr("incus_instance.instance1", "profiles.0", "default"),
 				),
 			},
 		},
@@ -370,15 +370,15 @@ func TestAccInstance_noProfile(t *testing.T) {
 			{
 				Config: testAccInstance_noProfile(name),
 				Check: resource.ComposeTestCheckFunc(
-					resource.TestCheckResourceAttr("lxd_storage_pool.pool1", "name", name),
-					resource.TestCheckResourceAttr("lxd_storage_pool.pool1", "driver", "zfs"),
-					resource.TestCheckResourceAttr("lxd_instance.instance1", "name", name),
-					resource.TestCheckResourceAttr("lxd_instance.instance1", "status", "Running"),
-					resource.TestCheckResourceAttr("lxd_instance.instance1", "profiles.#", "0"),
-					resource.TestCheckResourceAttr("lxd_instance.instance1", "device.#", "1"),
-					resource.TestCheckResourceAttr("lxd_instance.instance1", "device.0.type", "disk"),
-					resource.TestCheckResourceAttr("lxd_instance.instance1", "device.0.properties.pool", name),
-					resource.TestCheckResourceAttr("lxd_instance.instance1", "device.0.properties.path", "/"),
+					resource.TestCheckResourceAttr("incus_storage_pool.pool1", "name", name),
+					resource.TestCheckResourceAttr("incus_storage_pool.pool1", "driver", "zfs"),
+					resource.TestCheckResourceAttr("incus_instance.instance1", "name", name),
+					resource.TestCheckResourceAttr("incus_instance.instance1", "status", "Running"),
+					resource.TestCheckResourceAttr("incus_instance.instance1", "profiles.#", "0"),
+					resource.TestCheckResourceAttr("incus_instance.instance1", "device.#", "1"),
+					resource.TestCheckResourceAttr("incus_instance.instance1", "device.0.type", "disk"),
+					resource.TestCheckResourceAttr("incus_instance.instance1", "device.0.properties.pool", name),
+					resource.TestCheckResourceAttr("incus_instance.instance1", "device.0.properties.path", "/"),
 				),
 			},
 		},
@@ -395,25 +395,25 @@ func TestAccInstance_device(t *testing.T) {
 			{
 				Config: testAccInstance_device_1(instanceName),
 				Check: resource.ComposeTestCheckFunc(
-					resource.TestCheckResourceAttr("lxd_instance.instance1", "name", instanceName),
-					resource.TestCheckResourceAttr("lxd_instance.instance1", "status", "Running"),
-					resource.TestCheckResourceAttr("lxd_instance.instance1", "device.#", "1"),
-					resource.TestCheckResourceAttr("lxd_instance.instance1", "device.0.name", "shared"),
-					resource.TestCheckResourceAttr("lxd_instance.instance1", "device.0.type", "disk"),
-					resource.TestCheckResourceAttr("lxd_instance.instance1", "device.0.properties.source", "/tmp"),
-					resource.TestCheckResourceAttr("lxd_instance.instance1", "device.0.properties.path", "/tmp/shared"),
+					resource.TestCheckResourceAttr("incus_instance.instance1", "name", instanceName),
+					resource.TestCheckResourceAttr("incus_instance.instance1", "status", "Running"),
+					resource.TestCheckResourceAttr("incus_instance.instance1", "device.#", "1"),
+					resource.TestCheckResourceAttr("incus_instance.instance1", "device.0.name", "shared"),
+					resource.TestCheckResourceAttr("incus_instance.instance1", "device.0.type", "disk"),
+					resource.TestCheckResourceAttr("incus_instance.instance1", "device.0.properties.source", "/tmp"),
+					resource.TestCheckResourceAttr("incus_instance.instance1", "device.0.properties.path", "/tmp/shared"),
 				),
 			},
 			{
 				Config: testAccInstance_device_2(instanceName),
 				Check: resource.ComposeTestCheckFunc(
-					resource.TestCheckResourceAttr("lxd_instance.instance1", "name", instanceName),
-					resource.TestCheckResourceAttr("lxd_instance.instance1", "status", "Running"),
-					resource.TestCheckResourceAttr("lxd_instance.instance1", "device.#", "1"),
-					resource.TestCheckResourceAttr("lxd_instance.instance1", "device.0.name", "shared"),
-					resource.TestCheckResourceAttr("lxd_instance.instance1", "device.0.type", "disk"),
-					resource.TestCheckResourceAttr("lxd_instance.instance1", "device.0.properties.source", "/tmp"),
-					resource.TestCheckResourceAttr("lxd_instance.instance1", "device.0.properties.path", "/tmp/shared2"),
+					resource.TestCheckResourceAttr("incus_instance.instance1", "name", instanceName),
+					resource.TestCheckResourceAttr("incus_instance.instance1", "status", "Running"),
+					resource.TestCheckResourceAttr("incus_instance.instance1", "device.#", "1"),
+					resource.TestCheckResourceAttr("incus_instance.instance1", "device.0.name", "shared"),
+					resource.TestCheckResourceAttr("incus_instance.instance1", "device.0.type", "disk"),
+					resource.TestCheckResourceAttr("incus_instance.instance1", "device.0.properties.source", "/tmp"),
+					resource.TestCheckResourceAttr("incus_instance.instance1", "device.0.properties.path", "/tmp/shared2"),
 				),
 			},
 		},
@@ -430,21 +430,21 @@ func TestAccInstance_addDevice(t *testing.T) {
 			{
 				Config: testAccInstance_addDevice_1(instanceName),
 				Check: resource.ComposeTestCheckFunc(
-					resource.TestCheckResourceAttr("lxd_instance.instance1", "name", instanceName),
-					resource.TestCheckResourceAttr("lxd_instance.instance1", "status", "Running"),
-					resource.TestCheckResourceAttr("lxd_instance.instance1", "device.#", "0"),
+					resource.TestCheckResourceAttr("incus_instance.instance1", "name", instanceName),
+					resource.TestCheckResourceAttr("incus_instance.instance1", "status", "Running"),
+					resource.TestCheckResourceAttr("incus_instance.instance1", "device.#", "0"),
 				),
 			},
 			{
 				Config: testAccInstance_addDevice_2(instanceName),
 				Check: resource.ComposeTestCheckFunc(
-					resource.TestCheckResourceAttr("lxd_instance.instance1", "name", instanceName),
-					resource.TestCheckResourceAttr("lxd_instance.instance1", "status", "Running"),
-					resource.TestCheckResourceAttr("lxd_instance.instance1", "device.#", "1"),
-					resource.TestCheckResourceAttr("lxd_instance.instance1", "device.0.name", "shared"),
-					resource.TestCheckResourceAttr("lxd_instance.instance1", "device.0.type", "disk"),
-					resource.TestCheckResourceAttr("lxd_instance.instance1", "device.0.properties.source", "/tmp"),
-					resource.TestCheckResourceAttr("lxd_instance.instance1", "device.0.properties.path", "/tmp/shared"),
+					resource.TestCheckResourceAttr("incus_instance.instance1", "name", instanceName),
+					resource.TestCheckResourceAttr("incus_instance.instance1", "status", "Running"),
+					resource.TestCheckResourceAttr("incus_instance.instance1", "device.#", "1"),
+					resource.TestCheckResourceAttr("incus_instance.instance1", "device.0.name", "shared"),
+					resource.TestCheckResourceAttr("incus_instance.instance1", "device.0.type", "disk"),
+					resource.TestCheckResourceAttr("incus_instance.instance1", "device.0.properties.source", "/tmp"),
+					resource.TestCheckResourceAttr("incus_instance.instance1", "device.0.properties.path", "/tmp/shared"),
 				),
 			},
 		},
@@ -461,21 +461,21 @@ func TestAccInstance_removeDevice(t *testing.T) {
 			{
 				Config: testAccInstance_removeDevice_1(instanceName),
 				Check: resource.ComposeTestCheckFunc(
-					resource.TestCheckResourceAttr("lxd_instance.instance1", "name", instanceName),
-					resource.TestCheckResourceAttr("lxd_instance.instance1", "status", "Running"),
-					resource.TestCheckResourceAttr("lxd_instance.instance1", "device.#", "1"),
-					resource.TestCheckResourceAttr("lxd_instance.instance1", "device.0.name", "shared"),
-					resource.TestCheckResourceAttr("lxd_instance.instance1", "device.0.type", "disk"),
-					resource.TestCheckResourceAttr("lxd_instance.instance1", "device.0.properties.source", "/tmp"),
-					resource.TestCheckResourceAttr("lxd_instance.instance1", "device.0.properties.path", "/tmp/shared"),
+					resource.TestCheckResourceAttr("incus_instance.instance1", "name", instanceName),
+					resource.TestCheckResourceAttr("incus_instance.instance1", "status", "Running"),
+					resource.TestCheckResourceAttr("incus_instance.instance1", "device.#", "1"),
+					resource.TestCheckResourceAttr("incus_instance.instance1", "device.0.name", "shared"),
+					resource.TestCheckResourceAttr("incus_instance.instance1", "device.0.type", "disk"),
+					resource.TestCheckResourceAttr("incus_instance.instance1", "device.0.properties.source", "/tmp"),
+					resource.TestCheckResourceAttr("incus_instance.instance1", "device.0.properties.path", "/tmp/shared"),
 				),
 			},
 			{
 				Config: testAccInstance_removeDevice_2(instanceName),
 				Check: resource.ComposeTestCheckFunc(
-					resource.TestCheckResourceAttr("lxd_instance.instance1", "name", instanceName),
-					resource.TestCheckResourceAttr("lxd_instance.instance1", "status", "Running"),
-					resource.TestCheckResourceAttr("lxd_instance.instance1", "device.#", "0"),
+					resource.TestCheckResourceAttr("incus_instance.instance1", "name", instanceName),
+					resource.TestCheckResourceAttr("incus_instance.instance1", "status", "Running"),
+					resource.TestCheckResourceAttr("incus_instance.instance1", "device.#", "0"),
 				),
 			},
 		},
@@ -492,37 +492,37 @@ func TestAccInstance_fileUploadContent(t *testing.T) {
 			{
 				Config: testAccInstance_fileUploadContent_1(instanceName),
 				Check: resource.ComposeTestCheckFunc(
-					resource.TestCheckResourceAttr("lxd_instance.instance1", "name", instanceName),
-					resource.TestCheckResourceAttr("lxd_instance.instance1", "status", "Running"),
-					resource.TestCheckResourceAttr("lxd_instance.instance1", "file.#", "1"),
-					resource.TestCheckResourceAttr("lxd_instance.instance1", "file.0.mode", "0644"),
-					resource.TestCheckResourceAttr("lxd_instance.instance1", "file.0.content", "Hello, World!\n"),
-					resource.TestCheckResourceAttr("lxd_instance.instance1", "file.0.target_path", "/foo/bar.txt"),
-					resource.TestCheckResourceAttr("lxd_instance.instance1", "file.0.create_directories", "true"),
+					resource.TestCheckResourceAttr("incus_instance.instance1", "name", instanceName),
+					resource.TestCheckResourceAttr("incus_instance.instance1", "status", "Running"),
+					resource.TestCheckResourceAttr("incus_instance.instance1", "file.#", "1"),
+					resource.TestCheckResourceAttr("incus_instance.instance1", "file.0.mode", "0644"),
+					resource.TestCheckResourceAttr("incus_instance.instance1", "file.0.content", "Hello, World!\n"),
+					resource.TestCheckResourceAttr("incus_instance.instance1", "file.0.target_path", "/foo/bar.txt"),
+					resource.TestCheckResourceAttr("incus_instance.instance1", "file.0.create_directories", "true"),
 				),
 			},
 			{
 				Config: testAccInstance_fileUploadContent_2(instanceName),
 				Check: resource.ComposeTestCheckFunc(
-					resource.TestCheckResourceAttr("lxd_instance.instance1", "name", instanceName),
-					resource.TestCheckResourceAttr("lxd_instance.instance1", "status", "Running"),
-					resource.TestCheckResourceAttr("lxd_instance.instance1", "file.#", "1"),
-					resource.TestCheckResourceAttr("lxd_instance.instance1", "file.0.mode", "0777"),
-					resource.TestCheckResourceAttr("lxd_instance.instance1", "file.0.content", "Hello, World!\n"),
-					resource.TestCheckResourceAttr("lxd_instance.instance1", "file.0.target_path", "/foo/bar.txt"),
-					resource.TestCheckResourceAttr("lxd_instance.instance1", "file.0.create_directories", "true"),
+					resource.TestCheckResourceAttr("incus_instance.instance1", "name", instanceName),
+					resource.TestCheckResourceAttr("incus_instance.instance1", "status", "Running"),
+					resource.TestCheckResourceAttr("incus_instance.instance1", "file.#", "1"),
+					resource.TestCheckResourceAttr("incus_instance.instance1", "file.0.mode", "0777"),
+					resource.TestCheckResourceAttr("incus_instance.instance1", "file.0.content", "Hello, World!\n"),
+					resource.TestCheckResourceAttr("incus_instance.instance1", "file.0.target_path", "/foo/bar.txt"),
+					resource.TestCheckResourceAttr("incus_instance.instance1", "file.0.create_directories", "true"),
 				),
 			},
 			{
 				Config: testAccInstance_fileUploadContent_3(instanceName),
 				Check: resource.ComposeTestCheckFunc(
-					resource.TestCheckResourceAttr("lxd_instance.instance1", "name", instanceName),
-					resource.TestCheckResourceAttr("lxd_instance.instance1", "status", "Running"),
-					resource.TestCheckResourceAttr("lxd_instance.instance1", "file.#", "1"),
-					resource.TestCheckResourceAttr("lxd_instance.instance1", "file.0.mode", "0777"),
-					resource.TestCheckResourceAttr("lxd_instance.instance1", "file.0.content", "Goodbye, World!\n"),
-					resource.TestCheckResourceAttr("lxd_instance.instance1", "file.0.target_path", "/foo/bar.txt"),
-					resource.TestCheckResourceAttr("lxd_instance.instance1", "file.0.create_directories", "false"),
+					resource.TestCheckResourceAttr("incus_instance.instance1", "name", instanceName),
+					resource.TestCheckResourceAttr("incus_instance.instance1", "status", "Running"),
+					resource.TestCheckResourceAttr("incus_instance.instance1", "file.#", "1"),
+					resource.TestCheckResourceAttr("incus_instance.instance1", "file.0.mode", "0777"),
+					resource.TestCheckResourceAttr("incus_instance.instance1", "file.0.content", "Goodbye, World!\n"),
+					resource.TestCheckResourceAttr("incus_instance.instance1", "file.0.target_path", "/foo/bar.txt"),
+					resource.TestCheckResourceAttr("incus_instance.instance1", "file.0.create_directories", "false"),
 				),
 			},
 		},
@@ -539,13 +539,13 @@ func TestAccInstance_fileUploadSource(t *testing.T) {
 			{
 				Config: testAccInstance_fileUploadSource(instanceName),
 				Check: resource.ComposeTestCheckFunc(
-					resource.TestCheckResourceAttr("lxd_instance.instance1", "name", instanceName),
-					resource.TestCheckResourceAttr("lxd_instance.instance1", "status", "Running"),
-					resource.TestCheckResourceAttr("lxd_instance.instance1", "file.#", "1"),
-					resource.TestCheckResourceAttr("lxd_instance.instance1", "file.0.mode", "0644"),
-					resource.TestCheckResourceAttr("lxd_instance.instance1", "file.0.source_path", "../acctest/fixtures/test-file.txt"),
-					resource.TestCheckResourceAttr("lxd_instance.instance1", "file.0.target_path", "/foo/bar.txt"),
-					resource.TestCheckResourceAttr("lxd_instance.instance1", "file.0.create_directories", "true"),
+					resource.TestCheckResourceAttr("incus_instance.instance1", "name", instanceName),
+					resource.TestCheckResourceAttr("incus_instance.instance1", "status", "Running"),
+					resource.TestCheckResourceAttr("incus_instance.instance1", "file.#", "1"),
+					resource.TestCheckResourceAttr("incus_instance.instance1", "file.0.mode", "0644"),
+					resource.TestCheckResourceAttr("incus_instance.instance1", "file.0.source_path", "../acctest/fixtures/test-file.txt"),
+					resource.TestCheckResourceAttr("incus_instance.instance1", "file.0.target_path", "/foo/bar.txt"),
+					resource.TestCheckResourceAttr("incus_instance.instance1", "file.0.create_directories", "true"),
 				),
 			},
 		},
@@ -562,20 +562,20 @@ func TestAccInstance_configLimits(t *testing.T) {
 			{
 				Config: testAccInstance_configLimits_1(instanceName),
 				Check: resource.ComposeTestCheckFunc(
-					resource.TestCheckResourceAttr("lxd_instance.instance1", "name", instanceName),
-					resource.TestCheckResourceAttr("lxd_instance.instance1", "status", "Running"),
-					resource.TestCheckResourceAttr("lxd_instance.instance1", "limits.%", "1"),
-					resource.TestCheckResourceAttr("lxd_instance.instance1", "limits.cpu", "1"),
+					resource.TestCheckResourceAttr("incus_instance.instance1", "name", instanceName),
+					resource.TestCheckResourceAttr("incus_instance.instance1", "status", "Running"),
+					resource.TestCheckResourceAttr("incus_instance.instance1", "limits.%", "1"),
+					resource.TestCheckResourceAttr("incus_instance.instance1", "limits.cpu", "1"),
 				),
 			},
 			{
 				Config: testAccInstance_configLimits_2(instanceName),
 				Check: resource.ComposeTestCheckFunc(
-					resource.TestCheckResourceAttr("lxd_instance.instance1", "name", instanceName),
-					resource.TestCheckResourceAttr("lxd_instance.instance1", "status", "Running"),
-					resource.TestCheckResourceAttr("lxd_instance.instance1", "limits.%", "2"),
-					resource.TestCheckResourceAttr("lxd_instance.instance1", "limits.cpu", "2"),
-					resource.TestCheckResourceAttr("lxd_instance.instance1", "limits.memory", "128MiB"),
+					resource.TestCheckResourceAttr("incus_instance.instance1", "name", instanceName),
+					resource.TestCheckResourceAttr("incus_instance.instance1", "status", "Running"),
+					resource.TestCheckResourceAttr("incus_instance.instance1", "limits.%", "2"),
+					resource.TestCheckResourceAttr("incus_instance.instance1", "limits.cpu", "2"),
+					resource.TestCheckResourceAttr("incus_instance.instance1", "limits.memory", "128MiB"),
 				),
 			},
 		},
@@ -593,22 +593,22 @@ func TestAccInstance_accessInterface(t *testing.T) {
 			{
 				Config: testAccInstance_accessInterface(networkName1, instanceName),
 				Check: resource.ComposeTestCheckFunc(
-					resource.TestCheckResourceAttr("lxd_network.network1", "name", networkName1),
-					resource.TestCheckResourceAttr("lxd_network.network1", "config.ipv4.address", "10.150.19.1/24"),
-					resource.TestCheckResourceAttr("lxd_instance.instance1", "name", instanceName),
-					resource.TestCheckResourceAttr("lxd_instance.instance1", "status", "Running"),
-					resource.TestCheckResourceAttr("lxd_instance.instance1", "config.%", "1"),
-					resource.TestCheckResourceAttr("lxd_instance.instance1", "config.user.access_interface", "eth0"),
-					resource.TestCheckResourceAttr("lxd_instance.instance1", "device.#", "1"),
-					resource.TestCheckResourceAttr("lxd_instance.instance1", "device.0.name", "eth0"),
-					resource.TestCheckResourceAttr("lxd_instance.instance1", "device.0.type", "nic"),
-					resource.TestCheckResourceAttr("lxd_instance.instance1", "device.0.properties.nictype", "bridged"),
-					resource.TestCheckResourceAttr("lxd_instance.instance1", "device.0.properties.parent", networkName1),
-					resource.TestCheckResourceAttr("lxd_instance.instance1", "device.0.properties.hwaddr", "00:16:3e:39:7f:36"),
-					resource.TestCheckResourceAttr("lxd_instance.instance1", "device.0.properties.ipv4.address", "10.150.19.200"),
-					resource.TestCheckResourceAttr("lxd_instance.instance1", "mac_address", "00:16:3e:39:7f:36"),
-					resource.TestCheckResourceAttr("lxd_instance.instance1", "ipv4_address", "10.150.19.200"),
-					resource.TestCheckResourceAttrSet("lxd_instance.instance1", "ipv6_address"),
+					resource.TestCheckResourceAttr("incus_network.network1", "name", networkName1),
+					resource.TestCheckResourceAttr("incus_network.network1", "config.ipv4.address", "10.150.19.1/24"),
+					resource.TestCheckResourceAttr("incus_instance.instance1", "name", instanceName),
+					resource.TestCheckResourceAttr("incus_instance.instance1", "status", "Running"),
+					resource.TestCheckResourceAttr("incus_instance.instance1", "config.%", "1"),
+					resource.TestCheckResourceAttr("incus_instance.instance1", "config.user.access_interface", "eth0"),
+					resource.TestCheckResourceAttr("incus_instance.instance1", "device.#", "1"),
+					resource.TestCheckResourceAttr("incus_instance.instance1", "device.0.name", "eth0"),
+					resource.TestCheckResourceAttr("incus_instance.instance1", "device.0.type", "nic"),
+					resource.TestCheckResourceAttr("incus_instance.instance1", "device.0.properties.nictype", "bridged"),
+					resource.TestCheckResourceAttr("incus_instance.instance1", "device.0.properties.parent", networkName1),
+					resource.TestCheckResourceAttr("incus_instance.instance1", "device.0.properties.hwaddr", "00:16:3e:39:7f:36"),
+					resource.TestCheckResourceAttr("incus_instance.instance1", "device.0.properties.ipv4.address", "10.150.19.200"),
+					resource.TestCheckResourceAttr("incus_instance.instance1", "mac_address", "00:16:3e:39:7f:36"),
+					resource.TestCheckResourceAttr("incus_instance.instance1", "ipv4_address", "10.150.19.200"),
+					resource.TestCheckResourceAttrSet("incus_instance.instance1", "ipv6_address"),
 				),
 			},
 		},
@@ -628,14 +628,14 @@ func TestAccInstance_target(t *testing.T) {
 			{
 				Config: testAccInstance_target(instanceName, "node-2"),
 				Check: resource.ComposeTestCheckFunc(
-					resource.TestCheckResourceAttr("lxd_instance.instance1", "name", fmt.Sprintf("%s-1", instanceName)),
-					resource.TestCheckResourceAttr("lxd_instance.instance1", "status", "Running"),
-					resource.TestCheckResourceAttr("lxd_instance.instance1", "image", acctest.TestImage),
-					resource.TestCheckResourceAttr("lxd_instance.instance1", "target", "node-2"),
-					resource.TestCheckResourceAttr("lxd_instance.instance2", "name", fmt.Sprintf("%s-2", instanceName)),
-					resource.TestCheckResourceAttr("lxd_instance.instance2", "status", "Running"),
-					resource.TestCheckResourceAttr("lxd_instance.instance2", "image", acctest.TestImage),
-					resource.TestCheckResourceAttr("lxd_instance.instance2", "target", "node-2"),
+					resource.TestCheckResourceAttr("incus_instance.instance1", "name", fmt.Sprintf("%s-1", instanceName)),
+					resource.TestCheckResourceAttr("incus_instance.instance1", "status", "Running"),
+					resource.TestCheckResourceAttr("incus_instance.instance1", "image", acctest.TestImage),
+					resource.TestCheckResourceAttr("incus_instance.instance1", "target", "node-2"),
+					resource.TestCheckResourceAttr("incus_instance.instance2", "name", fmt.Sprintf("%s-2", instanceName)),
+					resource.TestCheckResourceAttr("incus_instance.instance2", "status", "Running"),
+					resource.TestCheckResourceAttr("incus_instance.instance2", "image", acctest.TestImage),
+					resource.TestCheckResourceAttr("incus_instance.instance2", "target", "node-2"),
 				),
 			},
 		},
@@ -653,10 +653,10 @@ func TestAccInstance_createProject(t *testing.T) {
 			{
 				Config: testAccInstance_project(projectName, instanceName),
 				Check: resource.ComposeTestCheckFunc(
-					resource.TestCheckResourceAttr("lxd_project.project1", "name", projectName),
-					resource.TestCheckResourceAttr("lxd_instance.instance1", "name", instanceName),
-					resource.TestCheckResourceAttr("lxd_instance.instance1", "project", projectName),
-					resource.TestCheckResourceAttr("lxd_instance.instance1", "status", "Running"),
+					resource.TestCheckResourceAttr("incus_project.project1", "name", projectName),
+					resource.TestCheckResourceAttr("incus_instance.instance1", "name", instanceName),
+					resource.TestCheckResourceAttr("incus_instance.instance1", "project", projectName),
+					resource.TestCheckResourceAttr("incus_instance.instance1", "status", "Running"),
 				),
 			},
 		},
@@ -674,19 +674,19 @@ func TestAccInstance_removeProject(t *testing.T) {
 			{
 				Config: testAccInstance_removeProject_1(projectName, instanceName),
 				Check: resource.ComposeTestCheckFunc(
-					resource.TestCheckResourceAttr("lxd_project.project1", "name", projectName),
-					resource.TestCheckResourceAttr("lxd_instance.instance1", "name", instanceName),
-					resource.TestCheckResourceAttr("lxd_instance.instance1", "project", projectName),
-					resource.TestCheckResourceAttr("lxd_instance.instance1", "status", "Running"),
+					resource.TestCheckResourceAttr("incus_project.project1", "name", projectName),
+					resource.TestCheckResourceAttr("incus_instance.instance1", "name", instanceName),
+					resource.TestCheckResourceAttr("incus_instance.instance1", "project", projectName),
+					resource.TestCheckResourceAttr("incus_instance.instance1", "status", "Running"),
 				),
 			},
 			{
 				Config: testAccInstance_removeProject_2(projectName, instanceName),
 				Check: resource.ComposeTestCheckFunc(
-					resource.TestCheckResourceAttr("lxd_project.project1", "name", projectName),
-					resource.TestCheckResourceAttr("lxd_instance.instance1", "name", instanceName),
-					resource.TestCheckNoResourceAttr("lxd_instance.instance1", "project"),
-					resource.TestCheckResourceAttr("lxd_instance.instance1", "status", "Running"),
+					resource.TestCheckResourceAttr("incus_project.project1", "name", projectName),
+					resource.TestCheckResourceAttr("incus_instance.instance1", "name", instanceName),
+					resource.TestCheckNoResourceAttr("incus_instance.instance1", "project"),
+					resource.TestCheckResourceAttr("incus_instance.instance1", "status", "Running"),
 				),
 			},
 		},
@@ -695,7 +695,7 @@ func TestAccInstance_removeProject(t *testing.T) {
 
 func TestAccInstance_importBasic(t *testing.T) {
 	instanceName := petname.Generate(2, "-")
-	resourceName := "lxd_instance.instance1"
+	resourceName := "incus_instance.instance1"
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { acctest.PreCheck(t) },
@@ -718,7 +718,7 @@ func TestAccInstance_importBasic(t *testing.T) {
 func TestAccInstance_importProject(t *testing.T) {
 	instanceName := petname.Generate(2, "-")
 	projectName := petname.Generate(2, "-")
-	resourceName := "lxd_instance.instance1"
+	resourceName := "incus_instance.instance1"
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { acctest.PreCheck(t) },
@@ -740,7 +740,7 @@ func TestAccInstance_importProject(t *testing.T) {
 
 func testAccInstance_basic(name string) string {
 	return fmt.Sprintf(`
-resource "lxd_instance" "instance1" {
+resource "incus_instance" "instance1" {
   name  = "%s"
   image = "%s"
 }
@@ -749,7 +749,7 @@ resource "lxd_instance" "instance1" {
 
 func testAccInstance_ephemeral(name string) string {
 	return fmt.Sprintf(`
-resource "lxd_instance" "instance1" {
+resource "incus_instance" "instance1" {
   name      = "%s"
   image     = "%s"
   profiles  = ["default"]
@@ -760,7 +760,7 @@ resource "lxd_instance" "instance1" {
 
 func testAccInstance_ephemeralStopped(name string) string {
 	return fmt.Sprintf(`
-resource "lxd_instance" "instance1" {
+resource "incus_instance" "instance1" {
   name      = "%s"
   image     = "%s"
   running   = false
@@ -770,7 +770,7 @@ resource "lxd_instance" "instance1" {
 
 func testAccInstance_container(name string) string {
 	return fmt.Sprintf(`
-resource "lxd_instance" "instance1" {
+resource "incus_instance" "instance1" {
   name    = "%s"
   image   = "%s"
   type    = "container"
@@ -781,7 +781,7 @@ resource "lxd_instance" "instance1" {
 
 func testAccInstance_virtualMachine(name string) string {
 	return fmt.Sprintf(`
-resource "lxd_instance" "instance1" {
+resource "incus_instance" "instance1" {
   name  = "%s"
   image = "%s"
   type  = "virtual-machine"
@@ -794,9 +794,9 @@ resource "lxd_instance" "instance1" {
 	`, name, acctest.TestImage)
 }
 
-func testAccInstance_virtualMachineNoDevLxd(name string) string {
+func testAccInstance_virtualMachineNoDevIncus(name string) string {
 	return fmt.Sprintf(`
-resource "lxd_instance" "instance1" {
+resource "incus_instance" "instance1" {
   name  = "%s"
   image = "%s"
   type  = "virtual-machine"
@@ -817,7 +817,7 @@ func testAccInstance_started(name string, instanceType string) string {
 	}
 
 	return fmt.Sprintf(`
-resource "lxd_instance" "instance1" {
+resource "incus_instance" "instance1" {
   name    = "%s"
   image   = "%s"
   type    = "%s"
@@ -837,7 +837,7 @@ func testAccInstance_stopped(name string, instanceType string) string {
 	}
 
 	return fmt.Sprintf(`
-resource "lxd_instance" "instance1" {
+resource "incus_instance" "instance1" {
   name    = "%s"
   image   = "%s"
   type    = "%s"
@@ -852,7 +852,7 @@ resource "lxd_instance" "instance1" {
 
 func testAccInstance_config(name string) string {
 	return fmt.Sprintf(`
-resource "lxd_instance" "instance1" {
+resource "incus_instance" "instance1" {
   name  = "%s"
   image = "%s"
   config = {
@@ -864,7 +864,7 @@ resource "lxd_instance" "instance1" {
 
 func testAccInstance_updateConfig1(name string) string {
 	return fmt.Sprintf(`
-resource "lxd_instance" "instance1" {
+resource "incus_instance" "instance1" {
   name  = "%s"
   image = "%s"
   config = {
@@ -877,7 +877,7 @@ resource "lxd_instance" "instance1" {
 
 func testAccInstance_updateConfig2(name string) string {
 	return fmt.Sprintf(`
-resource "lxd_instance" "instance1" {
+resource "incus_instance" "instance1" {
   name  = "%s"
   image = "%s"
   config = {
@@ -890,7 +890,7 @@ resource "lxd_instance" "instance1" {
 
 func testAccInstance_updateConfig3(name string) string {
 	return fmt.Sprintf(`
-resource "lxd_instance" "instance1" {
+resource "incus_instance" "instance1" {
   name  = "%s"
   image = "%s"
   config = {
@@ -904,7 +904,7 @@ resource "lxd_instance" "instance1" {
 
 func testAccInstance_addProfile_1(instanceName string) string {
 	return fmt.Sprintf(`
-resource "lxd_instance" "instance1" {
+resource "incus_instance" "instance1" {
   name  = "%s"
   image = "%s"
 }
@@ -913,39 +913,39 @@ resource "lxd_instance" "instance1" {
 
 func testAccInstance_addProfile_2(profileName, instanceName string) string {
 	return fmt.Sprintf(`
-resource "lxd_profile" "profile1" {
+resource "incus_profile" "profile1" {
   name = "%s"
 }
 
-resource "lxd_instance" "instance1" {
+resource "incus_instance" "instance1" {
   name     = "%s"
   image    = "%s"
-  profiles = ["default", lxd_profile.profile1.name]
+  profiles = ["default", incus_profile.profile1.name]
 }
 	`, profileName, instanceName, acctest.TestImage)
 }
 
 func testAccInstance_removeProfile_1(profileName, instanceName string) string {
 	return fmt.Sprintf(`
-resource "lxd_profile" "profile1" {
+resource "incus_profile" "profile1" {
   name = "%s"
 }
 
-resource "lxd_instance" "instance1" {
+resource "incus_instance" "instance1" {
   name     = "%s"
   image    = "%s"
-  profiles = ["default", lxd_profile.profile1.name]
+  profiles = ["default", incus_profile.profile1.name]
 }
 	`, profileName, instanceName, acctest.TestImage)
 }
 
 func testAccInstance_removeProfile_2(profileName, instanceName string) string {
 	return fmt.Sprintf(`
-resource "lxd_profile" "profile1" {
+resource "incus_profile" "profile1" {
   name = "%s"
 }
 
-resource "lxd_instance" "instance1" {
+resource "incus_instance" "instance1" {
   name     = "%s"
   image    = "%s"
   profiles = ["default"]
@@ -955,12 +955,12 @@ resource "lxd_instance" "instance1" {
 
 func testAccInstance_noProfile(name string) string {
 	return fmt.Sprintf(`
-resource "lxd_storage_pool" "pool1" {
+resource "incus_storage_pool" "pool1" {
   name   = "%[1]s"
   driver = "zfs"
 }
 
-resource "lxd_instance" "instance1" {
+resource "incus_instance" "instance1" {
   name             = "%[1]s"
   image            = "%s"
   profiles         = []
@@ -971,7 +971,7 @@ resource "lxd_instance" "instance1" {
     type = "disk"
     properties = {
 	path = "/"
-	pool = lxd_storage_pool.pool1.name
+	pool = incus_storage_pool.pool1.name
     }
   }
 }
@@ -980,7 +980,7 @@ resource "lxd_instance" "instance1" {
 
 func testAccInstance_device_1(name string) string {
 	return fmt.Sprintf(`
-resource "lxd_instance" "instance1" {
+resource "incus_instance" "instance1" {
   name  = "%s"
   image = "%s"
 
@@ -998,7 +998,7 @@ resource "lxd_instance" "instance1" {
 
 func testAccInstance_device_2(name string) string {
 	return fmt.Sprintf(`
-resource "lxd_instance" "instance1" {
+resource "incus_instance" "instance1" {
   name  = "%s"
   image = "%s"
 
@@ -1016,7 +1016,7 @@ resource "lxd_instance" "instance1" {
 
 func testAccInstance_addDevice_1(name string) string {
 	return fmt.Sprintf(`
-resource "lxd_instance" "instance1" {
+resource "incus_instance" "instance1" {
   name  = "%s"
   image = "%s"
 }
@@ -1025,7 +1025,7 @@ resource "lxd_instance" "instance1" {
 
 func testAccInstance_addDevice_2(name string) string {
 	return fmt.Sprintf(`
-resource "lxd_instance" "instance1" {
+resource "incus_instance" "instance1" {
   name  = "%s"
   image = "%s"
 
@@ -1043,7 +1043,7 @@ resource "lxd_instance" "instance1" {
 
 func testAccInstance_removeDevice_1(name string) string {
 	return fmt.Sprintf(`
-resource "lxd_instance" "instance1" {
+resource "incus_instance" "instance1" {
   name  = "%s"
   image = "%s"
 
@@ -1061,7 +1061,7 @@ resource "lxd_instance" "instance1" {
 
 func testAccInstance_removeDevice_2(name string) string {
 	return fmt.Sprintf(`
-resource "lxd_instance" "instance1" {
+resource "incus_instance" "instance1" {
   name  = "%s"
   image = "%s"
 }
@@ -1070,7 +1070,7 @@ resource "lxd_instance" "instance1" {
 
 func testAccInstance_fileUploadContent_1(name string) string {
 	return fmt.Sprintf(`
-resource "lxd_instance" "instance1" {
+resource "incus_instance" "instance1" {
   name  = "%s"
   image = "%s"
 
@@ -1086,7 +1086,7 @@ resource "lxd_instance" "instance1" {
 
 func testAccInstance_fileUploadContent_2(name string) string {
 	return fmt.Sprintf(`
-resource "lxd_instance" "instance1" {
+resource "incus_instance" "instance1" {
   name  = "%s"
   image = "%s"
 
@@ -1102,7 +1102,7 @@ resource "lxd_instance" "instance1" {
 
 func testAccInstance_fileUploadContent_3(name string) string {
 	return fmt.Sprintf(`
-resource "lxd_instance" "instance1" {
+resource "incus_instance" "instance1" {
   name  = "%s"
   image = "%s"
 
@@ -1118,7 +1118,7 @@ resource "lxd_instance" "instance1" {
 
 func testAccInstance_fileUploadSource(name string) string {
 	return fmt.Sprintf(`
-resource "lxd_instance" "instance1" {
+resource "incus_instance" "instance1" {
   name  = "%s"
   image = "%s"
 
@@ -1134,7 +1134,7 @@ resource "lxd_instance" "instance1" {
 
 func testAccInstance_remoteImage(name string) string {
 	return fmt.Sprintf(`
-resource "lxd_instance" "instance1" {
+resource "incus_instance" "instance1" {
   name  = "%s"
   image = "%s"
 }
@@ -1143,7 +1143,7 @@ resource "lxd_instance" "instance1" {
 
 func testAccInstance_configLimits_1(name string) string {
 	return fmt.Sprintf(`
-resource "lxd_instance" "instance1" {
+resource "incus_instance" "instance1" {
   name  = "%s"
   image = "%s"
 
@@ -1156,7 +1156,7 @@ resource "lxd_instance" "instance1" {
 
 func testAccInstance_configLimits_2(name string) string {
 	return fmt.Sprintf(`
-resource "lxd_instance" "instance1" {
+resource "incus_instance" "instance1" {
   name  = "%s"
   image = "%s"
 
@@ -1170,7 +1170,7 @@ resource "lxd_instance" "instance1" {
 
 func testAccInstance_accessInterface(networkName, instanceName string) string {
 	return fmt.Sprintf(`
-resource "lxd_network" "network1" {
+resource "incus_network" "network1" {
   name = "%s"
 
   config = {
@@ -1178,7 +1178,7 @@ resource "lxd_network" "network1" {
   }
 }
 
-resource "lxd_instance" "instance1" {
+resource "incus_instance" "instance1" {
   name  = "%s"
   image = "%s"
 
@@ -1192,7 +1192,7 @@ resource "lxd_instance" "instance1" {
 
     properties = {
       nictype        = "bridged"
-      parent         = "${lxd_network.network1.name}"
+      parent         = "${incus_network.network1.name}"
       hwaddr         = "00:16:3e:39:7f:36"
       "ipv4.address" = "10.150.19.200"
     }
@@ -1203,13 +1203,13 @@ resource "lxd_instance" "instance1" {
 
 func testAccInstance_target(name string, target string) string {
 	return fmt.Sprintf(`
-resource "lxd_instance" "instance1" {
+resource "incus_instance" "instance1" {
   name   = "%[1]s-1"
   image  = "%[3]s"
   target = "%[2]s"
 }
 
-resource "lxd_instance" "instance2" {
+resource "incus_instance" "instance2" {
   name   = "%[1]s-2"
   image  = "%[3]s"
   target = "%[2]s"
@@ -1219,7 +1219,7 @@ resource "lxd_instance" "instance2" {
 
 func testAccInstance_project(projectName string, instanceName string) string {
 	return fmt.Sprintf(`
-resource "lxd_project" "project1" {
+resource "incus_project" "project1" {
   name   = "%s"
   config = {
     "features.images"   = false
@@ -1227,17 +1227,17 @@ resource "lxd_project" "project1" {
   }
 }
 
-resource "lxd_instance" "instance1" {
+resource "incus_instance" "instance1" {
   name  = "%s"
   image = "%s"
-  project = lxd_project.project1.name
+  project = incus_project.project1.name
 }
 	`, projectName, instanceName, acctest.TestImage)
 }
 
 func testAccInstance_removeProject_1(projectName, instanceName string) string {
 	return fmt.Sprintf(`
-resource "lxd_project" "project1" {
+resource "incus_project" "project1" {
   name = "%s"
   config = {
 	"features.images"   = false
@@ -1245,21 +1245,21 @@ resource "lxd_project" "project1" {
   }
 }
 
-resource "lxd_instance" "instance1" {
+resource "incus_instance" "instance1" {
   name    = "%s"
   image   = "%s"
-  project = lxd_project.project1.name
+  project = incus_project.project1.name
 }
 	`, projectName, instanceName, acctest.TestImage)
 }
 
 func testAccInstance_removeProject_2(projectName, instanceName string) string {
 	return fmt.Sprintf(`
-resource "lxd_project" "project1" {
+resource "incus_project" "project1" {
   name = "%s"
 }
 
-resource "lxd_instance" "instance1" {
+resource "incus_instance" "instance1" {
   name  = "%s"
   image = "%s"
 }

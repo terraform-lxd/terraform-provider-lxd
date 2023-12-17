@@ -299,7 +299,7 @@ func TestSplitImportID_ErrorFormat(t *testing.T) {
 				return
 			}
 
-			// Format is after lxd_<resName>.<resource> part.
+			// Format is after incus_<resName>.<resource> part.
 			parts := strings.SplitN(diag.Detail(), "<resource> ", 2)
 			if len(parts) != 2 {
 				t.Errorf("Unexpected error: %q", diag.Detail())

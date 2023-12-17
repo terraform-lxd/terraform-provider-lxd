@@ -1,19 +1,19 @@
-# lxd_snapshot
+# incus_snapshot
 
-Manages a snapshot of an LXD container.
+Manages a snapshot of an Incus container.
 
 ## Example Usage
 
 ```hcl
-resource "lxd_instance" "instance" {
+resource "incus_instance" "instance" {
   name      = "my-instance"
   image     = "ubuntu"
   ephemeral = false
 }
 
-resource "lxd_snapshot" "snap1" {
+resource "incus_snapshot" "snap1" {
   name     = "my-snapshot-1"
-  instance = lxd_instance.instance.name
+  instance = incus_instance.instance.name
 }
 ```
 
@@ -36,5 +36,5 @@ resource "lxd_snapshot" "snap1" {
 
 The following attributes are exported:
 
-* `created_at` - The time LXD  reported the snapshot was successfully created,
+* `created_at` - The time Incus  reported the snapshot was successfully created,
   in UTC.

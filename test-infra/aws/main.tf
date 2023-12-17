@@ -12,9 +12,9 @@ provider "aws" {
   region = "us-west-2"
 }
 
-resource "aws_security_group" "lxd_acc_tests" {
-  name        = "lxd_acc_tests"
-  description = "LXD Test Infra Allow all inbound traffic"
+resource "aws_security_group" "incus_acc_tests" {
+  name        = "incus_acc_tests"
+  description = "Incus Test Infra Allow all inbound traffic"
 
   ingress {
     from_port   = 1
@@ -38,7 +38,7 @@ resource "aws_security_group" "lxd_acc_tests" {
   }
 }
 
-resource "aws_spot_instance_request" "lxd_acc_tests" {
+resource "aws_spot_instance_request" "incus_acc_tests" {
   ami                  = var.ami
   spot_price           = "0.0221"
   instance_type        = "c3.large"
@@ -47,7 +47,7 @@ resource "aws_spot_instance_request" "lxd_acc_tests" {
 
   key_name = var.key_name
 
-  security_groups = ["${aws_security_group.lxd_acc_tests.name}"]
+  security_groups = ["${aws_security_group.incus_acc_tests.name}"]
 
   root_block_device {
     volume_size           = 20
@@ -55,15 +55,15 @@ resource "aws_spot_instance_request" "lxd_acc_tests" {
   }
 
   tags {
-    Name = "LXD Acceptance Test Infra"
+    Name = "Incus Acceptance Test Infra"
   }
 }
 
-resource "null_resource" "lxd_acc_tests" {
+resource "null_resource" "incus_acc_tests" {
   connection {
     type        = "ssh"
     user        = "ubuntu"
-    host        = aws_spot_instance_request.lxd_acc_tests.public_ip
+    host        = aws_spot_instance_request.incus_acc_tests.public_ip
     private_key = file(var.private_key)
   }
 
@@ -73,5 +73,5 @@ resource "null_resource" "lxd_acc_tests" {
 }
 
 output "public_ip" {
-  value = aws_spot_instance_request.lxd_acc_tests.public_ip
+  value = aws_spot_instance_request.incus_acc_tests.public_ip
 }

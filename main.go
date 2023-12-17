@@ -21,12 +21,12 @@ func main() {
 	flag.Parse()
 
 	opts := providerserver.ServeOpts{
-		Address:         "registry.terraform.io/terraform-lxd/lxd",
+		Address:         "registry.terraform.io/lxc/incus",
 		Debug:           debug,
 		ProtocolVersion: 6,
 	}
 
-	err := providerserver.Serve(context.Background(), provider.NewLxdProvider(version), opts)
+	err := providerserver.Serve(context.Background(), provider.NewIncusProvider(version), opts)
 	if err != nil {
 		log.Fatal(err.Error())
 	}

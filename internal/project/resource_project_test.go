@@ -25,13 +25,13 @@ func TestAccProject_basic(t *testing.T) {
 			{
 				Config: testAccProject_basic(projectName),
 				Check: resource.ComposeTestCheckFunc(
-					resource.TestCheckResourceAttr("lxd_project.project0", "name", projectName),
-					resource.TestCheckResourceAttr("lxd_project.project0", "description", "Terraform provider test project"),
+					resource.TestCheckResourceAttr("incus_project.project0", "name", projectName),
+					resource.TestCheckResourceAttr("incus_project.project0", "description", "Terraform provider test project"),
 					// Ensure state of computed keys is not tracked.
-					resource.TestCheckNoResourceAttr("lxd_project.project0", "config.features.images"),
-					resource.TestCheckNoResourceAttr("lxd_project.project0", "config.features.profiles"),
-					resource.TestCheckNoResourceAttr("lxd_project.project0", "config.features.storage.volumes"),
-					resource.TestCheckNoResourceAttr("lxd_project.project0", "config.features.storage.buckets"),
+					resource.TestCheckNoResourceAttr("incus_project.project0", "config.features.images"),
+					resource.TestCheckNoResourceAttr("incus_project.project0", "config.features.profiles"),
+					resource.TestCheckNoResourceAttr("incus_project.project0", "config.features.storage.volumes"),
+					resource.TestCheckNoResourceAttr("incus_project.project0", "config.features.storage.buckets"),
 				),
 			},
 		},
@@ -48,12 +48,12 @@ func TestAccProject_config(t *testing.T) {
 			{
 				Config: testAccProject_config(projectName),
 				Check: resource.ComposeTestCheckFunc(
-					resource.TestCheckResourceAttr("lxd_project.project1", "name", projectName),
-					resource.TestCheckResourceAttr("lxd_project.project1", "config.features.images", "true"),
-					resource.TestCheckResourceAttr("lxd_project.project1", "config.features.profiles", "false"),
+					resource.TestCheckResourceAttr("incus_project.project1", "name", projectName),
+					resource.TestCheckResourceAttr("incus_project.project1", "config.features.images", "true"),
+					resource.TestCheckResourceAttr("incus_project.project1", "config.features.profiles", "false"),
 					// Ensure state of computed keys is not tracked.
-					resource.TestCheckNoResourceAttr("lxd_project.project1", "config.features.storage.volumes"),
-					resource.TestCheckNoResourceAttr("lxd_project.project1", "config.features.storage.buckets"),
+					resource.TestCheckNoResourceAttr("incus_project.project1", "config.features.storage.volumes"),
+					resource.TestCheckNoResourceAttr("incus_project.project1", "config.features.storage.buckets"),
 				),
 			},
 		},
@@ -70,25 +70,25 @@ func TestAccProject_updateConfig(t *testing.T) {
 			{
 				Config: testAccProject_updateConfig_1(projectName),
 				Check: resource.ComposeTestCheckFunc(
-					resource.TestCheckResourceAttr("lxd_project.project1", "name", projectName),
-					resource.TestCheckResourceAttr("lxd_project.project1", "description", "Old description"),
-					resource.TestCheckResourceAttr("lxd_project.project1", "config.features.images", "true"),
-					resource.TestCheckResourceAttr("lxd_project.project1", "config.features.profiles", "false"),
+					resource.TestCheckResourceAttr("incus_project.project1", "name", projectName),
+					resource.TestCheckResourceAttr("incus_project.project1", "description", "Old description"),
+					resource.TestCheckResourceAttr("incus_project.project1", "config.features.images", "true"),
+					resource.TestCheckResourceAttr("incus_project.project1", "config.features.profiles", "false"),
 					// Ensure state of computed keys is not tracked.
-					resource.TestCheckNoResourceAttr("lxd_project.project1", "config.features.storage.volumes"),
-					resource.TestCheckNoResourceAttr("lxd_project.project1", "config.features.storage.buckets"),
+					resource.TestCheckNoResourceAttr("incus_project.project1", "config.features.storage.volumes"),
+					resource.TestCheckNoResourceAttr("incus_project.project1", "config.features.storage.buckets"),
 				),
 			},
 			{
 				Config: testAccProject_updateConfig_2(projectName),
 				Check: resource.ComposeTestCheckFunc(
-					resource.TestCheckResourceAttr("lxd_project.project1", "name", projectName),
-					resource.TestCheckResourceAttr("lxd_project.project1", "description", "New description"),
-					resource.TestCheckResourceAttr("lxd_project.project1", "config.features.images", "false"),
-					resource.TestCheckResourceAttr("lxd_project.project1", "config.features.profiles", "true"),
+					resource.TestCheckResourceAttr("incus_project.project1", "name", projectName),
+					resource.TestCheckResourceAttr("incus_project.project1", "description", "New description"),
+					resource.TestCheckResourceAttr("incus_project.project1", "config.features.images", "false"),
+					resource.TestCheckResourceAttr("incus_project.project1", "config.features.profiles", "true"),
 					// Ensure state of computed keys is not tracked.
-					resource.TestCheckNoResourceAttr("lxd_project.project1", "config.features.storage.volumes"),
-					resource.TestCheckNoResourceAttr("lxd_project.project1", "config.features.storage.buckets"),
+					resource.TestCheckNoResourceAttr("incus_project.project1", "config.features.storage.volumes"),
+					resource.TestCheckNoResourceAttr("incus_project.project1", "config.features.storage.buckets"),
 				),
 			},
 		},
@@ -97,7 +97,7 @@ func TestAccProject_updateConfig(t *testing.T) {
 
 func testAccProject_basic(name string) string {
 	return fmt.Sprintf(`
-resource "lxd_project" "project0" {
+resource "incus_project" "project0" {
   name        = "%s"
   description = "Terraform provider test project"
 }`, name)
@@ -105,7 +105,7 @@ resource "lxd_project" "project0" {
 
 func testAccProject_config(name string) string {
 	return fmt.Sprintf(`
-resource "lxd_project" "project1" {
+resource "incus_project" "project1" {
   name        = "%s"
   description = "Terraform provider test project"
   config = {
@@ -117,7 +117,7 @@ resource "lxd_project" "project1" {
 
 func testAccProject_updateConfig_1(name string) string {
 	return fmt.Sprintf(`
-resource "lxd_project" "project1" {
+resource "incus_project" "project1" {
   name        = "%s"
   description = "Old description"
   config = {
@@ -129,7 +129,7 @@ resource "lxd_project" "project1" {
 
 func testAccProject_updateConfig_2(name string) string {
 	return fmt.Sprintf(`
-resource "lxd_project" "project1" {
+resource "incus_project" "project1" {
   name        = "%s"
   description = "New description"
   config = {

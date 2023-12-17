@@ -24,7 +24,7 @@ import (
 
 // InstanceFileModel
 //
-// This model should embed common.LxdFileMode, but terraform-framework does
+// This model should embed common.IncusFileMode, but terraform-framework does
 // not yet support unmarshaling of embedded structs.
 // https://github.com/hashicorp/terraform-plugin-framework/issues/242
 type InstanceFileModel struct {
@@ -44,9 +44,9 @@ type InstanceFileModel struct {
 	Append     types.Bool   `tfsdk:"append"`
 }
 
-// InstanceFileResource represent LXD instance file resource.
+// InstanceFileResource represent incus instance file resource.
 type InstanceFileResource struct {
-	provider *provider_config.LxdProviderConfig
+	provider *provider_config.IncusProviderConfig
 }
 
 // NewInstanceFileResource returns a new instance file resource.
@@ -171,7 +171,7 @@ func (r *InstanceFileResource) Configure(_ context.Context, req resource.Configu
 		return
 	}
 
-	provider, ok := data.(*provider_config.LxdProviderConfig)
+	provider, ok := data.(*provider_config.IncusProviderConfig)
 	if !ok {
 		resp.Diagnostics.Append(errors.NewProviderDataTypeError(req.ProviderData))
 		return

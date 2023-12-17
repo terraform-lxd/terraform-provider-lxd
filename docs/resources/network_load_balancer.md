@@ -1,17 +1,17 @@
-# lxd_network_load_balancer
+# incus_network_load_balancer
 
-LXD load balancer resource forwards ports from external IPs to internal ones within its network,
+Incus load balancer resource forwards ports from external IPs to internal ones within its network,
 distributing traffic among multiple backends.
 
 -> The load balancer resource is exclusively compatible with OVN (Open Virtual Network).
 
-For more information, please refer to [How to configuration network load balancers](https://documentation.ubuntu.com/lxd/en/latest/howto/network_load_balancers/)
-in the official LXD documentation.
+For more information, please refer to [How to configuration network load balancers](https://linuxcontainers.org/incus/docs/main/howto/network_load_balancers/)
+in the official Incus documentation.
 
 ## Example Usage
 
 ```hcl
-resource "lxd_network" "network" {
+resource "incus_network" "network" {
   name = "ovn"
   type = "ovn"
 
@@ -20,8 +20,8 @@ resource "lxd_network" "network" {
   }
 }
 
-resource "lxd_network_lb" "load_balancer" {
-  network        = lxd_network.network.name
+resource "incus_network_lb" "load_balancer" {
+  network        = incus_network.network.name
   description    = "My Load Balancer"
   listen_address = "10.10.10.200"
 
@@ -60,7 +60,7 @@ resource "lxd_network_lb" "load_balancer" {
 
 * `network` - **Required** - Name of the uplink network.
 
-* `listen_address` - **Required** - IP address to listen on. Also, see the [Requirements for listen address](https://documentation.ubuntu.com/lxd/en/latest/howto/network_load_balancers/#requirements-for-listen-addresses) in the official LXD documentation.
+* `listen_address` - **Required** - IP address to listen on. Also, see the [Requirements for listen address](https://linuxcontainers.org/incus/docs/main/howto/network_load_balancers/#requirements-for-listen-addresses) in the official Incus documentation.
 
 * `description` - *Optional* - Description of the network load balancer.
 
