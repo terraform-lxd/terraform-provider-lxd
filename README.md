@@ -9,10 +9,9 @@ Incus Resource provider for Terraform
 
 ## Installation
 
-**NOTE:** This provider is currently under development and requires the overwriting 
-step described in the development configuration below. Please use it at your own risk.
- 
-Follow the instructions for declaring providers in your Terraform configuration
+This provider is published in the [Terraform Registry](https://registry.terraform.io/providers/lxc/incus).
+
+Follow the official instructions for declaring providers in your Terraform configuration
 [here](https://www.terraform.io/docs/configuration/provider-requirements.html).
 
 ### Quick Example
