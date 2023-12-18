@@ -43,12 +43,12 @@ resource "incus_instance" "test1" {
 
 ## Argument Reference
 
-* `name` - **Required** - Name of the container.
+* `name` - **Required** - Name of the profile.
 
 * `device` - *Optional* - Device definition. See reference below.
 
 * `config` - *Optional* - Map of key/value pairs of
-	[container config settings](https://linuxcontainers.org/incus/docs/main/reference/instance_options/).
+	[instance config settings](https://linuxcontainers.org/incus/docs/main/reference/instance_options/).
 
 * `project` - *Optional* - Name of the project where the profile will be stored.
 

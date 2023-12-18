@@ -181,7 +181,7 @@ for more details on how to create a network in clustered mode.
 ## Argument Reference
 
 * `name` - **Required** - Name of the network. This is usually the device the
-	network will appear as to containers.
+	network will appear as to instances.
 
 * `description` - *Optional* - Description of the network.
 
