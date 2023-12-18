@@ -1,6 +1,6 @@
 # incus_snapshot
 
-Manages a snapshot of an Incus container.
+Manages a snapshot of an Incus instance.
 
 ## Example Usage
 

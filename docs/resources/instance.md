@@ -7,8 +7,8 @@ An instance can take a number of configuration and device options. A full refere
 ## Basic Example
 
 ```hcl
-resource "incus_instance" "container1" {
-  name  = "container1"
+resource "incus_instance" "instance1" {
+  name  = "instance1"
   image = "images:ubuntu/22.04"
 
   config = {
@@ -34,7 +34,7 @@ resource "incus_volume" "volume1" {
   pool = incus_storage_pool.pool1.name
 }
 
-resource "incus_instance" "container1" {
+resource "incus_instance" "instance1" {
   name  = "%s"
   image = "ubuntu"
 
@@ -53,8 +53,8 @@ resource "incus_instance" "container1" {
 ## Example to proxy/forward ports
 
 ```hcl
-resource "incus_instance" "container2" {
-  name      = "container2"
+resource "incus_instance" "instance2" {
+  name      = "instance2"
   image     = "ubuntu"
   profiles  = ["default"]
   ephemeral = false

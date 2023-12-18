@@ -1,6 +1,6 @@
 # incus_publish_image
 
-Create an Incus image from a container
+Create an Incus image from an instance
 
 ## Example Usage
 
