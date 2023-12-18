@@ -16,8 +16,8 @@ resource "lxd_project" "project" {
   }
 }
 
-resource "lxd_instance" "container" {
-  name    = "container1"
+resource "lxd_instance" "instance" {
+  name    = "instance1"
   image   = "ubuntu-daily:22.04"
   project = lxd_project.project.name
 }

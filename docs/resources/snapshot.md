@@ -1,6 +1,6 @@
 # lxd_snapshot
 
-Manages a snapshot of an LXD container.
+Manages a snapshot of an LXD instance.
 
 ## Example Usage
 

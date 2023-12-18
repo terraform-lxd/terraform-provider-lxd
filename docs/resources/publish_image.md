@@ -1,6 +1,6 @@
 # lxd_publish_image
 
-Create a LXD image from a container
+Create a LXD image from an instance.
 
 ## Example Usage
 
