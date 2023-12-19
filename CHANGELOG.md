@@ -1,3 +1,14 @@
+## 0.0.2 (December 19, 2023)
+
+### New Features 🎉
+* Add storage bucket resource by @maveonair in https://github.com/lxc/terraform-provider-incus/pull/5
+### Maintenance and Chores 🛠
+* build(deps): bump golang.org/x/crypto from 0.16.0 to 0.17.0 in https://github.com/lxc/terraform-provider-incus/pull/11
+### Other Changes ❓
+* docs: Update README to link to official Terraform registry by @maveonair in https://github.com/lxc/terraform-provider-incus/pull/8
+* docs: Refer to instance rather than container by @maveonair in https://github.com/lxc/terraform-provider-incus/pull/9
+* docs: Rename LXD to Incus by @maveonair in https://github.com/lxc/terraform-provider-incus/pull/12
+
 ## 1.10.3 (October 30, 2023)
 
 ### New Features 🎉
