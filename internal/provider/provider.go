@@ -194,7 +194,7 @@ func (p *IncusProvider) Configure(ctx context.Context, req provider.ConfigureReq
 	// Initialize global IncusProvider struct.
 	// This struct is used to store information about this Terraform
 	// provider's configuration for reference throughout the lifecycle.
-	lxdProvider := provider_config.NewIncusProvider(config, acceptServerCertificate)
+	incusProvider := provider_config.NewIncusProvider(config, acceptServerCertificate)
 
 	// Create Incus remote from environment variables (if defined).
 	// This emulates the Terraform provider "remote" config:
@@ -216,11 +216,11 @@ func (p *IncusProvider) Configure(ctx context.Context, req provider.ConfigureReq
 
 		// This will be the default remote unless overridden by an
 		// explicitly defined remote in the Terraform configuration.
-		lxdProvider.SetRemote(envRemote, true)
+		incusProvider.SetRemote(envRemote, true)
 	}
 
 	// Loop over Incus Remotes defined in the schema and create
-	// an lxdRemoteConfig for each one.
+	// an IncusProviderRemoteConfig for each one.
 	//
 	// This does not yet connect to any of the defined remotes,
 	// it only stores the configuration information until it is
@@ -240,7 +240,7 @@ func (p *IncusProvider) Configure(ctx context.Context, req provider.ConfigureReq
 			scheme = "unix"
 		}
 
-		lxdRemote := provider_config.IncusProviderRemoteConfig{
+		incusProviderRemoteConfig := provider_config.IncusProviderRemoteConfig{
 			Name:    remote.Name.ValueString(),
 			Token:   remote.Token.ValueString(),
 			Address: remote.Address.ValueString(),
@@ -249,13 +249,13 @@ func (p *IncusProvider) Configure(ctx context.Context, req provider.ConfigureReq
 		}
 
 		isDefault := remote.Default.ValueBool()
-		lxdProvider.SetRemote(lxdRemote, isDefault)
+		incusProvider.SetRemote(incusProviderRemoteConfig, isDefault)
 	}
 
-	log.Printf("[DEBUG] Incus Provider: %#v", &lxdProvider)
+	log.Printf("[DEBUG] Incus Provider: %#v", &incusProvider)
 
-	resp.ResourceData = lxdProvider
-	resp.DataSourceData = lxdProvider
+	resp.ResourceData = incusProvider
+	resp.DataSourceData = incusProvider
 }
 
 func (p *IncusProvider) Resources(_ context.Context) []func() resource.Resource {
