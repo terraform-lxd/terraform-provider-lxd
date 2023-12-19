@@ -46,9 +46,15 @@ go build -v
 ```shell
 $ cat ~/.terraformrc
 provider_installation {
+  # Use local git clone of LXD provider
   dev_overrides {
     "terraform-lxd/lxd" = "/home/<REPLACE_ME>/git/terraform-provider-lxd"
   }
+
+  # For all other providers, install them directly from their origin provider
+  # registries as normal. If you omit this, Terraform will _only_ use
+  # the dev_overrides block, and so no other providers will be available.
+  direct {}
 }
 ```
 
