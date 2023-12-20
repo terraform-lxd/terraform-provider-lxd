@@ -65,6 +65,7 @@ static-analysis:
 .PHONY: update-gomod
 update-gomod:
 	$(GO) get -t -v -d -u ./...
+	$(GO) get github.com/canonical/lxd@v0.0.0-20231019094722-ff5926c3b519
 	$(GO) mod tidy --go=1.20
 	$(GO) get toolchain@none
 	@echo "Dependencies updated"
