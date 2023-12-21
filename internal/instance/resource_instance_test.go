@@ -985,11 +985,6 @@ resource "lxd_instance" "instance1" {
   name  = "%s"
   image = "%s"
   type  = "virtual-machine"
-
-  config = {
-    # Alpine images do not support secureboot.
-    "security.secureboot" = false
-  }
 }
 	`, name, acctest.TestImage)
 }
@@ -1002,52 +997,32 @@ resource "lxd_instance" "instance1" {
   type  = "virtual-machine"
 
   config = {
-    # Alpine images do not support secureboot.
-    "security.secureboot" = false
-    "security.devlxd"     = false
+    "security.devlxd" = false
   }
 }
 	`, name, acctest.TestImage)
 }
 
 func testAccInstance_started(name string, instanceType string) string {
-	var config string
-	if instanceType == "virtual-machine" {
-		config = `"security.secureboot" = false`
-	}
-
 	return fmt.Sprintf(`
 resource "lxd_instance" "instance1" {
   name    = "%s"
   image   = "%s"
   type    = "%s"
   running = true
-
-  config = {
-    %s
-  }
 }
-	`, name, acctest.TestImage, instanceType, config)
+	`, name, acctest.TestImage, instanceType)
 }
 
 func testAccInstance_stopped(name string, instanceType string) string {
-	var config string
-	if instanceType == "virtual-machine" {
-		config = `"security.secureboot" = false`
-	}
-
 	return fmt.Sprintf(`
 resource "lxd_instance" "instance1" {
   name    = "%s"
   image   = "%s"
   type    = "%s"
   running = false
-
-  config = {
-    %s
-  }
 }
-	`, name, acctest.TestImage, instanceType, config)
+	`, name, acctest.TestImage, instanceType)
 }
 
 func testAccInstance_config(name string) string {
