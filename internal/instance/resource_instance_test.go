@@ -655,7 +655,7 @@ func TestAccInstance_execWorkingDir(t *testing.T) {
 					resource.TestCheckResourceAttr("lxd_instance.instance1", "status", "Running"),
 					resource.TestCheckResourceAttr("lxd_instance.instance1", "exec.#", "1"),
 					resource.TestCheckResourceAttr("lxd_instance.instance1", "exec.0.exit_code", "0"),
-					resource.TestCheckResourceAttr("lxd_instance.instance1", "exec.0.stdout", "ID=alpine"),
+					resource.TestCheckResourceAttr("lxd_instance.instance1", "exec.0.stdout", "ID=ubuntu"),
 					resource.TestCheckResourceAttr("lxd_instance.instance1", "exec.0.stderr", ""),
 				),
 			},
@@ -1387,7 +1387,7 @@ resource "lxd_instance" "instance1" {
   exec {
     command = [
       "/bin/sh", "-c",
-      "cat os-release | grep '^ID' | tr -d '\n'"
+      "cat os-release | grep '^ID=' | tr -d '\n'"
     ]
     working_dir   = "/etc"
     record_output = true
