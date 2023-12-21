@@ -18,7 +18,7 @@ resource "lxd_project" "project" {
 
 resource "lxd_instance" "container" {
   name    = "container1"
-  image   = "images:alpine/3.18/amd64"
+  image   = "ubuntu-daily:22.04"
   project = lxd_project.project.name
 }
 ```
