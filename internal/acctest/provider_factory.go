@@ -11,7 +11,7 @@ import (
 )
 
 // TestImage is a constant that specifies the default image used in all tests.
-const TestImage = "ubuntu-daily:22.04"
+const TestImage = "ubuntu-minimal-daily:22.04"
 
 var testProviderConfig *provider_config.LxdProviderConfig
 var testProviderMutex sync.Mutex

@@ -24,9 +24,9 @@ jobs:
           - "1.21"
         channel:
           - 5.0/stable
-          - 5.0/candidate
+          - 5.0/edge
           - latest/stable
-          - latest/candidate
+          - latest/edge
 
     env:
       TF_ACC: "1"
