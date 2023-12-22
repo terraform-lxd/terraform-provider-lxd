@@ -62,34 +62,41 @@ func (e *ExecModel) Execute(ctx context.Context, server lxd.InstanceServer, inst
 		errBuf = utils.NewDiscardCloser()
 	}
 
-	execArgs := &lxd.InstanceExecArgs{
-		Stdout: outBuf,
-		Stderr: errBuf,
+	execArgs := lxd.InstanceExecArgs{
+		Stdout:   outBuf,
+		Stderr:   errBuf,
+		DataDone: make(chan bool),
 	}
+
+	exitCode := int64(-1)
 
 	// Run command.
-	opExec, err := server.ExecInstance(instanceName, execReq, execArgs)
+	opExec, err := server.ExecInstance(instanceName, execReq, &execArgs)
 	if err == nil {
-		err = opExec.WaitContext(ctx)
-	}
+		err = opExec.Wait()
 
-	// Extract exit code from operation's metadata.
-	var exitCode int64
-	opMeta := opExec.Get().Metadata
-	if opMeta != nil {
-		rc, ok := opMeta["return"].(float64)
-		if ok {
-			exitCode = int64(rc)
+		// Extract exit code from operation's metadata.
+		opMeta := opExec.Get().Metadata
+		if opMeta != nil {
+			rc, ok := opMeta["return"].(float64)
+			if ok {
+				exitCode = int64(rc)
+			}
 		}
 	}
 
 	e.ExitCode = types.Int64Value(exitCode)
 
+	// Wait for any remaining output to be flushed.
+	if err == nil {
+		<-execArgs.DataDone
+	}
+
 	// Fail on error (only if user requested).
 	if e.FailOnError.ValueBool() && (err != nil || exitCode != 0) {
 		diags.AddError(
 			fmt.Sprintf("Failed to execute command on instance %q", instanceName),
-			fmt.Sprintf("Command %q failed with an error: %v", strings.Join(cmd, " "), err),
+			fmt.Sprintf("Command %q failed with an error (%d): %v", strings.Join(cmd, " "), exitCode, err),
 		)
 		return diags
 	}
