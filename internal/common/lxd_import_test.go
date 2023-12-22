@@ -206,26 +206,26 @@ func TestSplitImportID_AllowedOption(t *testing.T) {
 			},
 		},
 		{
-			ImportID: "remote:project/vm,image=alpine,size=5GiB",
+			ImportID: "remote:project/vm,image=jammy,size=5GiB",
 			Fields:   []string{"name"},
 			Options:  []string{"image", "size"},
 			Result: map[string]string{
 				"remote":  "remote",
 				"project": "project",
 				"name":    "vm",
-				"image":   "alpine",
+				"image":   "jammy",
 				"size":    "5GiB",
 			},
 		},
 		{
-			ImportID: "remote:/vm/123,image=alpine",
+			ImportID: "remote:/vm/123,image=jammy",
 			Fields:   []string{"name", "surname"},
 			Options:  []string{"image", "size"},
 			Result: map[string]string{
 				"remote":  "remote",
 				"name":    "vm",
 				"surname": "123",
-				"image":   "alpine",
+				"image":   "jammy",
 			},
 		},
 		{
