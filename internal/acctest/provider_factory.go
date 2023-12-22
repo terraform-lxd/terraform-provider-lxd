@@ -12,6 +12,8 @@ import (
 
 // TestImage is a constant that specifies the default image used in all tests.
 const TestImage = "ubuntu-minimal-daily:22.04"
+// TestCachedImage is a constant that specifies the default image used in image caching tests.
+const TestCachedImage = "ubuntu-minimal-daily:20.04"
 
 var testProviderConfig *provider_config.LxdProviderConfig
 var testProviderMutex sync.Mutex
