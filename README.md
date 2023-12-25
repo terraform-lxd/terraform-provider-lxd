@@ -83,13 +83,6 @@ TF_LOG=info make testacc
 
 Full documentation can be found in the [`docs`](docs) directory.
 
-## Known Limitations
-
-Many of the base LXD images don't include an SSH server, therefore terraform
-will be unable to execute any `provisioners`. Either use the base ubuntu images
-from the `ubuntu` or `ubuntu-daily` or manually prepare a base image that
-includes SSH.
-
 ## Contributors
 
 Some recognition for great contributors to this project:

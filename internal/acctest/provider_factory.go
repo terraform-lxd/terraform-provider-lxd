@@ -1,6 +1,7 @@
 package acctest
 
 import (
+	"strings"
 	"sync"
 
 	lxd_config "github.com/canonical/lxd/lxc/config"
@@ -11,7 +12,15 @@ import (
 )
 
 // TestImage is a constant that specifies the default image used in all tests.
-const TestImage = "images:alpine/3.18/amd64"
+const TestImage = "ubuntu-minimal-daily:22.04"
+
+// TestCachedImage is a constant that specifies the default image used in image caching tests.
+// NOTE: it must be different from TestImage otherwise tests running in parallel will race to
+//
+//	use and delete that image causing random failures.
+const TestCachedImage = "ubuntu-minimal-daily:20.04"
+
+var TestCachedImageSourceRemote, TestCachedImageSourceImage, _ = strings.Cut(TestCachedImage, ":")
 
 var testProviderConfig *provider_config.LxdProviderConfig
 var testProviderMutex sync.Mutex

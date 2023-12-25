@@ -34,7 +34,7 @@ type ImportMetadata struct {
 //	  "remote":  "local"
 //	  "project": "test"
 //	  "name":    "myres"
-//	  "image":   "alpine" // option
+//	  "image":   "jammy" // option
 //	  "optKey2": "value"  // option
 //	}
 func (m ImportMetadata) ParseImportID(importId string) (map[string]string, diag.Diagnostic) {

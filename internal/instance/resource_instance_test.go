@@ -655,7 +655,7 @@ func TestAccInstance_execWorkingDir(t *testing.T) {
 					resource.TestCheckResourceAttr("lxd_instance.instance1", "status", "Running"),
 					resource.TestCheckResourceAttr("lxd_instance.instance1", "exec.#", "1"),
 					resource.TestCheckResourceAttr("lxd_instance.instance1", "exec.0.exit_code", "0"),
-					resource.TestCheckResourceAttr("lxd_instance.instance1", "exec.0.stdout", "ID=alpine"),
+					resource.TestCheckResourceAttr("lxd_instance.instance1", "exec.0.stdout", "ID=ubuntu"),
 					resource.TestCheckResourceAttr("lxd_instance.instance1", "exec.0.stderr", ""),
 				),
 			},
@@ -985,11 +985,6 @@ resource "lxd_instance" "instance1" {
   name  = "%s"
   image = "%s"
   type  = "virtual-machine"
-
-  config = {
-    # Alpine images do not support secureboot.
-    "security.secureboot" = false
-  }
 }
 	`, name, acctest.TestImage)
 }
@@ -1002,52 +997,32 @@ resource "lxd_instance" "instance1" {
   type  = "virtual-machine"
 
   config = {
-    # Alpine images do not support secureboot.
-    "security.secureboot" = false
-    "security.devlxd"     = false
+    "security.devlxd" = false
   }
 }
 	`, name, acctest.TestImage)
 }
 
 func testAccInstance_started(name string, instanceType string) string {
-	var config string
-	if instanceType == "virtual-machine" {
-		config = `"security.secureboot" = false`
-	}
-
 	return fmt.Sprintf(`
 resource "lxd_instance" "instance1" {
   name    = "%s"
   image   = "%s"
   type    = "%s"
   running = true
-
-  config = {
-    %s
-  }
 }
-	`, name, acctest.TestImage, instanceType, config)
+	`, name, acctest.TestImage, instanceType)
 }
 
 func testAccInstance_stopped(name string, instanceType string) string {
-	var config string
-	if instanceType == "virtual-machine" {
-		config = `"security.secureboot" = false`
-	}
-
 	return fmt.Sprintf(`
 resource "lxd_instance" "instance1" {
   name    = "%s"
   image   = "%s"
   type    = "%s"
   running = false
-
-  config = {
-    %s
-  }
 }
-	`, name, acctest.TestImage, instanceType, config)
+	`, name, acctest.TestImage, instanceType)
 }
 
 func testAccInstance_config(name string) string {
@@ -1387,7 +1362,7 @@ resource "lxd_instance" "instance1" {
   exec {
     command = [
       "/bin/sh", "-c",
-      "cat os-release | grep '^ID' | tr -d '\n'"
+      "cat os-release | grep '^ID=' | tr -d '\n'"
     ]
     working_dir   = "/etc"
     record_output = true

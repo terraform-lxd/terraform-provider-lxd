@@ -9,7 +9,7 @@ An instance can take a number of configuration and device options. A full refere
 ```hcl
 resource "lxd_instance" "container1" {
   name  = "container1"
-  image = "images:ubuntu/22.04"
+  image = "ubuntu-daily:22.04"
 
   config = {
     "boot.autostart" = true
@@ -189,7 +189,7 @@ To specify an interface, do the following:
 ```hcl
 resource "lxd_instance" "instance1" {
   name  = "c1"
-  image = "images:alpine/3.18/amd64"
+  image = "ubuntu-daily:22.04"
 
   config = {
     "user.access_interface" = "eth0"
@@ -212,7 +212,7 @@ an executable, followed by its arguments.
 ```hcl
 resource "lxd_instance" "inst" {
   name  = "c1"
-  image = "images:alpine/3.18/amd64"
+  image = "ubuntu-daily:22.04"
 
   exec {
     command = ["ls", "/"]
@@ -227,7 +227,7 @@ and file redirects are not interpreted. To use environment variables or shell me
 ```hcl
 resource "lxd_instance" "inst" {
   name  = "c1"
-  image = "images:alpine/3.18/amd64"
+  image = "ubuntu-daily:22.04"
 
   exec {
     command = ["/bin/sh", "-c", "echo $ENV_KEY > env.txt"]
@@ -249,7 +249,7 @@ respectively.
 ```hcl
 resource "lxd_instance" "inst" {
   name  = "c1"
-  image = "images:alpine/3.18/amd64"
+  image = "ubuntu-daily:22.04"
 
   exec {
     command       = ["hostname"]
@@ -274,7 +274,7 @@ if command exits with a non 0 status, set `fail_on_error` attribute to true.
 ```hcl
 resource "lxd_instance" "inst" {
   name      = "c1"
-  image     = "images:alpine/3.18/amd64"
+  image     = "ubuntu-daily:22.04"
 
   exec {
     command       = ["invalid-cmd"]
@@ -300,7 +300,7 @@ Import ID syntax: `[<remote>:][<project>/]<name>[,image=<image>]`
 Example using terraform import command:
 
 ```shell
-$ terraform import lxd_instance.myinst proj/c1,image=images:alpine/3.18/amd64
+$ terraform import lxd_instance.myinst proj/c1,image=ubuntu-daily:22.04
 ```
 
 Example using the import block (only available in Terraform v1.5.0 and later):
@@ -309,12 +309,12 @@ Example using the import block (only available in Terraform v1.5.0 and later):
 resource "lxd_instance" "myinst" {
   name    = "c1"
   project = "proj"
-  image   = "images:alpine/3.18/amd64"
+  image   = "ubuntu-daily:22.04"
 }
 
 import {
   to = lxd_instance.myinst
-  id = "proj/c1,image=images:alpine/3.18/amd64"
+  id = "proj/c1,image=ubuntu-daily:22.04"
 }
 ```
 
