@@ -95,6 +95,48 @@ func TestAccProject_updateConfig(t *testing.T) {
 	})
 }
 
+func TestAccProject_importBasic(t *testing.T) {
+	resourceName := "lxd_project.project0"
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { acctest.PreCheck(t) },
+		ProtoV6ProviderFactories: acctest.ProtoV6ProviderFactories,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccProject_basic("project0"),
+			},
+			{
+				ResourceName:                         resourceName,
+				ImportStateId:                        "project0",
+				ImportState:                          true,
+				ImportStateVerify:                    true,
+				ImportStateVerifyIdentifierAttribute: "name",
+			},
+		},
+	})
+}
+
+func TestAccProject_importConfig(t *testing.T) {
+	resourceName := "lxd_project.project1"
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { acctest.PreCheck(t) },
+		ProtoV6ProviderFactories: acctest.ProtoV6ProviderFactories,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccProject_config("project1"),
+			},
+			{
+				ResourceName:                         resourceName,
+				ImportStateId:                        "project1",
+				ImportState:                          true,
+				ImportStateVerify:                    false,
+				ImportStateVerifyIdentifierAttribute: "name",
+			},
+		},
+	})
+}
+
 func testAccProject_basic(name string) string {
 	return fmt.Sprintf(`
 resource "lxd_project" "project0" {
