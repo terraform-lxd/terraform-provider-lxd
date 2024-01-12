@@ -3,6 +3,7 @@ package instance
 import (
 	"context"
 	"fmt"
+	"regexp"
 	"strings"
 	"time"
 
@@ -18,7 +19,6 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/booldefault"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/boolplanmodifier"
-	"github.com/hashicorp/terraform-plugin-framework/resource/schema/listdefault"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/mapdefault"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringdefault"
@@ -42,9 +42,9 @@ type InstanceModel struct {
 	Running        types.Bool   `tfsdk:"running"`
 	WaitForNetwork types.Bool   `tfsdk:"wait_for_network"`
 	Profiles       types.List   `tfsdk:"profiles"`
-	Exec           types.List   `tfsdk:"exec"`
 	Devices        types.Set    `tfsdk:"device"`
 	Files          types.Set    `tfsdk:"file"`
+	Execs          types.Map    `tfsdk:"execs"`
 	Limits         types.Map    `tfsdk:"limits"`
 	Config         types.Map    `tfsdk:"config"`
 	Project        types.String `tfsdk:"project"`
@@ -190,6 +190,121 @@ func (r InstanceResource) Schema(_ context.Context, _ resource.SchemaRequest, re
 				},
 			},
 
+			"execs": schema.MapNestedAttribute{
+				Description: "Map of commands to run within the instance",
+				Optional:    true,
+				NestedObject: schema.NestedAttributeObject{
+					Attributes: map[string]schema.Attribute{
+						"command": schema.ListAttribute{
+							Description: "Command to run within the instance",
+							Required:    true,
+							ElementType: types.StringType,
+							Validators: []validator.List{
+								listvalidator.SizeAtLeast(1),
+							},
+						},
+
+						"environment": schema.MapAttribute{
+							Description: "Map of additional environment variables",
+							Optional:    true,
+							Computed:    true,
+							ElementType: types.StringType,
+							Default:     mapdefault.StaticValue(types.MapValueMust(types.StringType, map[string]attr.Value{})),
+							Validators: []validator.Map{
+								mapvalidator.KeysAre(stringvalidator.LengthAtLeast(1)),
+								mapvalidator.ValueStringsAre(stringvalidator.LengthAtLeast(1)),
+							},
+						},
+
+						"working_dir": schema.StringAttribute{
+							Description: "The directory in which the command should run",
+							Optional:    true,
+							Computed:    true,
+							Default:     stringdefault.StaticString(""),
+							Validators: []validator.String{
+								stringvalidator.LengthAtLeast(1),
+							},
+						},
+
+						"trigger": schema.StringAttribute{
+							Description: "Determines when the command should be executed",
+							Optional:    true,
+							Computed:    true,
+							Default:     stringdefault.StaticString(common.ON_CHANGE.String()),
+							Validators: []validator.String{
+								stringvalidator.OneOf(
+									common.ON_CHANGE.String(),
+									common.ON_START.String(),
+									common.ONCE.String(),
+								),
+							},
+						},
+
+						"enabled": schema.BoolAttribute{
+							Description: "Whether the command should be executed",
+							Optional:    true,
+							Computed:    true,
+							Default:     booldefault.StaticBool(true),
+						},
+
+						"record_output": schema.BoolAttribute{
+							Description: "Whether to record command's output (stdout and stderr)",
+							Optional:    true,
+							Computed:    true,
+							Default:     booldefault.StaticBool(false),
+						},
+
+						"fail_on_error": schema.BoolAttribute{
+							Description: "Whether to fail on command error",
+							Optional:    true,
+							Computed:    true,
+							Default:     booldefault.StaticBool(false),
+						},
+
+						"uid": schema.Int64Attribute{
+							Description: "The user ID for running command",
+							Optional:    true,
+						},
+
+						"gid": schema.Int64Attribute{
+							Description: "The group ID for running command",
+							Optional:    true,
+						},
+
+						// Computed.
+
+						"exit_code": schema.Int64Attribute{
+							Description: "Exit code of the command",
+							Computed:    true,
+						},
+
+						"stdout": schema.StringAttribute{
+							Description: "Command standard output (if recorded)",
+							Computed:    true,
+						},
+
+						"stderr": schema.StringAttribute{
+							Description: "Command standard error (if recorded)",
+							Computed:    true,
+						},
+
+						"run_count": schema.Int64Attribute{
+							Description: "Internal run count indicating how many times the command was executed",
+							Computed:    true,
+						},
+					},
+				},
+				Validators: []validator.Map{
+					mapvalidator.KeysAre(
+						stringvalidator.LengthAtLeast(1),
+						stringvalidator.RegexMatches(
+							regexp.MustCompile("[a-z0-9_]+"),
+							"Only underscore and alphanumeric characters are allowed",
+						),
+					),
+				},
+			},
+
 			// Computed.
 
 			"ipv4_address": schema.StringAttribute{
@@ -288,93 +403,6 @@ func (r InstanceResource) Schema(_ context.Context, _ resource.SchemaRequest, re
 					},
 				},
 			},
-
-			"exec": schema.ListNestedBlock{
-				Description: "Run command within the instance",
-				NestedObject: schema.NestedBlockObject{
-					Attributes: map[string]schema.Attribute{
-						"command": schema.ListAttribute{
-							Description: "Command to run within the instance",
-							Required:    true,
-							ElementType: types.StringType,
-							Validators: []validator.List{
-								listvalidator.SizeAtLeast(1),
-							},
-						},
-
-						"environment": schema.MapAttribute{
-							Description: "Map of additional environment variables",
-							Optional:    true,
-							Computed:    true,
-							ElementType: types.StringType,
-							Default:     mapdefault.StaticValue(types.MapValueMust(types.StringType, map[string]attr.Value{})),
-							Validators: []validator.Map{
-								mapvalidator.KeysAre(stringvalidator.LengthAtLeast(1)),
-								mapvalidator.ValueStringsAre(stringvalidator.LengthAtLeast(1)),
-							},
-						},
-
-						"working_dir": schema.StringAttribute{
-							Description: "The directory in which the command should run",
-							Optional:    true,
-							Computed:    true,
-							Default:     stringdefault.StaticString(""),
-							Validators: []validator.String{
-								stringvalidator.LengthAtLeast(1),
-							},
-						},
-
-						"record_output": schema.BoolAttribute{
-							Description: "Whether to record command's output (stdout and stderr)",
-							Optional:    true,
-							Computed:    true,
-							Default:     booldefault.StaticBool(false),
-						},
-
-						"fail_on_error": schema.BoolAttribute{
-							Description: "Whether to fail on command error",
-							Optional:    true,
-							Computed:    true,
-							Default:     booldefault.StaticBool(false),
-						},
-
-						"uid": schema.Int64Attribute{
-							Description: "The user ID for running command",
-							Optional:    true,
-						},
-
-						"gid": schema.Int64Attribute{
-							Description: "The group ID for running command",
-							Optional:    true,
-						},
-
-						"triggers": schema.ListAttribute{
-							Description: "A list of arbitrary strings that, when changed, will force the command to be rerun",
-							Optional:    true,
-							Computed:    true,
-							ElementType: types.StringType,
-							Default:     listdefault.StaticValue(types.ListValueMust(types.StringType, []attr.Value{})),
-						},
-
-						// Computed.
-
-						"exit_code": schema.Int64Attribute{
-							Description: "Exit code of the command",
-							Computed:    true,
-						},
-
-						"stdout": schema.StringAttribute{
-							Description: "Command standard output (if recorded)",
-							Computed:    true,
-						},
-
-						"stderr": schema.StringAttribute{
-							Description: "Command standard error (if recorded)",
-							Computed:    true,
-						},
-					},
-				},
-			},
 		},
 	}
 }
@@ -396,12 +424,8 @@ func (r *InstanceResource) Configure(_ context.Context, req resource.ConfigureRe
 
 func (r *InstanceResource) ModifyPlan(ctx context.Context, req resource.ModifyPlanRequest, resp *resource.ModifyPlanResponse) {
 	var config *InstanceModel
-	var state *InstanceModel
-	var plan *InstanceModel
 
 	resp.Diagnostics.Append(req.Config.Get(ctx, &config)...)
-	resp.Diagnostics.Append(req.State.Get(ctx, &state)...)
-	resp.Diagnostics.Append(req.Plan.Get(ctx, &plan)...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
@@ -409,37 +433,6 @@ func (r *InstanceResource) ModifyPlan(ctx context.Context, req resource.ModifyPl
 	// If profiles in config are null, set "default" profile in plan.
 	if !req.Config.Raw.IsNull() && config.Profiles.IsNull() {
 		resp.Plan.SetAttribute(ctx, path.Root("profiles"), []string{"default"})
-	}
-
-	// Validate if new commands need to be run. Error out if the instance
-	// is planned to be stopped as otherwise it would fail.
-	//
-	// Note: This should be run in ValidateConfig, but we do not have
-	// access to the plan and state there.
-	if !req.Plan.Raw.IsNull() && !plan.Running.ValueBool() {
-		var oldExecs []common.ExecModel
-
-		newExecs, diags := common.ToExecList(ctx, plan.Exec)
-		resp.Diagnostics.Append(diags...)
-
-		if !req.State.Raw.IsNull() {
-			oldExecs, diags = common.ToExecList(ctx, state.Exec)
-			resp.Diagnostics.Append(diags...)
-		}
-
-		if resp.Diagnostics.HasError() {
-			return
-		}
-
-		// If instance is planned to be stopped, and new commands need to be
-		// run, throw an error.
-		if !common.ExecSlicesEqual(oldExecs, newExecs) {
-			resp.Diagnostics.AddAttributeError(
-				path.Root("running"),
-				fmt.Sprintf("Instance %q is planned to be stopped, but exec commands need to be run", plan.Name.ValueString()),
-				"Changes in exec blocks cannot be reflected if instance is planned to be stopped.",
-			)
-		}
 	}
 }
 
@@ -609,6 +602,13 @@ func (r InstanceResource) Create(ctx context.Context, req resource.CreateRequest
 		}
 	}
 
+	// Extract exec commands.
+	execs, diags := common.ToExecMap(ctx, plan.Execs)
+	if diags.HasError() {
+		resp.Diagnostics.Append(diags...)
+		return
+	}
+
 	if plan.Running.ValueBool() {
 		// Start the instance.
 		diag := startInstance(ctx, server, instance.Name)
@@ -627,26 +627,26 @@ func (r InstanceResource) Create(ctx context.Context, req resource.CreateRequest
 			}
 		}
 
-		// Execute commands.
-		execs, diags := common.ToExecList(ctx, plan.Exec)
-		if diags.HasError() {
-			resp.Diagnostics.Append(diags...)
-			return
-		}
+	}
 
-		for i := range execs {
-			diags := execs[i].Execute(ctx, server, instance.Name)
+	// Execute commands.
+	for _, k := range utils.SortMapKeys(execs) {
+		e := execs[k]
+
+		if plan.Running.ValueBool() && e.IsTriggered(true) {
+			diags := e.Execute(ctx, server, instance.Name)
 			if diags.HasError() {
 				resp.Diagnostics.Append(diags...)
 				return
 			}
 		}
+	}
 
-		plan.Exec, diags = common.ToExecListType(ctx, execs)
-		if diags.HasError() {
-			resp.Diagnostics.Append(diags...)
-			return
-		}
+	// Update the plan with exec computed values.
+	plan.Execs, diags = common.ToExecMapType(ctx, execs)
+	if diags.HasError() {
+		resp.Diagnostics.Append(diags...)
+		return
 	}
 
 	// Update Terraform state.
@@ -713,9 +713,16 @@ func (r InstanceResource) Update(ctx context.Context, req resource.UpdateRequest
 		return
 	}
 
+	// Indicates if the instance has been just started.
+	instanceStarted := false
+	instanceRunning := isInstanceOperational(*instanceState)
+
 	// First ensure the desired state of the instance (stopped/running).
 	// This ensures we fail fast if instance runs into an issue.
-	if plan.Running.ValueBool() && !isInstanceOperational(*instanceState) {
+	if plan.Running.ValueBool() && !instanceRunning {
+		instanceStarted = true
+		instanceRunning = true
+
 		diag := startInstance(ctx, server, instanceName)
 		if diag != nil {
 			resp.Diagnostics.Append(diag)
@@ -732,12 +739,15 @@ func (r InstanceResource) Update(ctx context.Context, req resource.UpdateRequest
 			}
 		}
 	} else if !plan.Running.ValueBool() && !isInstanceStopped(*instanceState) {
+		instanceRunning = false
+
 		// Stop the instance gracefully.
 		_, diag := stopInstance(ctx, server, instanceName, false)
 		if diag != nil {
 			resp.Diagnostics.Append(diag)
 			return
 		}
+
 	}
 
 	// Get instance.
@@ -835,39 +845,37 @@ func (r InstanceResource) Update(ctx context.Context, req resource.UpdateRequest
 		}
 	}
 
-	oldExecs, diags := common.ToExecList(ctx, state.Exec)
+	// Execute commands.
+	oldExecs, diags := common.ToExecMap(ctx, state.Execs)
 	resp.Diagnostics.Append(diags...)
 
-	newExecs, diags := common.ToExecList(ctx, plan.Exec)
+	newExecs, diags := common.ToExecMap(ctx, plan.Execs)
 	resp.Diagnostics.Append(diags...)
 
 	if resp.Diagnostics.HasError() {
 		return
 	}
 
-	// Execute new commands.
-	for i := range newExecs {
-		if i < len(oldExecs) {
-			// Copy computed fields in case the command has
-			// not changed.
-			newExecs[i].ExitCode = oldExecs[i].ExitCode
-			newExecs[i].Output = oldExecs[i].Output
-			newExecs[i].Error = oldExecs[i].Error
+	// Execute commands.
+	for _, k := range utils.SortMapKeys(newExecs) {
+		new := newExecs[k]
+		old := oldExecs[k]
 
-			// Skip unchanged execs.
-			if newExecs[i].Equal(oldExecs[i]) {
-				continue
-			}
+		// Copy run count from state (if exists).
+		if old != nil {
+			new.RunCount = old.RunCount
 		}
 
-		diags := newExecs[i].Execute(ctx, server, instanceName)
-		if diags.HasError() {
-			resp.Diagnostics.Append(diags...)
-			return
+		if instanceRunning && new.IsTriggered(instanceStarted) {
+			diags := new.Execute(ctx, server, instance.Name)
+			if diags.HasError() {
+				resp.Diagnostics.Append(diags...)
+				return
+			}
 		}
 	}
 
-	plan.Exec, diags = common.ToExecListType(ctx, newExecs)
+	plan.Execs, diags = common.ToExecMapType(ctx, newExecs)
 	if diags.HasError() {
 		resp.Diagnostics.Append(diags...)
 		return
