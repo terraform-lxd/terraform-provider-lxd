@@ -3,7 +3,6 @@ package instance_test
 import (
 	"fmt"
 	"regexp"
-	"strings"
 	"testing"
 
 	petname "github.com/dustinkirkland/golang-petname"
@@ -565,21 +564,23 @@ func TestAccInstance_execOutput(t *testing.T) {
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("lxd_instance.instance1", "name", instanceName),
 					resource.TestCheckResourceAttr("lxd_instance.instance1", "status", "Running"),
-					resource.TestCheckResourceAttr("lxd_instance.instance1", "exec.#", "1"),
-					resource.TestCheckResourceAttr("lxd_instance.instance1", "exec.0.exit_code", "0"),
-					resource.TestCheckResourceAttr("lxd_instance.instance1", "exec.0.stdout", ""),
-					resource.TestCheckResourceAttr("lxd_instance.instance1", "exec.0.stderr", ""),
+					resource.TestCheckResourceAttr("lxd_instance.instance1", "execs.%", "1"),
+					resource.TestCheckResourceAttr("lxd_instance.instance1", "execs.cmd.trigger", "on_change"),
+					resource.TestCheckResourceAttr("lxd_instance.instance1", "execs.cmd.exit_code", "0"),
+					resource.TestCheckResourceAttr("lxd_instance.instance1", "execs.cmd.stdout", ""),
+					resource.TestCheckResourceAttr("lxd_instance.instance1", "execs.cmd.stderr", ""),
 				),
 			},
 			{
+				// Record exec output.
 				Config: testAccInstance_execOutput(instanceName),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("lxd_instance.instance1", "name", instanceName),
 					resource.TestCheckResourceAttr("lxd_instance.instance1", "status", "Running"),
-					resource.TestCheckResourceAttr("lxd_instance.instance1", "exec.#", "1"),
-					resource.TestCheckResourceAttr("lxd_instance.instance1", "exec.0.exit_code", "0"),
-					resource.TestCheckResourceAttr("lxd_instance.instance1", "exec.0.stdout", "Linux\n"),
-					resource.TestCheckResourceAttr("lxd_instance.instance1", "exec.0.stderr", ""),
+					resource.TestCheckResourceAttr("lxd_instance.instance1", "execs.%", "1"),
+					resource.TestCheckResourceAttr("lxd_instance.instance1", "execs.cmd.exit_code", "0"),
+					resource.TestCheckResourceAttr("lxd_instance.instance1", "execs.cmd.stdout", "Linux\n"),
+					resource.TestCheckResourceAttr("lxd_instance.instance1", "execs.cmd.stderr", ""),
 				),
 			},
 			{
@@ -587,17 +588,17 @@ func TestAccInstance_execOutput(t *testing.T) {
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("lxd_instance.instance1", "name", instanceName),
 					resource.TestCheckResourceAttr("lxd_instance.instance1", "status", "Running"),
-					resource.TestCheckResourceAttr("lxd_instance.instance1", "exec.#", "1"),
-					resource.TestCheckResourceAttr("lxd_instance.instance1", "exec.0.exit_code", "0"),
-					resource.TestCheckResourceAttr("lxd_instance.instance1", "exec.0.stdout", ""),
-					resource.TestCheckResourceAttr("lxd_instance.instance1", "exec.0.stderr", ""),
+					resource.TestCheckResourceAttr("lxd_instance.instance1", "execs.%", "1"),
+					resource.TestCheckResourceAttr("lxd_instance.instance1", "execs.cmd.exit_code", "0"),
+					resource.TestCheckResourceAttr("lxd_instance.instance1", "execs.cmd.stdout", ""),
+					resource.TestCheckResourceAttr("lxd_instance.instance1", "execs.cmd.stderr", ""),
 				),
 			},
 		},
 	})
 }
 
-func TestAccInstance_execOnStoppedInstance(t *testing.T) {
+func TestAccInstance_execOutputDate(t *testing.T) {
 	instanceName := petname.Generate(2, "-")
 
 	resource.Test(t, resource.TestCase{
@@ -605,37 +606,226 @@ func TestAccInstance_execOnStoppedInstance(t *testing.T) {
 		ProtoV6ProviderFactories: acctest.ProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
-				// Try to add exec blocks on instance that will not be started.
-				Config:      testAccInstance_execOnStoppedInstance(instanceName),
-				ExpectError: regexp.MustCompile(fmt.Sprintf("Instance %q is planned to be stopped, but exec commands need to be run", instanceName)),
-			},
-			{
-				// Start an instance with exec command.
-				Config: testAccInstance_exec(instanceName),
+				// Record exec output.
+				Config: testAccInstance_execOutputDate(instanceName),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("lxd_instance.instance1", "name", instanceName),
 					resource.TestCheckResourceAttr("lxd_instance.instance1", "status", "Running"),
-					resource.TestCheckResourceAttr("lxd_instance.instance1", "exec.#", "1"),
+					resource.TestCheckResourceAttr("lxd_instance.instance1", "execs.%", "1"),
+					resource.TestCheckResourceAttr("lxd_instance.instance1", "execs.cmd.exit_code", "0"),
+					resource.TestCheckResourceAttrSet("lxd_instance.instance1", "execs.cmd.stdout"),
 				),
 			},
 			{
-				// Try to change exec block while stopping the instance.
-				Config:      testAccInstance_execOnStoppedInstance(instanceName, "trigger"),
-				ExpectError: regexp.MustCompile(fmt.Sprintf("Instance %q is planned to be stopped, but exec commands need to be run", instanceName)),
+				// Ensure that exec output change does not produce an
+				// inconsistent plan.
+				Config: testAccInstance_execOutputDate(instanceName),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr("lxd_instance.instance1", "name", instanceName),
+					resource.TestCheckResourceAttr("lxd_instance.instance1", "status", "Running"),
+					resource.TestCheckResourceAttr("lxd_instance.instance1", "execs.%", "1"),
+					resource.TestCheckResourceAttr("lxd_instance.instance1", "execs.cmd.exit_code", "0"),
+					resource.TestCheckResourceAttrSet("lxd_instance.instance1", "execs.cmd.stdout"),
+				),
+			},
+		},
+	})
+}
+
+func TestAccInstance_execTriggerOnce(t *testing.T) {
+	instanceName := petname.Generate(2, "-")
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { acctest.PreCheck(t) },
+		ProtoV6ProviderFactories: acctest.ProtoV6ProviderFactories,
+		Steps: []resource.TestStep{
+			{
+				// Start the instance.
+				Config: testAccInstance_execTriggerOnce(instanceName, "uname"),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr("lxd_instance.instance1", "name", instanceName),
+					resource.TestCheckResourceAttr("lxd_instance.instance1", "status", "Running"),
+					resource.TestCheckResourceAttr("lxd_instance.instance1", "execs.%", "1"),
+					resource.TestCheckResourceAttr("lxd_instance.instance1", "execs.cmd.trigger", "once"),
+					resource.TestCheckResourceAttr("lxd_instance.instance1", "execs.cmd.exit_code", "0"),
+					resource.TestCheckResourceAttr("lxd_instance.instance1", "execs.cmd.stdout", "Linux\n"),
+					resource.TestCheckResourceAttr("lxd_instance.instance1", "execs.cmd.stderr", ""),
+					resource.TestCheckResourceAttr("lxd_instance.instance1", "execs.cmd.run_count", "1"),
+				),
 			},
 			{
-				// Stop it without changing exec blocks.
-				Config: testAccInstance_execOnStoppedInstance(instanceName),
+				// Stop the instance. Ensure computed fields are cleared.
+				Config: testAccInstance_execTriggerOnce(instanceName, "hostname"),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr("lxd_instance.instance1", "name", instanceName),
+					resource.TestCheckResourceAttr("lxd_instance.instance1", "status", "Running"),
+					resource.TestCheckResourceAttr("lxd_instance.instance1", "execs.%", "1"),
+					resource.TestCheckResourceAttr("lxd_instance.instance1", "execs.cmd.exit_code", "-1"),
+					resource.TestCheckResourceAttr("lxd_instance.instance1", "execs.cmd.stdout", ""),
+					resource.TestCheckResourceAttr("lxd_instance.instance1", "execs.cmd.stderr", ""),
+					resource.TestCheckResourceAttr("lxd_instance.instance1", "execs.cmd.run_count", "1"),
+				),
+			},
+		},
+	})
+}
+
+func TestAccInstance_execTriggerOnStart(t *testing.T) {
+	instanceName := petname.Generate(2, "-")
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { acctest.PreCheck(t) },
+		ProtoV6ProviderFactories: acctest.ProtoV6ProviderFactories,
+		Steps: []resource.TestStep{
+			{
+				// Create stopped instance.
+				Config: testAccInstance_execTriggerOnStart(instanceName, "uname", false /* running */),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("lxd_instance.instance1", "name", instanceName),
 					resource.TestCheckResourceAttr("lxd_instance.instance1", "status", "Stopped"),
-					resource.TestCheckResourceAttr("lxd_instance.instance1", "exec.#", "1"),
+					resource.TestCheckResourceAttr("lxd_instance.instance1", "execs.%", "1"),
+					resource.TestCheckResourceAttr("lxd_instance.instance1", "execs.cmd.trigger", "on_start"),
+					resource.TestCheckResourceAttr("lxd_instance.instance1", "execs.cmd.exit_code", "-1"),
+					resource.TestCheckResourceAttr("lxd_instance.instance1", "execs.cmd.stdout", ""),
+					resource.TestCheckResourceAttr("lxd_instance.instance1", "execs.cmd.stderr", ""),
+					resource.TestCheckResourceAttr("lxd_instance.instance1", "execs.cmd.run_count", "0"),
 				),
 			},
 			{
-				// Try to change exec block while instance is stopped.
-				Config:      testAccInstance_execOnStoppedInstance(instanceName, "trigger"),
-				ExpectError: regexp.MustCompile(fmt.Sprintf("Instance %q is planned to be stopped, but exec commands need to be run", instanceName)),
+				// Start the instance.
+				Config: testAccInstance_execTriggerOnStart(instanceName, "uname", true /* running */),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr("lxd_instance.instance1", "name", instanceName),
+					resource.TestCheckResourceAttr("lxd_instance.instance1", "status", "Running"),
+					resource.TestCheckResourceAttr("lxd_instance.instance1", "execs.%", "1"),
+					resource.TestCheckResourceAttr("lxd_instance.instance1", "execs.cmd.exit_code", "0"),
+					resource.TestCheckResourceAttr("lxd_instance.instance1", "execs.cmd.stdout", "Linux\n"),
+					resource.TestCheckResourceAttr("lxd_instance.instance1", "execs.cmd.stderr", ""),
+					resource.TestCheckResourceAttr("lxd_instance.instance1", "execs.cmd.run_count", "1"),
+				),
+			},
+			{
+				// Change command. Ensure it is not executed.
+				Config: testAccInstance_execTriggerOnStart(instanceName, "hostname", true /* running */),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr("lxd_instance.instance1", "name", instanceName),
+					resource.TestCheckResourceAttr("lxd_instance.instance1", "status", "Running"),
+					resource.TestCheckResourceAttr("lxd_instance.instance1", "execs.%", "1"),
+					resource.TestCheckResourceAttr("lxd_instance.instance1", "execs.cmd.exit_code", "-1"),
+					resource.TestCheckResourceAttr("lxd_instance.instance1", "execs.cmd.stdout", ""),
+					resource.TestCheckResourceAttr("lxd_instance.instance1", "execs.cmd.stderr", ""),
+					resource.TestCheckResourceAttr("lxd_instance.instance1", "execs.cmd.run_count", "1"),
+				),
+			},
+			{
+				// Stop the instance. Ensure computed fields are cleared.
+				Config: testAccInstance_execTriggerOnStart(instanceName, "hostname", false /* running */),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr("lxd_instance.instance1", "name", instanceName),
+					resource.TestCheckResourceAttr("lxd_instance.instance1", "status", "Stopped"),
+					resource.TestCheckResourceAttr("lxd_instance.instance1", "execs.%", "1"),
+					resource.TestCheckResourceAttr("lxd_instance.instance1", "execs.cmd.exit_code", "-1"),
+					resource.TestCheckResourceAttr("lxd_instance.instance1", "execs.cmd.stdout", ""),
+					resource.TestCheckResourceAttr("lxd_instance.instance1", "execs.cmd.stderr", ""),
+					resource.TestCheckResourceAttr("lxd_instance.instance1", "execs.cmd.run_count", "1"),
+				),
+			},
+			{
+				// Start instance again.
+				Config: testAccInstance_execTriggerOnStart(instanceName, "hostname", true /* running */),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr("lxd_instance.instance1", "name", instanceName),
+					resource.TestCheckResourceAttr("lxd_instance.instance1", "status", "Running"),
+					resource.TestCheckResourceAttr("lxd_instance.instance1", "execs.%", "1"),
+					resource.TestCheckResourceAttr("lxd_instance.instance1", "execs.cmd.exit_code", "0"),
+					resource.TestCheckResourceAttr("lxd_instance.instance1", "execs.cmd.stdout", fmt.Sprintf("%s\n", instanceName)),
+					resource.TestCheckResourceAttr("lxd_instance.instance1", "execs.cmd.stderr", ""),
+					resource.TestCheckResourceAttr("lxd_instance.instance1", "execs.cmd.run_count", "2"),
+				),
+			},
+		},
+	})
+}
+
+func TestAccInstance_execTriggerOnChange(t *testing.T) {
+	instanceName := petname.Generate(2, "-")
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { acctest.PreCheck(t) },
+		ProtoV6ProviderFactories: acctest.ProtoV6ProviderFactories,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccInstance_execTriggerOnChange(instanceName, "uname"),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr("lxd_instance.instance1", "name", instanceName),
+					resource.TestCheckResourceAttr("lxd_instance.instance1", "status", "Running"),
+					resource.TestCheckResourceAttr("lxd_instance.instance1", "execs.%", "1"),
+					resource.TestCheckResourceAttr("lxd_instance.instance1", "execs.cmd.trigger", "on_change"),
+					resource.TestCheckResourceAttr("lxd_instance.instance1", "execs.cmd.exit_code", "0"),
+					resource.TestCheckResourceAttr("lxd_instance.instance1", "execs.cmd.run_count", "1"),
+				),
+			},
+			{
+				Config: testAccInstance_execTriggerOnChange(instanceName, "hostname"),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr("lxd_instance.instance1", "name", instanceName),
+					resource.TestCheckResourceAttr("lxd_instance.instance1", "status", "Running"),
+					resource.TestCheckResourceAttr("lxd_instance.instance1", "execs.%", "1"),
+					resource.TestCheckResourceAttr("lxd_instance.instance1", "execs.cmd.trigger", "on_change"),
+					resource.TestCheckResourceAttr("lxd_instance.instance1", "execs.cmd.exit_code", "0"),
+					resource.TestCheckResourceAttr("lxd_instance.instance1", "execs.cmd.run_count", "2"),
+				),
+			},
+		},
+	})
+}
+
+func TestAccInstance_execEnabled(t *testing.T) {
+	instanceName := petname.Generate(2, "-")
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { acctest.PreCheck(t) },
+		ProtoV6ProviderFactories: acctest.ProtoV6ProviderFactories,
+		Steps: []resource.TestStep{
+			{
+				// Start instance with exec disabled.
+				Config: testAccInstance_execEnabled(instanceName, false),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr("lxd_instance.instance1", "name", instanceName),
+					resource.TestCheckResourceAttr("lxd_instance.instance1", "status", "Running"),
+					resource.TestCheckResourceAttr("lxd_instance.instance1", "execs.%", "1"),
+					resource.TestCheckResourceAttr("lxd_instance.instance1", "execs.cmd.trigger", "on_change"),
+					resource.TestCheckResourceAttr("lxd_instance.instance1", "execs.cmd.enabled", "false"),
+					resource.TestCheckResourceAttr("lxd_instance.instance1", "execs.cmd.exit_code", "-1"),
+					resource.TestCheckResourceAttr("lxd_instance.instance1", "execs.cmd.stdout", ""),
+					resource.TestCheckResourceAttr("lxd_instance.instance1", "execs.cmd.stderr", ""),
+				),
+			},
+			{
+				// Enable exec.
+				Config: testAccInstance_execEnabled(instanceName, true),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr("lxd_instance.instance1", "name", instanceName),
+					resource.TestCheckResourceAttr("lxd_instance.instance1", "status", "Running"),
+					resource.TestCheckResourceAttr("lxd_instance.instance1", "execs.%", "1"),
+					resource.TestCheckResourceAttr("lxd_instance.instance1", "execs.cmd.enabled", "true"),
+					resource.TestCheckResourceAttr("lxd_instance.instance1", "execs.cmd.exit_code", "0"),
+					resource.TestCheckResourceAttr("lxd_instance.instance1", "execs.cmd.stdout", "Linux\n"),
+					resource.TestCheckResourceAttr("lxd_instance.instance1", "execs.cmd.stderr", ""),
+				),
+			},
+			{
+				// Disable exec. Ensure computed fields are cleared.
+				Config: testAccInstance_execEnabled(instanceName, false),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr("lxd_instance.instance1", "name", instanceName),
+					resource.TestCheckResourceAttr("lxd_instance.instance1", "status", "Running"),
+					resource.TestCheckResourceAttr("lxd_instance.instance1", "execs.%", "1"),
+					resource.TestCheckResourceAttr("lxd_instance.instance1", "execs.cmd.enabled", "false"),
+					resource.TestCheckResourceAttr("lxd_instance.instance1", "execs.cmd.exit_code", "-1"),
+					resource.TestCheckResourceAttr("lxd_instance.instance1", "execs.cmd.stdout", ""),
+					resource.TestCheckResourceAttr("lxd_instance.instance1", "execs.cmd.stderr", ""),
+				),
 			},
 		},
 	})
@@ -653,10 +843,10 @@ func TestAccInstance_execWorkingDir(t *testing.T) {
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("lxd_instance.instance1", "name", instanceName),
 					resource.TestCheckResourceAttr("lxd_instance.instance1", "status", "Running"),
-					resource.TestCheckResourceAttr("lxd_instance.instance1", "exec.#", "1"),
-					resource.TestCheckResourceAttr("lxd_instance.instance1", "exec.0.exit_code", "0"),
-					resource.TestCheckResourceAttr("lxd_instance.instance1", "exec.0.stdout", "ID=ubuntu"),
-					resource.TestCheckResourceAttr("lxd_instance.instance1", "exec.0.stderr", ""),
+					resource.TestCheckResourceAttr("lxd_instance.instance1", "execs.%", "1"),
+					resource.TestCheckResourceAttr("lxd_instance.instance1", "execs.cmd.exit_code", "0"),
+					resource.TestCheckResourceAttr("lxd_instance.instance1", "execs.cmd.stdout", "ID=ubuntu"),
+					resource.TestCheckResourceAttr("lxd_instance.instance1", "execs.cmd.stderr", ""),
 				),
 			},
 		},
@@ -675,10 +865,10 @@ func TestAccInstance_execEnvironment(t *testing.T) {
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("lxd_instance.instance1", "name", instanceName),
 					resource.TestCheckResourceAttr("lxd_instance.instance1", "status", "Running"),
-					resource.TestCheckResourceAttr("lxd_instance.instance1", "exec.#", "1"),
-					resource.TestCheckResourceAttr("lxd_instance.instance1", "exec.0.exit_code", "0"),
-					resource.TestCheckResourceAttr("lxd_instance.instance1", "exec.0.stdout", "It works."),
-					resource.TestCheckResourceAttr("lxd_instance.instance1", "exec.0.stderr", ""),
+					resource.TestCheckResourceAttr("lxd_instance.instance1", "execs.%", "1"),
+					resource.TestCheckResourceAttr("lxd_instance.instance1", "execs.cmd.exit_code", "0"),
+					resource.TestCheckResourceAttr("lxd_instance.instance1", "execs.cmd.stdout", "It works."),
+					resource.TestCheckResourceAttr("lxd_instance.instance1", "execs.cmd.stderr", ""),
 				),
 			},
 		},
@@ -698,10 +888,38 @@ func TestAccInstance_execScript(t *testing.T) {
 					resource.TestCheckResourceAttr("lxd_instance.instance1", "name", instanceName),
 					resource.TestCheckResourceAttr("lxd_instance.instance1", "status", "Running"),
 					resource.TestCheckResourceAttr("lxd_instance.instance1", "file.#", "1"),
-					resource.TestCheckResourceAttr("lxd_instance.instance1", "exec.#", "1"),
-					resource.TestCheckResourceAttr("lxd_instance.instance1", "exec.0.exit_code", "0"),
-					resource.TestCheckResourceAttr("lxd_instance.instance1", "exec.0.stdout", instanceName),
-					resource.TestCheckResourceAttr("lxd_instance.instance1", "exec.0.stderr", ""),
+					resource.TestCheckResourceAttr("lxd_instance.instance1", "execs.%", "1"),
+					resource.TestCheckResourceAttr("lxd_instance.instance1", "execs.cmd.exit_code", "0"),
+					resource.TestCheckResourceAttr("lxd_instance.instance1", "execs.cmd.stdout", instanceName),
+					resource.TestCheckResourceAttr("lxd_instance.instance1", "execs.cmd.stderr", ""),
+				),
+			},
+		},
+	})
+}
+
+func TestAccInstance_execOrder(t *testing.T) {
+	instanceName := petname.Generate(2, "-")
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { acctest.PreCheck(t) },
+		ProtoV6ProviderFactories: acctest.ProtoV6ProviderFactories,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccInstance_execOrder(instanceName),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr("lxd_instance.instance1", "name", instanceName),
+					resource.TestCheckResourceAttr("lxd_instance.instance1", "status", "Running"),
+					resource.TestCheckResourceAttr("lxd_instance.instance1", "execs.%", "3"),
+					resource.TestCheckResourceAttr("lxd_instance.instance1", "execs.1.exit_code", "0"),
+					resource.TestCheckResourceAttr("lxd_instance.instance1", "execs.1.stdout", ""),
+					resource.TestCheckResourceAttr("lxd_instance.instance1", "execs.1.stderr", ""),
+					resource.TestCheckResourceAttr("lxd_instance.instance1", "execs.2.exit_code", "0"),
+					resource.TestCheckResourceAttr("lxd_instance.instance1", "execs.2.stdout", fmt.Sprintf("%v\n", instanceName)),
+					resource.TestCheckResourceAttr("lxd_instance.instance1", "execs.2.stderr", ""),
+					resource.TestCheckResourceAttr("lxd_instance.instance1", "execs.3.exit_code", "0"),
+					resource.TestCheckResourceAttr("lxd_instance.instance1", "execs.3.stdout", ""),
+					resource.TestCheckResourceAttr("lxd_instance.instance1", "execs.3.stderr", ""),
 				),
 			},
 		},
@@ -723,12 +941,11 @@ func TestAccInstance_execError(t *testing.T) {
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("lxd_instance.instance1", "name", instanceName),
 					resource.TestCheckResourceAttr("lxd_instance.instance1", "status", "Running"),
-					resource.TestCheckResourceAttr("lxd_instance.instance1", "exec.#", "1"),
-					// resource.TestCheckResourceAttr("lxd_instance.instance1", "exec.0.exit_code", "127"), // TODO: Requires LXD client 5.20.
-					resource.TestCheckResourceAttr("lxd_instance.instance1", "exec.0.stdout", ""),
-					resource.TestCheckResourceAttr("lxd_instance.instance1", "exec.0.stderr", "Command not found"),
+					resource.TestCheckResourceAttr("lxd_instance.instance1", "execs.%", "1"),
+					// resource.TestCheckResourceAttr("lxd_instance.instance1", "execs.cmd.exit_code", "127"), // TODO: Requires LXD client 5.20.
+					resource.TestCheckResourceAttr("lxd_instance.instance1", "execs.cmd.stdout", ""),
+					resource.TestCheckResourceAttr("lxd_instance.instance1", "execs.cmd.stderr", "Command not found"),
 				),
-				ExpectNonEmptyPlan: true, // timestamp() in triggers.
 			},
 			{
 				// Ensure terraform apply fails on command error
@@ -742,10 +959,10 @@ func TestAccInstance_execError(t *testing.T) {
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("lxd_instance.instance1", "name", instanceName),
 					resource.TestCheckResourceAttr("lxd_instance.instance1", "status", "Running"),
-					resource.TestCheckResourceAttr("lxd_instance.instance1", "exec.#", "1"),
-					resource.TestCheckResourceAttr("lxd_instance.instance1", "exec.0.exit_code", "1"),
-					resource.TestCheckResourceAttr("lxd_instance.instance1", "exec.0.stdout", ""),
-					resource.TestCheckResourceAttr("lxd_instance.instance1", "exec.0.stderr", ""),
+					resource.TestCheckResourceAttr("lxd_instance.instance1", "execs.%", "1"),
+					resource.TestCheckResourceAttr("lxd_instance.instance1", "execs.cmd.exit_code", "1"),
+					resource.TestCheckResourceAttr("lxd_instance.instance1", "execs.cmd.stdout", ""),
+					resource.TestCheckResourceAttr("lxd_instance.instance1", "execs.cmd.stderr", ""),
 				),
 			},
 		},
@@ -1307,35 +1524,21 @@ resource "lxd_instance" "instance1" {
 	`, name, acctest.TestImage)
 }
 
-func testAccInstance_exec(instanceName string, triggers ...string) string {
+func testAccInstance_exec(instanceName string) string {
 	return fmt.Sprintf(`
 resource "lxd_instance" "instance1" {
   name  = "%s"
   image = "%s"
 
-  exec {
-    command       = ["uname"]
-    triggers      = ["%s"]
-    record_output = false
+  execs = {
+    "cmd" = {
+      command       = ["uname"]
+      trigger       = "on_change"
+      record_output = false
+    }
   }
 }
-	`, instanceName, acctest.TestImage, strings.Join(triggers, "\", \""))
-}
-
-func testAccInstance_execOnStoppedInstance(instanceName string, triggers ...string) string {
-	return fmt.Sprintf(`
-resource "lxd_instance" "instance1" {
-  name    = "%s"
-  image   = "%s"
-  running = false
-
-  exec {
-    command       = ["uname"]
-    triggers      = ["%s"]
-    record_output = false
-  }
-}
-	`, instanceName, acctest.TestImage, strings.Join(triggers, "\", \""))
+	`, instanceName, acctest.TestImage)
 }
 
 func testAccInstance_execOutput(instanceName string) string {
@@ -1344,13 +1547,99 @@ resource "lxd_instance" "instance1" {
   name  = "%s"
   image = "%s"
 
-  exec {
-    command       = ["uname"]
-    triggers      = ["rerun"]
-    record_output = true
+  execs = {
+    "cmd" = {
+      command       = ["uname"]
+      record_output = true
+    }
   }
 }
 	`, instanceName, acctest.TestImage)
+}
+
+func testAccInstance_execOutputDate(instanceName string) string {
+	return fmt.Sprintf(`
+resource "lxd_instance" "instance1" {
+  name  = "%s"
+  image = "%s"
+
+  execs = {
+    "cmd" = {
+      command       = ["date"]
+      trigger       = "on_change"
+      record_output = true
+    }
+  }
+}
+	`, instanceName, acctest.TestImage)
+}
+
+func testAccInstance_execEnabled(instanceName string, enabled bool) string {
+	return fmt.Sprintf(`
+resource "lxd_instance" "instance1" {
+  name  = "%s"
+  image = "%s"
+
+  execs = {
+    "cmd" = {
+      command       = ["uname"]
+      enabled       = %v
+      record_output = "true"
+    }
+  }
+}
+	`, instanceName, acctest.TestImage, enabled)
+}
+
+func testAccInstance_execTriggerOnce(instanceName string, command string) string {
+	return fmt.Sprintf(`
+resource "lxd_instance" "instance1" {
+  name  = "%s"
+  image = "%s"
+
+  execs = {
+    "cmd" = {
+      command       = ["%s"]
+      trigger       = "once"
+      record_output = "true"
+    }
+  }
+}
+	`, instanceName, acctest.TestImage, command)
+}
+
+func testAccInstance_execTriggerOnStart(instanceName string, command string, running bool) string {
+	return fmt.Sprintf(`
+resource "lxd_instance" "instance1" {
+  name    = "%s"
+  image   = "%s"
+  running = %v
+
+  execs = {
+    "cmd" = {
+      command       = ["%s"]
+      trigger       = "on_start"
+      record_output = "true"
+    }
+  }
+}
+	`, instanceName, acctest.TestImage, running, command)
+}
+
+func testAccInstance_execTriggerOnChange(instanceName string, command string) string {
+	return fmt.Sprintf(`
+resource "lxd_instance" "instance1" {
+  name    = "%s"
+  image   = "%s"
+
+  execs = {
+    "cmd" = {
+      command = ["%s"]
+      trigger = "on_change"
+    }
+  }
+}
+	`, instanceName, acctest.TestImage, command)
 }
 
 func testAccInstance_execWorkingDir(instanceName string) string {
@@ -1359,13 +1648,15 @@ resource "lxd_instance" "instance1" {
   name  = "%s"
   image = "%s"
 
-  exec {
-    command = [
-      "/bin/sh", "-c",
-      "cat os-release | grep '^ID=' | tr -d '\n'"
-    ]
-    working_dir   = "/etc"
-    record_output = true
+  execs = {
+    "cmd" = {
+      command = [
+        "/bin/sh", "-c",
+        "cat os-release | grep '^ID=' | tr -d '\n'"
+      ]
+      working_dir   = "/etc"
+      record_output = true
+    }
   }
 }
 	`, instanceName, acctest.TestImage)
@@ -1377,12 +1668,14 @@ resource "lxd_instance" "instance1" {
   name  = "%s"
   image = "%s"
 
-  exec {
-    command       = ["/bin/sh", "-c", "echo -n $ENV_TEST"]
-    record_output = true
+  execs = {
+    "cmd" = {
+      command       = ["/bin/sh", "-c", "echo -n $ENV_TEST"]
+      record_output = true
 
-    environment = {
-      "ENV_TEST" = "It works."
+      environment = {
+        "ENV_TEST" = "It works."
+      }
     }
   }
 }
@@ -1401,9 +1694,35 @@ resource "lxd_instance" "instance1" {
     mode        = "0700"
   }
 
-  exec {
-    command       = ["/bin/sh", "test-script.sh"]
-    record_output = true
+  execs = {
+    "cmd" = {
+      command       = ["/bin/sh", "test-script.sh"]
+      record_output = true
+    }
+  }
+}
+	`, instanceName, acctest.TestImage)
+}
+
+func testAccInstance_execOrder(instanceName string) string {
+	return fmt.Sprintf(`
+resource "lxd_instance" "instance1" {
+  name  = "%s"
+  image = "%s"
+
+  execs = {
+    "2" = {
+      command       = ["cat", "test.txt"]
+      record_output = true
+    }
+
+    "3" = {
+      command = ["rm", "test.txt"]
+    }
+
+    "1" = {
+      command = ["sh", "-c", "echo $(hostname) > test.txt"]
+    }
   }
 }
 	`, instanceName, acctest.TestImage)
@@ -1415,24 +1734,27 @@ resource "lxd_instance" "instance1" {
   name  = "%s"
   image = "%s"
 
-  exec {
-    command       = ["invalid"]
-    triggers      = [timestamp()]
-    record_output = true
-    fail_on_error = "%v"
+  execs = {
+    "cmd" = {
+      command       = ["invalid-command"]
+      record_output = true
+      fail_on_error = "%v"
+    }
   }
 }
 	`, instanceName, acctest.TestImage, failOnError)
 }
 
-func testAccInstance_execError_2(instanceName string, triggers ...string) string {
+func testAccInstance_execError_2(instanceName string) string {
 	return fmt.Sprintf(`
 resource "lxd_instance" "instance1" {
   name  = "%s"
   image = "%s"
 
-  exec {
-    command = ["/bin/sh", "-c", "ls / | grep 'nothing'"]
+  execs = {
+    "cmd" = {
+      command = ["/bin/sh", "-c", "false"]
+    }
   }
 }
 	`, instanceName, acctest.TestImage)
