@@ -143,10 +143,11 @@ func (p *IncusProvider) Configure(ctx context.Context, req provider.ConfigureReq
 	if configDir == "" {
 		configDir = "$HOME/.config/incus"
 	}
+	configDir = os.ExpandEnv(configDir)
 
 	// Try to load config.yml from determined configDir. If there's
 	// an error loading config.yml, default config will be used.
-	configPath := os.ExpandEnv(filepath.Join(configDir, "config.yml"))
+	configPath := filepath.Join(configDir, "config.yml")
 	config, err := incus_config.LoadConfig(configPath)
 	if err != nil {
 		config = incus_config.DefaultConfig()
