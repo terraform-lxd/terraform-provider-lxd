@@ -244,6 +244,16 @@ func (r *ProjectResource) ImportState(ctx context.Context, req resource.ImportSt
 	}
 
 	for k, v := range fields {
+		// Attribute "project" is parsed by default, but we use
+		// attribute "name" instead.
+		if k == "project" {
+			resp.Diagnostics.AddError(
+				fmt.Sprintf("Invalid import ID %q", req.ID),
+				"Valid import format:\nimport incus_project.<resource> [remote:]<name>",
+			)
+			break
+		}
+
 		resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root(k), v)...)
 	}
 }
