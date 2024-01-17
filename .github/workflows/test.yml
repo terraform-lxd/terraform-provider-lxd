@@ -30,12 +30,12 @@ jobs:
     env:
       TF_ACC: "1"
       GO111MODULE: "on"
-      LXD_REMOTE: local
-      LXD_ADDR: localhost
-      LXD_PORT: 8443
-      LXD_GENERATE_CLIENT_CERTS: "true"
-      LXD_ACCEPT_SERVER_CERTIFICATE: "true"
-      LXD_SCHEME: https
+      INCUS_REMOTE: local
+      INCUS_ADDR: localhost
+      INCUS_PORT: 8443
+      INCUS_GENERATE_CLIENT_CERTS: "true"
+      INCUS_ACCEPT_SERVER_CERTIFICATE: "true"
+      INCUS_SCHEME: https
 
     steps:
       - uses: actions/checkout@v4
@@ -56,10 +56,10 @@ jobs:
 
           curl -sL https://pkgs.zabbly.com/get/incus-${{ matrix.incus-version }} | sudo sh
           sudo chmod 666 /var/lib/incus/unix.socket
-          sudo incus admin init --auto --network-port="$LXD_PORT" --network-address="$LXD_ADDR"
+          sudo incus admin init --auto --network-port="$INCUS_PORT" --network-address="$INCUS_ADDR"
 
-          LXD_TOKEN=$(incus config trust add terraform --quiet)
-          incus remote add localhost "${LXD_TOKEN}"
+          INCUS_TOKEN=$(incus config trust add terraform --quiet)
+          incus remote add localhost "${INCUS_TOKEN}"
 
       - name: Configure OVN
         run: |
