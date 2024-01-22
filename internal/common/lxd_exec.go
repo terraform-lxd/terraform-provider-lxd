@@ -13,11 +13,24 @@ import (
 	"github.com/terraform-lxd/terraform-provider-lxd/internal/utils"
 )
 
+type ExecTriggerType string
+
+const (
+	ON_CHANGE ExecTriggerType = "on_change"
+	ON_START  ExecTriggerType = "on_start"
+	ONCE      ExecTriggerType = "once"
+)
+
+func (t ExecTriggerType) String() string {
+	return string(t)
+}
+
 type ExecModel struct {
 	Command      types.List   `tfsdk:"command"`
-	Triggers     types.List   `tfsdk:"triggers"`
 	Environment  types.Map    `tfsdk:"environment"`
 	WorkingDir   types.String `tfsdk:"working_dir"`
+	Trigger      types.String `tfsdk:"trigger"`
+	Enabled      types.Bool   `tfsdk:"enabled"`
 	RecordOutput types.Bool   `tfsdk:"record_output"`
 	FailOnError  types.Bool   `tfsdk:"fail_on_error"`
 	UserID       types.Int64  `tfsdk:"uid"`
@@ -25,8 +38,33 @@ type ExecModel struct {
 	ExitCode     types.Int64  `tfsdk:"exit_code"`
 	Output       types.String `tfsdk:"stdout"`
 	Error        types.String `tfsdk:"stderr"`
+	RunCount     types.Int64  `tfsdk:"run_count"`
 }
 
+// IsTriggered determines whether the exec command needs to be executed.
+func (e ExecModel) IsTriggered(isInstanceStarted bool) bool {
+	// Disabled exec cannot be triggered.
+	if !e.Enabled.ValueBool() {
+		return false
+	}
+
+	trigger := ExecTriggerType(e.Trigger.ValueString())
+
+	switch trigger {
+	case ON_CHANGE:
+		return true
+	case ON_START:
+		return isInstanceStarted
+	case ONCE:
+		return e.RunCount.ValueInt64() == 0
+	default:
+		// Unknown trigger type.
+		return false
+	}
+}
+
+// Execute executes the exec command and populates the computed fields,
+// such as exit code, stdout, and stderr.
 func (e *ExecModel) Execute(ctx context.Context, server lxd.InstanceServer, instanceName string) diag.Diagnostics {
 	var diags diag.Diagnostics
 
@@ -68,6 +106,7 @@ func (e *ExecModel) Execute(ctx context.Context, server lxd.InstanceServer, inst
 		DataDone: make(chan bool),
 	}
 
+	// Exit code -1 indicates the command was not executed.
 	exitCode := int64(-1)
 
 	// Run command.
@@ -85,8 +124,6 @@ func (e *ExecModel) Execute(ctx context.Context, server lxd.InstanceServer, inst
 		}
 	}
 
-	e.ExitCode = types.Int64Value(exitCode)
-
 	// Wait for any remaining output to be flushed.
 	if err == nil {
 		<-execArgs.DataDone
@@ -101,7 +138,9 @@ func (e *ExecModel) Execute(ctx context.Context, server lxd.InstanceServer, inst
 		return diags
 	}
 
-	// Store command output.
+	// Set command's computed values.
+	e.RunCount = types.Int64Value(e.RunCount.ValueInt64() + 1)
+	e.ExitCode = types.Int64Value(exitCode)
 	e.Output = types.StringValue(outBuf.String())
 	e.Error = types.StringValue(errBuf.String())
 
@@ -114,63 +153,39 @@ func (e *ExecModel) Execute(ctx context.Context, server lxd.InstanceServer, inst
 	return nil
 }
 
-// Equals compares two execs and determines whether they are equal.
-func (e1 ExecModel) Equal(e2 ExecModel) bool {
-	if !e1.Command.Equal(e2.Command) {
-		return false
+// ToExecMap converts execs schema into map of exec models.
+func ToExecMap(ctx context.Context, execMap types.Map) (map[string]*ExecModel, diag.Diagnostics) {
+	if execMap.IsNull() || execMap.IsUnknown() {
+		return nil, nil
 	}
 
-	if !e1.Triggers.Equal(e2.Triggers) {
-		return false
-	}
+	execs := make(map[string]*ExecModel, len(execMap.Elements()))
+	diags := execMap.ElementsAs(ctx, &execs, false)
 
-	return true
-}
+	// Set default computed values (if needed).
+	for k, e := range execs {
+		e.ExitCode = types.Int64Value(-1)
+		e.Output = types.StringValue("")
+		e.Error = types.StringValue("")
 
-// ExecSlicesEqual returns true if there is no new command to be
-// executed.
-func ExecSlicesEqual(old []ExecModel, new []ExecModel) bool {
-	// If new exec block were added, new commands need
-	// to be run.
-	if len(new) > len(old) {
-		return false
-	}
-
-	// If any exec block has been changed, new commands
-	// need to be run.
-	for i := range old {
-		if i >= len(new) {
-			break
+		if e.RunCount.IsUnknown() {
+			e.RunCount = types.Int64Value(0)
 		}
 
-		if !old[i].Equal(new[i]) {
-			return false
-		}
+		execs[k] = e
 	}
 
-	return true
-}
-
-// ToExecList converts list of exec blocks of type types.List
-// into list of exec structures.
-func ToExecList(ctx context.Context, execList types.List) ([]ExecModel, diag.Diagnostics) {
-	if execList.IsNull() {
-		return []ExecModel{}, nil
-	}
-
-	execs := make([]ExecModel, 0, len(execList.Elements()))
-	diags := execList.ElementsAs(ctx, &execs, false)
 	return execs, diags
 }
 
-// ToExecList converts list of exec blocks of type types.List
-// into list of exec structures.
-func ToExecListType(ctx context.Context, execs []ExecModel) (types.List, diag.Diagnostics) {
+// ToExecMapType converts map of exec models into schema type.
+func ToExecMapType(ctx context.Context, execs map[string]*ExecModel) (types.Map, diag.Diagnostics) {
 	execType := map[string]attr.Type{
 		"command":       types.ListType{ElemType: types.StringType},
-		"triggers":      types.ListType{ElemType: types.StringType},
 		"environment":   types.MapType{ElemType: types.StringType},
 		"working_dir":   types.StringType,
+		"trigger":       types.StringType,
+		"enabled":       types.BoolType,
 		"record_output": types.BoolType,
 		"fail_on_error": types.BoolType,
 		"uid":           types.Int64Type,
@@ -178,7 +193,8 @@ func ToExecListType(ctx context.Context, execs []ExecModel) (types.List, diag.Di
 		"exit_code":     types.Int64Type,
 		"stdout":        types.StringType,
 		"stderr":        types.StringType,
+		"run_count":     types.Int64Type,
 	}
 
-	return types.ListValueFrom(ctx, types.ObjectType{AttrTypes: execType}, execs)
+	return types.MapValueFrom(ctx, types.ObjectType{AttrTypes: execType}, execs)
 }

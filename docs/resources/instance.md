@@ -98,6 +98,8 @@ resource "lxd_instance" "container2" {
 
 * `file` - *Optional* - File to upload to the instance. See reference below.
 
+* `execs` - *Optional* - Map of exec commands to run within the instance. See reference below.
+
 * `limits` - *Optional* - Map of key/value pairs that define the
 	[instance resources limits](https://documentation.ubuntu.com/lxd/en/latest/reference/instance_options/#resource-limits).
 
@@ -141,12 +143,19 @@ The `file` block supports:
 * `create_directories` - *Optional* - Whether to create the directories leading
 	to the target if they do not exist.
 
-The `exec` block supports:
+The `execs` map elements support the following attributes:
 
 * `command` - **Required** - The command to be executed and its arguments, if any (list of strings).
 
-* `triggers` - *Optional* - A list of arbitrary strings that, when changed, will force the command
-  to be rerun.
+* `enabled` - *Optional* - Boolean indicating whether the command should be executed.
+  Defaults to `true`.
+
+* `trigger` - *Optional* - Determines when the command should be executed.
+  Available values are:
+  + `on_change` (default) - Executes the command whenever the instance resource changes.
+  + `on_start` - Executes the command on instance start. Note that the command will **not** be executed
+    if the instance is started outside of Terraform.
+  + `once` - Executes the command only once.
 
 * `environment` - *Optional* - Map of additional environment variables.
   (Variables `PATH`, `LANG`, `HOME`, and `USER` are set by default, unless passed by the user.)
@@ -162,6 +171,9 @@ The `exec` block supports:
 * `uid` - *Optional* - The user ID for running command. Defaults to `0` (root).
 
 * `gid` - *Optional* - The group ID for running command. Defaults to `0` (root).
+
+-> **Note:** Command will be executed only when it is enabled, trigger condition is met,
+  and instance is running (or started).
 
 ## Attribute Reference
 
@@ -199,10 +211,9 @@ resource "lxd_instance" "instance1" {
 
 ## Executing Commands in Instances
 
-The `exec` block in an LXD instance configuration is used to execute commands. You can specify
-multiple exec blocks, with each block requiring a command defined as a list of strings.
-It's important to note that commands will be executed in the same order as the exec blocks appear
-in the configuration.
+The `execs` map defines commands to be executed within an instance. Each element in the map
+represents an exec command, uniquely identified by its map key. The commands are executed in
+an order determined alphabetically by their map keys.
 
 ### Commands and Environment Access
 
@@ -214,8 +225,10 @@ resource "lxd_instance" "inst" {
   name  = "c1"
   image = "ubuntu-daily:22.04"
 
-  exec {
-    command = ["ls", "/"]
+  execs = {
+    "simple_cmd" = {
+      command = ["ls", "/"]
+    }
   }
 }
 ```
@@ -229,11 +242,13 @@ resource "lxd_instance" "inst" {
   name  = "c1"
   image = "ubuntu-daily:22.04"
 
-  exec {
-    command = ["/bin/sh", "-c", "echo $ENV_KEY > env.txt"]
+  execs = {
+    "shell_cmd" = {
+      command = ["/bin/sh", "-c", "echo $ENV_KEY > env.txt"]
 
-    environment = {
-      "ENV_KEY" = "ENV_VALUE"
+      environment = {
+        "ENV_KEY" = "ENV_VALUE"
+      }
     }
   }
 }
@@ -251,37 +266,50 @@ resource "lxd_instance" "inst" {
   name  = "c1"
   image = "ubuntu-daily:22.04"
 
-  exec {
-    command       = ["hostname"]
-    record_output = true
+  execs = {
+    "cmd" = {
+      command       = ["hostname"]
+      record_output = true
+    }
   }
 }
 
 output "exec-output" {
   value = {
-    "code" = lxd_instance.inst.exec[0].exit_code # 0
-    "out"  = lxd_instance.inst.exec[0].stdout    # "c1\n"
-    "err"  = lxd_instance.inst.exec[0].stderr    # ""
+    "code" = lxd_instance.inst.execs["cmd"].exit_code # 0
+    "out"  = lxd_instance.inst.execs["cmd"].stdout    # "c1\n"
+    "err"  = lxd_instance.inst.execs["cmd"].stderr    # ""
   }
 }
 ```
 
 ### Fail on Command Error
 
-By default, command failure is ignored. If you want to stop Terraform from provisioning the resources
-if command exits with a non 0 status, set `fail_on_error` attribute to true.
+By default, command failure is ignored. To stop Terraform from provisioning the resources
+if command exits with a non-zero exit code, set `fail_on_error` attribute to true.
 
 ```hcl
 resource "lxd_instance" "inst" {
   name      = "c1"
   image     = "ubuntu-daily:22.04"
 
-  exec {
-    command       = ["invalid-cmd"]
-    fail_on_error = true
+  execs = {
+    "err_1" = {
+      command       = ["false"]
+      fail_on_error = false
+    }
+
+    "err_2" = {
+      command       = ["invalid-cmd"]
+      fail_on_error = true
+    }
   }
 }
 ```
+
+In the above example, the provisioning process will continue despite the failure of the first
+command (`err_1`). However, it will halt at the second command (`err_2`) because `fail_on_error`
+is set to `true`.
 
 ## Importing
 
