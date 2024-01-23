@@ -15,7 +15,7 @@ To generate these files and store them in the LXD client config, follow these
 Alternatively, the LXD Terraform provider can generate them on demand if
 `generate_client_certificates` is set to true.
 
-Minimum required LXD version is **`3.0`**.
+Minimum required LXD version is **`4.0`**.
 
 ## Basic Example
 
