@@ -1,3 +1,10 @@
+## 1.10.4 (November 3, 2023)
+
+### Bug Fixes 🐝
+* Fix unix socket check on Windows by @MusicDin in https://github.com/terraform-lxd/terraform-provider-lxd/pull/365
+### Maintenance and Chores 🛠
+* testing: cleanup and catch more by @adamcstephens in https://github.com/terraform-lxd/terraform-provider-lxd/pull/364
+
 ## 1.10.3 (October 30, 2023)
 
 ### New Features 🎉
