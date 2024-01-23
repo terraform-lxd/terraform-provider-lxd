@@ -41,10 +41,10 @@ The major release also provided an opportunity to rename certain attributes for 
 the provider.
 
 List of renamed attributes:
-- `lxd_instance.file.instance_name` -> `lxd_instance.file.instance`
 - `lxd_instance.file.source` -> `lxd_instance.file.source_path`
 - `lxd_instance.file.target_file` -> `lxd_instance.file.target_path`
 - `lxd_instance.start_on_create` -> `lxd_instance.running`
+- `lxd_instance_file.instance_name` -> `lxd_instance_file.instance`
 - `lxd_instance_file.source` -> `lxd_instance_file.source_path`
 - `lxd_instance_file.target_file` -> `lxd_instance_file.target_path`
 - `lxd_provider.lxd_remote` -> `lxd_provider.remote`
