@@ -1,3 +1,52 @@
+## 2.0.0 (January 23, 2024)
+
+### Breaking Changes ⚠️
+* Drop deprecated lxd_volume_container_attach resource by @simondeziel in https://github.com/terraform-lxd/terraform-provider-lxd/pull/348
+* Make LXD 4.0 the minimum officially supported version by @simondeziel in https://github.com/terraform-lxd/terraform-provider-lxd/pull/379
+* Drop deprecated provider parameters by @simondeziel in https://github.com/terraform-lxd/terraform-provider-lxd/pull/378
+* Drop deprecated lxd_container and lxd_container_file resources by @simondeziel in https://github.com/terraform-lxd/terraform-provider-lxd/pull/377
+* Replace start_on_create with running attribute by @MusicDin in https://github.com/terraform-lxd/terraform-provider-lxd/pull/387
+### New Features 🎉
+* Add missing instance device types by @kapows in https://github.com/terraform-lxd/terraform-provider-lxd/pull/366
+* Support `config.cloud-init.*` keys by @simondeziel in https://github.com/terraform-lxd/terraform-provider-lxd/pull/383
+* Add exec block to the instance resource by @MusicDin in https://github.com/terraform-lxd/terraform-provider-lxd/pull/386
+### Maintenance and Chores 🛠
+* fix tests using alpine images by @adamcstephens in https://github.com/terraform-lxd/terraform-provider-lxd/pull/370
+* build(deps): bump hashicorp/setup-terraform from 2 to 3 by @dependabot in https://github.com/terraform-lxd/terraform-provider-lxd/pull/368
+* test: Fix instance reference within test by @MusicDin in https://github.com/terraform-lxd/terraform-provider-lxd/pull/372
+* test: Drop VM test for old lxd_container resource by @MusicDin in https://github.com/terraform-lxd/terraform-provider-lxd/pull/373
+* build(deps): bump goreleaser/goreleaser-action from 4 to 5 by @dependabot in https://github.com/terraform-lxd/terraform-provider-lxd/pull/367
+* build(deps): bump golang.org/x/sys from 0.13.0 to 0.14.0 by @dependabot in https://github.com/terraform-lxd/terraform-provider-lxd/pull/369
+* build(deps): bump the hashicorp group with 1 update by @dependabot in https://github.com/terraform-lxd/terraform-provider-lxd/pull/371
+* Test for required API extensions in network LB and zones tests by @simondeziel in https://github.com/terraform-lxd/terraform-provider-lxd/pull/375
+* tests: don't run pr when converting from draft by @adamcstephens in https://github.com/terraform-lxd/terraform-provider-lxd/pull/384
+* Update from SDKv2 to terraform-framework by @MusicDin in https://github.com/terraform-lxd/terraform-provider-lxd/pull/385
+* build(deps): bump golang.org/x/sys from 0.14.0 to 0.15.0 by @dependabot in https://github.com/terraform-lxd/terraform-provider-lxd/pull/388
+* Test against `5.0/stable` and `5.0/candidate` snap by @simondeziel in https://github.com/terraform-lxd/terraform-provider-lxd/pull/390
+* build(deps): bump the hashicorp group with 2 updates by @dependabot in https://github.com/terraform-lxd/terraform-provider-lxd/pull/393
+* build(deps): bump actions/setup-go from 4 to 5 by @dependabot in https://github.com/terraform-lxd/terraform-provider-lxd/pull/392
+* Cleanup SDKv2 resources by @MusicDin in https://github.com/terraform-lxd/terraform-provider-lxd/pull/389
+* Update go dependencies by @MusicDin in https://github.com/terraform-lxd/terraform-provider-lxd/pull/397
+* build(deps): bump the hashicorp group with 2 updates by @dependabot in https://github.com/terraform-lxd/terraform-provider-lxd/pull/400
+* build(deps): bump golang.org/x/crypto from 0.16.0 to 0.17.0 by @dependabot in https://github.com/terraform-lxd/terraform-provider-lxd/pull/401
+* build(deps): bump golang.org/x/sys from 0.15.0 to 0.16.0 by @dependabot in https://github.com/terraform-lxd/terraform-provider-lxd/pull/411
+* build(deps): bump github.com/cloudflare/circl from 1.3.6 to 1.3.7 by @dependabot in https://github.com/terraform-lxd/terraform-provider-lxd/pull/412
+* build(deps): bump the hashicorp group with 1 update by @dependabot in https://github.com/terraform-lxd/terraform-provider-lxd/pull/414
+* Add migration guide for 2.0 by @MusicDin in https://github.com/terraform-lxd/terraform-provider-lxd/pull/415
+### Other Changes ❓
+* Better workaround for LVM bug by @simondeziel in https://github.com/terraform-lxd/terraform-provider-lxd/pull/391
+* Use version variable which is overwritten by goreleaser by @MusicDin in https://github.com/terraform-lxd/terraform-provider-lxd/pull/395
+* Remove refresh_interval attribute from provider by @MusicDin in https://github.com/terraform-lxd/terraform-provider-lxd/pull/394
+* README: improve `~/.terraformrc` to allow using other providers easily by @simondeziel in https://github.com/terraform-lxd/terraform-provider-lxd/pull/402
+* Sync from provider incus by @simondeziel in https://github.com/terraform-lxd/terraform-provider-lxd/pull/404
+* Wait exec output to be flushed and use -1 as default exec exit code by @MusicDin in https://github.com/terraform-lxd/terraform-provider-lxd/pull/407
+* github: add DCO check by @simondeziel in https://github.com/terraform-lxd/terraform-provider-lxd/pull/403
+* Switch away from `images:` and use `ubuntu-daily:` remote instead by @simondeziel in https://github.com/terraform-lxd/terraform-provider-lxd/pull/406
+* Add project import by @MusicDin in https://github.com/terraform-lxd/terraform-provider-lxd/pull/410
+* Remove unused test-infra by @MusicDin in https://github.com/terraform-lxd/terraform-provider-lxd/pull/416
+* Exec trigger and enabled attributes by @MusicDin in https://github.com/terraform-lxd/terraform-provider-lxd/pull/413
+* Fix typo in migration guide by @MusicDin in https://github.com/terraform-lxd/terraform-provider-lxd/pull/417
+
 ## 1.10.4 (November 3, 2023)
 
 ### Bug Fixes 🐝
