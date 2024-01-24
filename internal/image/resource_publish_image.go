@@ -44,7 +44,6 @@ type PublishImageModel struct {
 	Remote         types.String `tfsdk:"remote"`
 
 	// Computed.
-	ResourceID   types.String `tfsdk:"resource_id"`
 	Architecture types.String `tfsdk:"architecture"`
 	Fingerprint  types.String `tfsdk:"fingerprint"`
 	CreatedAt    types.Int64  `tfsdk:"created_at"`
@@ -152,13 +151,6 @@ func (r PublishImageResource) Schema(_ context.Context, _ resource.SchemaRequest
 			},
 
 			// Computed.
-
-			"resource_id": schema.StringAttribute{
-				Computed: true,
-				PlanModifiers: []planmodifier.String{
-					stringplanmodifier.UseStateForUnknown(),
-				},
-			},
 
 			"architecture": schema.StringAttribute{
 				Computed: true,
@@ -287,9 +279,6 @@ func (r PublishImageResource) Create(ctx context.Context, req resource.CreateReq
 	imageFingerprint := opResp.Metadata["fingerprint"].(string)
 	plan.Fingerprint = types.StringValue(imageFingerprint)
 
-	imageID := createImageResourceID(remote, imageFingerprint)
-	plan.ResourceID = types.StringValue(imageID)
-
 	// Update Terraform state.
 	diags = r.SyncState(ctx, &resp.State, server, plan)
 	resp.Diagnostics.Append(diags...)
@@ -319,9 +308,10 @@ func (r PublishImageResource) Read(ctx context.Context, req resource.ReadRequest
 
 func (r PublishImageResource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
 	var plan PublishImageModel
+	var state PublishImageModel
 
-	diags := req.Plan.Get(ctx, &plan)
-	resp.Diagnostics.Append(diags...)
+	resp.Diagnostics.Append(req.Plan.Get(ctx, &plan)...)
+	resp.Diagnostics.Append(req.State.Get(ctx, &state)...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
@@ -334,7 +324,8 @@ func (r PublishImageResource) Update(ctx context.Context, req resource.UpdateReq
 		return
 	}
 
-	_, imageFingerprint := splitImageResourceID(plan.ResourceID.ValueString())
+	// Extract image fingerprint from previous state.
+	imageFingerprint := state.Fingerprint.ValueString()
 
 	imageProps, diags := common.ToConfigMap(ctx, plan.Properties)
 	resp.Diagnostics.Append(diags...)
@@ -407,7 +398,7 @@ func (r PublishImageResource) Delete(ctx context.Context, req resource.DeleteReq
 		return
 	}
 
-	_, imageFingerprint := splitImageResourceID(state.ResourceID.ValueString())
+	imageFingerprint := state.Fingerprint.ValueString()
 	opDelete, err := server.DeleteImage(imageFingerprint)
 	if err != nil {
 		resp.Diagnostics.AddError(fmt.Sprintf("Failed to remove published image"), err.Error())
@@ -427,8 +418,7 @@ func (r PublishImageResource) Delete(ctx context.Context, req resource.DeleteReq
 func (_ PublishImageResource) SyncState(ctx context.Context, tfState *tfsdk.State, server lxd.InstanceServer, m PublishImageModel) diag.Diagnostics {
 	var respDiags diag.Diagnostics
 
-	_, imageFingerprint := splitImageResourceID(m.ResourceID.ValueString())
-
+	imageFingerprint := m.Fingerprint.ValueString()
 	image, _, err := server.GetImage(imageFingerprint)
 	if err != nil {
 		if errors.IsNotFoundError(err) {
