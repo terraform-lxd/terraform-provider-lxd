@@ -9,6 +9,7 @@ import (
 
 	lxd "github.com/canonical/lxd/client"
 	"github.com/canonical/lxd/shared/api"
+	"github.com/hashicorp/terraform-plugin-framework-timeouts/resource/timeouts"
 	"github.com/hashicorp/terraform-plugin-framework-validators/listvalidator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/mapvalidator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
@@ -56,6 +57,9 @@ type InstanceModel struct {
 	IPv6   types.String `tfsdk:"ipv6_address"`
 	MAC    types.String `tfsdk:"mac_address"`
 	Status types.String `tfsdk:"status"`
+
+	// Timeouts.
+	Timeouts timeouts.Value `tfsdk:"timeouts"`
 }
 
 // InstanceResource represent LXD instance resource.
@@ -72,7 +76,7 @@ func (r InstanceResource) Metadata(_ context.Context, req resource.MetadataReque
 	resp.TypeName = fmt.Sprintf("%s_instance", req.ProviderTypeName)
 }
 
-func (r InstanceResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *resource.SchemaResponse) {
+func (r InstanceResource) Schema(ctx context.Context, _ resource.SchemaRequest, resp *resource.SchemaResponse) {
 	resp.Schema = schema.Schema{
 		Attributes: map[string]schema.Attribute{
 			"name": schema.StringAttribute{
@@ -322,6 +326,9 @@ func (r InstanceResource) Schema(_ context.Context, _ resource.SchemaRequest, re
 			"status": schema.StringAttribute{
 				Computed: true,
 			},
+
+			// Custom timeouts
+			"timeouts": timeouts.AttributesAll(ctx),
 		},
 
 		Blocks: map[string]schema.Block{
@@ -478,6 +485,15 @@ func (r InstanceResource) Create(ctx context.Context, req resource.CreateRequest
 	if resp.Diagnostics.HasError() {
 		return
 	}
+
+	// Set creation timeout.
+	timeout, diags := plan.Timeouts.Create(ctx, r.provider.DefaultTimeout())
+	if diags.HasError() {
+		resp.Diagnostics.Append(diags...)
+		return
+	}
+	ctx, cancel := context.WithTimeout(ctx, timeout)
+	defer cancel()
 
 	remote := plan.Remote.ValueString()
 	project := plan.Project.ValueString()
@@ -663,6 +679,15 @@ func (r InstanceResource) Read(ctx context.Context, req resource.ReadRequest, re
 		return
 	}
 
+	// Set read timeout.
+	timeout, diags := state.Timeouts.Read(ctx, r.provider.DefaultTimeout())
+	if diags.HasError() {
+		resp.Diagnostics.Append(diags...)
+		return
+	}
+	ctx, cancel := context.WithTimeout(ctx, timeout)
+	defer cancel()
+
 	remote := state.Remote.ValueString()
 	project := state.Project.ValueString()
 	target := state.Target.ValueString()
@@ -687,15 +712,20 @@ func (r InstanceResource) Update(ctx context.Context, req resource.UpdateRequest
 	var state InstanceModel
 
 	// Fetch resource model from Terraform plan.
-	diags := req.Plan.Get(ctx, &plan)
-	resp.Diagnostics.Append(diags...)
-
-	diags = req.State.Get(ctx, &state)
-	resp.Diagnostics.Append(diags...)
-
+	resp.Diagnostics.Append(req.Plan.Get(ctx, &plan)...)
+	resp.Diagnostics.Append(req.State.Get(ctx, &state)...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
+
+	// Set update timeout.
+	timeout, diags := plan.Timeouts.Update(ctx, r.provider.DefaultTimeout())
+	if diags.HasError() {
+		resp.Diagnostics.Append(diags...)
+		return
+	}
+	ctx, cancel := context.WithTimeout(ctx, timeout)
+	defer cancel()
 
 	remote := plan.Remote.ValueString()
 	project := plan.Project.ValueString()
@@ -895,6 +925,15 @@ func (r InstanceResource) Delete(ctx context.Context, req resource.DeleteRequest
 	if resp.Diagnostics.HasError() {
 		return
 	}
+
+	// Set deletion timeout.
+	timeout, diags := state.Timeouts.Delete(ctx, r.provider.DefaultTimeout())
+	if diags.HasError() {
+		resp.Diagnostics.Append(diags...)
+		return
+	}
+	ctx, cancel := context.WithTimeout(ctx, timeout)
+	defer cancel()
 
 	remote := state.Remote.ValueString()
 	project := state.Project.ValueString()

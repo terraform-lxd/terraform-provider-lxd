@@ -1110,6 +1110,21 @@ func TestAccInstance_removeProject(t *testing.T) {
 	})
 }
 
+func TestAccInstance_timeout(t *testing.T) {
+	instanceName := petname.Generate(2, "-")
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { acctest.PreCheck(t) },
+		ProtoV6ProviderFactories: acctest.ProtoV6ProviderFactories,
+		Steps: []resource.TestStep{
+			{
+				Config:      testAccInstance_timeout(instanceName),
+				ExpectError: regexp.MustCompile("context deadline exceeded"),
+			},
+		},
+	})
+}
+
 func TestAccInstance_importBasic(t *testing.T) {
 	instanceName := petname.Generate(2, "-")
 	resourceName := "lxd_instance.instance1"
@@ -1892,4 +1907,24 @@ resource "lxd_instance" "instance1" {
   image = "%s"
 }
 	`, projectName, instanceName, acctest.TestImage)
+}
+
+func testAccInstance_timeout(instanceName string) string {
+	return fmt.Sprintf(`
+resource "lxd_instance" "instance1" {
+  name  = "%s"
+  image = "%s"
+
+  execs = {
+    "0" = {
+      command       = ["sleep", "30"]
+      fail_on_error = true
+    }
+  }
+
+  timeouts = {
+    create = "15s"
+  }
+}
+	`, instanceName, acctest.TestImage)
 }
