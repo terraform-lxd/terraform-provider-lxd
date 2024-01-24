@@ -112,7 +112,15 @@ func (e *ExecModel) Execute(ctx context.Context, server lxd.InstanceServer, inst
 	// Run command.
 	opExec, err := server.ExecInstance(instanceName, execReq, &execArgs)
 	if err == nil {
-		err = opExec.Wait()
+		err = opExec.WaitContext(ctx)
+		if err == nil {
+			// Wait for any remaining output to be flushed.
+			select {
+			case <-ctx.Done():
+				err = ctx.Err()
+			case <-execArgs.DataDone:
+			}
+		}
 
 		// Extract exit code from operation's metadata.
 		opMeta := opExec.Get().Metadata
@@ -122,11 +130,6 @@ func (e *ExecModel) Execute(ctx context.Context, server lxd.InstanceServer, inst
 				exitCode = int64(rc)
 			}
 		}
-	}
-
-	// Wait for any remaining output to be flushed.
-	if err == nil {
-		<-execArgs.DataDone
 	}
 
 	// Fail on error (only if user requested).
