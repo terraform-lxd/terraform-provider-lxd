@@ -3,7 +3,6 @@ package image
 import (
 	"context"
 	"fmt"
-	"strings"
 
 	lxd "github.com/canonical/lxd/client"
 	"github.com/canonical/lxd/shared/api"
@@ -38,7 +37,6 @@ type CachedImageModel struct {
 	Remote       types.String `tfsdk:"remote"`
 
 	// Computed.
-	ResourceID    types.String `tfsdk:"resource_id"`
 	Architecture  types.String `tfsdk:"architecture"`
 	CreatedAt     types.Int64  `tfsdk:"created_at"`
 	Fingerprint   types.String `tfsdk:"fingerprint"`
@@ -125,13 +123,6 @@ func (r CachedImageResource) Schema(_ context.Context, _ resource.SchemaRequest,
 			},
 
 			// Computed attributes.
-
-			"resource_id": schema.StringAttribute{
-				Computed: true,
-				PlanModifiers: []planmodifier.String{
-					stringplanmodifier.UseStateForUnknown(),
-				},
-			},
 
 			"architecture": schema.StringAttribute{
 				Computed: true,
@@ -273,8 +264,7 @@ func (r CachedImageResource) Create(ctx context.Context, req resource.CreateRequ
 		return
 	}
 
-	imageID := createImageResourceID(remote, imageInfo.Fingerprint)
-	plan.ResourceID = types.StringValue(imageID)
+	plan.Fingerprint = types.StringValue(imageInfo.Fingerprint)
 	plan.CopiedAliases = copiedAliases
 
 	// Update Terraform state.
@@ -307,9 +297,10 @@ func (r CachedImageResource) Read(ctx context.Context, req resource.ReadRequest,
 
 func (r CachedImageResource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
 	var plan CachedImageModel
+	var state CachedImageModel
 
-	diags := req.Plan.Get(ctx, &plan)
-	resp.Diagnostics.Append(diags...)
+	resp.Diagnostics.Append(req.Plan.Get(ctx, &plan)...)
+	resp.Diagnostics.Append(req.State.Get(ctx, &state)...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
@@ -322,9 +313,9 @@ func (r CachedImageResource) Update(ctx context.Context, req resource.UpdateRequ
 		return
 	}
 
-	// Extract image metadata.
+	// Extract image metadata (fingerprint is retained from previous state).
 	image := plan.SourceImage.ValueString()
-	_, imageFingerprint := splitImageResourceID(plan.ResourceID.ValueString())
+	imageFingerprint := state.Fingerprint.ValueString()
 
 	// Extract removed and added image aliases.
 	oldAliases, diags := ToAliasList(ctx, plan.Aliases)
@@ -362,6 +353,8 @@ func (r CachedImageResource) Update(ctx context.Context, req resource.UpdateRequ
 		}
 	}
 
+	plan.Fingerprint = types.StringValue(imageFingerprint)
+
 	// Update Terraform state.
 	diags = r.SyncState(ctx, &resp.State, server, plan)
 	resp.Diagnostics.Append(diags...)
@@ -384,7 +377,7 @@ func (r CachedImageResource) Delete(ctx context.Context, req resource.DeleteRequ
 		return
 	}
 
-	_, imageFingerprint := splitImageResourceID(state.ResourceID.ValueString())
+	imageFingerprint := state.Fingerprint.ValueString()
 	opDelete, err := server.DeleteImage(imageFingerprint)
 	if err != nil {
 		resp.Diagnostics.AddError(fmt.Sprintf("Failed to remove cached image %q", state.SourceImage.ValueString()), err.Error())
@@ -404,8 +397,7 @@ func (r CachedImageResource) Delete(ctx context.Context, req resource.DeleteRequ
 func (r CachedImageResource) SyncState(ctx context.Context, tfState *tfsdk.State, server lxd.InstanceServer, m CachedImageModel) diag.Diagnostics {
 	var respDiags diag.Diagnostics
 
-	_, imageFingerprint := splitImageResourceID(m.ResourceID.ValueString())
-
+	imageFingerprint := m.Fingerprint.ValueString()
 	imageName := m.SourceImage.ValueString()
 	image, _, err := server.GetImage(imageFingerprint)
 	if err != nil {
@@ -462,16 +454,4 @@ func ToAliasList(ctx context.Context, aliasSet types.Set) ([]string, diag.Diagno
 // ToAliasSetType converts slice of strings into aliases of type types.Set.
 func ToAliasSetType(ctx context.Context, aliases []string) (types.Set, diag.Diagnostics) {
 	return types.SetValueFrom(ctx, types.StringType, aliases)
-}
-
-// createImageResourceID creates new image ID by concatenating remote and
-// image fingerprint using colon.
-func createImageResourceID(remote string, fingerprint string) string {
-	return fmt.Sprintf("%s:%s", remote, fingerprint)
-}
-
-// splitImageResourceID splits an image ID into remote and fingerprint strings.
-func splitImageResourceID(id string) (string, string) {
-	pieces := strings.SplitN(id, ":", 2)
-	return pieces[0], pieces[1]
 }
