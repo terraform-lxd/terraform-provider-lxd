@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"testing"
 
-	petname "github.com/dustinkirkland/golang-petname"
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
 	"github.com/terraform-lxd/terraform-provider-lxd/internal/acctest"
 )
@@ -49,8 +48,8 @@ func TestAccNetwork_description(t *testing.T) {
 }
 
 func TestAccNetwork_attach(t *testing.T) {
-	profileName := petname.Generate(2, "-")
-	instanceName := petname.Generate(2, "-")
+	profileName := acctest.GenerateName(2, "-")
+	instanceName := acctest.GenerateName(2, "-")
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { acctest.PreCheck(t) },
@@ -80,7 +79,7 @@ func TestAccNetwork_attach(t *testing.T) {
 }
 
 func TestAccNetwork_updateConfig(t *testing.T) {
-	instanceName := petname.Generate(2, "-")
+	instanceName := acctest.GenerateName(2, "-")
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { acctest.PreCheck(t) },
@@ -134,7 +133,7 @@ func TestAccNetwork_typeMacvlan(t *testing.T) {
 }
 
 func TestAccNetwork_target(t *testing.T) {
-	networkName := petname.Name()
+	networkName := acctest.GenerateName(2, "-")
 
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
@@ -162,7 +161,7 @@ func TestAccNetwork_target(t *testing.T) {
 }
 
 func TestAccNetwork_project(t *testing.T) {
-	projectName := petname.Name()
+	projectName := acctest.GenerateName(2, "-")
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { acctest.PreCheck(t) },
@@ -224,7 +223,7 @@ func TestAccNetwork_importDesc(t *testing.T) {
 
 func TestAccNetwork_importProject(t *testing.T) {
 	resourceName := "lxd_network.eth1"
-	projectName := petname.Name()
+	projectName := acctest.GenerateName(2, "-")
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { acctest.PreCheck(t) },

@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"testing"
 
-	petname "github.com/dustinkirkland/golang-petname"
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
 	"github.com/terraform-lxd/terraform-provider-lxd/internal/acctest"
 )
@@ -58,7 +57,7 @@ func TestAccNetworkZone_description(t *testing.T) {
 }
 
 func TestAccNetworkZone_project(t *testing.T) {
-	projectName := petname.Name()
+	projectName := acctest.GenerateName(2, "-")
 
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
@@ -102,7 +101,7 @@ func TestAccNetworkZone_importBasic(t *testing.T) {
 
 func TestAccNetworkZone_importProject(t *testing.T) {
 	resourceName := "lxd_network_zone.zone"
-	projectName := petname.Name()
+	projectName := acctest.GenerateName(2, "-")
 
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {

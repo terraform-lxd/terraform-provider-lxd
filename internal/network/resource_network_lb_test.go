@@ -6,7 +6,6 @@ import (
 	"testing"
 
 	"github.com/canonical/lxd/shared/api"
-	petname "github.com/dustinkirkland/golang-petname"
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
 	"github.com/terraform-lxd/terraform-provider-lxd/internal/acctest"
 )
@@ -68,7 +67,7 @@ func TestAccNetworkLB_withConfig(t *testing.T) {
 }
 
 func TestAccNetworkLB_withBackend(t *testing.T) {
-	instanceName := petname.Generate(2, "")
+	instanceName := acctest.GenerateName(2, "")
 
 	backend := api.NetworkLoadBalancerBackend{
 		Name:          "backend",
