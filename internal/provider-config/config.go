@@ -6,6 +6,7 @@ import (
 	"os"
 	"path/filepath"
 	"sync"
+	"time"
 
 	lxd "github.com/canonical/lxd/client"
 	lxd_config "github.com/canonical/lxd/lxc/config"
@@ -489,4 +490,10 @@ func (p *LxdProviderConfig) getLxdConfigImageServer(remoteName string) (lxd.Imag
 	p.mux.RLock()
 	defer p.mux.RUnlock()
 	return p.lxdConfig.GetImageServer(remoteName)
+}
+
+// DefaultTimeout returns the default time period after which a resource
+// action (read/create/update/delete) is expected to time out.
+func (p *LxdProviderConfig) DefaultTimeout() time.Duration {
+	return 5 * time.Minute
 }

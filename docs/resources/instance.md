@@ -190,6 +190,30 @@ The following attributes are exported:
 
 * `status` - The status of the instance.
 
+## Timeouts
+
+Configuration options:
+* `read` - Default `5m`
+* `create` - Default `5m`
+* `update` - Default `5m`
+* `delete` - Default `5m`
+
+If you need to set custom timeout durations for any of these operations,
+you can specify them in your Terraform configuration as shown in the following example:
+```hcl
+resource "lxd_instance" "inst" {
+  name  = "c1"
+  image = "ubuntu-daily:22.04"
+
+  timeouts = {
+    read   = "10m"
+    create = "10m"
+    update = "10m"
+    delete = "10m"
+  }
+}
+```
+
 ## Instance Network Access
 
 If your instance has multiple network interfaces, you can specify which one
