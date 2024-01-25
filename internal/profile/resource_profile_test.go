@@ -4,13 +4,12 @@ import (
 	"fmt"
 	"testing"
 
-	petname "github.com/dustinkirkland/golang-petname"
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
 	"github.com/terraform-lxd/terraform-provider-lxd/internal/acctest"
 )
 
 func TestAccProfile_basic(t *testing.T) {
-	profileName := petname.Generate(2, "-")
+	profileName := acctest.GenerateName(2, "-")
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { acctest.PreCheck(t) },
@@ -28,7 +27,7 @@ func TestAccProfile_basic(t *testing.T) {
 }
 
 func TestAccProfile_config(t *testing.T) {
-	profileName := petname.Generate(2, "-")
+	profileName := acctest.GenerateName(2, "-")
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { acctest.PreCheck(t) },
@@ -47,7 +46,7 @@ func TestAccProfile_config(t *testing.T) {
 }
 
 func TestAccProfile_device(t *testing.T) {
-	profileName := petname.Generate(2, "-")
+	profileName := acctest.GenerateName(2, "-")
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { acctest.PreCheck(t) },
@@ -80,7 +79,7 @@ func TestAccProfile_device(t *testing.T) {
 }
 
 func TestAccProfile_addDevice(t *testing.T) {
-	profileName := petname.Generate(2, "-")
+	profileName := acctest.GenerateName(2, "-")
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { acctest.PreCheck(t) },
@@ -131,7 +130,7 @@ func TestAccProfile_addDevice(t *testing.T) {
 }
 
 func TestAccProfile_removeDevice(t *testing.T) {
-	profileName := petname.Generate(2, "-")
+	profileName := acctest.GenerateName(2, "-")
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { acctest.PreCheck(t) },
@@ -160,8 +159,8 @@ func TestAccProfile_removeDevice(t *testing.T) {
 }
 
 func TestAccProfile_instanceConfig(t *testing.T) {
-	profileName := petname.Generate(2, "-")
-	instanceName := petname.Generate(2, "-")
+	profileName := acctest.GenerateName(2, "-")
+	instanceName := acctest.GenerateName(2, "-")
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { acctest.PreCheck(t) },
@@ -185,8 +184,8 @@ func TestAccProfile_instanceConfig(t *testing.T) {
 }
 
 func TestAccProfile_instanceDevice(t *testing.T) {
-	profileName := petname.Generate(2, "-")
-	instanceName := petname.Generate(2, "-")
+	profileName := acctest.GenerateName(2, "-")
+	instanceName := acctest.GenerateName(2, "-")
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { acctest.PreCheck(t) },
@@ -213,8 +212,8 @@ func TestAccProfile_instanceDevice(t *testing.T) {
 }
 
 func TestAccProfile_project(t *testing.T) {
-	profileName := petname.Generate(2, "-")
-	projectName := petname.Name()
+	profileName := acctest.GenerateName(2, "-")
+	projectName := acctest.GenerateName(2, "-")
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { acctest.PreCheck(t) },
@@ -235,7 +234,7 @@ func TestAccProfile_project(t *testing.T) {
 }
 
 func TestAccProfile_importBasic(t *testing.T) {
-	profileName := petname.Generate(2, "-")
+	profileName := acctest.GenerateName(2, "-")
 	resourceName := "lxd_profile.profile1"
 
 	resource.Test(t, resource.TestCase{
@@ -257,7 +256,7 @@ func TestAccProfile_importBasic(t *testing.T) {
 }
 
 func TestAccProfile_importConfig(t *testing.T) {
-	profileName := petname.Generate(2, "-")
+	profileName := acctest.GenerateName(2, "-")
 	resourceName := "lxd_profile.profile1"
 
 	resource.Test(t, resource.TestCase{
@@ -279,7 +278,7 @@ func TestAccProfile_importConfig(t *testing.T) {
 }
 
 func TestAccProfile_importDevice(t *testing.T) {
-	profileName := petname.Generate(2, "-")
+	profileName := acctest.GenerateName(2, "-")
 	resourceName := "lxd_profile.profile1"
 
 	resource.Test(t, resource.TestCase{
