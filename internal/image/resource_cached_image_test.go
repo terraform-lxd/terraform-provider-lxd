@@ -6,7 +6,6 @@ import (
 	"strings"
 	"testing"
 
-	petname "github.com/dustinkirkland/golang-petname"
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
 	"github.com/terraform-lxd/terraform-provider-lxd/internal/acctest"
 )
@@ -49,8 +48,8 @@ func TestAccCachedImage_basicVM(t *testing.T) {
 }
 
 func TestAccCachedImage_alias(t *testing.T) {
-	alias1 := petname.Generate(2, "-")
-	alias2 := petname.Generate(2, "-")
+	alias1 := acctest.GenerateName(2, "-")
+	alias2 := acctest.GenerateName(2, "-")
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { acctest.PreCheck(t) },
@@ -73,8 +72,8 @@ func TestAccCachedImage_alias(t *testing.T) {
 }
 
 func TestAccCachedImage_copiedAliases(t *testing.T) {
-	alias1 := petname.Generate(2, "-")
-	alias2 := petname.Generate(2, "-")
+	alias1 := acctest.GenerateName(2, "-")
+	alias2 := acctest.GenerateName(2, "-")
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { acctest.PreCheck(t) },
@@ -118,7 +117,7 @@ func TestAccCachedImage_aliasCollision(t *testing.T) {
 }
 
 func TestAccCachedImage_aliasExists(t *testing.T) {
-	alias := petname.Generate(2, "-")
+	alias := acctest.GenerateName(2, "-")
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { acctest.PreCheck(t) },
@@ -150,8 +149,8 @@ func TestAccCachedImage_aliasExists(t *testing.T) {
 }
 
 func TestAccCachedImage_addRemoveAlias(t *testing.T) {
-	alias1 := petname.Generate(2, "-")
-	alias2 := petname.Generate(2, "-")
+	alias1 := acctest.GenerateName(2, "-")
+	alias2 := acctest.GenerateName(2, "-")
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { acctest.PreCheck(t) },
@@ -196,7 +195,7 @@ func TestAccCachedImage_addRemoveAlias(t *testing.T) {
 }
 
 func TestAccCachedImage_project(t *testing.T) {
-	projectName := petname.Name()
+	projectName := acctest.GenerateName(2, "")
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { acctest.PreCheck(t) },
