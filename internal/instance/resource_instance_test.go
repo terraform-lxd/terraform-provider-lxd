@@ -5,13 +5,12 @@ import (
 	"regexp"
 	"testing"
 
-	petname "github.com/dustinkirkland/golang-petname"
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
 	"github.com/terraform-lxd/terraform-provider-lxd/internal/acctest"
 )
 
 func TestAccInstance_basic(t *testing.T) {
-	instanceName := petname.Generate(2, "-")
+	instanceName := acctest.GenerateName(2, "-")
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { acctest.PreCheck(t) },
@@ -33,7 +32,7 @@ func TestAccInstance_basic(t *testing.T) {
 }
 
 func TestAccInstance_ephemeral(t *testing.T) {
-	instanceName := petname.Generate(2, "-")
+	instanceName := acctest.GenerateName(2, "-")
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { acctest.PreCheck(t) },
@@ -54,7 +53,7 @@ func TestAccInstance_ephemeral(t *testing.T) {
 }
 
 func TestAccInstance_ephemeralStopped(t *testing.T) {
-	instanceName := petname.Generate(2, "-")
+	instanceName := acctest.GenerateName(2, "-")
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { acctest.PreCheck(t) },
@@ -69,7 +68,7 @@ func TestAccInstance_ephemeralStopped(t *testing.T) {
 }
 
 func TestAccInstance_container(t *testing.T) {
-	instanceName := petname.Generate(2, "-")
+	instanceName := acctest.GenerateName(2, "-")
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { acctest.PreCheck(t) },
@@ -89,7 +88,7 @@ func TestAccInstance_container(t *testing.T) {
 }
 
 func TestAccInstance_virtualMachine(t *testing.T) {
-	instanceName := petname.Generate(2, "-")
+	instanceName := acctest.GenerateName(2, "-")
 
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
@@ -111,7 +110,7 @@ func TestAccInstance_virtualMachine(t *testing.T) {
 }
 
 func TestAccInstance_virtualMachineNoDevLxd(t *testing.T) {
-	instanceName := petname.Generate(2, "-")
+	instanceName := acctest.GenerateName(2, "-")
 
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
@@ -134,7 +133,7 @@ func TestAccInstance_virtualMachineNoDevLxd(t *testing.T) {
 }
 
 func TestAccInstance_restartContainer(t *testing.T) {
-	instanceName := petname.Generate(2, "-")
+	instanceName := acctest.GenerateName(2, "-")
 	instanceType := "container"
 
 	resource.Test(t, resource.TestCase{
@@ -175,7 +174,7 @@ func TestAccInstance_restartContainer(t *testing.T) {
 }
 
 func TestAccInstance_restartVirtualMachine(t *testing.T) {
-	instanceName := petname.Generate(2, "-")
+	instanceName := acctest.GenerateName(2, "-")
 	instanceType := "virtual-machine"
 
 	resource.Test(t, resource.TestCase{
@@ -218,7 +217,7 @@ func TestAccInstance_restartVirtualMachine(t *testing.T) {
 }
 
 func TestAccInstance_remoteImage(t *testing.T) {
-	instanceName := petname.Generate(2, "-")
+	instanceName := acctest.GenerateName(2, "-")
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { acctest.PreCheck(t) },
@@ -237,7 +236,7 @@ func TestAccInstance_remoteImage(t *testing.T) {
 }
 
 func TestAccInstance_config(t *testing.T) {
-	instanceName := petname.Generate(2, "-")
+	instanceName := acctest.GenerateName(2, "-")
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { acctest.PreCheck(t) },
@@ -256,7 +255,7 @@ func TestAccInstance_config(t *testing.T) {
 }
 
 func TestAccInstance_updateConfig(t *testing.T) {
-	instanceName := petname.Generate(2, "-")
+	instanceName := acctest.GenerateName(2, "-")
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { acctest.PreCheck(t) },
@@ -296,8 +295,8 @@ func TestAccInstance_updateConfig(t *testing.T) {
 }
 
 func TestAccInstance_addProfile(t *testing.T) {
-	profileName := petname.Generate(2, "-")
-	instanceName := petname.Generate(2, "-")
+	profileName := acctest.GenerateName(2, "-")
+	instanceName := acctest.GenerateName(2, "-")
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { acctest.PreCheck(t) },
@@ -328,8 +327,8 @@ func TestAccInstance_addProfile(t *testing.T) {
 }
 
 func TestAccInstance_removeProfile(t *testing.T) {
-	profileName := petname.Generate(2, "-")
-	instanceName := petname.Generate(2, "-")
+	profileName := acctest.GenerateName(2, "-")
+	instanceName := acctest.GenerateName(2, "-")
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { acctest.PreCheck(t) },
@@ -361,7 +360,7 @@ func TestAccInstance_removeProfile(t *testing.T) {
 }
 
 func TestAccInstance_noProfile(t *testing.T) {
-	name := petname.Generate(2, "-")
+	name := acctest.GenerateName(2, "-")
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { acctest.PreCheck(t) },
@@ -386,7 +385,7 @@ func TestAccInstance_noProfile(t *testing.T) {
 }
 
 func TestAccInstance_device(t *testing.T) {
-	instanceName := petname.Generate(2, "-")
+	instanceName := acctest.GenerateName(2, "-")
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { acctest.PreCheck(t) },
@@ -421,7 +420,7 @@ func TestAccInstance_device(t *testing.T) {
 }
 
 func TestAccInstance_addDevice(t *testing.T) {
-	instanceName := petname.Generate(2, "-")
+	instanceName := acctest.GenerateName(2, "-")
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { acctest.PreCheck(t) },
@@ -452,7 +451,7 @@ func TestAccInstance_addDevice(t *testing.T) {
 }
 
 func TestAccInstance_removeDevice(t *testing.T) {
-	instanceName := petname.Generate(2, "-")
+	instanceName := acctest.GenerateName(2, "-")
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { acctest.PreCheck(t) },
@@ -483,7 +482,7 @@ func TestAccInstance_removeDevice(t *testing.T) {
 }
 
 func TestAccInstance_fileUploadContent(t *testing.T) {
-	instanceName := petname.Generate(2, "-")
+	instanceName := acctest.GenerateName(2, "-")
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { acctest.PreCheck(t) },
@@ -530,7 +529,7 @@ func TestAccInstance_fileUploadContent(t *testing.T) {
 }
 
 func TestAccInstance_fileUploadSource(t *testing.T) {
-	instanceName := petname.Generate(2, "-")
+	instanceName := acctest.GenerateName(2, "-")
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { acctest.PreCheck(t) },
@@ -553,7 +552,7 @@ func TestAccInstance_fileUploadSource(t *testing.T) {
 }
 
 func TestAccInstance_execOutput(t *testing.T) {
-	instanceName := petname.Generate(2, "-")
+	instanceName := acctest.GenerateName(2, "-")
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { acctest.PreCheck(t) },
@@ -599,7 +598,7 @@ func TestAccInstance_execOutput(t *testing.T) {
 }
 
 func TestAccInstance_execOutputDate(t *testing.T) {
-	instanceName := petname.Generate(2, "-")
+	instanceName := acctest.GenerateName(2, "-")
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { acctest.PreCheck(t) },
@@ -633,7 +632,7 @@ func TestAccInstance_execOutputDate(t *testing.T) {
 }
 
 func TestAccInstance_execTriggerOnce(t *testing.T) {
-	instanceName := petname.Generate(2, "-")
+	instanceName := acctest.GenerateName(2, "-")
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { acctest.PreCheck(t) },
@@ -671,7 +670,7 @@ func TestAccInstance_execTriggerOnce(t *testing.T) {
 }
 
 func TestAccInstance_execTriggerOnStart(t *testing.T) {
-	instanceName := petname.Generate(2, "-")
+	instanceName := acctest.GenerateName(2, "-")
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { acctest.PreCheck(t) },
@@ -748,7 +747,7 @@ func TestAccInstance_execTriggerOnStart(t *testing.T) {
 }
 
 func TestAccInstance_execTriggerOnChange(t *testing.T) {
-	instanceName := petname.Generate(2, "-")
+	instanceName := acctest.GenerateName(2, "-")
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { acctest.PreCheck(t) },
@@ -781,7 +780,7 @@ func TestAccInstance_execTriggerOnChange(t *testing.T) {
 }
 
 func TestAccInstance_execEnabled(t *testing.T) {
-	instanceName := petname.Generate(2, "-")
+	instanceName := acctest.GenerateName(2, "-")
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { acctest.PreCheck(t) },
@@ -832,7 +831,7 @@ func TestAccInstance_execEnabled(t *testing.T) {
 }
 
 func TestAccInstance_execWorkingDir(t *testing.T) {
-	instanceName := petname.Generate(2, "-")
+	instanceName := acctest.GenerateName(2, "-")
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { acctest.PreCheck(t) },
@@ -854,7 +853,7 @@ func TestAccInstance_execWorkingDir(t *testing.T) {
 }
 
 func TestAccInstance_execEnvironment(t *testing.T) {
-	instanceName := petname.Generate(2, "-")
+	instanceName := acctest.GenerateName(2, "-")
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { acctest.PreCheck(t) },
@@ -876,7 +875,7 @@ func TestAccInstance_execEnvironment(t *testing.T) {
 }
 
 func TestAccInstance_execScript(t *testing.T) {
-	instanceName := petname.Generate(2, "-")
+	instanceName := acctest.GenerateName(2, "-")
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { acctest.PreCheck(t) },
@@ -899,7 +898,7 @@ func TestAccInstance_execScript(t *testing.T) {
 }
 
 func TestAccInstance_execOrder(t *testing.T) {
-	instanceName := petname.Generate(2, "-")
+	instanceName := acctest.GenerateName(2, "-")
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { acctest.PreCheck(t) },
@@ -927,7 +926,7 @@ func TestAccInstance_execOrder(t *testing.T) {
 }
 
 func TestAccInstance_execError(t *testing.T) {
-	instanceName := petname.Generate(2, "-")
+	instanceName := acctest.GenerateName(2, "-")
 
 	resource.Test(t, resource.TestCase{
 
@@ -970,7 +969,7 @@ func TestAccInstance_execError(t *testing.T) {
 }
 
 func TestAccInstance_configLimits(t *testing.T) {
-	instanceName := petname.Generate(2, "-")
+	instanceName := acctest.GenerateName(2, "-")
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { acctest.PreCheck(t) },
@@ -1000,17 +999,17 @@ func TestAccInstance_configLimits(t *testing.T) {
 }
 
 func TestAccInstance_accessInterface(t *testing.T) {
-	networkName1 := petname.Generate(1, "-")
-	instanceName := petname.Generate(2, "-")
+	networkName := acctest.GenerateName(2, "-")
+	instanceName := acctest.GenerateName(2, "-")
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { acctest.PreCheck(t) },
 		ProtoV6ProviderFactories: acctest.ProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccInstance_accessInterface(networkName1, instanceName),
+				Config: testAccInstance_accessInterface(networkName, instanceName),
 				Check: resource.ComposeTestCheckFunc(
-					resource.TestCheckResourceAttr("lxd_network.network1", "name", networkName1),
+					resource.TestCheckResourceAttr("lxd_network.network1", "name", networkName),
 					resource.TestCheckResourceAttr("lxd_network.network1", "config.ipv4.address", "10.150.19.1/24"),
 					resource.TestCheckResourceAttr("lxd_instance.instance1", "name", instanceName),
 					resource.TestCheckResourceAttr("lxd_instance.instance1", "status", "Running"),
@@ -1020,7 +1019,7 @@ func TestAccInstance_accessInterface(t *testing.T) {
 					resource.TestCheckResourceAttr("lxd_instance.instance1", "device.0.name", "eth0"),
 					resource.TestCheckResourceAttr("lxd_instance.instance1", "device.0.type", "nic"),
 					resource.TestCheckResourceAttr("lxd_instance.instance1", "device.0.properties.nictype", "bridged"),
-					resource.TestCheckResourceAttr("lxd_instance.instance1", "device.0.properties.parent", networkName1),
+					resource.TestCheckResourceAttr("lxd_instance.instance1", "device.0.properties.parent", networkName),
 					resource.TestCheckResourceAttr("lxd_instance.instance1", "device.0.properties.hwaddr", "00:16:3e:39:7f:36"),
 					resource.TestCheckResourceAttr("lxd_instance.instance1", "device.0.properties.ipv4.address", "10.150.19.200"),
 					resource.TestCheckResourceAttr("lxd_instance.instance1", "mac_address", "00:16:3e:39:7f:36"),
@@ -1033,7 +1032,7 @@ func TestAccInstance_accessInterface(t *testing.T) {
 }
 
 func TestAccInstance_target(t *testing.T) {
-	instanceName := petname.Generate(2, "-")
+	instanceName := acctest.GenerateName(2, "-")
 
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
@@ -1060,8 +1059,8 @@ func TestAccInstance_target(t *testing.T) {
 }
 
 func TestAccInstance_createProject(t *testing.T) {
-	instanceName := petname.Generate(2, "-")
-	projectName := petname.Name()
+	instanceName := acctest.GenerateName(2, "-")
+	projectName := acctest.GenerateName(2, "-")
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { acctest.PreCheck(t) },
@@ -1081,8 +1080,8 @@ func TestAccInstance_createProject(t *testing.T) {
 }
 
 func TestAccInstance_removeProject(t *testing.T) {
-	projectName := petname.Generate(2, "-")
-	instanceName := petname.Generate(2, "-")
+	projectName := acctest.GenerateName(2, "-")
+	instanceName := acctest.GenerateName(2, "-")
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { acctest.PreCheck(t) },
@@ -1111,7 +1110,7 @@ func TestAccInstance_removeProject(t *testing.T) {
 }
 
 func TestAccInstance_timeout(t *testing.T) {
-	instanceName := petname.Generate(2, "-")
+	instanceName := acctest.GenerateName(2, "-")
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { acctest.PreCheck(t) },
@@ -1126,7 +1125,7 @@ func TestAccInstance_timeout(t *testing.T) {
 }
 
 func TestAccInstance_importBasic(t *testing.T) {
-	instanceName := petname.Generate(2, "-")
+	instanceName := acctest.GenerateName(2, "-")
 	resourceName := "lxd_instance.instance1"
 
 	resource.Test(t, resource.TestCase{
@@ -1148,8 +1147,8 @@ func TestAccInstance_importBasic(t *testing.T) {
 }
 
 func TestAccInstance_importProject(t *testing.T) {
-	instanceName := petname.Generate(2, "-")
-	projectName := petname.Generate(2, "-")
+	instanceName := acctest.GenerateName(2, "-")
+	projectName := acctest.GenerateName(2, "-")
 	resourceName := "lxd_instance.instance1"
 
 	resource.Test(t, resource.TestCase{

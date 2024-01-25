@@ -4,13 +4,12 @@ import (
 	"fmt"
 	"testing"
 
-	petname "github.com/dustinkirkland/golang-petname"
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
 	"github.com/terraform-lxd/terraform-provider-lxd/internal/acctest"
 )
 
 func TestAccInstanceFile_basic(t *testing.T) {
-	instanceName := petname.Generate(2, "-")
+	instanceName := acctest.GenerateName(2, "-")
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { acctest.PreCheck(t) },
@@ -58,8 +57,8 @@ func TestAccInstanceFile_basic(t *testing.T) {
 }
 
 func TestAccInstanceFile_project(t *testing.T) {
-	projectName := petname.Name()
-	instanceName := petname.Generate(2, "-")
+	projectName := acctest.GenerateName(2, "-")
+	instanceName := acctest.GenerateName(2, "-")
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { acctest.PreCheck(t) },
