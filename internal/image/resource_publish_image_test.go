@@ -5,13 +5,12 @@ import (
 	"strings"
 	"testing"
 
-	petname "github.com/dustinkirkland/golang-petname"
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
 	"github.com/terraform-lxd/terraform-provider-lxd/internal/acctest"
 )
 
 func TestAccPublishImage_basic(t *testing.T) {
-	instanceName := petname.Generate(2, "-")
+	instanceName := acctest.GenerateName(2, "-")
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { acctest.PreCheck(t) },
@@ -33,7 +32,7 @@ func TestAccPublishImage_basic(t *testing.T) {
 }
 
 func TestAccPublishImage_aliases(t *testing.T) {
-	instanceName := petname.Generate(2, "-")
+	instanceName := acctest.GenerateName(2, "-")
 	aliases := []string{"alias1", "alias2"}
 
 	resource.Test(t, resource.TestCase{
@@ -57,7 +56,7 @@ func TestAccPublishImage_aliases(t *testing.T) {
 }
 
 func TestAccPublishImage_properties(t *testing.T) {
-	instanceName := petname.Generate(2, "-")
+	instanceName := acctest.GenerateName(2, "-")
 	properties := map[string]string{"os": "Alpine", "version": "4"}
 
 	resource.Test(t, resource.TestCase{
@@ -82,8 +81,8 @@ func TestAccPublishImage_properties(t *testing.T) {
 }
 
 func TestAccPublishImage_project(t *testing.T) {
-	projectName := petname.Name()
-	instanceName := petname.Generate(2, "-")
+	projectName := acctest.GenerateName(2, "")
+	instanceName := acctest.GenerateName(2, "-")
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { acctest.PreCheck(t) },

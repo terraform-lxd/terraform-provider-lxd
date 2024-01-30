@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"testing"
 
-	petname "github.com/dustinkirkland/golang-petname"
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
 	"github.com/terraform-lxd/terraform-provider-lxd/internal/acctest"
 )
@@ -16,7 +15,7 @@ import (
 // - Verify that a subsequent terraform plan does not produce a diff/change.
 
 func TestAccProject_basic(t *testing.T) {
-	projectName := petname.Generate(2, "-")
+	projectName := acctest.GenerateName(2, "-")
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { acctest.PreCheck(t) },
@@ -39,7 +38,7 @@ func TestAccProject_basic(t *testing.T) {
 }
 
 func TestAccProject_config(t *testing.T) {
-	projectName := petname.Generate(2, "-")
+	projectName := acctest.GenerateName(2, "-")
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { acctest.PreCheck(t) },
@@ -61,7 +60,7 @@ func TestAccProject_config(t *testing.T) {
 }
 
 func TestAccProject_updateConfig(t *testing.T) {
-	projectName := petname.Generate(2, "-")
+	projectName := acctest.GenerateName(2, "-")
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { acctest.PreCheck(t) },

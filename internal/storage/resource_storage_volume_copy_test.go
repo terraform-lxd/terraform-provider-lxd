@@ -4,15 +4,14 @@ import (
 	"fmt"
 	"testing"
 
-	petname "github.com/dustinkirkland/golang-petname"
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
 	"github.com/hashicorp/terraform-plugin-testing/plancheck"
 	"github.com/terraform-lxd/terraform-provider-lxd/internal/acctest"
 )
 
 func TestAccStorageVolumeCopy_basic(t *testing.T) {
-	poolName := petname.Generate(2, "-")
-	volumeName := petname.Generate(2, "-")
+	poolName := acctest.GenerateName(2, "-")
+	volumeName := acctest.GenerateName(2, "-")
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { acctest.PreCheck(t) },

@@ -4,13 +4,12 @@ import (
 	"fmt"
 	"testing"
 
-	petname "github.com/dustinkirkland/golang-petname"
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
 	"github.com/terraform-lxd/terraform-provider-lxd/internal/acctest"
 )
 
 func TestAccStoragePool_dir(t *testing.T) {
-	poolName := petname.Generate(2, "-")
+	poolName := acctest.GenerateName(2, "-")
 	driverName := "dir"
 
 	resource.Test(t, resource.TestCase{
@@ -41,7 +40,7 @@ func TestAccStoragePool_dir(t *testing.T) {
 }
 
 func TestAccStoragePool_zfs(t *testing.T) {
-	poolName := petname.Generate(2, "-")
+	poolName := acctest.GenerateName(2, "-")
 	driverName := "zfs"
 
 	resource.Test(t, resource.TestCase{
@@ -74,7 +73,7 @@ func TestAccStoragePool_zfs(t *testing.T) {
 }
 
 func TestAccStoragePool_lvm(t *testing.T) {
-	poolName := petname.Generate(2, "-")
+	poolName := acctest.GenerateName(2, "-")
 	driverName := "lvm"
 
 	resource.Test(t, resource.TestCase{
@@ -108,7 +107,7 @@ func TestAccStoragePool_lvm(t *testing.T) {
 }
 
 func TestAccStoragePool_btrfs(t *testing.T) {
-	poolName := petname.Generate(2, "-")
+	poolName := acctest.GenerateName(2, "-")
 	driverName := "btrfs"
 
 	resource.Test(t, resource.TestCase{
@@ -140,7 +139,7 @@ func TestAccStoragePool_btrfs(t *testing.T) {
 }
 
 func TestAccStoragePool_config(t *testing.T) {
-	poolName := petname.Generate(2, "-")
+	poolName := acctest.GenerateName(2, "-")
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { acctest.PreCheck(t) },
@@ -178,8 +177,8 @@ func TestAccStoragePool_config(t *testing.T) {
 }
 
 func TestAccStoragePool_project(t *testing.T) {
-	poolName := petname.Generate(2, "-")
-	projectName := petname.Name()
+	poolName := acctest.GenerateName(2, "-")
+	projectName := acctest.GenerateName(2, "-")
 	driverName := "dir"
 
 	resource.Test(t, resource.TestCase{
@@ -202,7 +201,7 @@ func TestAccStoragePool_project(t *testing.T) {
 }
 
 func TestAccStoragePool_target(t *testing.T) {
-	poolName := petname.Generate(2, "-")
+	poolName := acctest.GenerateName(2, "-")
 	driverName := "dir"
 
 	resource.Test(t, resource.TestCase{
@@ -230,7 +229,7 @@ func TestAccStoragePool_target(t *testing.T) {
 }
 
 func TestAccStoragePool_importBasic(t *testing.T) {
-	poolName := petname.Generate(2, "-")
+	poolName := acctest.GenerateName(2, "-")
 	driverName := "zfs"
 	resourceName := "lxd_storage_pool.storage_pool1"
 
@@ -253,7 +252,7 @@ func TestAccStoragePool_importBasic(t *testing.T) {
 }
 
 func TestAccStoragePool_importConfig(t *testing.T) {
-	poolName := petname.Generate(2, "-")
+	poolName := acctest.GenerateName(2, "-")
 	driverName := "zfs"
 	resourceName := "lxd_storage_pool.storage_pool1"
 
@@ -276,8 +275,8 @@ func TestAccStoragePool_importConfig(t *testing.T) {
 }
 
 func TestAccStoragePool_importProject(t *testing.T) {
-	poolName := petname.Generate(2, "-")
-	projectName := petname.Generate(2, "-")
+	poolName := acctest.GenerateName(2, "-")
+	projectName := acctest.GenerateName(2, "-")
 	driverName := "zfs"
 	resourceName := "lxd_storage_pool.storage_pool1"
 

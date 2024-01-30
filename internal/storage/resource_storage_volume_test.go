@@ -4,14 +4,13 @@ import (
 	"fmt"
 	"testing"
 
-	petname "github.com/dustinkirkland/golang-petname"
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
 	"github.com/terraform-lxd/terraform-provider-lxd/internal/acctest"
 )
 
 func TestAccStorageVolume_basic(t *testing.T) {
-	poolName := petname.Generate(2, "-")
-	volumeName := petname.Generate(2, "-")
+	poolName := acctest.GenerateName(2, "-")
+	volumeName := acctest.GenerateName(2, "-")
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { acctest.PreCheck(t) },
@@ -33,9 +32,9 @@ func TestAccStorageVolume_basic(t *testing.T) {
 }
 
 func TestAccStorageVolume_instanceAttach(t *testing.T) {
-	instanceName := petname.Generate(2, "-")
-	poolName := petname.Generate(2, "-")
-	volumeName := petname.Generate(2, "-")
+	instanceName := acctest.GenerateName(2, "-")
+	poolName := acctest.GenerateName(2, "-")
+	volumeName := acctest.GenerateName(2, "-")
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { acctest.PreCheck(t) },
@@ -63,7 +62,7 @@ func TestAccStorageVolume_instanceAttach(t *testing.T) {
 }
 
 func TestAccStorageVolume_target(t *testing.T) {
-	volumeName := petname.Generate(2, "-")
+	volumeName := acctest.GenerateName(2, "-")
 
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
@@ -85,8 +84,8 @@ func TestAccStorageVolume_target(t *testing.T) {
 }
 
 func TestAccStorageVolume_project(t *testing.T) {
-	volumeName := petname.Generate(2, "-")
-	projectName := petname.Name()
+	volumeName := acctest.GenerateName(2, "-")
+	projectName := acctest.GenerateName(2, "-")
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { acctest.PreCheck(t) },
@@ -106,8 +105,8 @@ func TestAccStorageVolume_project(t *testing.T) {
 }
 
 func TestAccStorageVolume_contentType(t *testing.T) {
-	poolName := petname.Generate(2, "-")
-	volumeName := petname.Generate(2, "-")
+	poolName := acctest.GenerateName(2, "-")
+	volumeName := acctest.GenerateName(2, "-")
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { acctest.PreCheck(t) },
@@ -128,8 +127,8 @@ func TestAccStorageVolume_contentType(t *testing.T) {
 }
 
 func TestAccStorageVolume_importBasic(t *testing.T) {
-	volName := petname.Generate(2, "-")
-	poolName := petname.Generate(2, "-")
+	volName := acctest.GenerateName(2, "-")
+	poolName := acctest.GenerateName(2, "-")
 	resourceName := "lxd_volume.volume1"
 
 	resource.Test(t, resource.TestCase{
@@ -151,8 +150,8 @@ func TestAccStorageVolume_importBasic(t *testing.T) {
 }
 
 func TestAccStorageVolume_importProject(t *testing.T) {
-	volName := petname.Generate(2, "-")
-	projectName := petname.Generate(2, "-")
+	volName := acctest.GenerateName(2, "-")
+	projectName := acctest.GenerateName(2, "-")
 	resourceName := "lxd_volume.volume1"
 
 	resource.Test(t, resource.TestCase{

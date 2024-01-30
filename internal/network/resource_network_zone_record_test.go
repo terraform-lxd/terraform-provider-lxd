@@ -4,14 +4,13 @@ import (
 	"fmt"
 	"testing"
 
-	petname "github.com/dustinkirkland/golang-petname"
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
 	"github.com/terraform-lxd/terraform-provider-lxd/internal/acctest"
 )
 
 func TestAccNetworkZoneRecord_basic(t *testing.T) {
-	recordName := petname.Generate(2, "-")
-	zoneName := petname.Generate(3, ".")
+	recordName := acctest.GenerateName(2, "-")
+	zoneName := acctest.GenerateName(3, ".")
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { acctest.PreCheck(t) },
@@ -32,8 +31,8 @@ func TestAccNetworkZoneRecord_basic(t *testing.T) {
 }
 
 func TestAccNetworkZoneRecord_entries(t *testing.T) {
-	recordName := petname.Generate(2, "-")
-	zoneName := petname.Generate(3, ".")
+	recordName := acctest.GenerateName(2, "-")
+	zoneName := acctest.GenerateName(3, ".")
 
 	entry1 := map[string]string{
 		"type":  "CNAME",
@@ -75,8 +74,8 @@ func TestAccNetworkZoneRecord_entries(t *testing.T) {
 
 func TestAccNetworkZoneRecord_importBasic(t *testing.T) {
 	resourceName := "lxd_network_zone_record.record"
-	recordName := petname.Generate(2, "-")
-	zoneName := petname.Generate(3, ".")
+	recordName := acctest.GenerateName(2, "-")
+	zoneName := acctest.GenerateName(3, ".")
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { acctest.PreCheck(t) },

@@ -4,14 +4,13 @@ import (
 	"fmt"
 	"testing"
 
-	petname "github.com/dustinkirkland/golang-petname"
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
 	"github.com/terraform-lxd/terraform-provider-lxd/internal/acctest"
 )
 
 func TestAccInstanceSnapshot_stateless(t *testing.T) {
-	instanceName := petname.Generate(2, "-")
-	snapshotName := petname.Generate(2, "-")
+	instanceName := acctest.GenerateName(2, "-")
+	snapshotName := acctest.GenerateName(2, "-")
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { acctest.PreCheck(t) },
@@ -34,8 +33,8 @@ func TestAccInstanceSnapshot_stateless(t *testing.T) {
 
 // TODO: Test requires CRIU
 // func TestAccInstanceSnapshot_stateful(t *testing.T) {
-// 	instanceName := petname.Generate(2, "-")
-// 	snapshotName := petname.Generate(2, "-")
+// 	instanceName := acctest.GenerateName(2, "-")
+// 	snapshotName := acctest.GenerateName(2, "-")
 
 // 	resource.Test(t, resource.TestCase{
 // 		PreCheck:                 func() { acctest.PreCheck(t) },
@@ -56,9 +55,9 @@ func TestAccInstanceSnapshot_stateless(t *testing.T) {
 // }
 
 func TestAccInstanceSnapshot_multiple(t *testing.T) {
-	instanceName := petname.Generate(2, "-")
-	snapshotName1 := petname.Generate(2, "-")
-	snapshotName2 := petname.Generate(2, "-")
+	instanceName := acctest.GenerateName(2, "-")
+	snapshotName1 := acctest.GenerateName(2, "-")
+	snapshotName2 := acctest.GenerateName(2, "-")
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { acctest.PreCheck(t) },
@@ -92,9 +91,9 @@ func TestAccInstanceSnapshot_multiple(t *testing.T) {
 }
 
 func TestAccInstanceSnapshot_project(t *testing.T) {
-	projectName := petname.Name()
-	instanceName := petname.Generate(2, "-")
-	snapshotName := petname.Generate(2, "-")
+	projectName := acctest.GenerateName(2, "-")
+	instanceName := acctest.GenerateName(2, "-")
+	snapshotName := acctest.GenerateName(2, "-")
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { acctest.PreCheck(t) },
