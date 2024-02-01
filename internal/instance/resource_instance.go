@@ -54,7 +54,9 @@ type InstanceModel struct {
 
 	// Computed.
 	IPv4   types.String `tfsdk:"ipv4_address"`
+	IPv4s  types.List   `tfsdk:"ipv4_addresses"`
 	IPv6   types.String `tfsdk:"ipv6_address"`
+	IPv6s  types.List   `tfsdk:"ipv6_addresses"`
 	MAC    types.String `tfsdk:"mac_address"`
 	Status types.String `tfsdk:"status"`
 
@@ -315,8 +317,18 @@ func (r InstanceResource) Schema(ctx context.Context, _ resource.SchemaRequest, 
 				Computed: true,
 			},
 
+			"ipv4_addresses": schema.ListAttribute{
+				Computed:    true,
+				ElementType: types.StringType,
+			},
+
 			"ipv6_address": schema.StringAttribute{
 				Computed: true,
+			},
+
+			"ipv6_addresses": schema.ListAttribute{
+				Computed:    true,
+				ElementType: types.StringType,
 			},
 
 			"mac_address": schema.StringAttribute{
@@ -1015,7 +1027,9 @@ func (r InstanceResource) SyncState(ctx context.Context, tfState *tfsdk.State, s
 	// Reset IPv4, IPv6, and MAC addresses. If case instance has lost
 	// network connectivity, we should reflect that in state.
 	m.IPv4 = types.StringNull()
+	m.IPv4s = types.ListNull(types.StringType)
 	m.IPv6 = types.StringNull()
+	m.IPv6s = types.ListNull(types.StringType)
 	m.MAC = types.StringNull()
 
 	// First there is an access_interface set, extract IPv4, IPv4, and
@@ -1032,9 +1046,19 @@ func (r InstanceResource) SyncState(ctx context.Context, tfState *tfsdk.State, s
 			accIfaceFound = true
 		}
 
+		ipv4s, ok := findIPv4Addresses(net)
+		if ok {
+			m.IPv4s, _ = types.ListValueFrom(ctx, types.StringType, ipv4s)
+		}
+
 		ipv6, ok := findIPv6Address(net)
 		if ok {
 			m.IPv6 = types.StringValue(ipv6)
+		}
+
+		ipv6s, ok := findIPv6Addresses(net)
+		if ok {
+			m.IPv6s, _ = types.ListValueFrom(ctx, types.StringType, ipv6s)
 		}
 	}
 
@@ -1052,9 +1076,19 @@ func (r InstanceResource) SyncState(ctx context.Context, tfState *tfsdk.State, s
 				m.MAC = types.StringValue(mac)
 			}
 
+			ipv4s, ok := findIPv4Addresses(net)
+			if ok {
+				m.IPv4s, _ = types.ListValueFrom(ctx, types.StringType, ipv4s)
+			}
+
 			ipv6, ok := findIPv6Address(net)
 			if ok {
 				m.IPv6 = types.StringValue(ipv6)
+			}
+
+			ipv6s, ok := findIPv6Addresses(net)
+			if ok {
+				m.IPv6s, _ = types.ListValueFrom(ctx, types.StringType, ipv6s)
 			}
 		}
 	}
@@ -1335,6 +1369,18 @@ func findIPv4Address(network api.InstanceStateNetwork) (string, string, bool) {
 	return ipv4, mac, (ipv4 != "")
 }
 
+// findIPv4Addresses searches the network for any IPv4 addresses.
+func findIPv4Addresses(network api.InstanceStateNetwork) ([]string, bool) {
+	var ipv4 []string
+	for _, ip := range network.Addresses {
+		if ip.Family == "inet" {
+			ipv4 = append(ipv4, ip.Address)
+		}
+	}
+
+	return ipv4, (len(ipv4) != 0)
+}
+
 // Find last global IPv6 address or return any last IPv6 address
 // if there is no global address. This works analog to the IPv4
 // selection mechanism but favors global addresses.
@@ -1358,4 +1404,29 @@ func findIPv6Address(network api.InstanceStateNetwork) (string, bool) {
 	}
 
 	return ipv6, (ipv6 != "")
+}
+
+// Find all global IPv6 addresses or return any IPv6 address
+// if there are no global addresses. This works analog to the IPv4
+// selection mechanism but favours global addresses.
+func findIPv6Addresses(network api.InstanceStateNetwork) ([]string, bool) {
+	var ipv6 []string
+
+	for _, ip := range network.Addresses {
+		if ip.Family == "inet6" && ip.Scope == "global" {
+			ipv6 = append(ipv6, ip.Address)
+		}
+	}
+
+	if len(ipv6) != 0 {
+		return ipv6, true
+	}
+
+	for _, ip := range network.Addresses {
+		if ip.Family == "inet6" {
+			ipv6 = append(ipv6, ip.Address)
+		}
+	}
+
+	return ipv6, (len(ipv6) != 0)
 }
