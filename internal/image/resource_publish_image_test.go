@@ -132,7 +132,7 @@ resource "lxd_publish_image" "pimg" {
   instance = lxd_instance.instance1.name
   aliases  = ["%s"]
 }
-	`, name, acctest.TestImage, strings.Join(toStringSlice(aliases), "\",\""))
+	`, name, acctest.TestImage, strings.Join(aliases, "\",\""))
 }
 
 func testAccPublishImage_properties(name string, properties map[string]string) string {
@@ -175,14 +175,6 @@ resource "lxd_publish_image" "pimg" {
   project  = lxd_project.project1.name
 }
 	`, project, instance, acctest.TestImage)
-}
-
-func toStringSlice(slice []string) []string {
-	new := make([]string, 0, len(slice))
-	for _, v := range slice {
-		new = append(new, v)
-	}
-	return new
 }
 
 func formatProperties(properties map[string]string) []string {
