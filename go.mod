@@ -1,6 +1,6 @@
 module github.com/terraform-lxd/terraform-provider-lxd
 
-go 1.20
+go 1.21
 
 require (
 	github.com/canonical/lxd v0.0.0-20231019094722-ff5926c3b519
