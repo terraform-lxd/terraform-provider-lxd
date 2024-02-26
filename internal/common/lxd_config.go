@@ -33,7 +33,6 @@ func MergeConfig(resConfig map[string]string, usrConfig map[string]string, compu
 	// Add user defined non-empty entries to the config. Empty values
 	// in LXD configuration are considered null (unset).
 	for k, v := range usrConfig {
-
 		if v != "" {
 			config[k] = v
 		}

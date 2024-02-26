@@ -372,7 +372,7 @@ func (r PublishImageResource) Update(ctx context.Context, req resource.UpdateReq
 
 	err = server.UpdateImage(imageFingerprint, imageReq, "")
 	if err != nil {
-		resp.Diagnostics.AddError(fmt.Sprintf("Failed to update publihsed image properties"), err.Error())
+		resp.Diagnostics.AddError("Failed to update publihsed image properties", err.Error())
 		return
 	}
 
@@ -401,13 +401,13 @@ func (r PublishImageResource) Delete(ctx context.Context, req resource.DeleteReq
 	imageFingerprint := state.Fingerprint.ValueString()
 	opDelete, err := server.DeleteImage(imageFingerprint)
 	if err != nil {
-		resp.Diagnostics.AddError(fmt.Sprintf("Failed to remove published image"), err.Error())
+		resp.Diagnostics.AddError("Failed to remove published image", err.Error())
 		return
 	}
 
 	err = opDelete.Wait()
 	if err != nil {
-		resp.Diagnostics.AddError(fmt.Sprintf("Failed to remove published image"), err.Error())
+		resp.Diagnostics.AddError("Failed to remove published image", err.Error())
 		return
 	}
 }
@@ -426,7 +426,7 @@ func (_ PublishImageResource) SyncState(ctx context.Context, tfState *tfsdk.Stat
 			return nil
 		}
 
-		respDiags.AddError(fmt.Sprintf("Failed to retrieve published image"), err.Error())
+		respDiags.AddError("Failed to retrieve published image", err.Error())
 		return respDiags
 	}
 
