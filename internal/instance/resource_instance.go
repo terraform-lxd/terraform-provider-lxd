@@ -576,7 +576,7 @@ func (r InstanceResource) Create(ctx context.Context, req resource.CreateRequest
 		// Get the image info.
 		imageInfo, _, err = imageServer.GetImage(image)
 		if err != nil {
-			resp.Diagnostics.AddError(fmt.Sprintf("Failed to retireve image info for instance %q", instance.Name), err.Error())
+			resp.Diagnostics.AddError(fmt.Sprintf("Failed to retrieve image info for instance %q", instance.Name), err.Error())
 			return
 		}
 	}
@@ -642,7 +642,6 @@ func (r InstanceResource) Create(ctx context.Context, req resource.CreateRequest
 				return
 			}
 		}
-
 	}
 
 	// Execute commands.
@@ -706,7 +705,7 @@ func (r InstanceResource) Read(ctx context.Context, req resource.ReadRequest, re
 // - Ensure instance state (stopped/running)
 // - Update configuration (config, limits, devices, profiles)
 // - Upload files
-// - Run exec commands
+// - Run exec commands.
 func (r InstanceResource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
 	var plan InstanceModel
 	var state InstanceModel
@@ -777,7 +776,6 @@ func (r InstanceResource) Update(ctx context.Context, req resource.UpdateRequest
 			resp.Diagnostics.Append(diag)
 			return
 		}
-
 	}
 
 	// Get instance.
@@ -1304,7 +1302,7 @@ func waitForState(ctx context.Context, refreshFunc retry.StateRefreshFunc, targe
 
 // isInstanceOperational determines if an instance is fully operational based
 // on its state. It returns true if the instance is running and the reported
-// process count is positive. Checking for a positive process count is esential
+// process count is positive. Checking for a positive process count is essential
 // for virtual machines, which can report this metric only if the LXD agent has
 // started and has established a connection to the LXD server.
 func isInstanceOperational(s api.InstanceState) bool {
