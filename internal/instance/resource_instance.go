@@ -601,6 +601,25 @@ func (r InstanceResource) Create(ctx context.Context, req resource.CreateRequest
 		return
 	}
 
+	if plan.Running.ValueBool() {
+		// Start the instance.
+		diag := startInstance(ctx, server, instance.Name)
+		if diag != nil {
+			resp.Diagnostics.Append(diag)
+			return
+		}
+
+		// Wait for the instance to obtain an IP address if network
+		// availability is requested by the user.
+		if plan.WaitForNetwork.ValueBool() {
+			diag := waitInstanceNetwork(ctx, server, instance.Name)
+			if diag != nil {
+				resp.Diagnostics.Append(diag)
+				return
+			}
+		}
+	}
+
 	// Upload files.
 	if !plan.Files.IsNull() && !plan.Files.IsUnknown() {
 		files, diags := common.ToFileMap(ctx, plan.Files)
@@ -623,25 +642,6 @@ func (r InstanceResource) Create(ctx context.Context, req resource.CreateRequest
 	if diags.HasError() {
 		resp.Diagnostics.Append(diags...)
 		return
-	}
-
-	if plan.Running.ValueBool() {
-		// Start the instance.
-		diag := startInstance(ctx, server, instance.Name)
-		if diag != nil {
-			resp.Diagnostics.Append(diag)
-			return
-		}
-
-		// Wait for the instance to obtain an IP address if network
-		// availability is requested by the user.
-		if plan.WaitForNetwork.ValueBool() {
-			diag := waitInstanceNetwork(ctx, server, instance.Name)
-			if diag != nil {
-				resp.Diagnostics.Append(diag)
-				return
-			}
-		}
 	}
 
 	// Execute commands.
