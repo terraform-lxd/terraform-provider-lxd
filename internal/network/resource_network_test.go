@@ -9,18 +9,20 @@ import (
 )
 
 func TestAccNetwork_basic(t *testing.T) {
+	networkName := acctest.GenerateName(2, "-")
+
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { acctest.PreCheck(t) },
 		ProtoV6ProviderFactories: acctest.ProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccNetwork_basic(),
+				Config: testAccNetwork_basic(networkName),
 				Check: resource.ComposeTestCheckFunc(
-					resource.TestCheckResourceAttr("lxd_network.eth1", "name", "eth1"),
-					resource.TestCheckResourceAttr("lxd_network.eth1", "type", "bridge"),
-					resource.TestCheckResourceAttr("lxd_network.eth1", "managed", "true"),
-					resource.TestCheckResourceAttr("lxd_network.eth1", "description", ""),
-					resource.TestCheckResourceAttr("lxd_network.eth1", "config.%", "0"),
+					resource.TestCheckResourceAttr("lxd_network.network", "name", networkName),
+					resource.TestCheckResourceAttr("lxd_network.network", "type", "bridge"),
+					resource.TestCheckResourceAttr("lxd_network.network", "managed", "true"),
+					resource.TestCheckResourceAttr("lxd_network.network", "description", ""),
+					resource.TestCheckResourceAttr("lxd_network.network", "config.%", "0"),
 				),
 			},
 		},
@@ -28,19 +30,21 @@ func TestAccNetwork_basic(t *testing.T) {
 }
 
 func TestAccNetwork_description(t *testing.T) {
+	networkName := acctest.GenerateName(2, "-")
+
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { acctest.PreCheck(t) },
 		ProtoV6ProviderFactories: acctest.ProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccNetwork_desc(),
+				Config: testAccNetwork_desc(networkName),
 				Check: resource.ComposeTestCheckFunc(
-					resource.TestCheckResourceAttr("lxd_network.eth1", "name", "eth1"),
-					resource.TestCheckResourceAttr("lxd_network.eth1", "type", "bridge"),
-					resource.TestCheckResourceAttr("lxd_network.eth1", "description", "My network"),
-					resource.TestCheckResourceAttr("lxd_network.eth1", "config.%", "2"),
-					resource.TestCheckResourceAttr("lxd_network.eth1", "config.ipv4.address", "10.150.19.1/24"),
-					resource.TestCheckResourceAttr("lxd_network.eth1", "config.ipv6.address", "fd42:474b:622d:259d::1/64"),
+					resource.TestCheckResourceAttr("lxd_network.network", "name", networkName),
+					resource.TestCheckResourceAttr("lxd_network.network", "type", "bridge"),
+					resource.TestCheckResourceAttr("lxd_network.network", "description", "My network"),
+					resource.TestCheckResourceAttr("lxd_network.network", "config.%", "2"),
+					resource.TestCheckResourceAttr("lxd_network.network", "config.ipv4.address", "10.150.10.1/24"),
+					resource.TestCheckResourceAttr("lxd_network.network", "config.ipv6.address", "fd42:474b:622d:259d::1/64"),
 				),
 			},
 		},
@@ -48,6 +52,7 @@ func TestAccNetwork_description(t *testing.T) {
 }
 
 func TestAccNetwork_attach(t *testing.T) {
+	networkName := acctest.GenerateName(2, "-")
 	profileName := acctest.GenerateName(2, "-")
 	instanceName := acctest.GenerateName(2, "-")
 
@@ -56,14 +61,14 @@ func TestAccNetwork_attach(t *testing.T) {
 		ProtoV6ProviderFactories: acctest.ProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccNetwork_attach(profileName, instanceName),
+				Config: testAccNetwork_attach(networkName, profileName, instanceName),
 				Check: resource.ComposeTestCheckFunc(
-					resource.TestCheckResourceAttr("lxd_network.eth1", "name", "eth1"),
+					resource.TestCheckResourceAttr("lxd_network.network", "name", networkName),
 					resource.TestCheckResourceAttr("lxd_profile.profile1", "name", profileName),
 					resource.TestCheckResourceAttr("lxd_profile.profile1", "device.#", "1"),
 					resource.TestCheckResourceAttr("lxd_profile.profile1", "device.0.name", "eth1"),
 					resource.TestCheckResourceAttr("lxd_profile.profile1", "device.0.type", "nic"),
-					resource.TestCheckResourceAttr("lxd_profile.profile1", "device.0.properties.parent", "eth1"),
+					resource.TestCheckResourceAttr("lxd_profile.profile1", "device.0.properties.parent", networkName),
 					resource.TestCheckResourceAttr("lxd_instance.instance1", "name", instanceName),
 					resource.TestCheckResourceAttr("lxd_instance.instance1", "status", "Running"),
 					resource.TestCheckResourceAttr("lxd_instance.instance1", "profiles.#", "2"),
@@ -79,6 +84,7 @@ func TestAccNetwork_attach(t *testing.T) {
 }
 
 func TestAccNetwork_updateConfig(t *testing.T) {
+	networkName := acctest.GenerateName(1, "-")
 	instanceName := acctest.GenerateName(2, "-")
 
 	resource.Test(t, resource.TestCase{
@@ -86,29 +92,29 @@ func TestAccNetwork_updateConfig(t *testing.T) {
 		ProtoV6ProviderFactories: acctest.ProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccNetwork_updateConfig_1(instanceName),
+				Config: testAccNetwork_updateConfig_1(networkName, instanceName),
 				Check: resource.ComposeTestCheckFunc(
-					resource.TestCheckResourceAttr("lxd_network.eth1", "name", "eth1"),
-					resource.TestCheckResourceAttr("lxd_network.eth1", "config.ipv4.address", "10.150.19.1/24"),
-					resource.TestCheckResourceAttr("lxd_network.eth1", "config.ipv4.nat", "true"),
+					resource.TestCheckResourceAttr("lxd_network.network", "name", networkName),
+					resource.TestCheckResourceAttr("lxd_network.network", "config.ipv4.address", "10.150.30.1/24"),
+					resource.TestCheckResourceAttr("lxd_network.network", "config.ipv4.nat", "true"),
 					resource.TestCheckResourceAttr("lxd_instance.instance1", "name", instanceName),
 					resource.TestCheckResourceAttr("lxd_instance.instance1", "status", "Running"),
 					resource.TestCheckResourceAttr("lxd_instance.instance1", "device.#", "1"),
-					resource.TestCheckResourceAttr("lxd_instance.instance1", "device.0.properties.parent", "eth1"),
+					resource.TestCheckResourceAttr("lxd_instance.instance1", "device.0.properties.parent", networkName),
 					resource.TestCheckResourceAttrSet("lxd_instance.instance1", "ipv4_address"),
 					resource.TestCheckResourceAttrSet("lxd_instance.instance1", "mac_address"),
 				),
 			},
 			{
-				Config: testAccNetwork_updateConfig_2(instanceName),
+				Config: testAccNetwork_updateConfig_2(networkName, instanceName),
 				Check: resource.ComposeTestCheckFunc(
-					resource.TestCheckResourceAttr("lxd_network.eth1", "name", "eth1"),
-					resource.TestCheckResourceAttr("lxd_network.eth1", "config.ipv4.address", "10.150.21.1/24"),
-					resource.TestCheckResourceAttr("lxd_network.eth1", "config.ipv4.nat", "false"),
+					resource.TestCheckResourceAttr("lxd_network.network", "name", networkName),
+					resource.TestCheckResourceAttr("lxd_network.network", "config.ipv4.address", "10.150.40.1/24"),
+					resource.TestCheckResourceAttr("lxd_network.network", "config.ipv4.nat", "false"),
 					resource.TestCheckResourceAttr("lxd_instance.instance1", "name", instanceName),
 					resource.TestCheckResourceAttr("lxd_instance.instance1", "status", "Running"),
 					resource.TestCheckResourceAttr("lxd_instance.instance1", "device.#", "1"),
-					resource.TestCheckResourceAttr("lxd_instance.instance1", "device.0.properties.parent", "eth1"),
+					resource.TestCheckResourceAttr("lxd_instance.instance1", "device.0.properties.parent", networkName),
 				),
 			},
 		},
@@ -116,16 +122,18 @@ func TestAccNetwork_updateConfig(t *testing.T) {
 }
 
 func TestAccNetwork_typeMacvlan(t *testing.T) {
+	networkName := acctest.GenerateName(2, "-")
+
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { acctest.PreCheck(t) },
 		ProtoV6ProviderFactories: acctest.ProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccNetwork_typeMacvlan(),
+				Config: testAccNetwork_typeMacvlan(networkName),
 				Check: resource.ComposeTestCheckFunc(
-					resource.TestCheckResourceAttr("lxd_network.eth1", "name", "eth1"),
-					resource.TestCheckResourceAttr("lxd_network.eth1", "type", "macvlan"),
-					resource.TestCheckResourceAttr("lxd_network.eth1", "config.parent", "lxdbr0"),
+					resource.TestCheckResourceAttr("lxd_network.network", "name", networkName),
+					resource.TestCheckResourceAttr("lxd_network.network", "type", "macvlan"),
+					resource.TestCheckResourceAttr("lxd_network.network", "config.parent", "lxdbr0"),
 				),
 			},
 		},
@@ -153,7 +161,7 @@ func TestAccNetwork_target(t *testing.T) {
 					resource.TestCheckResourceAttr("lxd_network.cluster_network_node2", "config.bridge.external_interfaces", "nosuchint"),
 					resource.TestCheckResourceAttr("lxd_network.cluster_network", "name", networkName),
 					resource.TestCheckResourceAttr("lxd_network.cluster_network", "type", "bridge"),
-					resource.TestCheckResourceAttr("lxd_network.cluster_network", "config.ipv4.address", "10.150.19.1/24"),
+					resource.TestCheckResourceAttr("lxd_network.cluster_network", "config.ipv4.address", "10.150.50.1/24"),
 				),
 			},
 		},
@@ -162,16 +170,17 @@ func TestAccNetwork_target(t *testing.T) {
 
 func TestAccNetwork_project(t *testing.T) {
 	projectName := acctest.GenerateName(2, "-")
+	networkName := acctest.GenerateName(2, "-")
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { acctest.PreCheck(t) },
 		ProtoV6ProviderFactories: acctest.ProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccNetwork_project(projectName),
+				Config: testAccNetwork_project(networkName, projectName),
 				Check: resource.ComposeTestCheckFunc(
-					resource.TestCheckResourceAttr("lxd_network.eth1", "name", "eth1"),
-					resource.TestCheckResourceAttr("lxd_network.eth1", "project", projectName),
+					resource.TestCheckResourceAttr("lxd_network.network", "name", networkName),
+					resource.TestCheckResourceAttr("lxd_network.network", "project", projectName),
 					resource.TestCheckResourceAttr("lxd_project.project1", "name", projectName),
 				),
 			},
@@ -180,18 +189,19 @@ func TestAccNetwork_project(t *testing.T) {
 }
 
 func TestAccNetwork_importBasic(t *testing.T) {
-	resourceName := "lxd_network.eth1"
+	resourceName := "lxd_network.network"
+	networkName := acctest.GenerateName(2, "-")
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { acctest.PreCheck(t) },
 		ProtoV6ProviderFactories: acctest.ProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccNetwork_basic(),
+				Config: testAccNetwork_basic(networkName),
 			},
 			{
 				ResourceName:                         resourceName,
-				ImportStateId:                        "eth1",
+				ImportStateId:                        networkName,
 				ImportState:                          true,
 				ImportStateVerify:                    true,
 				ImportStateVerifyIdentifierAttribute: "name",
@@ -201,18 +211,19 @@ func TestAccNetwork_importBasic(t *testing.T) {
 }
 
 func TestAccNetwork_importDesc(t *testing.T) {
-	resourceName := "lxd_network.eth1"
+	resourceName := "lxd_network.network"
+	networkName := acctest.GenerateName(2, "-")
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { acctest.PreCheck(t) },
 		ProtoV6ProviderFactories: acctest.ProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccNetwork_desc(),
+				Config: testAccNetwork_desc(networkName),
 			},
 			{
 				ResourceName:                         resourceName,
-				ImportStateId:                        "eth1",
+				ImportStateId:                        networkName,
 				ImportStateVerifyIdentifierAttribute: "name",
 				ImportStateVerify:                    false, // State of "config" will be always empty.
 				ImportState:                          true,
@@ -222,7 +233,8 @@ func TestAccNetwork_importDesc(t *testing.T) {
 }
 
 func TestAccNetwork_importProject(t *testing.T) {
-	resourceName := "lxd_network.eth1"
+	resourceName := "lxd_network.network"
+	networkName := acctest.GenerateName(2, "-")
 	projectName := acctest.GenerateName(2, "-")
 
 	resource.Test(t, resource.TestCase{
@@ -230,11 +242,11 @@ func TestAccNetwork_importProject(t *testing.T) {
 		ProtoV6ProviderFactories: acctest.ProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccNetwork_project(projectName),
+				Config: testAccNetwork_project(networkName, projectName),
 			},
 			{
 				ResourceName:                         resourceName,
-				ImportStateId:                        fmt.Sprintf("%s/eth1", projectName),
+				ImportStateId:                        fmt.Sprintf("%s/%s", projectName, networkName),
 				ImportState:                          true,
 				ImportStateVerify:                    true,
 				ImportStateVerifyIdentifierAttribute: "name",
@@ -243,33 +255,33 @@ func TestAccNetwork_importProject(t *testing.T) {
 	})
 }
 
-func testAccNetwork_basic() string {
-	return `
-resource "lxd_network" "eth1" {
-  name = "eth1"
+func testAccNetwork_basic(networkName string) string {
+	return fmt.Sprintf(`
+resource "lxd_network" "network" {
+  name = "%s"
 }
-`
+`, networkName)
 }
 
-func testAccNetwork_desc() string {
-	return `
-resource "lxd_network" "eth1" {
-  name        = "eth1"
+func testAccNetwork_desc(networkName string) string {
+	return fmt.Sprintf(`
+resource "lxd_network" "network" {
+  name        = "%s"
   description = "My network"
   config = {
-    "ipv4.address" = "10.150.19.1/24"
+    "ipv4.address" = "10.150.10.1/24"
     "ipv6.address" = "fd42:474b:622d:259d::1/64"
   }
 }
-`
+`, networkName)
 }
 
-func testAccNetwork_attach(profileName, instanceName string) string {
+func testAccNetwork_attach(networkName string, profileName string, instanceName string) string {
 	return fmt.Sprintf(`
-resource "lxd_network" "eth1" {
-  name = "eth1"
+resource "lxd_network" "network" {
+  name = "%s"
   config = {
-    "ipv4.address" = "10.150.19.1/24"
+    "ipv4.address" = "10.150.20.1/24"
   }
 }
 
@@ -281,7 +293,7 @@ resource "lxd_profile" "profile1" {
     type = "nic"
     properties = {
       nictype = "bridged"
-      parent  = lxd_network.eth1.name
+      parent  = lxd_network.network.name
     }
   }
 }
@@ -291,15 +303,15 @@ resource "lxd_instance" "instance1" {
   image    = "%s"
   profiles = ["default", lxd_profile.profile1.name]
 }
-`, profileName, instanceName, acctest.TestImage)
+`, networkName, profileName, instanceName, acctest.TestImage)
 }
 
-func testAccNetwork_updateConfig_1(instanceName string) string {
+func testAccNetwork_updateConfig_1(networkName string, instanceName string) string {
 	return fmt.Sprintf(`
-resource "lxd_network" "eth1" {
-  name = "eth1"
+resource "lxd_network" "network" {
+  name = "%s"
   config = {
-    "ipv4.address" = "10.150.19.1/24"
+    "ipv4.address" = "10.150.30.1/24"
     "ipv4.nat"     = true
   }
 }
@@ -316,20 +328,20 @@ resource "lxd_instance" "instance1" {
     type = "nic"
     properties = {
       nictype = "bridged"
-      parent  = lxd_network.eth1.name
+      parent  = lxd_network.network.name
     }
   }
 }
-  `, instanceName, acctest.TestImage)
+`, networkName, instanceName, acctest.TestImage)
 }
 
-func testAccNetwork_updateConfig_2(instanceName string) string {
+func testAccNetwork_updateConfig_2(networkName string, instanceName string) string {
 	return fmt.Sprintf(`
-resource "lxd_network" "eth1" {
-  name = "eth1"
+resource "lxd_network" "network" {
+  name = "%s"
 
   config = {
-    "ipv4.address" = "10.150.21.1/24"
+    "ipv4.address" = "10.150.40.1/24"
     "ipv4.nat"     = false
   }
 }
@@ -346,24 +358,24 @@ resource "lxd_instance" "instance1" {
     type = "nic"
     properties = {
       nictype = "bridged"
-      parent  = lxd_network.eth1.name
+      parent  = lxd_network.network.name
     }
   }
 }
-  `, instanceName, acctest.TestImage)
+`, networkName, instanceName, acctest.TestImage)
 }
 
-func testAccNetwork_typeMacvlan() string {
-	return `
-resource "lxd_network" "eth1" {
-  name = "eth1"
+func testAccNetwork_typeMacvlan(networkName string) string {
+	return fmt.Sprintf(`
+resource "lxd_network" "network" {
+  name = "%s"
   type = "macvlan"
 
   config = {
     "parent" = "lxdbr0"
   }
 }
-`
+`, networkName)
 }
 
 func testAccNetwork_target(networkName string) string {
@@ -394,23 +406,23 @@ resource "lxd_network" "cluster_network" {
 
   name = lxd_network.cluster_network_node1.name
   config = {
-    "ipv4.address" = "10.150.19.1/24"
+    "ipv4.address" = "10.150.50.1/24"
   }
 }
 `, networkName)
 }
 
-func testAccNetwork_project(project string) string {
+func testAccNetwork_project(networkName string, projectName string) string {
 	return fmt.Sprintf(`
 resource "lxd_project" "project1" {
   name        = "%s"
   description = "Terraform provider test project"
 }
 
-resource "lxd_network" "eth1" {
-  name    = "eth1"
+resource "lxd_network" "network" {
+  name    = "%s"
   type    = "bridge"
   project = lxd_project.project1.name
 }
-	`, project)
+`, projectName, networkName)
 }

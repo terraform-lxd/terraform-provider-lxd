@@ -481,6 +481,54 @@ func TestAccInstance_removeDevice(t *testing.T) {
 	})
 }
 
+func TestAccInstance_fileUploadContainer(t *testing.T) {
+	instanceName := acctest.GenerateName(2, "-")
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { acctest.PreCheck(t) },
+		ProtoV6ProviderFactories: acctest.ProtoV6ProviderFactories,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccInstance_fileUploadSource(instanceName, "container"),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr("lxd_instance.instance1", "name", instanceName),
+					resource.TestCheckResourceAttr("lxd_instance.instance1", "status", "Running"),
+					resource.TestCheckResourceAttr("lxd_instance.instance1", "type", "container"),
+					resource.TestCheckResourceAttr("lxd_instance.instance1", "file.#", "1"),
+					resource.TestCheckResourceAttr("lxd_instance.instance1", "file.0.mode", "0644"),
+					resource.TestCheckResourceAttr("lxd_instance.instance1", "file.0.source_path", "../acctest/fixtures/test-file.txt"),
+					resource.TestCheckResourceAttr("lxd_instance.instance1", "file.0.target_path", "/foo/bar.txt"),
+					resource.TestCheckResourceAttr("lxd_instance.instance1", "file.0.create_directories", "true"),
+				),
+			},
+		},
+	})
+}
+
+func TestAccInstance_fileUploadVirtualMachine(t *testing.T) {
+	instanceName := acctest.GenerateName(2, "-")
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { acctest.PreCheck(t) },
+		ProtoV6ProviderFactories: acctest.ProtoV6ProviderFactories,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccInstance_fileUploadSource(instanceName, "virtual-machine"),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr("lxd_instance.instance1", "name", instanceName),
+					resource.TestCheckResourceAttr("lxd_instance.instance1", "status", "Running"),
+					resource.TestCheckResourceAttr("lxd_instance.instance1", "type", "virtual-machine"),
+					resource.TestCheckResourceAttr("lxd_instance.instance1", "file.#", "1"),
+					resource.TestCheckResourceAttr("lxd_instance.instance1", "file.0.mode", "0644"),
+					resource.TestCheckResourceAttr("lxd_instance.instance1", "file.0.source_path", "../acctest/fixtures/test-file.txt"),
+					resource.TestCheckResourceAttr("lxd_instance.instance1", "file.0.target_path", "/foo/bar.txt"),
+					resource.TestCheckResourceAttr("lxd_instance.instance1", "file.0.create_directories", "true"),
+				),
+			},
+		},
+	})
+}
+
 func TestAccInstance_fileUploadContent(t *testing.T) {
 	instanceName := acctest.GenerateName(2, "-")
 
@@ -522,29 +570,6 @@ func TestAccInstance_fileUploadContent(t *testing.T) {
 					resource.TestCheckResourceAttr("lxd_instance.instance1", "file.0.content", "Goodbye, World!\n"),
 					resource.TestCheckResourceAttr("lxd_instance.instance1", "file.0.target_path", "/foo/bar.txt"),
 					resource.TestCheckResourceAttr("lxd_instance.instance1", "file.0.create_directories", "false"),
-				),
-			},
-		},
-	})
-}
-
-func TestAccInstance_fileUploadSource(t *testing.T) {
-	instanceName := acctest.GenerateName(2, "-")
-
-	resource.Test(t, resource.TestCase{
-		PreCheck:                 func() { acctest.PreCheck(t) },
-		ProtoV6ProviderFactories: acctest.ProtoV6ProviderFactories,
-		Steps: []resource.TestStep{
-			{
-				Config: testAccInstance_fileUploadSource(instanceName),
-				Check: resource.ComposeTestCheckFunc(
-					resource.TestCheckResourceAttr("lxd_instance.instance1", "name", instanceName),
-					resource.TestCheckResourceAttr("lxd_instance.instance1", "status", "Running"),
-					resource.TestCheckResourceAttr("lxd_instance.instance1", "file.#", "1"),
-					resource.TestCheckResourceAttr("lxd_instance.instance1", "file.0.mode", "0644"),
-					resource.TestCheckResourceAttr("lxd_instance.instance1", "file.0.source_path", "../acctest/fixtures/test-file.txt"),
-					resource.TestCheckResourceAttr("lxd_instance.instance1", "file.0.target_path", "/foo/bar.txt"),
-					resource.TestCheckResourceAttr("lxd_instance.instance1", "file.0.create_directories", "true"),
 				),
 			},
 		},
@@ -1522,10 +1547,11 @@ resource "lxd_instance" "instance1" {
 	`, name, acctest.TestImage)
 }
 
-func testAccInstance_fileUploadSource(name string) string {
+func testAccInstance_fileUploadSource(instanceName string, instanceType string) string {
 	return fmt.Sprintf(`
 resource "lxd_instance" "instance1" {
   name  = "%s"
+  type  = "%s"
   image = "%s"
 
   file {
@@ -1535,7 +1561,7 @@ resource "lxd_instance" "instance1" {
     create_directories = true
   }
 }
-	`, name, acctest.TestImage)
+	`, instanceName, instanceType, acctest.TestImage)
 }
 
 func testAccInstance_exec(instanceName string) string {
