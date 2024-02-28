@@ -966,7 +966,7 @@ func TestAccInstance_execError(t *testing.T) {
 					resource.TestCheckResourceAttr("lxd_instance.instance1", "name", instanceName),
 					resource.TestCheckResourceAttr("lxd_instance.instance1", "status", "Running"),
 					resource.TestCheckResourceAttr("lxd_instance.instance1", "execs.%", "1"),
-					// resource.TestCheckResourceAttr("lxd_instance.instance1", "execs.cmd.exit_code", "127"), // TODO: Requires LXD client 5.20.
+					resource.TestCheckResourceAttr("lxd_instance.instance1", "execs.cmd.exit_code", "127"),
 					resource.TestCheckResourceAttr("lxd_instance.instance1", "execs.cmd.stdout", ""),
 					resource.TestCheckResourceAttr("lxd_instance.instance1", "execs.cmd.stderr", "Command not found"),
 				),
