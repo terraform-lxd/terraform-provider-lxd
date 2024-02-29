@@ -1,11 +1,9 @@
 module github.com/terraform-lxd/terraform-provider-lxd
 
-go 1.21.5
-
-toolchain go1.21.7
+go 1.21.7
 
 require (
-	github.com/canonical/lxd v0.0.0-20240228120319-f07234dd9ed2
+	github.com/canonical/lxd v0.0.0-20240228174100-898d3e02ff6b
 	github.com/dustinkirkland/golang-petname v0.0.0-20231002161417-6a283f1aaaf2
 	github.com/hashicorp/go-version v1.6.0
 	github.com/hashicorp/terraform-plugin-framework v1.6.0
@@ -20,7 +18,7 @@ require (
 )
 
 require (
-	github.com/ProtonMail/go-crypto v1.1.0-alpha.0-proton // indirect
+	github.com/ProtonMail/go-crypto v1.1.0-alpha.1-proton // indirect
 	github.com/agext/levenshtein v1.2.3 // indirect
 	github.com/apparentlymart/go-textseg/v15 v15.0.0 // indirect
 	github.com/cloudflare/circl v1.3.7 // indirect
