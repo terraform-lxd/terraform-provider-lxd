@@ -12,7 +12,7 @@ require (
 	github.com/hashicorp/terraform-plugin-testing v1.6.0
 	github.com/lxc/incus v0.6.0
 	github.com/mitchellh/go-homedir v1.1.0
-	github.com/stretchr/testify v1.8.4
+	github.com/stretchr/testify v1.9.0
 	golang.org/x/sys v0.17.0
 )
 
