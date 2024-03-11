@@ -74,6 +74,8 @@ jobs:
             external_ids:ovn-encap-type=geneve \
             external_ids:ovn-encap-ip=127.0.0.1
 
+          sudo systemctl restart incus
+
       - name: Install dependencies
         run: |
           curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(go env GOPATH)/bin
