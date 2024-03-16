@@ -39,7 +39,7 @@ func NewStorageVolumeCopyResource() resource.Resource {
 }
 
 func (r StorageVolumeCopyResource) Metadata(_ context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
-	resp.TypeName = fmt.Sprintf("%s_volume_copy", req.ProviderTypeName)
+	resp.TypeName = fmt.Sprintf("%s_storage_volume_copy", req.ProviderTypeName)
 }
 
 func (r StorageVolumeCopyResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *resource.SchemaResponse) {
