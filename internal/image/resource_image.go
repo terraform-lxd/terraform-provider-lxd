@@ -27,8 +27,8 @@ import (
 	"github.com/lxc/terraform-provider-incus/internal/utils"
 )
 
-// CachedImageModel resource data model that matches the schema.
-type CachedImageModel struct {
+// ImageModel resource data model that matches the schema.
+type ImageModel struct {
 	SourceImage  types.String `tfsdk:"source_image"`
 	SourceRemote types.String `tfsdk:"source_remote"`
 	Aliases      types.Set    `tfsdk:"aliases"`
@@ -45,21 +45,21 @@ type CachedImageModel struct {
 	CopiedAliases types.Set    `tfsdk:"copied_aliases"`
 }
 
-// CachedImageResource represent Incus cached image resource.
-type CachedImageResource struct {
+// ImageResource represent Incus cached image resource.
+type ImageResource struct {
 	provider *provider_config.IncusProviderConfig
 }
 
-// NewCachedImageResource return new cached image resource.
-func NewCachedImageResource() resource.Resource {
-	return &CachedImageResource{}
+// NewImageResource return new cached image resource.
+func NewImageResource() resource.Resource {
+	return &ImageResource{}
 }
 
-func (r CachedImageResource) Metadata(_ context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
-	resp.TypeName = fmt.Sprintf("%s_cached_image", req.ProviderTypeName)
+func (r ImageResource) Metadata(_ context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
+	resp.TypeName = fmt.Sprintf("%s_image", req.ProviderTypeName)
 }
 
-func (r CachedImageResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *resource.SchemaResponse) {
+func (r ImageResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *resource.SchemaResponse) {
 	resp.Schema = schema.Schema{
 		Attributes: map[string]schema.Attribute{
 			"source_image": schema.StringAttribute{
@@ -162,7 +162,7 @@ func (r CachedImageResource) Schema(_ context.Context, _ resource.SchemaRequest,
 	}
 }
 
-func (r *CachedImageResource) Configure(_ context.Context, req resource.ConfigureRequest, resp *resource.ConfigureResponse) {
+func (r *ImageResource) Configure(_ context.Context, req resource.ConfigureRequest, resp *resource.ConfigureResponse) {
 	data := req.ProviderData
 	if data == nil {
 		return
@@ -177,8 +177,8 @@ func (r *CachedImageResource) Configure(_ context.Context, req resource.Configur
 	r.provider = provider
 }
 
-func (r CachedImageResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
-	var plan CachedImageModel
+func (r ImageResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
+	var plan ImageModel
 
 	// Fetch resource model from Terraform plan.
 	diags := req.Plan.Get(ctx, &plan)
@@ -282,8 +282,8 @@ func (r CachedImageResource) Create(ctx context.Context, req resource.CreateRequ
 	resp.Diagnostics.Append(diags...)
 }
 
-func (r CachedImageResource) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
-	var state CachedImageModel
+func (r ImageResource) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
+	var state ImageModel
 
 	// Fetch resource model from Terraform state.
 	diags := req.State.Get(ctx, &state)
@@ -305,8 +305,8 @@ func (r CachedImageResource) Read(ctx context.Context, req resource.ReadRequest,
 	resp.Diagnostics.Append(diags...)
 }
 
-func (r CachedImageResource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
-	var plan CachedImageModel
+func (r ImageResource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
+	var plan ImageModel
 
 	diags := req.Plan.Get(ctx, &plan)
 	resp.Diagnostics.Append(diags...)
@@ -367,8 +367,8 @@ func (r CachedImageResource) Update(ctx context.Context, req resource.UpdateRequ
 	resp.Diagnostics.Append(diags...)
 }
 
-func (r CachedImageResource) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {
-	var state CachedImageModel
+func (r ImageResource) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {
+	var state ImageModel
 
 	diags := req.State.Get(ctx, &state)
 	resp.Diagnostics.Append(diags...)
@@ -401,7 +401,7 @@ func (r CachedImageResource) Delete(ctx context.Context, req resource.DeleteRequ
 // SyncState fetches the server's current state for a cached image and
 // updates the provided model. It then applies this updated model as the
 // new state in Terraform.
-func (r CachedImageResource) SyncState(ctx context.Context, tfState *tfsdk.State, server incus.InstanceServer, m CachedImageModel) diag.Diagnostics {
+func (r ImageResource) SyncState(ctx context.Context, tfState *tfsdk.State, server incus.InstanceServer, m ImageModel) diag.Diagnostics {
 	var respDiags diag.Diagnostics
 
 	_, imageFingerprint := splitImageResourceID(m.ResourceID.ValueString())
