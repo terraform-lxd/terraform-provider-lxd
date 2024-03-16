@@ -1,18 +1,18 @@
-# lxd_cached_image
+# lxd_image
 
 Manages a locally-stored LXD image.
 
 ## Example Usage
 
 ```hcl
-resource "lxd_cached_image" "xenial" {
+resource "lxd_image" "xenial" {
   source_remote = "ubuntu"
   source_image  = "xenial/amd64"
 }
 
 resource "lxd_instance" "test1" {
   name      = "test1"
-  image     = lxd_cached_image.xenial.fingerprint
+  image     = lxd_image.xenial.fingerprint
   ephemeral = false
 }
 ```
@@ -26,6 +26,9 @@ resource "lxd_instance" "test1" {
 
 * `type` - *Optional* - Type of image to cache. Must be one of `container` or
   `virtual-machine`. Defaults to `container`.
+
+* `architecture` - *Optional* - Architecture of the image to pull (e.g. `amd64`,
+	`arm64`). If not provided, the default architecture of `source_image` is used.
 
 * `aliases` - *Optional* - A list of aliases to assign to the image after
 	pulling.
