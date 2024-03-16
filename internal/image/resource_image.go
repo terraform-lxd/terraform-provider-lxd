@@ -30,8 +30,8 @@ import (
 	"github.com/terraform-lxd/terraform-provider-lxd/internal/utils"
 )
 
-// CachedImageModel resource data model that matches the schema.
-type CachedImageModel struct {
+// ImageModel resource data model that matches the schema.
+type ImageModel struct {
 	SourceImage  types.String `tfsdk:"source_image"`
 	SourceRemote types.String `tfsdk:"source_remote"`
 	Aliases      types.Set    `tfsdk:"aliases"`
@@ -47,21 +47,21 @@ type CachedImageModel struct {
 	CopiedAliases types.Set    `tfsdk:"copied_aliases"`
 }
 
-// CachedImageResource represent LXD cached image resource.
-type CachedImageResource struct {
+// ImageResource represent LXD image resource.
+type ImageResource struct {
 	provider *provider_config.LxdProviderConfig
 }
 
-// NewCachedImageResource return new cached image resource.
-func NewCachedImageResource() resource.Resource {
-	return &CachedImageResource{}
+// NewImageResource return new image resource.
+func NewImageResource() resource.Resource {
+	return &ImageResource{}
 }
 
-func (r CachedImageResource) Metadata(_ context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
-	resp.TypeName = req.ProviderTypeName + "_cached_image"
+func (r ImageResource) Metadata(_ context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
+	resp.TypeName = req.ProviderTypeName + "_image"
 }
 
-func (r CachedImageResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *resource.SchemaResponse) {
+func (r ImageResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *resource.SchemaResponse) {
 	resp.Schema = schema.Schema{
 		Attributes: map[string]schema.Attribute{
 			"source_image": schema.StringAttribute{
@@ -160,7 +160,7 @@ func (r CachedImageResource) Schema(_ context.Context, _ resource.SchemaRequest,
 	}
 }
 
-func (r *CachedImageResource) Configure(_ context.Context, req resource.ConfigureRequest, resp *resource.ConfigureResponse) {
+func (r *ImageResource) Configure(_ context.Context, req resource.ConfigureRequest, resp *resource.ConfigureResponse) {
 	data := req.ProviderData
 	if data == nil {
 		return
@@ -175,8 +175,8 @@ func (r *CachedImageResource) Configure(_ context.Context, req resource.Configur
 	r.provider = provider
 }
 
-func (r CachedImageResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
-	var plan CachedImageModel
+func (r ImageResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
+	var plan ImageModel
 
 	// Fetch resource model from Terraform plan.
 	diags := req.Plan.Get(ctx, &plan)
@@ -281,8 +281,8 @@ func (r CachedImageResource) Create(ctx context.Context, req resource.CreateRequ
 	resp.Diagnostics.Append(diags...)
 }
 
-func (r CachedImageResource) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
-	var state CachedImageModel
+func (r ImageResource) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
+	var state ImageModel
 
 	// Fetch resource model from Terraform state.
 	diags := req.State.Get(ctx, &state)
@@ -304,9 +304,9 @@ func (r CachedImageResource) Read(ctx context.Context, req resource.ReadRequest,
 	resp.Diagnostics.Append(diags...)
 }
 
-func (r CachedImageResource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
-	var plan CachedImageModel
-	var state CachedImageModel
+func (r ImageResource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
+	var plan ImageModel
+	var state ImageModel
 
 	resp.Diagnostics.Append(req.Plan.Get(ctx, &plan)...)
 	resp.Diagnostics.Append(req.State.Get(ctx, &state)...)
@@ -326,10 +326,10 @@ func (r CachedImageResource) Update(ctx context.Context, req resource.UpdateRequ
 	imageName := plan.SourceImage.ValueString()
 	imageFingerprint := state.Fingerprint.ValueString()
 
-	// Get info about cached image.
+	// Get info about the image.
 	image, _, err := server.GetImage(imageFingerprint)
 	if err != nil {
-		resp.Diagnostics.AddError(fmt.Sprintf("Failed to retrieve cached image %q", imageName), err.Error())
+		resp.Diagnostics.AddError(fmt.Sprintf("Failed to retrieve image %q", imageName), err.Error())
 		return
 	}
 
@@ -360,7 +360,7 @@ func (r CachedImageResource) Update(ctx context.Context, req resource.UpdateRequ
 	for _, alias := range removed {
 		err := server.DeleteImageAlias(alias)
 		if err != nil {
-			resp.Diagnostics.AddError(fmt.Sprintf("Failed to delete alias %q for cached image %q", alias, imageName), err.Error())
+			resp.Diagnostics.AddError(fmt.Sprintf("Failed to delete alias %q for image %q", alias, imageName), err.Error())
 			return
 		}
 	}
@@ -373,7 +373,7 @@ func (r CachedImageResource) Update(ctx context.Context, req resource.UpdateRequ
 
 		err := server.CreateImageAlias(req)
 		if err != nil {
-			resp.Diagnostics.AddError(fmt.Sprintf("Failed to create alias %q for cached image %q", alias, imageName), err.Error())
+			resp.Diagnostics.AddError(fmt.Sprintf("Failed to create alias %q for image %q", alias, imageName), err.Error())
 			return
 		}
 	}
@@ -385,8 +385,8 @@ func (r CachedImageResource) Update(ctx context.Context, req resource.UpdateRequ
 	resp.Diagnostics.Append(diags...)
 }
 
-func (r CachedImageResource) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {
-	var state CachedImageModel
+func (r ImageResource) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {
+	var state ImageModel
 
 	diags := req.State.Get(ctx, &state)
 	resp.Diagnostics.Append(diags...)
@@ -404,22 +404,19 @@ func (r CachedImageResource) Delete(ctx context.Context, req resource.DeleteRequ
 
 	imageFingerprint := state.Fingerprint.ValueString()
 	opDelete, err := server.DeleteImage(imageFingerprint)
-	if err != nil {
-		resp.Diagnostics.AddError(fmt.Sprintf("Failed to remove cached image %q", state.SourceImage.ValueString()), err.Error())
-		return
+	if err == nil {
+		err = opDelete.Wait()
 	}
 
-	err = opDelete.Wait()
 	if err != nil {
-		resp.Diagnostics.AddError(fmt.Sprintf("Failed to remove cached image %q", state.SourceImage.ValueString()), err.Error())
+		resp.Diagnostics.AddError(fmt.Sprintf("Failed to remove image %q", state.SourceImage.ValueString()), err.Error())
 		return
 	}
 }
 
-// SyncState fetches the server's current state for a cached image and
-// updates the provided model. It then applies this updated model as the
-// new state in Terraform.
-func (r CachedImageResource) SyncState(ctx context.Context, tfState *tfsdk.State, server lxd.InstanceServer, m CachedImageModel) diag.Diagnostics {
+// SyncState fetches the server's current state for an image and updates the provided model.
+// It then applies this updated model as the new state in Terraform.
+func (r ImageResource) SyncState(ctx context.Context, tfState *tfsdk.State, server lxd.InstanceServer, m ImageModel) diag.Diagnostics {
 	var respDiags diag.Diagnostics
 
 	imageFingerprint := m.Fingerprint.ValueString()
@@ -431,7 +428,7 @@ func (r CachedImageResource) SyncState(ctx context.Context, tfState *tfsdk.State
 			return nil
 		}
 
-		respDiags.AddError(fmt.Sprintf("Failed to retrieve cached image %q", imageName), err.Error())
+		respDiags.AddError(fmt.Sprintf("Failed to retrieve image %q", imageName), err.Error())
 		return respDiags
 	}
 
