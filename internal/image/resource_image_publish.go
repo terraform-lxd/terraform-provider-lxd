@@ -31,8 +31,8 @@ import (
 	"github.com/lxc/terraform-provider-incus/internal/utils"
 )
 
-// PublishImageModel resource data model that matches the schema.
-type PublishImageModel struct {
+// ImagePublishModel resource data model that matches the schema.
+type ImagePublishModel struct {
 	Instance       types.String `tfsdk:"instance"`
 	Aliases        types.Set    `tfsdk:"aliases"`
 	Properties     types.Map    `tfsdk:"properties"`
@@ -50,21 +50,21 @@ type PublishImageModel struct {
 	CreatedAt    types.Int64  `tfsdk:"created_at"`
 }
 
-// PublishImageResource represent Incus publish image resource.
-type PublishImageResource struct {
+// ImagePublishResource represent Incus publish image resource.
+type ImagePublishResource struct {
 	provider *provider_config.IncusProviderConfig
 }
 
-// NewPublishImageResource return new publish image resource.
-func NewPublishImageResource() resource.Resource {
-	return &PublishImageResource{}
+// NewImagePublishResource return new publish image resource.
+func NewImagePublishResource() resource.Resource {
+	return &ImagePublishResource{}
 }
 
-func (r PublishImageResource) Metadata(_ context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
-	resp.TypeName = fmt.Sprintf("%s_publish_image", req.ProviderTypeName)
+func (r ImagePublishResource) Metadata(_ context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
+	resp.TypeName = fmt.Sprintf("%s_image_publish", req.ProviderTypeName)
 }
 
-func (r PublishImageResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *resource.SchemaResponse) {
+func (r ImagePublishResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *resource.SchemaResponse) {
 	resp.Schema = schema.Schema{
 		Attributes: map[string]schema.Attribute{
 			"instance": schema.StringAttribute{
@@ -184,7 +184,7 @@ func (r PublishImageResource) Schema(_ context.Context, _ resource.SchemaRequest
 	}
 }
 
-func (r *PublishImageResource) Configure(_ context.Context, req resource.ConfigureRequest, resp *resource.ConfigureResponse) {
+func (r *ImagePublishResource) Configure(_ context.Context, req resource.ConfigureRequest, resp *resource.ConfigureResponse) {
 	data := req.ProviderData
 	if data == nil {
 		return
@@ -199,8 +199,8 @@ func (r *PublishImageResource) Configure(_ context.Context, req resource.Configu
 	r.provider = provider
 }
 
-func (r PublishImageResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
-	var plan PublishImageModel
+func (r ImagePublishResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
+	var plan ImagePublishModel
 
 	diags := req.Plan.Get(ctx, &plan)
 	resp.Diagnostics.Append(diags...)
@@ -295,8 +295,8 @@ func (r PublishImageResource) Create(ctx context.Context, req resource.CreateReq
 	resp.Diagnostics.Append(diags...)
 }
 
-func (r PublishImageResource) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
-	var state PublishImageModel
+func (r ImagePublishResource) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
+	var state ImagePublishModel
 
 	diags := req.State.Get(ctx, &state)
 	resp.Diagnostics.Append(diags...)
@@ -317,8 +317,8 @@ func (r PublishImageResource) Read(ctx context.Context, req resource.ReadRequest
 	resp.Diagnostics.Append(diags...)
 }
 
-func (r PublishImageResource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
-	var plan PublishImageModel
+func (r ImagePublishResource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
+	var plan ImagePublishModel
 
 	diags := req.Plan.Get(ctx, &plan)
 	resp.Diagnostics.Append(diags...)
@@ -390,8 +390,8 @@ func (r PublishImageResource) Update(ctx context.Context, req resource.UpdateReq
 	resp.Diagnostics.Append(diags...)
 }
 
-func (r PublishImageResource) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {
-	var state PublishImageModel
+func (r ImagePublishResource) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {
+	var state ImagePublishModel
 
 	diags := req.State.Get(ctx, &state)
 	resp.Diagnostics.Append(diags...)
@@ -424,7 +424,7 @@ func (r PublishImageResource) Delete(ctx context.Context, req resource.DeleteReq
 // SyncState fetches the server's current state for a published image and
 // updates the provided model. It then applies this updated model as the
 // new state in Terraform.
-func (_ PublishImageResource) SyncState(ctx context.Context, tfState *tfsdk.State, server incus.InstanceServer, m PublishImageModel) diag.Diagnostics {
+func (_ ImagePublishResource) SyncState(ctx context.Context, tfState *tfsdk.State, server incus.InstanceServer, m ImagePublishModel) diag.Diagnostics {
 	var respDiags diag.Diagnostics
 
 	_, imageFingerprint := splitImageResourceID(m.ResourceID.ValueString())

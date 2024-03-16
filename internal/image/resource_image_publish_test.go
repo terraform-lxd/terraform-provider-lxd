@@ -10,7 +10,7 @@ import (
 	"github.com/lxc/terraform-provider-incus/internal/acctest"
 )
 
-func TestAccPublishImage_basic(t *testing.T) {
+func TestAccImagePublish_basic(t *testing.T) {
 	instanceName := petname.Generate(2, "-")
 
 	resource.Test(t, resource.TestCase{
@@ -18,21 +18,21 @@ func TestAccPublishImage_basic(t *testing.T) {
 		ProtoV6ProviderFactories: acctest.ProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccPublishImage_basic(instanceName),
+				Config: testAccImagePublish_basic(instanceName),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("incus_instance.instance1", "name", instanceName),
 					resource.TestCheckResourceAttr("incus_instance.instance1", "status", "Stopped"),
-					resource.TestCheckResourceAttr("incus_publish_image.pimg", "instance", instanceName),
-					resource.TestCheckResourceAttr("incus_publish_image.pimg", "aliases.#", "1"),
-					resource.TestCheckResourceAttr("incus_publish_image.pimg", "aliases.0", "test_basic"),
-					resource.TestCheckResourceAttrSet("incus_publish_image.pimg", "resource_id"),
+					resource.TestCheckResourceAttr("incus_image_publish.pimg", "instance", instanceName),
+					resource.TestCheckResourceAttr("incus_image_publish.pimg", "aliases.#", "1"),
+					resource.TestCheckResourceAttr("incus_image_publish.pimg", "aliases.0", "test_basic"),
+					resource.TestCheckResourceAttrSet("incus_image_publish.pimg", "resource_id"),
 				),
 			},
 		},
 	})
 }
 
-func TestAccPublishImage_aliases(t *testing.T) {
+func TestAccImagePublish_aliases(t *testing.T) {
 	instanceName := petname.Generate(2, "-")
 	aliases := []string{"alias1", "alias2"}
 
@@ -41,22 +41,22 @@ func TestAccPublishImage_aliases(t *testing.T) {
 		ProtoV6ProviderFactories: acctest.ProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccPublishImage_aliases(instanceName, aliases...),
+				Config: testAccImagePublish_aliases(instanceName, aliases...),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("incus_instance.instance1", "name", instanceName),
 					resource.TestCheckResourceAttr("incus_instance.instance1", "status", "Stopped"),
-					resource.TestCheckResourceAttr("incus_publish_image.pimg", "instance", instanceName),
-					resource.TestCheckResourceAttr("incus_publish_image.pimg", "aliases.#", "2"),
-					resource.TestCheckTypeSetElemAttr("incus_publish_image.pimg", "aliases.*", aliases[0]),
-					resource.TestCheckTypeSetElemAttr("incus_publish_image.pimg", "aliases.*", aliases[1]),
-					resource.TestCheckResourceAttrSet("incus_publish_image.pimg", "resource_id"),
+					resource.TestCheckResourceAttr("incus_image_publish.pimg", "instance", instanceName),
+					resource.TestCheckResourceAttr("incus_image_publish.pimg", "aliases.#", "2"),
+					resource.TestCheckTypeSetElemAttr("incus_image_publish.pimg", "aliases.*", aliases[0]),
+					resource.TestCheckTypeSetElemAttr("incus_image_publish.pimg", "aliases.*", aliases[1]),
+					resource.TestCheckResourceAttrSet("incus_image_publish.pimg", "resource_id"),
 				),
 			},
 		},
 	})
 }
 
-func TestAccPublishImage_properties(t *testing.T) {
+func TestAccImagePublish_properties(t *testing.T) {
 	instanceName := petname.Generate(2, "-")
 	properties := map[string]string{"os": "Alpine", "version": "4"}
 
@@ -65,23 +65,23 @@ func TestAccPublishImage_properties(t *testing.T) {
 		ProtoV6ProviderFactories: acctest.ProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccPublishImage_properties(instanceName, properties),
+				Config: testAccImagePublish_properties(instanceName, properties),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("incus_instance.instance1", "name", instanceName),
 					resource.TestCheckResourceAttr("incus_instance.instance1", "status", "Stopped"),
-					resource.TestCheckResourceAttr("incus_publish_image.pimg", "instance", instanceName),
-					resource.TestCheckResourceAttr("incus_publish_image.pimg", "aliases.#", "0"),
-					resource.TestCheckResourceAttr("incus_publish_image.pimg", "properties.%", "2"),
-					resource.TestCheckResourceAttr("incus_publish_image.pimg", "properties.os", "Alpine"),
-					resource.TestCheckResourceAttr("incus_publish_image.pimg", "properties.version", "4"),
-					resource.TestCheckResourceAttrSet("incus_publish_image.pimg", "resource_id"),
+					resource.TestCheckResourceAttr("incus_image_publish.pimg", "instance", instanceName),
+					resource.TestCheckResourceAttr("incus_image_publish.pimg", "aliases.#", "0"),
+					resource.TestCheckResourceAttr("incus_image_publish.pimg", "properties.%", "2"),
+					resource.TestCheckResourceAttr("incus_image_publish.pimg", "properties.os", "Alpine"),
+					resource.TestCheckResourceAttr("incus_image_publish.pimg", "properties.version", "4"),
+					resource.TestCheckResourceAttrSet("incus_image_publish.pimg", "resource_id"),
 				),
 			},
 		},
 	})
 }
 
-func TestAccPublishImage_project(t *testing.T) {
+func TestAccImagePublish_project(t *testing.T) {
 	projectName := petname.Name()
 	instanceName := petname.Generate(2, "-")
 
@@ -90,23 +90,23 @@ func TestAccPublishImage_project(t *testing.T) {
 		ProtoV6ProviderFactories: acctest.ProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccPublishImage_project(projectName, instanceName),
+				Config: testAccImagePublish_project(projectName, instanceName),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("incus_project.project1", "name", projectName),
 					resource.TestCheckResourceAttr("incus_instance.instance1", "name", instanceName),
 					resource.TestCheckResourceAttr("incus_instance.instance1", "status", "Stopped"),
-					resource.TestCheckResourceAttr("incus_publish_image.pimg", "instance", instanceName),
-					resource.TestCheckResourceAttr("incus_publish_image.pimg", "aliases.#", "0"),
-					resource.TestCheckResourceAttr("incus_publish_image.pimg", "aliases.#", "0"),
-					resource.TestCheckResourceAttr("incus_publish_image.pimg", "project", projectName),
-					resource.TestCheckResourceAttrSet("incus_publish_image.pimg", "resource_id"),
+					resource.TestCheckResourceAttr("incus_image_publish.pimg", "instance", instanceName),
+					resource.TestCheckResourceAttr("incus_image_publish.pimg", "aliases.#", "0"),
+					resource.TestCheckResourceAttr("incus_image_publish.pimg", "aliases.#", "0"),
+					resource.TestCheckResourceAttr("incus_image_publish.pimg", "project", projectName),
+					resource.TestCheckResourceAttrSet("incus_image_publish.pimg", "resource_id"),
 				),
 			},
 		},
 	})
 }
 
-func testAccPublishImage_basic(name string) string {
+func testAccImagePublish_basic(name string) string {
 	return fmt.Sprintf(`
 resource "incus_instance" "instance1" {
   name    = "%s"
@@ -114,14 +114,14 @@ resource "incus_instance" "instance1" {
   running = false
 }
 
-resource "incus_publish_image" "pimg" {
+resource "incus_image_publish" "pimg" {
   instance = incus_instance.instance1.name
   aliases  = ["test_basic"]
 }
 	`, name, acctest.TestImage)
 }
 
-func testAccPublishImage_aliases(name string, aliases ...string) string {
+func testAccImagePublish_aliases(name string, aliases ...string) string {
 	return fmt.Sprintf(`
 resource "incus_instance" "instance1" {
   name    = "%s"
@@ -129,14 +129,14 @@ resource "incus_instance" "instance1" {
   running = false
 }
 
-resource "incus_publish_image" "pimg" {
+resource "incus_image_publish" "pimg" {
   instance = incus_instance.instance1.name
   aliases  = ["%s"]
 }
 	`, name, acctest.TestImage, strings.Join(toStringSlice(aliases), "\",\""))
 }
 
-func testAccPublishImage_properties(name string, properties map[string]string) string {
+func testAccImagePublish_properties(name string, properties map[string]string) string {
 	return fmt.Sprintf(`
 resource "incus_instance" "instance1" {
   name    = "%s"
@@ -144,7 +144,7 @@ resource "incus_instance" "instance1" {
   running = false
 }
 
-resource "incus_publish_image" "pimg" {
+resource "incus_image_publish" "pimg" {
   instance = incus_instance.instance1.name
   properties = {
     %s
@@ -153,7 +153,7 @@ resource "incus_publish_image" "pimg" {
 	`, name, acctest.TestImage, strings.Join(formatProperties(properties), "\n"))
 }
 
-func testAccPublishImage_project(project, instance string) string {
+func testAccImagePublish_project(project, instance string) string {
 	return fmt.Sprintf(`
 resource "incus_project" "project1" {
   name = "%s"
@@ -171,7 +171,7 @@ resource "incus_instance" "instance1" {
   running = false
 }
 
-resource "incus_publish_image" "pimg" {
+resource "incus_image_publish" "pimg" {
   instance = incus_instance.instance1.name
   project  = incus_project.project1.name
 }
