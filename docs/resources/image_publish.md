@@ -1,4 +1,4 @@
-# incus_publish_image
+# incus_image_publish
 
 Create an Incus image from an instance
 
@@ -16,7 +16,7 @@ resource "incus_instance" "test1" {
   running = false
 }
 
-resource "incus_publish_image" "test1" {
+resource "incus_image_publish" "test1" {
   instance = incus_instance.test1
   aliases  = ["test1_img"]
 }
