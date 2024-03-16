@@ -29,7 +29,7 @@ resource "incus_storage_pool" "pool1" {
   driver = "zfs"
 }
 
-resource "incus_volume" "volume1" {
+resource "incus_storage_volume" "volume1" {
   name = "myvolume"
   pool = incus_storage_pool.pool1.name
 }
@@ -43,7 +43,7 @@ resource "incus_instance" "instance1" {
     type = "disk"
     properties = {
       path   = "/mount/point/in/instance"
-      source = incus_volume.volume1.name
+      source = incus_storage_volume.volume1.name
       pool   = incus_storage_pool.pool1.name
     }
   }

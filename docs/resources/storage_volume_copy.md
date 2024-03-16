@@ -1,6 +1,6 @@
-# incus_volume_copy
+# incus_storage_volume_copy
 
-Copies an existing Incus volume.
+Copies an existing Incus storage volume.
 
 ## Example Usage
 
@@ -10,16 +10,16 @@ resource "incus_storage_pool" "pool1" {
   driver = "dir"
 }
 
-resource "incus_volume" "volume1" {
+resource "incus_storage_volume" "volume1" {
   name = "myvolume"
   pool = incus_storage_pool.pool1.name
 }
 
-resource "incus_volume_copy" "volume1_copy" {
+resource "incus_storage_volume_copy" "volume1_copy" {
   name        = "myvolume_copy"
   pool        = incus_storage_pool.pool1.name
   source_pool = incus_storage_pool.pool1.name
-  source_name = incus_volume.volume1.name
+  source_name = incus_storage_volume.volume1.name
 }
 ```
 
