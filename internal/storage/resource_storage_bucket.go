@@ -310,7 +310,11 @@ func (r StorageBucketResource) SyncState(ctx context.Context, tfState *tfsdk.Sta
 		return respDiags
 	}
 
-	config, diags := common.ToConfigMapType(ctx, bucket.Config)
+	// Extract user defined config and merge it with current config state.
+	stateConfig := common.StripConfig(bucket.Config, m.Config, m.ComputedKeys())
+
+	// Convert config state into schema type.
+	config, diags := common.ToConfigMapType(ctx, stateConfig, m.Config)
 	respDiags.Append(diags...)
 
 	m.Name = types.StringValue(bucket.Name)
@@ -328,4 +332,13 @@ func (r StorageBucketResource) SyncState(ctx context.Context, tfState *tfsdk.Sta
 	}
 
 	return tfState.Set(ctx, &m)
+}
+
+// ComputedKeys returns list of computed config keys.
+func (_ StorageBucketModel) ComputedKeys() []string {
+	return []string{
+		"block.filesystem",
+		"block.mount_options",
+		"volatile.",
+	}
 }
