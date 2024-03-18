@@ -92,7 +92,7 @@ func InstanceFileUpload(server lxd.InstanceServer, instanceName string, file Ins
 		fileMode = "0755"
 	}
 
-	mode, err := strconv.ParseUint(fileMode, 8, 32)
+	mode, err := strconv.ParseInt(fileMode, 8, 32)
 	if err != nil {
 		return fmt.Errorf("Failed to parse file mode: %v", err)
 	}
