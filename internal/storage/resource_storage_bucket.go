@@ -3,6 +3,7 @@ package storage
 import (
 	"context"
 	"fmt"
+
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/diag"
@@ -310,7 +311,14 @@ func (r StorageBucketResource) SyncState(ctx context.Context, tfState *tfsdk.Sta
 		return respDiags
 	}
 
-	config, diags := common.ToConfigMapType(ctx, bucket.Config)
+	// Extract user defined config and merge it with current config state.
+	userConfig, diags := common.ToConfigMap(ctx, m.Config)
+	respDiags.Append(diags...)
+
+	stateConfig := common.StripConfig(bucket.Config, userConfig, m.ComputedKeys())
+
+	// Convert config state into schema type.
+	config, diags := common.ToConfigMapType(ctx, stateConfig)
 	respDiags.Append(diags...)
 
 	m.Name = types.StringValue(bucket.Name)
@@ -328,4 +336,13 @@ func (r StorageBucketResource) SyncState(ctx context.Context, tfState *tfsdk.Sta
 	}
 
 	return tfState.Set(ctx, &m)
+}
+
+// ComputedKeys returns list of computed config keys.
+func (_ StorageBucketModel) ComputedKeys() []string {
+	return []string{
+		"block.filesystem",
+		"block.mount_options",
+		"volatile.",
+	}
 }
