@@ -150,10 +150,11 @@ func (p *LxdProvider) Configure(ctx context.Context, req provider.ConfigureReque
 			configDir = "$HOME/.config/lxc"
 		}
 	}
+	configDir = os.ExpandEnv(configDir)
 
 	// Try to load config.yml from determined configDir. If there's
 	// an error loading config.yml, default config will be used.
-	configPath := os.ExpandEnv(filepath.Join(configDir, "config.yml"))
+	configPath := filepath.Join(configDir, "config.yml")
 	config, err := lxd_config.LoadConfig(configPath)
 	if err != nil {
 		config = lxd_config.DefaultConfig()
