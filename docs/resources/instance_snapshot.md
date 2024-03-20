@@ -1,4 +1,4 @@
-# incus_snapshot
+# incus_instance_snapshot
 
 Manages a snapshot of an Incus instance.
 
@@ -11,7 +11,7 @@ resource "incus_instance" "instance" {
   ephemeral = false
 }
 
-resource "incus_snapshot" "snap1" {
+resource "incus_instance_snapshot" "snap1" {
   name     = "my-snapshot-1"
   instance = incus_instance.instance.name
 }

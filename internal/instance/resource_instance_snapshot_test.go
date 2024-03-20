@@ -22,10 +22,10 @@ func TestAccInstanceSnapshot_stateless(t *testing.T) {
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("incus_instance.instance1", "name", instanceName),
 					resource.TestCheckResourceAttr("incus_instance.instance1", "status", "Running"),
-					resource.TestCheckResourceAttr("incus_snapshot.snapshot1", "name", snapshotName),
-					resource.TestCheckResourceAttr("incus_snapshot.snapshot1", "instance", instanceName),
-					resource.TestCheckResourceAttr("incus_snapshot.snapshot1", "stateful", "false"),
-					resource.TestCheckResourceAttrSet("incus_snapshot.snapshot1", "created_at"),
+					resource.TestCheckResourceAttr("incus_instance_snapshot.snapshot1", "name", snapshotName),
+					resource.TestCheckResourceAttr("incus_instance_snapshot.snapshot1", "instance", instanceName),
+					resource.TestCheckResourceAttr("incus_instance_snapshot.snapshot1", "stateful", "false"),
+					resource.TestCheckResourceAttrSet("incus_instance_snapshot.snapshot1", "created_at"),
 				),
 			},
 		},
@@ -46,9 +46,9 @@ func TestAccInstanceSnapshot_stateless(t *testing.T) {
 // 				Check: resource.ComposeTestCheckFunc(
 // 					resource.TestCheckResourceAttr("incus_instance.instance1", "name", instanceName),
 // 					resource.TestCheckResourceAttr("incus_instance.instance1", "status", "Running"),
-// 					resource.TestCheckResourceAttr("incus_snapshot.snapshot1", "name", snapshotName),
-// 					resource.TestCheckResourceAttr("incus_snapshot.snapshot1", "stateful", "true"),
-// 					resource.TestCheckResourceAttrSet("incus_snapshot.snapshot1", "created_at"),
+// 					resource.TestCheckResourceAttr("incus_instance_snapshot.snapshot1", "name", snapshotName),
+// 					resource.TestCheckResourceAttr("incus_instance_snapshot.snapshot1", "stateful", "true"),
+// 					resource.TestCheckResourceAttrSet("incus_instance_snapshot.snapshot1", "created_at"),
 // 				),
 // 			},
 // 		},
@@ -69,9 +69,9 @@ func TestAccInstanceSnapshot_multiple(t *testing.T) {
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("incus_instance.instance1", "name", instanceName),
 					resource.TestCheckResourceAttr("incus_instance.instance1", "status", "Running"),
-					resource.TestCheckResourceAttr("incus_snapshot.snapshot1", "name", snapshotName1),
-					resource.TestCheckResourceAttr("incus_snapshot.snapshot1", "instance", instanceName),
-					resource.TestCheckResourceAttrSet("incus_snapshot.snapshot1", "created_at"),
+					resource.TestCheckResourceAttr("incus_instance_snapshot.snapshot1", "name", snapshotName1),
+					resource.TestCheckResourceAttr("incus_instance_snapshot.snapshot1", "instance", instanceName),
+					resource.TestCheckResourceAttrSet("incus_instance_snapshot.snapshot1", "created_at"),
 				),
 			},
 			{
@@ -79,12 +79,12 @@ func TestAccInstanceSnapshot_multiple(t *testing.T) {
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("incus_instance.instance1", "name", instanceName),
 					resource.TestCheckResourceAttr("incus_instance.instance1", "status", "Running"),
-					resource.TestCheckResourceAttr("incus_snapshot.snapshot1", "name", snapshotName1),
-					resource.TestCheckResourceAttr("incus_snapshot.snapshot1", "instance", instanceName),
-					resource.TestCheckResourceAttrSet("incus_snapshot.snapshot1", "created_at"),
-					resource.TestCheckResourceAttr("incus_snapshot.snapshot2", "name", snapshotName2),
-					resource.TestCheckResourceAttr("incus_snapshot.snapshot2", "instance", instanceName),
-					resource.TestCheckResourceAttrSet("incus_snapshot.snapshot2", "created_at"),
+					resource.TestCheckResourceAttr("incus_instance_snapshot.snapshot1", "name", snapshotName1),
+					resource.TestCheckResourceAttr("incus_instance_snapshot.snapshot1", "instance", instanceName),
+					resource.TestCheckResourceAttrSet("incus_instance_snapshot.snapshot1", "created_at"),
+					resource.TestCheckResourceAttr("incus_instance_snapshot.snapshot2", "name", snapshotName2),
+					resource.TestCheckResourceAttr("incus_instance_snapshot.snapshot2", "instance", instanceName),
+					resource.TestCheckResourceAttrSet("incus_instance_snapshot.snapshot2", "created_at"),
 				),
 			},
 		},
@@ -107,10 +107,10 @@ func TestAccInstanceSnapshot_project(t *testing.T) {
 					resource.TestCheckResourceAttr("incus_instance.instance1", "name", instanceName),
 					resource.TestCheckResourceAttr("incus_instance.instance1", "project", projectName),
 					resource.TestCheckResourceAttr("incus_instance.instance1", "status", "Running"),
-					resource.TestCheckResourceAttr("incus_snapshot.snapshot1", "name", snapshotName),
-					resource.TestCheckResourceAttr("incus_snapshot.snapshot1", "instance", instanceName),
-					resource.TestCheckResourceAttr("incus_snapshot.snapshot1", "project", projectName),
-					resource.TestCheckResourceAttrSet("incus_snapshot.snapshot1", "created_at"),
+					resource.TestCheckResourceAttr("incus_instance_snapshot.snapshot1", "name", snapshotName),
+					resource.TestCheckResourceAttr("incus_instance_snapshot.snapshot1", "instance", instanceName),
+					resource.TestCheckResourceAttr("incus_instance_snapshot.snapshot1", "project", projectName),
+					resource.TestCheckResourceAttrSet("incus_instance_snapshot.snapshot1", "created_at"),
 				),
 			},
 		},
@@ -124,7 +124,7 @@ resource "incus_instance" "instance1" {
   image = "%s"
 }
 
-resource "incus_snapshot" "snapshot1" {
+resource "incus_instance_snapshot" "snapshot1" {
   instance = incus_instance.instance1.name
   name     = "%s"
   stateful = "%v"
@@ -139,7 +139,7 @@ resource "incus_instance" "instance1" {
   image = "%s"
 }
 
-resource "incus_snapshot" "snapshot1" {
+resource "incus_instance_snapshot" "snapshot1" {
   name     = "%s"
   instance = incus_instance.instance1.name
   stateful = false
@@ -154,13 +154,13 @@ resource "incus_instance" "instance1" {
   image = "%s"
 }
 
-resource "incus_snapshot" "snapshot1" {
+resource "incus_instance_snapshot" "snapshot1" {
   name     = "%s"
   instance = incus_instance.instance1.name
   stateful = "false"
 }
 
-resource "incus_snapshot" "snapshot2" {
+resource "incus_instance_snapshot" "snapshot2" {
   name     = "%s"
   instance = incus_instance.instance1.name
   stateful = "false"
@@ -184,7 +184,7 @@ resource "incus_instance" "instance1" {
   project = incus_project.project1.name
 }
 
-resource "incus_snapshot" "snapshot1" {
+resource "incus_instance_snapshot" "snapshot1" {
   name     = "%s"
   instance = incus_instance.instance1.name
   stateful = false

@@ -1,22 +1,22 @@
-# incus_publish_image
+# incus_image_publish
 
 Create an Incus image from an instance
 
 ## Example Usage
 
 ```hcl
-resource "incus_cached_image" "xenial" {
+resource "incus_image" "xenial" {
   source_remote = "ubuntu"
   source_image  = "xenial/amd64"
 }
 
 resource "incus_instance" "test1" {
   name    = "test1"
-  image   = incus_cached_image.xenial.fingerprint
+  image   = incus_image.xenial.fingerprint
   running = false
 }
 
-resource "incus_publish_image" "test1" {
+resource "incus_image_publish" "test1" {
   instance = incus_instance.test1
   aliases  = ["test1_img"]
 }

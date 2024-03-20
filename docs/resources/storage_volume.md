@@ -1,6 +1,6 @@
-# incus_volume
+# incus_storage_volume
 
-Manages an Incus volume.
+Manages an Incus storage volume.
 
 ## Example Usage
 
@@ -10,7 +10,7 @@ resource "incus_storage_pool" "pool1" {
   driver = "zfs"
 }
 
-resource "incus_volume" "volume1" {
+resource "incus_storage_volume" "volume1" {
   name = "myvolume"
   pool = incus_storage_pool.pool1.name
 }
@@ -63,20 +63,20 @@ Import ID syntax: `[<remote>:][<project>]/<pool>/<name>`
 Example using terraform import command:
 
 ```shell
-$ terraform import incus_volume.myvol proj/pool1/vol1
+$ terraform import incus_storage_volume.myvol proj/pool1/vol1
 ```
 
 Example using the import block (only available in Terraform v1.5.0 and later):
 
 ```hcl
-resource "incus_volume" "myvol" {
+resource "incus_storage_volume" "myvol" {
   name    = "vol1"
   pool    = "pool1"
   project = "proj"
 }
 
 import {
-  to = incus_volume.myvol
+  to = incus_storage_volume.myvol
   id = "proj/pool1/vol1"
 }
 ```

@@ -23,12 +23,12 @@ func TestAccStorageVolumeCopy_basic(t *testing.T) {
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("incus_storage_pool.pool1", "name", poolName),
 					resource.TestCheckResourceAttr("incus_storage_pool.pool1", "driver", "lvm"),
-					resource.TestCheckResourceAttr("incus_volume.volume1", "name", volumeName),
-					resource.TestCheckResourceAttr("incus_volume.volume1", "pool", poolName),
-					resource.TestCheckResourceAttr("incus_volume_copy.volume1_copy", "name", fmt.Sprintf("%s-copy", volumeName)),
-					resource.TestCheckResourceAttr("incus_volume_copy.volume1_copy", "pool", "default"),
-					resource.TestCheckResourceAttr("incus_volume_copy.volume1_copy", "source_name", volumeName),
-					resource.TestCheckResourceAttr("incus_volume_copy.volume1_copy", "source_pool", poolName),
+					resource.TestCheckResourceAttr("incus_storage_volume.volume1", "name", volumeName),
+					resource.TestCheckResourceAttr("incus_storage_volume.volume1", "pool", poolName),
+					resource.TestCheckResourceAttr("incus_storage_volume_copy.volume1_copy", "name", fmt.Sprintf("%s-copy", volumeName)),
+					resource.TestCheckResourceAttr("incus_storage_volume_copy.volume1_copy", "pool", "default"),
+					resource.TestCheckResourceAttr("incus_storage_volume_copy.volume1_copy", "source_name", volumeName),
+					resource.TestCheckResourceAttr("incus_storage_volume_copy.volume1_copy", "source_pool", poolName),
 				),
 			},
 			{
@@ -50,16 +50,16 @@ resource "incus_storage_pool" "pool1" {
   driver = "lvm"
 }
 
-resource "incus_volume" "volume1" {
+resource "incus_storage_volume" "volume1" {
   name = "%[2]s"
   pool = incus_storage_pool.pool1.name
 }
 
-resource "incus_volume_copy" "volume1_copy" {
+resource "incus_storage_volume_copy" "volume1_copy" {
   name        = "%[2]s-copy"
   pool        = "default"
   source_pool = incus_storage_pool.pool1.name
-  source_name = incus_volume.volume1.name
+  source_name = incus_storage_volume.volume1.name
 }
 `,
 		poolName, volumeName)

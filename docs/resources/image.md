@@ -1,18 +1,18 @@
-# incus_cached_image
+# incus_image
 
 Manages a locally-stored Incus image.
 
 ## Example Usage
 
 ```hcl
-resource "incus_cached_image" "xenial" {
+resource "incus_image" "xenial" {
   source_remote = "ubuntu"
   source_image  = "xenial/amd64"
 }
 
 resource "incus_instance" "test1" {
   name      = "test1"
-  image     = incus_cached_image.xenial.fingerprint
+  image     = incus_image.xenial.fingerprint
   ephemeral = false
 }
 ```

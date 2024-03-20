@@ -22,10 +22,10 @@ func TestAccStorageVolume_basic(t *testing.T) {
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("incus_storage_pool.pool1", "name", poolName),
 					resource.TestCheckResourceAttr("incus_storage_pool.pool1", "driver", "dir"),
-					resource.TestCheckResourceAttr("incus_volume.volume1", "name", volumeName),
-					resource.TestCheckResourceAttr("incus_volume.volume1", "pool", poolName),
-					resource.TestCheckResourceAttr("incus_volume.volume1", "type", "custom"),
-					resource.TestCheckResourceAttr("incus_volume.volume1", "content_type", "filesystem"),
+					resource.TestCheckResourceAttr("incus_storage_volume.volume1", "name", volumeName),
+					resource.TestCheckResourceAttr("incus_storage_volume.volume1", "pool", poolName),
+					resource.TestCheckResourceAttr("incus_storage_volume.volume1", "type", "custom"),
+					resource.TestCheckResourceAttr("incus_storage_volume.volume1", "content_type", "filesystem"),
 				),
 			},
 		},
@@ -46,8 +46,8 @@ func TestAccStorageVolume_instanceAttach(t *testing.T) {
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("incus_storage_pool.pool1", "name", poolName),
 					resource.TestCheckResourceAttr("incus_storage_pool.pool1", "driver", "zfs"),
-					resource.TestCheckResourceAttr("incus_volume.volume1", "name", volumeName),
-					resource.TestCheckResourceAttr("incus_volume.volume1", "pool", poolName),
+					resource.TestCheckResourceAttr("incus_storage_volume.volume1", "name", volumeName),
+					resource.TestCheckResourceAttr("incus_storage_volume.volume1", "pool", poolName),
 					resource.TestCheckResourceAttr("incus_instance.instance1", "name", instanceName),
 					resource.TestCheckResourceAttr("incus_instance.instance1", "status", "Stopped"),
 					resource.TestCheckResourceAttr("incus_instance.instance1", "device.#", "1"),
@@ -75,9 +75,9 @@ func TestAccStorageVolume_target(t *testing.T) {
 			{
 				Config: testAccStorageVolume_target(volumeName),
 				Check: resource.ComposeTestCheckFunc(
-					resource.TestCheckResourceAttr("incus_volume.volume1", "name", volumeName),
-					resource.TestCheckResourceAttr("incus_volume.volume1", "pool", "default"),
-					resource.TestCheckResourceAttr("incus_volume.volume1", "target", "node-2"),
+					resource.TestCheckResourceAttr("incus_storage_volume.volume1", "name", volumeName),
+					resource.TestCheckResourceAttr("incus_storage_volume.volume1", "pool", "default"),
+					resource.TestCheckResourceAttr("incus_storage_volume.volume1", "target", "node-2"),
 				),
 			},
 		},
@@ -96,9 +96,9 @@ func TestAccStorageVolume_project(t *testing.T) {
 				Config: testAccStorageVolume_project(projectName, volumeName),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("incus_project.project1", "name", projectName),
-					resource.TestCheckResourceAttr("incus_volume.volume1", "name", volumeName),
-					resource.TestCheckResourceAttr("incus_volume.volume1", "pool", "default"),
-					resource.TestCheckResourceAttr("incus_volume.volume1", "project", projectName),
+					resource.TestCheckResourceAttr("incus_storage_volume.volume1", "name", volumeName),
+					resource.TestCheckResourceAttr("incus_storage_volume.volume1", "pool", "default"),
+					resource.TestCheckResourceAttr("incus_storage_volume.volume1", "project", projectName),
 				),
 			},
 		},
@@ -118,9 +118,9 @@ func TestAccStorageVolume_contentType(t *testing.T) {
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("incus_storage_pool.pool1", "name", poolName),
 					resource.TestCheckResourceAttr("incus_storage_pool.pool1", "driver", "zfs"),
-					resource.TestCheckResourceAttr("incus_volume.volume1", "name", volumeName),
-					resource.TestCheckResourceAttr("incus_volume.volume1", "pool", poolName),
-					resource.TestCheckResourceAttr("incus_volume.volume1", "content_type", "block"),
+					resource.TestCheckResourceAttr("incus_storage_volume.volume1", "name", volumeName),
+					resource.TestCheckResourceAttr("incus_storage_volume.volume1", "pool", poolName),
+					resource.TestCheckResourceAttr("incus_storage_volume.volume1", "content_type", "block"),
 				),
 			},
 		},
@@ -130,7 +130,7 @@ func TestAccStorageVolume_contentType(t *testing.T) {
 func TestAccStorageVolume_importBasic(t *testing.T) {
 	volName := petname.Generate(2, "-")
 	poolName := petname.Generate(2, "-")
-	resourceName := "incus_volume.volume1"
+	resourceName := "incus_storage_volume.volume1"
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { acctest.PreCheck(t) },
@@ -153,7 +153,7 @@ func TestAccStorageVolume_importBasic(t *testing.T) {
 func TestAccStorageVolume_importProject(t *testing.T) {
 	volName := petname.Generate(2, "-")
 	projectName := petname.Generate(2, "-")
-	resourceName := "incus_volume.volume1"
+	resourceName := "incus_storage_volume.volume1"
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { acctest.PreCheck(t) },
@@ -180,7 +180,7 @@ resource "incus_storage_pool" "pool1" {
   driver = "dir"
 }
 
-resource "incus_volume" "volume1" {
+resource "incus_storage_volume" "volume1" {
   name = "%s"
   pool = incus_storage_pool.pool1.name
 }
@@ -194,7 +194,7 @@ resource "incus_storage_pool" "pool1" {
   driver = "zfs"
 }
 
-resource "incus_volume" "volume1" {
+resource "incus_storage_volume" "volume1" {
   name = "%s"
   pool = incus_storage_pool.pool1.name
 }
@@ -209,7 +209,7 @@ resource "incus_instance" "instance1" {
     type = "disk"
     properties = {
       path   = "/mnt"
-      source = incus_volume.volume1.name
+      source = incus_storage_volume.volume1.name
       pool   = incus_storage_pool.pool1.name
     }
   }
@@ -219,7 +219,7 @@ resource "incus_instance" "instance1" {
 
 func testAccStorageVolume_target(volumeName string) string {
 	return fmt.Sprintf(`
-resource "incus_volume" "volume1" {
+resource "incus_storage_volume" "volume1" {
   name   = "%s"
   pool   = "default"
   target = "node-2"
@@ -236,7 +236,7 @@ resource "incus_project" "project1" {
   }
 }
 
-resource "incus_volume" "volume1" {
+resource "incus_storage_volume" "volume1" {
   name    = "%s"
   pool    = "default"
   project = incus_project.project1.name
@@ -251,7 +251,7 @@ resource "incus_storage_pool" "pool1" {
   driver = "zfs"
 }
 
-resource "incus_volume" "volume1" {
+resource "incus_storage_volume" "volume1" {
   name         = "%s"
   pool         = incus_storage_pool.pool1.name
   content_type = "block"
