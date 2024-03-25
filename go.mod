@@ -5,7 +5,7 @@ go 1.21
 require (
 	github.com/dustinkirkland/golang-petname v0.0.0-20231002161417-6a283f1aaaf2
 	github.com/hashicorp/go-version v1.6.0
-	github.com/hashicorp/terraform-plugin-framework v1.6.1
+	github.com/hashicorp/terraform-plugin-framework v1.7.0
 	github.com/hashicorp/terraform-plugin-framework-validators v0.12.0
 	github.com/hashicorp/terraform-plugin-go v0.22.1
 	github.com/hashicorp/terraform-plugin-sdk/v2 v2.33.0
