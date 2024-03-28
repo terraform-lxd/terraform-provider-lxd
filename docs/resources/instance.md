@@ -182,7 +182,13 @@ The following attributes are exported:
 * `ipv4_address` - The IPv4 Address of the instance. See Instance Network
   Access for more details.
 
+* `ipv4_addresses` - The IPv4 Addresses of the instance. See Instance Network
+  Access for more details.
+
 * `ipv6_address` - The IPv6 Address of the instance. See Instance Network
+  Access for more details.
+
+* `ipv6_addresses` - The IPv6 Addresses of the instance. See Instance Network
   Access for more details.
 
 * `mac_address` - The MAC address of the detected NIC. See Instance Network
@@ -217,8 +223,12 @@ resource "lxd_instance" "inst" {
 ## Instance Network Access
 
 If your instance has multiple network interfaces, you can specify which one
-Terraform should report the IP addresses of. If you do not specify an interface,
+Terraform should report the IP address of. If you do not specify an interface,
 Terraform will use the _last_ address detected. Global IPv6 address will be favored if present.
+
+The `ipv4_addresses` and `ipv6_addresses` attributes provide a list of all IP addresses
+available either on the system, or if `user.access_interface` is specified, on a specific
+interface.
 
 To specify an interface, do the following:
 
