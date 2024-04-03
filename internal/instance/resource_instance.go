@@ -1019,7 +1019,7 @@ func (r InstanceResource) SyncState(ctx context.Context, tfState *tfsdk.State, s
 	// First there is an access_interface set, extract IPv4, IPv4, and
 	// MAC addresses from it.
 	var accIfaceFound bool
-	accIface, ok := instance.Config["user.access_interface"]
+	accIface, ok := instance.ExpandedConfig["user.access_interface"]
 	if ok {
 		net := instanceState.Network[accIface]
 
