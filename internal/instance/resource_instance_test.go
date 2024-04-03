@@ -1056,6 +1056,40 @@ func TestAccInstance_accessInterface(t *testing.T) {
 	})
 }
 
+func TestAccInstance_accessInterfaceFromProfile(t *testing.T) {
+	instanceName := acctest.GenerateName(2, "-")
+	profileName := acctest.GenerateName(2, "-")
+	networkName := acctest.GenerateName(1, "-")
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { acctest.PreCheck(t) },
+		ProtoV6ProviderFactories: acctest.ProtoV6ProviderFactories,
+		Steps: []resource.TestStep{
+			{
+				// Start the instance and ensure address from eht0 is reported.
+				Config: testAccInstance_accessInterfaceFromProfile(networkName, profileName, instanceName, "eth0"),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr("lxd_profile.profile", "name", profileName),
+					resource.TestCheckResourceAttr("lxd_profile.profile", "config.user.access_interface", "eth0"),
+					resource.TestCheckResourceAttr("lxd_instance.instance1", "name", instanceName),
+					resource.TestCheckResourceAttr("lxd_instance.instance1", "status", "Running"),
+					resource.TestCheckResourceAttr("lxd_instance.instance1", "device.#", "2"),
+					resource.TestCheckResourceAttr("lxd_instance.instance1", "device.0.name", "eth0"),
+					resource.TestCheckResourceAttr("lxd_instance.instance1", "device.0.properties.parent", fmt.Sprintf("%s-0", networkName)),
+					resource.TestCheckResourceAttr("lxd_instance.instance1", "device.0.properties.hwaddr", "00:16:3e:39:7f:37"),
+					resource.TestCheckResourceAttr("lxd_instance.instance1", "device.0.properties.ipv4.address", "10.150.20.200"),
+					resource.TestCheckResourceAttr("lxd_instance.instance1", "device.1.name", "eth1"),
+					resource.TestCheckResourceAttr("lxd_instance.instance1", "device.1.properties.parent", fmt.Sprintf("%s-1", networkName)),
+					resource.TestCheckResourceAttr("lxd_instance.instance1", "device.1.properties.hwaddr", "00:16:3e:39:7f:38"),
+					resource.TestCheckResourceAttr("lxd_instance.instance1", "device.1.properties.ipv4.address", "10.151.21.200"),
+					resource.TestCheckResourceAttr("lxd_instance.instance1", "ipv4_address", "10.150.20.200"),
+					resource.TestCheckResourceAttr("lxd_instance.instance1", "mac_address", "00:16:3e:39:7f:37"),
+				),
+			},
+		},
+	})
+}
+
 func TestAccInstance_target(t *testing.T) {
 	instanceName := acctest.GenerateName(2, "-")
 
@@ -1836,7 +1870,7 @@ resource "lxd_instance" "instance1" {
 	`, name, acctest.TestImage)
 }
 
-func testAccInstance_accessInterface(networkName, instanceName string) string {
+func testAccInstance_accessInterface(networkName string, instanceName string) string {
 	return fmt.Sprintf(`
 resource "lxd_network" "network1" {
   name = "%s"
@@ -1867,6 +1901,75 @@ resource "lxd_instance" "instance1" {
   }
 }
 	`, networkName, instanceName, acctest.TestImage)
+}
+
+func testAccInstance_accessInterfaceFromProfile(networkName string, profileName string, instanceName string, accInterface string) string {
+	return fmt.Sprintf(`
+resource "lxd_network" "network0" {
+  name = "%[1]s-0"
+
+  config = {
+    "ipv4.address" = "10.150.20.1/24"
+  }
+}
+
+resource "lxd_network" "network1" {
+  name = "%[1]s-1"
+
+  config = {
+    "ipv4.address" = "10.151.21.1/24"
+  }
+}
+
+resource "lxd_profile" "profile" {
+  name = "%s"
+
+  config = {
+    "user.access_interface" = "%s"
+  }
+}
+
+resource "lxd_instance" "instance1" {
+  name     = "%s"
+  image    = "%s"
+  profiles = ["default", lxd_profile.profile.name]
+
+  device {
+    name = "eth0"
+    type = "nic"
+
+    properties = {
+      nictype        = "bridged"
+      parent         = "${lxd_network.network0.name}"
+      hwaddr         = "00:16:3e:39:7f:37"
+      "ipv4.address" = "10.150.20.200"
+    }
+  }
+
+  device {
+    name = "eth1"
+    type = "nic"
+
+    properties = {
+      nictype        = "bridged"
+      parent         = "${lxd_network.network1.name}"
+      hwaddr         = "00:16:3e:39:7f:38"
+      "ipv4.address" = "10.151.21.200"
+    }
+  }
+
+  config = {
+    "user.network-config" = <<-EOF
+      version: 2
+      ethernets:
+        eth0:
+          dhcp4: true
+        eth1:
+          dhcp4: true
+    EOF
+  }
+}
+	`, networkName, profileName, accInterface, instanceName, acctest.TestImage)
 }
 
 func testAccInstance_target(name string, target string) string {
