@@ -21,7 +21,6 @@ jobs:
       fail-fast: false
       matrix:
         go-version:
-          - "1.21"
           - "1.22"
         channel:
           - 5.0/stable
@@ -95,7 +94,6 @@ jobs:
       fail-fast: false
       matrix:
         go-version:
-          - "1.21"
           - "1.22"
 
     steps:
@@ -117,7 +115,6 @@ jobs:
       fail-fast: false
       matrix:
         go-version:
-          - "1.21"
           - "1.22"
 
     steps:
