@@ -13,7 +13,7 @@ require (
 	github.com/lxc/incus/v6 v6.1.0
 	github.com/mitchellh/go-homedir v1.1.0
 	github.com/stretchr/testify v1.9.0
-	golang.org/x/sys v0.19.0
+	golang.org/x/sys v0.20.0
 )
 
 require (
