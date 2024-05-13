@@ -402,19 +402,20 @@ func determineIncusDir() (string, error) {
 		return "", fmt.Errorf("Environment variable INCUS_DIR points to an Incus directory that does not contain a writable unix socket")
 	}
 
-	incusDirs := []string{
-		"/var/lib/incus",
+	incusSocketPaths := []string{
+		"/var/lib/incus/unix.socket",
+		"/var/lib/incus/unix.socket.user",
 	}
 
-	// Iterate over Incusdirectories and find a writable unix socket.
-	for _, incusDir := range incusDirs {
-		socketPath := filepath.Join(incusDir, "unix.socket")
+	// Iterate over incusSocketPaths and find a writable unix socket.
+	for _, socketPath := range incusSocketPaths {
 		if utils.IsSocketWritable(socketPath) {
+			incusDir = filepath.Dir(socketPath)
 			return incusDir, nil
 		}
 	}
 
-	return "", fmt.Errorf("Incussocket with write permissions not found. Searched Incus directories: %v", incusDirs)
+	return "", fmt.Errorf("Incus socket with write permissions not found. Searched Incus socket paths: %v", incusSocketPaths)
 }
 
 /* Getters & Setters */
