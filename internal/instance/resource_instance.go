@@ -53,10 +53,11 @@ type InstanceModel struct {
 	Target         types.String `tfsdk:"target"`
 
 	// Computed.
-	IPv4   types.String `tfsdk:"ipv4_address"`
-	IPv6   types.String `tfsdk:"ipv6_address"`
-	MAC    types.String `tfsdk:"mac_address"`
-	Status types.String `tfsdk:"status"`
+	IPv4       types.String `tfsdk:"ipv4_address"`
+	IPv6       types.String `tfsdk:"ipv6_address"`
+	MAC        types.String `tfsdk:"mac_address"`
+	Status     types.String `tfsdk:"status"`
+	Interfaces types.Map    `tfsdk:"interfaces"`
 
 	// Timeouts.
 	Timeouts timeouts.Value `tfsdk:"timeouts"`
@@ -310,6 +311,52 @@ func (r InstanceResource) Schema(ctx context.Context, _ resource.SchemaRequest, 
 			},
 
 			// Computed.
+
+			"interfaces": schema.MapNestedAttribute{
+				Computed:    true,
+				Description: "Map of the instance network interfaces",
+				NestedObject: schema.NestedAttributeObject{
+					Attributes: map[string]schema.Attribute{
+						"name": schema.StringAttribute{
+							Computed:    true,
+							Description: "Name of the network interface within an instance",
+						},
+
+						"type": schema.StringAttribute{
+							Computed:    true,
+							Description: "Type of the network interface (link, local, global)",
+						},
+
+						"state": schema.StringAttribute{
+							Computed:    true,
+							Description: "State of the network interface (up, down)",
+						},
+
+						"ips": schema.ListNestedAttribute{
+							Computed:    true,
+							Description: "IP addresses assigned to the interface",
+							NestedObject: schema.NestedAttributeObject{
+								Attributes: map[string]schema.Attribute{
+									"address": schema.StringAttribute{
+										Computed:    true,
+										Description: "IP address",
+									},
+
+									"family": schema.StringAttribute{
+										Computed:    true,
+										Description: "IP family (inet, inet6)",
+									},
+
+									"scope": schema.StringAttribute{
+										Computed:    true,
+										Description: "Scope (local, global, link)",
+									},
+								},
+							},
+						},
+					},
+				},
+			},
 
 			"ipv4_address": schema.StringAttribute{
 				Computed: true,
@@ -1086,6 +1133,9 @@ func (r InstanceResource) SyncState(ctx context.Context, tfState *tfsdk.State, s
 	devices, diags := common.ToDeviceSetType(ctx, instance.Devices)
 	respDiags.Append(diags...)
 
+	interfaces, diags := common.ToInterfaceMapType(ctx, instanceState.Network, instance.Config)
+	respDiags.Append(diags...)
+
 	if respDiags.HasError() {
 		return respDiags
 	}
@@ -1098,6 +1148,7 @@ func (r InstanceResource) SyncState(ctx context.Context, tfState *tfsdk.State, s
 	m.Profiles = profiles
 	m.Limits = limits
 	m.Devices = devices
+	m.Interfaces = interfaces
 	m.Config = config
 
 	// Update "running" attribute based on the instance's current status.
