@@ -1063,43 +1063,45 @@ func (r InstanceResource) SyncState(ctx context.Context, tfState *tfsdk.State, s
 	m.IPv6 = types.StringNull()
 	m.MAC = types.StringNull()
 
-	// First there is an access_interface set, extract IPv4, IPv4, and
-	// MAC addresses from it.
-	var accIfaceFound bool
 	accIface, ok := instance.ExpandedConfig["user.access_interface"]
 	if ok {
-		net := instanceState.Network[accIface]
-
-		ipv4, mac, ok := findIPv4Address(net)
+		// If there is an user.access_interface set, extract IPv4, IPv6 and
+		// MAC addresses from that network interface.
+		net, ok := instanceState.Network[accIface]
 		if ok {
-			m.IPv4 = types.StringValue(ipv4)
-			m.MAC = types.StringValue(mac)
-			accIfaceFound = true
-		}
+			m.MAC = types.StringValue(net.Hwaddr)
+			ipv4, ipv6 := findGlobalIPAddresses(net)
 
-		ipv6, ok := findIPv6Address(net)
-		if ok {
-			m.IPv6 = types.StringValue(ipv6)
-		}
-	}
+			if ipv4 != "" {
+				m.IPv4 = types.StringValue(ipv4)
+			}
 
-	// If the above wasn't successful, try to automatically determine
-	// the IPv4, IPv6, and MAC addresses.
-	if !accIfaceFound {
-		for iface, net := range instanceState.Network {
+			if ipv6 != "" {
+				m.IPv6 = types.StringValue(ipv6)
+			}
+		}
+	} else {
+		// Search for the first interface (alphabetically sorted) that has
+		// global IPv4 or IPv6 address.
+		for _, iface := range utils.SortMapKeys(instanceState.Network) {
 			if iface == "lo" {
 				continue
 			}
 
-			ipv4, mac, ok := findIPv4Address(net)
-			if ok {
-				m.IPv4 = types.StringValue(ipv4)
-				m.MAC = types.StringValue(mac)
-			}
+			net := instanceState.Network[iface]
+			ipv4, ipv6 := findGlobalIPAddresses(net)
+			if ipv4 != "" || ipv6 != "" {
+				m.MAC = types.StringValue(net.Hwaddr)
 
-			ipv6, ok := findIPv6Address(net)
-			if ok {
-				m.IPv6 = types.StringValue(ipv6)
+				if ipv4 != "" {
+					m.IPv4 = types.StringValue(ipv4)
+				}
+
+				if ipv6 != "" {
+					m.IPv6 = types.StringValue(ipv6)
+				}
+
+				break
 			}
 		}
 	}
@@ -1370,41 +1372,23 @@ func isInstanceStopped(s api.InstanceState) bool {
 	return s.StatusCode == api.Stopped
 }
 
-// findIPv4Address searches the network for last IPv4 address. If an IP address
-// is found, interface's MAC address is also returned.
-func findIPv4Address(network api.InstanceStateNetwork) (string, string, bool) {
-	var ipv4, mac string
+// findGlobalIPAddresses returns first global IPv4 and IPv6 addresses of the
+// provided network interface. If an IP address is not found, an empty string
+// is returned.
+func findGlobalIPAddresses(network api.InstanceStateNetwork) (ipv4 string, ipv6 string) {
 	for _, ip := range network.Addresses {
-		if ip.Family == "inet" {
-			ipv4 = ip.Address
-			mac = network.Hwaddr
+		if ip.Scope != "global" {
+			continue
 		}
-	}
 
-	return ipv4, mac, (ipv4 != "")
-}
+		if ipv4 == "" && ip.Family == "inet" {
+			ipv4 = ip.Address
+		}
 
-// Find last global IPv6 address or return any last IPv6 address
-// if there is no global address. This works analog to the IPv4
-// selection mechanism but favors global addresses.
-func findIPv6Address(network api.InstanceStateNetwork) (string, bool) {
-	var ipv6 string
-
-	for _, ip := range network.Addresses {
-		if ip.Family == "inet6" && ip.Scope == "global" {
+		if ipv6 == "" && ip.Family == "inet6" {
 			ipv6 = ip.Address
 		}
 	}
 
-	if ipv6 != "" {
-		return ipv6, true
-	}
-
-	for _, ip := range network.Addresses {
-		if ip.Family == "inet6" {
-			return ip.Address, true
-		}
-	}
-
-	return ipv6, (ipv6 != "")
+	return ipv4, ipv6
 }
