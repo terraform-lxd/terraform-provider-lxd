@@ -869,7 +869,7 @@ func TestAccInstance_execWorkingDir(t *testing.T) {
 					resource.TestCheckResourceAttr("lxd_instance.instance1", "status", "Running"),
 					resource.TestCheckResourceAttr("lxd_instance.instance1", "execs.%", "1"),
 					resource.TestCheckResourceAttr("lxd_instance.instance1", "execs.cmd.exit_code", "0"),
-					resource.TestCheckResourceAttr("lxd_instance.instance1", "execs.cmd.stdout", "ID=ubuntu"),
+					resource.TestCheckResourceAttr("lxd_instance.instance1", "execs.cmd.stdout", "ID=alpine"),
 					resource.TestCheckResourceAttr("lxd_instance.instance1", "execs.cmd.stderr", ""),
 				),
 			},
@@ -1275,6 +1275,10 @@ resource "lxd_instance" "instance1" {
   name  = "%s"
   image = "%s"
   type  = "virtual-machine"
+
+  config = {
+    "security.secureboot" = false
+  }
 }
 	`, name, acctest.TestImage)
 }
@@ -1287,32 +1291,51 @@ resource "lxd_instance" "instance1" {
   type  = "virtual-machine"
 
   config = {
-    "security.devlxd" = false
+    "security.devlxd"     = false
+    "security.secureboot" = false
   }
 }
 	`, name, acctest.TestImage)
 }
 
 func testAccInstance_started(name string, instanceType string) string {
+	var config string
+	if instanceType == "virtual-machine" {
+		config = `"security.secureboot" = false`
+	}
+
 	return fmt.Sprintf(`
 resource "lxd_instance" "instance1" {
   name    = "%s"
   image   = "%s"
   type    = "%s"
   running = true
+
+  config = {
+    %s
+  }
 }
-	`, name, acctest.TestImage, instanceType)
+	`, name, acctest.TestImage, instanceType, config)
 }
 
 func testAccInstance_stopped(name string, instanceType string) string {
+	var config string
+	if instanceType == "virtual-machine" {
+		config = `"security.secureboot" = false`
+	}
+
 	return fmt.Sprintf(`
 resource "lxd_instance" "instance1" {
   name    = "%s"
   image   = "%s"
   type    = "%s"
   running = false
+
+  config = {
+    %s
+  }
 }
-	`, name, acctest.TestImage, instanceType)
+	`, name, acctest.TestImage, instanceType, config)
 }
 
 func testAccInstance_config(name string) string {
@@ -1582,6 +1605,11 @@ resource "lxd_instance" "instance1" {
 }
 
 func testAccInstance_fileUploadSource(instanceName string, instanceType string) string {
+	var config string
+	if instanceType == "virtual-machine" {
+		config = `"security.secureboot" = false`
+	}
+
 	return fmt.Sprintf(`
 resource "lxd_instance" "instance1" {
   name  = "%s"
@@ -1594,8 +1622,12 @@ resource "lxd_instance" "instance1" {
     mode               = "0644"
     create_directories = true
   }
+
+  config = {
+    %s
+  }
 }
-	`, instanceName, instanceType, acctest.TestImage)
+	`, instanceName, instanceType, acctest.TestImage, config)
 }
 
 func testAccInstance_exec(instanceName string) string {
