@@ -179,14 +179,16 @@ The `execs` map elements support the following attributes:
 
 The following attributes are exported:
 
-* `ipv4_address` - The IPv4 Address of the instance. See Instance Network
+* `ipv4_address` - The instance's global IPv4 address. See Instance Network
   Access for more details.
 
-* `ipv6_address` - The IPv6 Address of the instance. See Instance Network
+* `ipv6_address` - The instance's global IPv6 address. See Instance Network
   Access for more details.
 
-* `mac_address` - The MAC address of the detected NIC. See Instance Network
+* `mac_address` - The MAC address of the network interface. If MAC address is not available, the instance has no global IP address. See Instance Network
   Access for more details.
+
+* `interfaces` - Map of all instance network interfaces (excluding loopback device). The map key represents the name of the network device (from LXD configuration).
 
 * `status` - The status of the instance.
 
