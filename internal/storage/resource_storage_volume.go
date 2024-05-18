@@ -3,6 +3,7 @@ package storage
 import (
 	"context"
 	"fmt"
+	"strings"
 
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/attr"
@@ -349,7 +350,14 @@ func (r StorageVolumeResource) SyncState(ctx context.Context, tfState *tfsdk.Sta
 	}
 
 	// Extract user defined config and merge it with current config state.
-	stateConfig := common.StripConfig(vol.Config, m.Config, m.ComputedKeys())
+	inheritedPoolVolumeKeys, err := m.InheritedStoragePoolVolumeKeys(server, poolName)
+	if err != nil {
+		respDiags.AddError(fmt.Sprintf("Failed to retrieve storage pool config %q", volName), err.Error())
+		return respDiags
+	}
+
+	combinedComputedKeys := append(inheritedPoolVolumeKeys, m.ComputedKeys()...)
+	stateConfig := common.StripConfig(vol.Config, m.Config, combinedComputedKeys)
 
 	config, diags := common.ToConfigMapType(ctx, stateConfig, m.Config)
 	respDiags.Append(diags...)
@@ -380,4 +388,23 @@ func (_ StorageVolumeModel) ComputedKeys() []string {
 		"block.mount_options",
 		"volatile.",
 	}
+}
+
+func (_ StorageVolumeModel) InheritedStoragePoolVolumeKeys(server incus.InstanceServer, poolName string) ([]string, error) {
+	volumePrefix := "volume."
+	inheritedKeys := make([]string, 0)
+
+	pool, _, err := server.GetStoragePool(poolName)
+	if err != nil {
+		return nil, err
+	}
+
+	for key := range pool.Config {
+		if strings.HasPrefix(key, volumePrefix) {
+			inheritedKey := strings.TrimPrefix(key, volumePrefix)
+			inheritedKeys = append(inheritedKeys, inheritedKey)
+		}
+	}
+
+	return inheritedKeys, nil
 }
