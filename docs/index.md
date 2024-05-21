@@ -77,7 +77,7 @@ The following arguments are supported:
 
 The `remote` block supports:
 
-* `address` - *Optional* - The address of the LXD remote.
+* `address` - *Optional* - The address of the remote.
 
 * `default` - *Optional* - Whether this should be the default remote.
 	This remote will then be used when one is not specified in a resource.
@@ -88,14 +88,16 @@ The `remote` block supports:
 	for more information.
 	The default can also be set with the `LXD_REMOTE` Environment variable.
 
-* `name` - *Optional* - The name of the LXD remote.
+* `name` - *Optional* - The name of the remote.
 
 * `password` - *Optional* - The password to authenticate to the LXD remote.
 
-* `port` - *Optional* - The port of the LXD remote.
+* `port` - *Optional* - The port of the remote.
 
-* `scheme` - *Optional* Whether to connect to the LXD remote via `https` or
-	`unix` (UNIX socket). Defaults to `unix`.
+* `protocol` - *Optional* - The protocol of remote server (`lxd` or `simplestreams`).
+
+* `scheme` - *Optional* Whether to connect to the remote via `https` or
+	`unix` (UNIX socket). Defaults to `unix` for LXD remote and `https` for simplestreams remote.
 
 ## Undefined Remote
 
