@@ -28,6 +28,7 @@ type LxdProviderRemoteConfig struct {
 	Address      string
 	Port         string
 	Password     string
+	Protocol     string
 	Scheme       string
 	Bootstrapped bool
 }
@@ -201,15 +202,14 @@ func (p *LxdProviderConfig) createLxdServerClient(remote LxdProviderRemoteConfig
 		return nil
 	}
 
-	daemonAddr, err := determineLxdDaemonAddr(remote)
-	if err != nil {
-		return fmt.Errorf("Unable to determine daemon address for remote %q: %v", remote.Name, err)
+	lxdRemote := lxd_config.Remote{
+		Addr:     determineLxdDaemonAddr(remote),
+		Protocol: remote.Protocol,
 	}
 
-	lxdRemote := lxd_config.Remote{Addr: daemonAddr}
 	p.setLxdConfigRemote(remote.Name, lxdRemote)
 
-	if remote.Scheme == "https" {
+	if remote.Scheme == "https" && remote.Protocol == "lxd" {
 		// If the LXD remote's certificate does not exist on the client...
 		p.mux.RLock()
 		certPath := p.lxdConfig.ServerCertPath(remote.Name)
@@ -364,7 +364,7 @@ func connectToLxdServer(instServer lxd.InstanceServer) error {
 }
 
 // determineLxdDaemonAddr determines address of the LXD server daemon.
-func determineLxdDaemonAddr(remote LxdProviderRemoteConfig) (string, error) {
+func determineLxdDaemonAddr(remote LxdProviderRemoteConfig) string {
 	var daemonAddr string
 
 	if remote.Address != "" {
@@ -376,7 +376,7 @@ func determineLxdDaemonAddr(remote LxdProviderRemoteConfig) (string, error) {
 		}
 	}
 
-	return daemonAddr, nil
+	return daemonAddr
 }
 
 // determineLxdDir determines which standard LXD directory contains a writable UNIX socket.
