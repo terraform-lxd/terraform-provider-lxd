@@ -29,6 +29,7 @@ type LxdProviderRemoteModel struct {
 	Name     types.String `tfsdk:"name"`
 	Address  types.String `tfsdk:"address"`
 	Port     types.String `tfsdk:"port"`
+	Protocol types.String `tfsdk:"protocol"`
 	Password types.String `tfsdk:"password"`
 	Scheme   types.String `tfsdk:"scheme"`
 	Default  types.Bool   `tfsdk:"default"`
@@ -118,6 +119,14 @@ func (p *LxdProvider) Schema(_ context.Context, _ provider.SchemaRequest, resp *
 							Optional:    true,
 							Sensitive:   true,
 							Description: "The password for the remote.",
+						},
+
+						"protocol": schema.StringAttribute{
+							Optional:    true,
+							Description: "Remote protocol",
+							Validators: []validator.String{
+								stringvalidator.OneOf("lxd", "simplestreams"),
+							},
 						},
 
 						"default": schema.BoolAttribute{
@@ -221,6 +230,7 @@ func (p *LxdProvider) Configure(ctx context.Context, req provider.ConfigureReque
 			Port:     os.Getenv("LXD_PORT"),
 			Password: os.Getenv("LXD_PASSWORD"),
 			Scheme:   os.Getenv("LXD_SCHEME"),
+			Protocol: "lxd",
 		}
 
 		// This will be the default remote unless overridden by an
@@ -239,25 +249,42 @@ func (p *LxdProvider) Configure(ctx context.Context, req provider.ConfigureReque
 	// in Terraform configurations where the LXD remote might not
 	// exist yet.
 	for _, remote := range data.Remotes {
+		protocol := remote.Protocol.ValueString()
+		if protocol == "" {
+			protocol = "lxd"
+		}
+
 		port := remote.Port.ValueString()
 		if port == "" {
 			port = "8443"
+			if protocol == "simplestreams" {
+				port = "443"
+			}
 		}
 
 		scheme := remote.Scheme.ValueString()
 		if scheme == "" {
 			scheme = "unix"
+			if protocol == "simplestreams" {
+				scheme = "https"
+			}
 		}
 
 		lxdRemote := provider_config.LxdProviderRemoteConfig{
 			Name:     remote.Name.ValueString(),
 			Password: remote.Password.ValueString(),
 			Address:  remote.Address.ValueString(),
+			Protocol: protocol,
 			Port:     port,
 			Scheme:   scheme,
 		}
 
 		isDefault := remote.Default.ValueBool()
+		if protocol == "simplestreams" {
+			// Simplestreams cannot be default.
+			isDefault = false
+		}
+
 		lxdProvider.SetRemote(lxdRemote, isDefault)
 	}
 
