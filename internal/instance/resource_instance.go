@@ -862,7 +862,6 @@ func (r InstanceResource) Update(ctx context.Context, req resource.UpdateRequest
 		Description:  plan.Description.ValueString(),
 		Ephemeral:    plan.Ephemeral.ValueBool(),
 		Architecture: instance.Architecture,
-		Restore:      instance.Restore,
 		Stateful:     instance.Stateful,
 		Config:       config,
 		Profiles:     profiles,
