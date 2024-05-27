@@ -5,7 +5,7 @@ go 1.21.7
 require (
 	github.com/canonical/lxd v0.0.0-20240228174100-898d3e02ff6b
 	github.com/dustinkirkland/golang-petname v0.0.0-20231002161417-6a283f1aaaf2
-	github.com/hashicorp/go-version v1.6.0
+	github.com/hashicorp/go-version v1.7.0
 	github.com/hashicorp/terraform-plugin-framework v1.8.0
 	github.com/hashicorp/terraform-plugin-framework-timeouts v0.4.1
 	github.com/hashicorp/terraform-plugin-framework-validators v0.12.0
