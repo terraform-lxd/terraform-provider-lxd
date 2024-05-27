@@ -1,3 +1,44 @@
+## 2.1.0 (May 27, 2024)
+
+### New Features 🎉
+* Export instance's network interfaces by @MusicDin in https://github.com/terraform-lxd/terraform-provider-lxd/pull/460
+### Bug Fixes 🐝
+* Replace image resource_id by reading fingerprint from state by @MusicDin in https://github.com/terraform-lxd/terraform-provider-lxd/pull/421
+* Add instance timeouts by @MusicDin in https://github.com/terraform-lxd/terraform-provider-lxd/pull/423
+* Upload files after VM is started by @MusicDin in https://github.com/terraform-lxd/terraform-provider-lxd/pull/436
+* Expand ConfigDir env vars when config.yml is missing by @MusicDin in https://github.com/terraform-lxd/terraform-provider-lxd/pull/446
+* Read access_interface from expanded config by @MusicDin in https://github.com/terraform-lxd/terraform-provider-lxd/pull/449
+### Maintenance and Chores 🛠
+* Fix minimum LXD version in docs by @MusicDin in https://github.com/terraform-lxd/terraform-provider-lxd/pull/419
+* build(deps): bump the hashicorp group with 1 update by @dependabot in https://github.com/terraform-lxd/terraform-provider-lxd/pull/425
+* Generate unique names for test resources by @MusicDin in https://github.com/terraform-lxd/terraform-provider-lxd/pull/424
+* build(deps): bump the hashicorp group with 1 update by @dependabot in https://github.com/terraform-lxd/terraform-provider-lxd/pull/429
+* build(deps): bump golang.org/x/sys from 0.16.0 to 0.17.0 by @dependabot in https://github.com/terraform-lxd/terraform-provider-lxd/pull/431
+* Bump Go to 1.21 by @simondeziel in https://github.com/terraform-lxd/terraform-provider-lxd/pull/434
+* Update go deps by @MusicDin in https://github.com/terraform-lxd/terraform-provider-lxd/pull/435
+* Update gomod by @simondeziel in https://github.com/terraform-lxd/terraform-provider-lxd/pull/437
+* build(deps): bump github.com/stretchr/testify from 1.8.4 to 1.9.0 by @dependabot in https://github.com/terraform-lxd/terraform-provider-lxd/pull/438
+* build(deps): bump golang.org/x/sys from 0.17.0 to 0.18.0 by @dependabot in https://github.com/terraform-lxd/terraform-provider-lxd/pull/440
+* build(deps): bump the hashicorp group with 2 updates by @dependabot in https://github.com/terraform-lxd/terraform-provider-lxd/pull/439
+* build(deps): bump google.golang.org/protobuf from 1.32.0 to 1.33.0 by @dependabot in https://github.com/terraform-lxd/terraform-provider-lxd/pull/441
+* github: run tests against 5.21/stable and 5.21/edge by @simondeziel in https://github.com/terraform-lxd/terraform-provider-lxd/pull/442
+* build(deps): bump the hashicorp group with 1 update by @dependabot in https://github.com/terraform-lxd/terraform-provider-lxd/pull/443
+* internal/common/lxd_file: use ParseInt() for LXD file mode by @simondeziel in https://github.com/terraform-lxd/terraform-provider-lxd/pull/444
+* build(deps): bump the hashicorp group with 1 update by @dependabot in https://github.com/terraform-lxd/terraform-provider-lxd/pull/447
+* Go 1.22 by @simondeziel in https://github.com/terraform-lxd/terraform-provider-lxd/pull/450
+* build(deps): bump golang.org/x/sys from 0.18.0 to 0.19.0 by @dependabot in https://github.com/terraform-lxd/terraform-provider-lxd/pull/451
+* github: stop testing with Go 1.21 by @simondeziel in https://github.com/terraform-lxd/terraform-provider-lxd/pull/455
+* build(deps): bump golang.org/x/net from 0.21.0 to 0.23.0 by @dependabot in https://github.com/terraform-lxd/terraform-provider-lxd/pull/454
+* build(deps): bump the hashicorp group with 2 updates by @dependabot in https://github.com/terraform-lxd/terraform-provider-lxd/pull/456
+* build(deps): bump golang.org/x/sys from 0.19.0 to 0.20.0 by @dependabot in https://github.com/terraform-lxd/terraform-provider-lxd/pull/458
+* build(deps): bump github.com/hashicorp/terraform-plugin-go from 0.22.2 to 0.23.0 in the hashicorp group by @dependabot in https://github.com/terraform-lxd/terraform-provider-lxd/pull/459
+* build(deps): bump the hashicorp group with 2 updates by @dependabot in https://github.com/terraform-lxd/terraform-provider-lxd/pull/462
+* build(deps): bump github.com/hashicorp/go-version from 1.6.0 to 1.7.0 in the hashicorp group by @dependabot in https://github.com/terraform-lxd/terraform-provider-lxd/pull/465
+* Bump lxd client and use Alpine image for tests by @MusicDin in https://github.com/terraform-lxd/terraform-provider-lxd/pull/461
+### Other Changes ❓
+* github: remove DCO check replaced by DCO app by @simondeziel in https://github.com/terraform-lxd/terraform-provider-lxd/pull/426
+* github: resume testing on 5.0/stable now that 5.0.3 is released by @simondeziel in https://github.com/terraform-lxd/terraform-provider-lxd/pull/430
+
 ## 2.0.0 (January 23, 2024)
 
 ### Breaking Changes ⚠️
