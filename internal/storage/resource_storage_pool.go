@@ -28,6 +28,7 @@ type StoragePoolModel struct {
 	Name        types.String `tfsdk:"name"`
 	Description types.String `tfsdk:"description"`
 	Driver      types.String `tfsdk:"driver"`
+	Source      types.String `tfsdk:"source"`
 	Project     types.String `tfsdk:"project"`
 	Target      types.String `tfsdk:"target"`
 	Remote      types.String `tfsdk:"remote"`
@@ -72,6 +73,11 @@ func (r StoragePoolResource) Schema(_ context.Context, _ resource.SchemaRequest,
 				Validators: []validator.String{
 					stringvalidator.OneOf("dir", "zfs", "lvm", "btrfs", "ceph", "cephfs", "cephobject"),
 				},
+			},
+
+			"source": schema.StringAttribute{
+				Description: "Source of the storage pool which is respected only when the storage pool is being created.",
+				Optional:    true,
 			},
 
 			"project": schema.StringAttribute{
@@ -149,6 +155,12 @@ func (r StoragePoolResource) Create(ctx context.Context, req resource.CreateRequ
 	resp.Diagnostics.Append(diag...)
 	if resp.Diagnostics.HasError() {
 		return
+	}
+
+	// If storage pool source is configured, set it in the storage pool config.
+	poolSource := plan.Source.ValueString()
+	if poolSource != "" {
+		config["source"] = poolSource
 	}
 
 	pool := api.StoragePoolsPost{
