@@ -214,8 +214,8 @@ func TestAccStoragePool_target(t *testing.T) {
 			{
 				Config: testAccStoragePool_target(poolName, driverName),
 				Check: resource.ComposeTestCheckFunc(
-					resource.TestCheckResourceAttr("lxd_storage_pool.storage_pool1_node2", "name", poolName),
-					resource.TestCheckResourceAttr("lxd_storage_pool.storage_pool1_node2", "driver", driverName),
+					resource.TestCheckResourceAttr("lxd_storage_pool.storage_pool1_node1", "name", poolName),
+					resource.TestCheckResourceAttr("lxd_storage_pool.storage_pool1_node1", "driver", driverName),
 					resource.TestCheckResourceAttr("lxd_storage_pool.storage_pool1_node1", "target", "node-1"),
 					resource.TestCheckResourceAttr("lxd_storage_pool.storage_pool1_node2", "name", poolName),
 					resource.TestCheckResourceAttr("lxd_storage_pool.storage_pool1_node2", "driver", driverName),
