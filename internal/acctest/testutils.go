@@ -1,7 +1,7 @@
 package acctest
 
 import (
-	"math/rand"
+	"math/rand/v2"
 
 	petname "github.com/dustinkirkland/golang-petname"
 )
@@ -12,7 +12,7 @@ const charset = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
 func generateString(length int) string {
 	s := make([]byte, length)
 	for i := range s {
-		s[i] = charset[rand.Intn(len(charset))]
+		s[i] = charset[rand.IntN(len(charset))]
 	}
 	return string(s)
 }
