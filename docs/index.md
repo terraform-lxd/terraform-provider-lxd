@@ -46,10 +46,10 @@ provider "lxd" {
   }
 
   remote {
-    name     = "lxd-server-2"
-    scheme   = "https"
-    address  = "10.1.2.8"
-    password = "password"
+    name    = "lxd-server-2"
+    scheme  = "https"
+    address = "10.1.2.8"
+    token   = "token"
   }
 }
 ```
@@ -90,7 +90,12 @@ The `remote` block supports:
 
 * `name` - *Optional* - The name of the remote.
 
-* `password` - *Optional* - The password to authenticate to the LXD remote.
+* `password` - *Optional* - The [trust password](https://documentation.ubuntu.com/lxd/en/latest/authentication/#adding-client-certificates-using-a-trust-password)
+  used for initial authentication with the LXD remote. This method is **not recommended** and will
+  most likely be removed from LXD in a future release. Use `token` instead.
+
+* `token` - *Optional* - The one-time trust [token](https://documentation.ubuntu.com/lxd/en/latest/authentication/#adding-client-certificates-using-tokens)
+  used for initial authentication with the LXD remote.
 
 * `port` - *Optional* - The port of the remote.
 
