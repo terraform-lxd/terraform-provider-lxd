@@ -13,6 +13,11 @@ func IsNotFoundError(err error) bool {
 	return api.StatusErrorCheck(err, http.StatusNotFound)
 }
 
+// IsConflictError checks whether the given error is of type Conflict.
+func IsConflictError(err error) bool {
+	return api.StatusErrorCheck(err, http.StatusConflict)
+}
+
 // NewInstanceServerError converts an error into diagnostic indicating
 // that provider failed to retrieve LXD instance server client.
 func NewInstanceServerError(err error) diag.Diagnostic {
