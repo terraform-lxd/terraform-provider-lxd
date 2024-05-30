@@ -10,6 +10,7 @@ import (
 	lxd_shared "github.com/canonical/lxd/shared"
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
+	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/provider"
 	"github.com/hashicorp/terraform-plugin-framework/provider/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
@@ -31,6 +32,7 @@ type LxdProviderRemoteModel struct {
 	Port     types.String `tfsdk:"port"`
 	Protocol types.String `tfsdk:"protocol"`
 	Password types.String `tfsdk:"password"`
+	Token    types.String `tfsdk:"token"`
 	Scheme   types.String `tfsdk:"scheme"`
 	Default  types.Bool   `tfsdk:"default"`
 }
@@ -118,7 +120,17 @@ func (p *LxdProvider) Schema(_ context.Context, _ provider.SchemaRequest, resp *
 						"password": schema.StringAttribute{
 							Optional:    true,
 							Sensitive:   true,
-							Description: "The password for the remote.",
+							Description: "The trust password used for initial authentication with the LXD remote.",
+						},
+
+						"token": schema.StringAttribute{
+							Optional:    true,
+							Sensitive:   true,
+							Description: "The trust token used for initial authentication with the LXD remote.",
+							Validators: []validator.String{
+								// Mutually exclusive with "password".
+								stringvalidator.ConflictsWith(path.MatchRelative().AtParent().AtName("password")),
+							},
 						},
 
 						"protocol": schema.StringAttribute{
@@ -229,6 +241,7 @@ func (p *LxdProvider) Configure(ctx context.Context, req provider.ConfigureReque
 			Address:  os.Getenv("LXD_ADDR"),
 			Port:     os.Getenv("LXD_PORT"),
 			Password: os.Getenv("LXD_PASSWORD"),
+			Token:    os.Getenv("LXD_TOKEN"),
 			Scheme:   os.Getenv("LXD_SCHEME"),
 			Protocol: "lxd",
 		}
@@ -273,6 +286,7 @@ func (p *LxdProvider) Configure(ctx context.Context, req provider.ConfigureReque
 		lxdRemote := provider_config.LxdProviderRemoteConfig{
 			Name:     remote.Name.ValueString(),
 			Password: remote.Password.ValueString(),
+			Token:    remote.Token.ValueString(),
 			Address:  remote.Address.ValueString(),
 			Protocol: protocol,
 			Port:     port,
