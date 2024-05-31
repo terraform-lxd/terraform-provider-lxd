@@ -17,7 +17,7 @@ resource "lxd_instance" "test1" {
 }
 
 resource "lxd_publish_image" "test1" {
-  instance = lxd_instance.test1
+  instance = lxd_instance.test1.name
   aliases  = ["test1_img"]
 }
 ```
