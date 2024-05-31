@@ -22,6 +22,7 @@ import (
 	"github.com/terraform-lxd/terraform-provider-lxd/internal/project"
 	provider_config "github.com/terraform-lxd/terraform-provider-lxd/internal/provider-config"
 	"github.com/terraform-lxd/terraform-provider-lxd/internal/storage"
+	"github.com/terraform-lxd/terraform-provider-lxd/internal/truststore"
 )
 
 // LxdProviderRemoteModel represents provider's schema remote.
@@ -310,6 +311,7 @@ func (p *LxdProvider) Resources(_ context.Context) []func() resource.Resource {
 		storage.NewStoragePoolResource,
 		storage.NewStorageVolumeResource,
 		storage.NewStorageVolumeCopyResource,
+		truststore.NewTrustCertificateResource,
 	}
 }
 
