@@ -237,6 +237,10 @@ func (r CachedImageResource) Create(ctx context.Context, req resource.CreateRequ
 		return
 	}
 
+	if plan.CopyAliases.ValueBool() {
+		imageAliases = append(imageAliases, imageInfo.Aliases...)
+	}
+
 	// Copy image.
 	args := lxd.ImageCopyArgs{
 		Aliases: imageAliases,
