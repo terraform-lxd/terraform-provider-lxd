@@ -3,6 +3,7 @@ package image
 import (
 	"context"
 	"fmt"
+	"slices"
 
 	lxd "github.com/canonical/lxd/client"
 	"github.com/canonical/lxd/shared/api"
@@ -216,18 +217,11 @@ func (r CachedImageResource) Create(ctx context.Context, req resource.CreateRequ
 
 	imageAliases := make([]api.ImageAlias, 0, len(aliases))
 	for _, alias := range aliases {
-		// Ensure image alias does not already exist.
-		aliasTarget, _, _ := server.GetImageAlias(alias)
-		if aliasTarget != nil {
-			resp.Diagnostics.AddError(fmt.Sprintf("Image alias %q already exists", alias), "")
-			return
-		}
-
-		ia := api.ImageAlias{
+		imageAlias := api.ImageAlias{
 			Name: alias,
 		}
 
-		imageAliases = append(imageAliases, ia)
+		imageAliases = append(imageAliases, imageAlias)
 	}
 
 	// Get data about remote image (also checks if image exists).
@@ -238,7 +232,12 @@ func (r CachedImageResource) Create(ctx context.Context, req resource.CreateRequ
 	}
 
 	if plan.CopyAliases.ValueBool() {
-		imageAliases = append(imageAliases, imageInfo.Aliases...)
+		// Copy only image aliases that are not already defined by the user.
+		for _, imageAlias := range imageInfo.Aliases {
+			if !slices.Contains(aliases, imageAlias.Name) {
+				imageAliases = append(imageAliases, imageAlias)
+			}
+		}
 	}
 
 	// Copy image.
@@ -328,18 +327,34 @@ func (r CachedImageResource) Update(ctx context.Context, req resource.UpdateRequ
 	imageName := plan.SourceImage.ValueString()
 	imageFingerprint := state.Fingerprint.ValueString()
 
-	// Extract removed and added image aliases.
-	oldAliases := make([]string, 0, len(plan.Aliases.Elements()))
-	diags := req.State.GetAttribute(ctx, path.Root("aliases"), &oldAliases)
+	// Get info about cached image.
+	image, _, err := server.GetImage(imageFingerprint)
+	if err != nil {
+		resp.Diagnostics.AddError(fmt.Sprintf("Failed to retrieve cached image %q", imageName), err.Error())
+		return
+	}
+
+	// Parse current (old) image aliases.
+	oldAliases := make([]string, len(image.Aliases))
+	for i, alias := range image.Aliases {
+		oldAliases[i] = alias.Name
+	}
+
+	// Parse expected (new) image aliases.
+	copiedAliases := make([]string, 0, len(plan.CopiedAliases.Elements()))
+	diags := req.State.GetAttribute(ctx, path.Root("copied_aliases"), &copiedAliases)
 	resp.Diagnostics.Append(diags...)
 
 	newAliases, diags := ToAliasList(ctx, plan.Aliases)
 	resp.Diagnostics.Append(diags...)
 
+	newAliases = slices.Compact(append(newAliases, copiedAliases...))
+
 	if resp.Diagnostics.HasError() {
 		return
 	}
 
+	// Extract removed and added image aliases.
 	removed, added := utils.DiffSlices(oldAliases, newAliases)
 
 	// Delete removed aliases.
