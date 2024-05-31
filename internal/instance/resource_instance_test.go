@@ -1168,6 +1168,24 @@ func TestAccInstance_removeProject(t *testing.T) {
 	})
 }
 
+func TestAccInstance_customImageServer(t *testing.T) {
+	instanceName := acctest.GenerateName(2, "-")
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { acctest.PreCheck(t) },
+		ProtoV6ProviderFactories: acctest.ProtoV6ProviderFactories,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccInstance_customImageServer(instanceName),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr("lxd_instance.instance1", "name", instanceName),
+					resource.TestCheckResourceAttr("lxd_instance.instance1", "status", "Running"),
+				),
+			},
+		},
+	})
+}
+
 func TestAccInstance_timeout(t *testing.T) {
 	instanceName := acctest.GenerateName(2, "-")
 
@@ -2067,6 +2085,23 @@ resource "lxd_instance" "instance1" {
   image = "%s"
 }
 	`, projectName, instanceName, acctest.TestImage)
+}
+
+func testAccInstance_customImageServer(instanceName string) string {
+	return fmt.Sprintf(`
+provider "lxd" {
+  remote {
+    name     = "images-temporary"
+    address  = "images.lxd.canonical.com"
+    protocol = "simplestreams"
+  }
+}
+
+resource "lxd_instance" "instance1" {
+  name  = "%s"
+  image = "images-temporary:alpine/edge"
+}
+	`, instanceName)
 }
 
 func testAccInstance_timeout(instanceName string) string {
