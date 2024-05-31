@@ -202,7 +202,7 @@ func (r InstanceFileResource) Create(ctx context.Context, req resource.CreateReq
 	instanceName := plan.Instance.ValueString()
 	_, _, err = server.GetInstance(instanceName)
 	if err != nil {
-		resp.Diagnostics.AddError(fmt.Sprintf("Failed retireve instance %q", instanceName), err.Error())
+		resp.Diagnostics.AddError(fmt.Sprintf("Failed retrieve instance %q", instanceName), err.Error())
 		return
 	}
 
@@ -259,7 +259,7 @@ func (r InstanceFileResource) Read(ctx context.Context, req resource.ReadRequest
 			return
 		}
 
-		resp.Diagnostics.AddError(fmt.Sprintf("Failed retireve instance %q", instance.Name), err.Error())
+		resp.Diagnostics.AddError(fmt.Sprintf("Failed retrieve instance %q", instance.Name), err.Error())
 		return
 	}
 
@@ -309,7 +309,7 @@ func (r InstanceFileResource) Delete(ctx context.Context, req resource.DeleteReq
 			return
 		}
 
-		resp.Diagnostics.AddError(fmt.Sprintf("Failed retireve instance %q", instanceName), err.Error())
+		resp.Diagnostics.AddError(fmt.Sprintf("Failed retrieve instance %q", instanceName), err.Error())
 		return
 	}
 
