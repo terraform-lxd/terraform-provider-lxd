@@ -63,18 +63,12 @@ func (r TrustCertificateResource) Schema(_ context.Context, _ resource.SchemaReq
 			"path": schema.StringAttribute{
 				Optional:    true,
 				Description: "Path to the client certificate.",
-				PlanModifiers: []planmodifier.String{
-					stringplanmodifier.RequiresReplace(),
-				},
 			},
 
 			"content": schema.StringAttribute{
 				Optional:    true,
 				Sensitive:   true,
 				Description: "Content of the client certificate.",
-				PlanModifiers: []planmodifier.String{
-					stringplanmodifier.RequiresReplace(),
-				},
 				Validators: []validator.String{
 					stringvalidator.ExactlyOneOf(
 						path.MatchRoot("content"),
@@ -103,6 +97,9 @@ func (r TrustCertificateResource) Schema(_ context.Context, _ resource.SchemaReq
 			"fingerprint": schema.StringAttribute{
 				Computed:    true,
 				Description: "Fingerprint of the certificate.",
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.RequiresReplace(),
+				},
 			},
 		},
 	}
@@ -121,6 +118,47 @@ func (r *TrustCertificateResource) Configure(_ context.Context, req resource.Con
 	}
 
 	r.provider = provider
+}
+
+func (r *TrustCertificateResource) ModifyPlan(ctx context.Context, req resource.ModifyPlanRequest, resp *resource.ModifyPlanResponse) {
+	var err error
+	var plan *TrustCertificateModel
+
+	// Ignore plan modification if plan is null (on destroy).
+	if req.Plan.Raw.IsNull() {
+		return
+	}
+
+	resp.Diagnostics.Append(req.Plan.Get(ctx, &plan)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	// We need to parse the certificate ahead of time, and evaluate it's fingerprint.
+	// If fingerprint has changed, it will force recreation of the certificate.
+	certName := plan.Name.ValueString()
+	certPath := plan.Path.ValueString()
+	certContent := []byte(plan.Content.ValueString())
+	if certPath != "" {
+		certContent, err = os.ReadFile(certPath)
+		if err != nil {
+			resp.Diagnostics.AddError(
+				fmt.Sprintf("Failed to read certificate %q", certName),
+				fmt.Sprintf("Read certificate on path %q: %v", certPath, err),
+			)
+			return
+		}
+	}
+
+	// Parse the certificate.
+	x509Cert, err := ParseCertX509(certContent)
+	if err != nil {
+		resp.Diagnostics.AddError(fmt.Sprintf("Failed to parse certificate %q", certName), err.Error())
+		return
+	}
+
+	// Calculate certificate fingerprint.
+	resp.Plan.SetAttribute(ctx, path.Root("fingerprint"), lxd_shared.CertFingerprint(x509Cert))
 }
 
 func (r TrustCertificateResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
