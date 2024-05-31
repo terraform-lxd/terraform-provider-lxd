@@ -445,7 +445,7 @@ func (r InstanceResource) Create(ctx context.Context, req resource.CreateRequest
 		// Get the image info.
 		imageInfo, _, err = imageServer.GetImage(image)
 		if err != nil {
-			resp.Diagnostics.AddError(fmt.Sprintf("Failed to retireve image info for instance %q", instance.Name), err.Error())
+			resp.Diagnostics.AddError(fmt.Sprintf("Failed to retrieve image info for instance %q", instance.Name), err.Error())
 			return
 		}
 	}
