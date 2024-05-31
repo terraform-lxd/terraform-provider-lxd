@@ -19,6 +19,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/listdefault"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringdefault"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/tfsdk"
@@ -29,6 +30,7 @@ import (
 
 type TrustCertificateModel struct {
 	Name     types.String `tfsdk:"name"`
+	Type     types.String `tfsdk:"type"`
 	Path     types.String `tfsdk:"path"`
 	Content  types.String `tfsdk:"content"`
 	Projects types.List   `tfsdk:"projects"`
@@ -58,6 +60,16 @@ func (r TrustCertificateResource) Schema(_ context.Context, _ resource.SchemaReq
 			"name": schema.StringAttribute{
 				Required:    true,
 				Description: "Name of the certificate.",
+			},
+
+			"type": schema.StringAttribute{
+				Optional:    true,
+				Computed:    true,
+				Description: "Certificate type.",
+				Default:     stringdefault.StaticString("client"),
+				Validators: []validator.String{
+					stringvalidator.OneOf("client", "metrics"),
+				},
 			},
 
 			"path": schema.StringAttribute{
@@ -177,6 +189,9 @@ func (r TrustCertificateResource) Create(ctx context.Context, req resource.Creat
 		return
 	}
 
+	certName := plan.Name.ValueString()
+	certType := plan.Type.ValueString()
+
 	// Get list of project to restrict the certificate to.
 	certProjects, diags := ToProjectList(ctx, plan.Projects)
 	resp.Diagnostics.Append(diags...)
@@ -185,7 +200,6 @@ func (r TrustCertificateResource) Create(ctx context.Context, req resource.Creat
 	}
 
 	// Get certificate content.
-	certName := plan.Name.ValueString()
 	certPath := plan.Path.ValueString()
 	certContent := []byte(plan.Content.ValueString())
 	if certPath != "" {
@@ -211,7 +225,7 @@ func (r TrustCertificateResource) Create(ctx context.Context, req resource.Creat
 
 	// Create new certificate.
 	cert := api.CertificatesPost{
-		Type:        "client",
+		Type:        certType,
 		Name:        certName,
 		Projects:    certProjects,
 		Restricted:  len(certProjects) > 0,
@@ -270,6 +284,8 @@ func (r TrustCertificateResource) Update(ctx context.Context, req resource.Updat
 	}
 
 	certName := plan.Name.ValueString()
+	certType := plan.Type.ValueString()
+
 	cert, etag, err := server.GetCertificate(certFingerprint)
 	if err != nil {
 		resp.Diagnostics.AddError(fmt.Sprintf("Failed to retrieve certificate %q", certName), err.Error())
@@ -285,6 +301,7 @@ func (r TrustCertificateResource) Update(ctx context.Context, req resource.Updat
 	// Update existing certificate.
 	newCert := cert.Writable()
 	newCert.Name = certName
+	newCert.Type = certType
 	newCert.Projects = certProjects
 	newCert.Restricted = len(certProjects) > 0
 
@@ -356,6 +373,7 @@ func (r TrustCertificateResource) SyncState(ctx context.Context, tfState *tfsdk.
 	// Sync all fields except Certificate itself - we do not want to keep it
 	// in Terraform state. If fingerprint changes, we will update the state.
 	m.Name = types.StringValue(cert.Name)
+	m.Type = types.StringValue(cert.Type)
 	m.Fingerprint = types.StringValue(cert.Fingerprint)
 	m.Projects = projects
 
