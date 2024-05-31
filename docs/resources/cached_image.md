@@ -31,7 +31,7 @@ resource "lxd_instance" "test1" {
 	pulling.
 
 * `copy_aliases` - *Optional* - Whether to copy the aliases of the image from
-	the remote. Valid values are `true` and `false`. Defaults to `true`.
+	the remote. Valid values are `true` and `false`. Defaults to `false`.
 
 * `project` - *Optional* - Name of the project where the image will be stored.
 
