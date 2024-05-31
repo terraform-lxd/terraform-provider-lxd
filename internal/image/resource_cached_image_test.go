@@ -136,13 +136,7 @@ func TestAccCachedImage_aliasExists(t *testing.T) {
 			},
 			{
 				Config:      testAccCachedImage_aliasExists2(alias),
-				ExpectError: regexp.MustCompile(fmt.Sprintf(`Image alias %q already exists`, alias)),
-				Check: resource.ComposeTestCheckFunc(
-					resource.TestCheckResourceAttr("lxd_cached_image.exists1", "source_remote", acctest.TestCachedImageSourceRemote),
-					resource.TestCheckResourceAttr("lxd_cached_image.exists1", "source_image", acctest.TestCachedImageSourceImage),
-					resource.TestCheckResourceAttr("lxd_cached_image.exists1", "aliases.#", "1"),
-					resource.TestCheckResourceAttr("lxd_cached_image.exists1", "aliases.0", alias),
-				),
+				ExpectError: regexp.MustCompile(fmt.Sprintf(`Alias already exists: %s`, alias)),
 			},
 		},
 	})
@@ -208,7 +202,7 @@ func TestAccCachedImage_project(t *testing.T) {
 					resource.TestCheckResourceAttr("lxd_cached_image.img1", "source_remote", acctest.TestCachedImageSourceRemote),
 					resource.TestCheckResourceAttr("lxd_cached_image.img1", "source_image", acctest.TestCachedImageSourceImage),
 					resource.TestCheckResourceAttr("lxd_cached_image.img1", "project", projectName),
-					resource.TestCheckNoResourceAttr("lxd_cached_image.img1", "aliases"),
+					resource.TestCheckResourceAttr("lxd_cached_image.img1", "aliases.#", "0"),
 					resource.TestCheckResourceAttr("lxd_cached_image.img1", "copied_aliases.#", "0"),
 				),
 			},
