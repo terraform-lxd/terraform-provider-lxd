@@ -1,7 +1,9 @@
 package acctest
 
 import (
+	"fmt"
 	"math/rand/v2"
+	"strings"
 
 	petname "github.com/dustinkirkland/golang-petname"
 )
@@ -25,4 +27,14 @@ func GenerateName(words int, separator string) string {
 	}
 
 	return petname.Generate(words-1, separator) + separator + generateString(6)
+}
+
+// QuoteStrings converts slice of strings into a single string where each slice
+// element is quoted and delimited with a comma and whitespace.
+func QuoteStrings(slice []string) string {
+	quoted := make([]string, len(slice))
+	for i, s := range slice {
+		quoted[i] = fmt.Sprintf("%q", s)
+	}
+	return strings.Join(quoted, ", ")
 }
