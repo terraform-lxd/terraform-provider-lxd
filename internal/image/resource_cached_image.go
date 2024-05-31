@@ -8,13 +8,16 @@ import (
 	"github.com/canonical/lxd/shared/api"
 	"github.com/hashicorp/terraform-plugin-framework-validators/setvalidator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
+	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/booldefault"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/boolplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/int64planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/setdefault"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/setplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringdefault"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
@@ -76,18 +79,19 @@ func (r CachedImageResource) Schema(_ context.Context, _ resource.SchemaRequest,
 
 			"aliases": schema.SetAttribute{
 				Optional:    true,
+				Computed:    true,
 				ElementType: types.StringType,
+				Default:     setdefault.StaticValue(types.SetValueMust(types.StringType, []attr.Value{})),
 				Validators: []validator.Set{
 					// Prevent empty values.
 					setvalidator.ValueStringsAre(stringvalidator.LengthAtLeast(1)),
-				},
-				PlanModifiers: []planmodifier.Set{
-					setplanmodifier.RequiresReplace(),
 				},
 			},
 
 			"copy_aliases": schema.BoolAttribute{
 				Optional: true,
+				Computed: true,
+				Default:  booldefault.StaticBool(false),
 				PlanModifiers: []planmodifier.Bool{
 					boolplanmodifier.RequiresReplace(),
 				},
@@ -148,6 +152,9 @@ func (r CachedImageResource) Schema(_ context.Context, _ resource.SchemaRequest,
 			"copied_aliases": schema.SetAttribute{
 				Computed:    true,
 				ElementType: types.StringType,
+				PlanModifiers: []planmodifier.Set{
+					setplanmodifier.UseStateForUnknown(),
+				},
 			},
 		},
 	}
@@ -186,7 +193,7 @@ func (r CachedImageResource) Create(ctx context.Context, req resource.CreateRequ
 		return
 	}
 
-	image := plan.SourceImage.ValueString()
+	imageName := plan.SourceImage.ValueString()
 	imageType := plan.Type.ValueString()
 	imageRemote := plan.SourceRemote.ValueString()
 	imageServer, err := r.provider.ImageServer(imageRemote)
@@ -196,9 +203,9 @@ func (r CachedImageResource) Create(ctx context.Context, req resource.CreateRequ
 	}
 
 	// Determine whether the user has provided an fingerprint or an alias.
-	aliasTarget, _, _ := imageServer.GetImageAliasType(imageType, image)
+	aliasTarget, _, _ := imageServer.GetImageAliasType(imageType, imageName)
 	if aliasTarget != nil {
-		image = aliasTarget.Target
+		imageName = aliasTarget.Target
 	}
 
 	aliases, diags := ToAliasList(ctx, plan.Aliases)
@@ -224,9 +231,9 @@ func (r CachedImageResource) Create(ctx context.Context, req resource.CreateRequ
 	}
 
 	// Get data about remote image (also checks if image exists).
-	imageInfo, _, err := imageServer.GetImage(image)
+	imageInfo, _, err := imageServer.GetImage(imageName)
 	if err != nil {
-		resp.Diagnostics.AddError(fmt.Sprintf("Failed to retrieve info about image %q", image), err.Error())
+		resp.Diagnostics.AddError(fmt.Sprintf("Failed to retrieve info about image %q", imageName), err.Error())
 		return
 	}
 
@@ -238,14 +245,14 @@ func (r CachedImageResource) Create(ctx context.Context, req resource.CreateRequ
 
 	opCopy, err := server.CopyImage(imageServer, *imageInfo, &args)
 	if err != nil {
-		resp.Diagnostics.AddError(fmt.Sprintf("Failed to copy image %q", image), err.Error())
+		resp.Diagnostics.AddError(fmt.Sprintf("Failed to copy image %q", imageName), err.Error())
 		return
 	}
 
 	// Wait for copy operation to finish.
 	err = opCopy.Wait()
 	if err != nil {
-		resp.Diagnostics.AddError(fmt.Sprintf("Failed to copy image %q", image), err.Error())
+		resp.Diagnostics.AddError(fmt.Sprintf("Failed to copy image %q", imageName), err.Error())
 		return
 	}
 
@@ -313,16 +320,16 @@ func (r CachedImageResource) Update(ctx context.Context, req resource.UpdateRequ
 		return
 	}
 
-	// Extract image metadata (fingerprint is retained from previous state).
-	image := plan.SourceImage.ValueString()
+	// Extract imageName metadata (fingerprint is retained from previous state).
+	imageName := plan.SourceImage.ValueString()
 	imageFingerprint := state.Fingerprint.ValueString()
 
 	// Extract removed and added image aliases.
-	oldAliases, diags := ToAliasList(ctx, plan.Aliases)
+	oldAliases := make([]string, 0, len(plan.Aliases.Elements()))
+	diags := req.State.GetAttribute(ctx, path.Root("aliases"), &oldAliases)
 	resp.Diagnostics.Append(diags...)
 
-	newAliases := make([]string, 0, len(plan.Aliases.Elements()))
-	diags = req.State.GetAttribute(ctx, path.Root("aliases"), &newAliases)
+	newAliases, diags := ToAliasList(ctx, plan.Aliases)
 	resp.Diagnostics.Append(diags...)
 
 	if resp.Diagnostics.HasError() {
@@ -335,7 +342,7 @@ func (r CachedImageResource) Update(ctx context.Context, req resource.UpdateRequ
 	for _, alias := range removed {
 		err := server.DeleteImageAlias(alias)
 		if err != nil {
-			resp.Diagnostics.AddError(fmt.Sprintf("Failed to delete alias %q for cached image %q", alias, image), err.Error())
+			resp.Diagnostics.AddError(fmt.Sprintf("Failed to delete alias %q for cached image %q", alias, imageName), err.Error())
 			return
 		}
 	}
@@ -348,7 +355,7 @@ func (r CachedImageResource) Update(ctx context.Context, req resource.UpdateRequ
 
 		err := server.CreateImageAlias(req)
 		if err != nil {
-			resp.Diagnostics.AddError(fmt.Sprintf("Failed to create alias %q for cached image %q", alias, image), err.Error())
+			resp.Diagnostics.AddError(fmt.Sprintf("Failed to create alias %q for cached image %q", alias, imageName), err.Error())
 			return
 		}
 	}
@@ -416,8 +423,8 @@ func (r CachedImageResource) SyncState(ctx context.Context, tfState *tfsdk.State
 	copiedAliases, diags := ToAliasList(ctx, m.CopiedAliases)
 	respDiags.Append(diags...)
 
-	// Copy aliases from image state that are present in user defined
-	// config or are not copied.
+	// Extract aliases from image that are either present in user defined
+	// config or are not copied from initial remote image.
 	var aliases []string
 	for _, a := range image.Aliases {
 		if utils.ValueInSlice(a.Name, configAliases) || !utils.ValueInSlice(a.Name, copiedAliases) {
@@ -453,5 +460,10 @@ func ToAliasList(ctx context.Context, aliasSet types.Set) ([]string, diag.Diagno
 
 // ToAliasSetType converts slice of strings into aliases of type types.Set.
 func ToAliasSetType(ctx context.Context, aliases []string) (types.Set, diag.Diagnostics) {
+	if len(aliases) == 0 {
+		// Prevent null value if slice is empty.
+		return types.SetValueMust(types.StringType, []attr.Value{}), nil
+	}
+
 	return types.SetValueFrom(ctx, types.StringType, aliases)
 }
