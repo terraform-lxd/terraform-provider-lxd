@@ -24,6 +24,8 @@ EOF
 
 * `name` - **Required** - Name of the certificate.
 
+* `type` - *Optional* - Certificate type. Can be either `client` or `metrics`. Defaults to `client`.
+
 * `content` - *__Required__ unless path is used* - The _contents_ of the certificate. Storing the
         certificate directly in the Terraform configuration as plain text is not recommended. Instead,
         use the `file()` function to read the content from a file on disk, or use the `path` attribute.
