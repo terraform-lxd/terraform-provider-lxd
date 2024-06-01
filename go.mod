@@ -3,7 +3,7 @@ module github.com/terraform-lxd/terraform-provider-lxd
 go 1.22.0
 
 require (
-	github.com/canonical/lxd v0.0.0-20240527112132-eca900d109e6
+	github.com/canonical/lxd v0.0.0-20240531141309-41e90c47114b
 	github.com/dustinkirkland/golang-petname v0.0.0-20240428194347-eebcea082ee0
 	github.com/hashicorp/go-version v1.7.0
 	github.com/hashicorp/terraform-plugin-framework v1.8.0
@@ -77,7 +77,7 @@ require (
 	golang.org/x/text v0.15.0 // indirect
 	golang.org/x/tools v0.21.0 // indirect
 	google.golang.org/appengine v1.6.8 // indirect
-	google.golang.org/genproto/googleapis/rpc v0.0.0-20240521202816-d264139d666e // indirect
+	google.golang.org/genproto/googleapis/rpc v0.0.0-20240528184218-531527333157 // indirect
 	google.golang.org/grpc v1.64.0 // indirect
 	google.golang.org/protobuf v1.34.1 // indirect
 	gopkg.in/square/go-jose.v2 v2.6.0 // indirect
