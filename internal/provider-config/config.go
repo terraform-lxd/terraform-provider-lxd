@@ -30,6 +30,7 @@ type LxdProviderRemoteConfig struct {
 	Port         string
 	Password     string
 	Protocol     string
+	Token        string
 	Scheme       string
 	Bootstrapped bool
 }
@@ -256,9 +257,28 @@ func (p *LxdProviderConfig) createLxdServerClient(remote LxdProviderRemoteConfig
 		p.mux.Lock()
 		defer p.mux.Unlock()
 
-		err = authenticateToLxdServer(instServer, remote.Password)
+		server, _, err := instServer.GetServer()
 		if err != nil {
 			return err
+		}
+
+		// Authenticate to the remote LXD server. If successful, the LXD server becomes
+		// trusted to the LXD client, and vice-versa.
+		if server.Auth != "trusted" {
+			req := lxd_api.CertificatesPost{}
+			req.Type = "client"
+			req.Password = remote.Password
+
+			if remote.Token != "" {
+				req.Password = remote.Token
+			}
+
+			// Create new certificate. Ignore error of type conflict (certificate
+			// already exists).
+			err = instServer.CreateCertificate(req)
+			if err != nil && !errors.IsConflictError(err) {
+				return fmt.Errorf("Unable to authenticate with remote server: %v", err)
+			}
 		}
 	}
 
@@ -314,37 +334,6 @@ func verifyLxdServerVersion(instServer lxd.InstanceServer) error {
 
 	if !ok {
 		return fmt.Errorf("LXD server with version %q does not meet the required version constraint: %q", serverVersion, supportedLXDVersions)
-	}
-
-	return nil
-}
-
-// authenticateToLXDServer authenticates to a given remote LXD server.
-// If successful, the LXD server becomes trusted to the LXD client,
-// and vice-versa.
-func authenticateToLxdServer(instServer lxd.InstanceServer, password string) error {
-	server, _, err := instServer.GetServer()
-	if err != nil {
-		return err
-	}
-
-	if server.Auth == "trusted" {
-		return nil
-	}
-
-	req := lxd_api.CertificatesPost{}
-	req.Password = password
-	req.Type = "client"
-
-	// Create new certificate. Ignore error of type conflict (certificate already exists).
-	err = instServer.CreateCertificate(req)
-	if err != nil && !errors.IsConflictError(err) {
-		return fmt.Errorf("Unable to authenticate with remote server: %v", err)
-	}
-
-	_, _, err = instServer.GetServer()
-	if err != nil {
-		return err
 	}
 
 	return nil
