@@ -7,8 +7,8 @@ An instance can take a number of configuration and device options. A full refere
 ## Basic Example
 
 ```hcl
-resource "lxd_instance" "container1" {
-  name  = "container1"
+resource "lxd_instance" "instance1" {
+  name  = "instance1"
   image = "ubuntu-daily:22.04"
 
   config = {
@@ -34,7 +34,7 @@ resource "lxd_volume" "volume1" {
   pool = lxd_storage_pool.pool1.name
 }
 
-resource "lxd_instance" "container1" {
+resource "lxd_instance" "instance1" {
   name  = "%s"
   image = "ubuntu"
 
@@ -53,8 +53,8 @@ resource "lxd_instance" "container1" {
 ## Example to proxy/forward ports
 
 ```hcl
-resource "lxd_instance" "container2" {
-  name      = "container2"
+resource "lxd_instance" "instance2" {
+  name      = "instance2"
   image     = "ubuntu"
   profiles  = ["default"]
   ephemeral = false

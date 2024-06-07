@@ -43,12 +43,12 @@ resource "lxd_instance" "test1" {
 
 ## Argument Reference
 
-* `name` - **Required** - Name of the container.
+* `name` - **Required** - Name of the profile.
 
 * `device` - *Optional* - Device definition. See reference below.
 
 * `config` - *Optional* - Map of key/value pairs of
-	[container config settings](https://documentation.ubuntu.com/lxd/en/latest/reference/instance_options/).
+	[instance config settings](https://documentation.ubuntu.com/lxd/en/latest/reference/instance_options/).
 
 * `project` - *Optional* - Name of the project where the profile will be stored.
 
