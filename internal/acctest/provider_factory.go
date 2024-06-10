@@ -17,7 +17,7 @@ const TestImage = "images:alpine/edge"
 // TestCachedImage is a constant that specifies the default image used in image caching tests.
 // NOTE: it must be different from TestImage otherwise tests running in parallel will race to
 // use and delete that image causing random failures.
-const TestCachedImage = "ubuntu-minimal-daily:22.04"
+const TestCachedImage = "images:alpine/edge/cloud"
 
 var TestCachedImageSourceRemote, TestCachedImageSourceImage, _ = strings.Cut(TestCachedImage, ":")
 
