@@ -5,3 +5,5 @@ terraform-provider-lxd.iml
 settings.json
 **/terraform.tfstate*
 **/*.terraform
+
+dist/
