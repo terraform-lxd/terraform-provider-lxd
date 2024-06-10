@@ -167,7 +167,7 @@ To specify an interface, do the following:
 ```hcl
 resource "incus_instance" "instance1" {
   name = "instance1"
-  image = "images:alpine/3.5/amd64"
+  image = "images:alpine/edge/amd64"
   profiles = ["default"]
 
   config = {
@@ -193,7 +193,7 @@ Import ID syntax: `[<remote>:][<project>/]<name>[,image=<image>]`
 Example using terraform import command:
 
 ```shell
-$ terraform import incus_instance.myinst proj/c1,image=images:alpine/3.18/amd64
+$ terraform import incus_instance.myinst proj/c1,image=images:alpine/edge/amd64
 ```
 
 Example using the import block (only available in Terraform v1.5.0 and later):
@@ -202,12 +202,12 @@ Example using the import block (only available in Terraform v1.5.0 and later):
 resource "incus_instance" "myinst" {
   name    = "c1"
   project = "proj"
-  image   = "images:alpine/3.18/amd64"
+  image   = "images:alpine/edge/amd64"
 }
 
 import {
   to = incus_instance.myinst
-  id = "proj/c1,image=images:alpine/3.18/amd64"
+  id = "proj/c1,image=images:alpine/edge/amd64"
 }
 ```
 

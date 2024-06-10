@@ -11,7 +11,7 @@ import (
 )
 
 // TestImage is a constant that specifies the default image used in all tests.
-const TestImage = "images:alpine/3.18/amd64"
+const TestImage = "images:alpine/edge/amd64"
 
 var testProviderConfig *provider_config.IncusProviderConfig
 var testProviderMutex sync.Mutex

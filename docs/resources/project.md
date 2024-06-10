@@ -18,7 +18,7 @@ resource "incus_project" "project" {
 
 resource "incus_instance" "instance" {
   name    = "instance1"
-  image   = "images:alpine/3.18/amd64"
+  image   = "images:alpine/edge/amd64"
   project = incus_project.project.name
 }
 ```
