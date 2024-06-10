@@ -73,7 +73,7 @@ func SortMapKeys[T any](m map[string]T) []string {
 
 // DiffSlice compares two slices and returns removed and added elements.
 // Note: Does not find differences for duplicate elemnts.
-func DiffSlices[T comparable](sliceA []T, sliceB []T) ([]T, []T) {
+func DiffSlices[T comparable](sliceA []T, sliceB []T) (removed []T, added []T) {
 	mapA := make(map[T]bool, len(sliceA))
 	mapB := make(map[T]bool, len(sliceB))
 
@@ -85,19 +85,16 @@ func DiffSlices[T comparable](sliceA []T, sliceB []T) ([]T, []T) {
 		mapB[k] = true
 	}
 
-	var removed []T
-	var added []T
-
-	// Find elements in listA but not in listB (removed elements)
+	// Find elements in listA that are missing in listB (removed elements)
 	for k := range mapA {
-		if mapB[k] {
+		if !mapB[k] {
 			removed = append(removed, k)
 		}
 	}
 
-	// Find elements in listB but not in listA (added elements)
+	// Find elements in listB that are missing in listA (added elements)
 	for k := range mapB {
-		if mapA[k] {
+		if !mapA[k] {
 			added = append(added, k)
 		}
 	}

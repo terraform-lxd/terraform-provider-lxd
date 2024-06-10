@@ -9,17 +9,15 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework-validators/mapvalidator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/setvalidator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
+	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/diag"
-	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/booldefault"
-	"github.com/hashicorp/terraform-plugin-framework/resource/schema/boolplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/int64planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/listplanmodifier"
-	"github.com/hashicorp/terraform-plugin-framework/resource/schema/mapplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
-	"github.com/hashicorp/terraform-plugin-framework/resource/schema/setplanmodifier"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/setdefault"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringdefault"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
@@ -75,22 +73,18 @@ func (r PublishImageResource) Schema(_ context.Context, _ resource.SchemaRequest
 
 			"aliases": schema.SetAttribute{
 				Optional:    true,
+				Computed:    true,
 				ElementType: types.StringType,
+				Default:     setdefault.StaticValue(types.SetValueMust(types.StringType, []attr.Value{})),
 				Validators: []validator.Set{
 					// Prevent empty values.
 					setvalidator.ValueStringsAre(stringvalidator.LengthAtLeast(1)),
-				},
-				PlanModifiers: []planmodifier.Set{
-					setplanmodifier.RequiresReplace(),
 				},
 			},
 
 			"properties": schema.MapAttribute{
 				Optional:    true,
 				ElementType: types.StringType,
-				PlanModifiers: []planmodifier.Map{
-					mapplanmodifier.RequiresReplace(),
-				},
 				Validators: []validator.Map{
 					mapvalidator.KeysAre(stringvalidator.LengthAtLeast(1)),
 					mapvalidator.ValueStringsAre(stringvalidator.LengthAtLeast(1)),
@@ -101,9 +95,6 @@ func (r PublishImageResource) Schema(_ context.Context, _ resource.SchemaRequest
 				Optional: true,
 				Computed: true,
 				Default:  booldefault.StaticBool(false),
-				PlanModifiers: []planmodifier.Bool{
-					boolplanmodifier.RequiresReplace(),
-				},
 			},
 
 			"filename": schema.StringAttribute{
@@ -330,11 +321,19 @@ func (r PublishImageResource) Update(ctx context.Context, req resource.UpdateReq
 	imageProps, diags := common.ToConfigMap(ctx, plan.Properties)
 	resp.Diagnostics.Append(diags...)
 
-	oldAliases, diags := ToAliasList(ctx, plan.Aliases)
-	resp.Diagnostics.Append(diags...)
+	// Get info about published image.
+	image, _, err := server.GetImage(imageFingerprint)
+	if err != nil {
+		resp.Diagnostics.AddError("Failed to retrieve published image", err.Error())
+		return
+	}
 
-	newAliases := make([]string, 0, len(plan.Aliases.Elements()))
-	diags = req.State.GetAttribute(ctx, path.Root("aliases"), &newAliases)
+	oldAliases := make([]string, len(image.Aliases))
+	for i, alias := range image.Aliases {
+		oldAliases[i] = alias.Name
+	}
+
+	newAliases, diags := ToAliasList(ctx, plan.Aliases)
 	resp.Diagnostics.Append(diags...)
 
 	if resp.Diagnostics.HasError() {
@@ -368,6 +367,10 @@ func (r PublishImageResource) Update(ctx context.Context, req resource.UpdateReq
 
 	imageReq := api.ImagePut{
 		Properties: imageProps,
+		Public:     plan.Public.ValueBool(),
+		ExpiresAt:  image.ExpiresAt,
+		AutoUpdate: image.AutoUpdate,
+		Profiles:   image.Profiles,
 	}
 
 	err = server.UpdateImage(imageFingerprint, imageReq, "")
