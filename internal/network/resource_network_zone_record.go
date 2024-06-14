@@ -30,7 +30,7 @@ type NetworkZoneRecordModel struct {
 	Name        types.String `tfsdk:"name"`
 	Zone        types.String `tfsdk:"zone"`
 	Description types.String `tfsdk:"description"`
-	Enteries    types.Set    `tfsdk:"entry"`
+	Entries     types.Set    `tfsdk:"entry"`
 	Project     types.String `tfsdk:"project"`
 	Remote      types.String `tfsdk:"remote"`
 	Config      types.Map    `tfsdk:"config"`
@@ -118,7 +118,7 @@ func (r NetworkZoneRecordResource) Schema(_ context.Context, _ resource.SchemaRe
 						},
 
 						"ttl": schema.Int64Attribute{
-							Required:    true,
+							Optional:    true,
 							Description: "Record entry TTL",
 							Validators: []validator.Int64{
 								int64validator.AtLeast(1),
@@ -168,7 +168,7 @@ func (r NetworkZoneRecordResource) Create(ctx context.Context, req resource.Crea
 	config, diags := common.ToConfigMap(ctx, plan.Config)
 	resp.Diagnostics.Append(diags...)
 
-	entries, diags := ToZoneRecordEntryList(ctx, plan.Enteries)
+	entries, diags := ToZoneRecordEntryList(ctx, plan.Entries)
 	resp.Diagnostics.Append(diags...)
 
 	if resp.Diagnostics.HasError() {
@@ -251,7 +251,7 @@ func (r NetworkZoneRecordResource) Update(ctx context.Context, req resource.Upda
 	config, diags := common.ToConfigMap(ctx, plan.Config)
 	resp.Diagnostics.Append(diags...)
 
-	entries, diags := ToZoneRecordEntryList(ctx, plan.Enteries)
+	entries, diags := ToZoneRecordEntryList(ctx, plan.Entries)
 	resp.Diagnostics.Append(diags...)
 
 	if resp.Diagnostics.HasError() {
@@ -347,7 +347,7 @@ func (r NetworkZoneRecordResource) SyncState(ctx context.Context, tfState *tfsdk
 	m.Zone = types.StringValue(zoneName)
 	m.Name = types.StringValue(record.Name)
 	m.Description = types.StringValue(record.Description)
-	m.Enteries = entries
+	m.Entries = entries
 	m.Config = config
 
 	if respDiags.HasError() {
