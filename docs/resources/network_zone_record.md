@@ -19,7 +19,7 @@ resource "incus_network_zone" "zone" {
 
 resource "incus_network_zone_record" "record" {
   name = "ns"
-  zone = incus_network_zone.zone.id
+  zone = incus_network_zone.zone.name
 
   entry {
       type  = "CNAME"
