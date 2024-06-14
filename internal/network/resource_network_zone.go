@@ -275,7 +275,7 @@ func (r NetworkZoneResource) SyncState(ctx context.Context, tfState *tfsdk.State
 	}
 
 	// Convert config state into schema type.
-	config, diags := common.ToConfigMapType(ctx, zone.Config)
+	config, diags := common.ToConfigMapType(ctx, common.ToNullableConfig(zone.Config), m.Config)
 	if diags.HasError() {
 		return diags
 	}

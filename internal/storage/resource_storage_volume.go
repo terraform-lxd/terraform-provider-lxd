@@ -349,12 +349,9 @@ func (r StorageVolumeResource) SyncState(ctx context.Context, tfState *tfsdk.Sta
 	}
 
 	// Extract user defined config and merge it with current config state.
-	userConfig, diags := common.ToConfigMap(ctx, m.Config)
-	respDiags.Append(diags...)
+	stateConfig := common.StripConfig(vol.Config, m.Config, m.ComputedKeys())
 
-	stateConfig := common.StripConfig(vol.Config, userConfig, m.ComputedKeys())
-
-	config, diags := common.ToConfigMapType(ctx, stateConfig)
+	config, diags := common.ToConfigMapType(ctx, stateConfig, m.Config)
 	respDiags.Append(diags...)
 
 	m.Name = types.StringValue(vol.Name)

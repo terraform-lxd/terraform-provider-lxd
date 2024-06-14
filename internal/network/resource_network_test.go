@@ -48,6 +48,26 @@ func TestAccNetwork_description(t *testing.T) {
 	})
 }
 
+func TestAccNetwork_nullable(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { acctest.PreCheck(t) },
+		ProtoV6ProviderFactories: acctest.ProtoV6ProviderFactories,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccNetwork_nullable(),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr("incus_network.eth2", "name", "eth2"),
+					resource.TestCheckResourceAttr("incus_network.eth2", "type", "bridge"),
+					resource.TestCheckResourceAttr("incus_network.eth2", "description", "My network"),
+					resource.TestCheckResourceAttr("incus_network.eth2", "config.%", "2"),
+					resource.TestCheckNoResourceAttr("incus_network.eth2", "config.ipv4.address"),
+					resource.TestCheckResourceAttr("incus_network.eth2", "config.ipv6.address", "none"),
+				),
+			},
+		},
+	})
+}
+
 func TestAccNetwork_attach(t *testing.T) {
 	profileName := petname.Generate(2, "-")
 	instanceName := petname.Generate(2, "-")
@@ -260,6 +280,23 @@ resource "incus_network" "eth1" {
   config = {
     "ipv4.address" = "10.150.19.1/24"
     "ipv6.address" = "fd42:474b:622d:259d::1/64"
+  }
+}
+`
+}
+
+func testAccNetwork_nullable() string {
+	return `
+locals {
+  foo = "bar"
+}
+
+resource "incus_network" "eth2" {
+  name        = "eth2"
+  description = "My network"
+  config = {
+    "ipv4.address" = local.foo == "bar" ? null : "10.0.0.1/24"
+    "ipv6.address" = "none"
   }
 }
 `

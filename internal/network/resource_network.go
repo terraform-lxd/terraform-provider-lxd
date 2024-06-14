@@ -323,13 +323,10 @@ func (r NetworkResource) SyncState(ctx context.Context, tfState *tfsdk.State, se
 	}
 
 	// Extract user defined config and merge it with current config state.
-	usrConfig, diags := common.ToConfigMap(ctx, m.Config)
-	respDiags.Append(diags...)
-
-	stateConfig := common.StripConfig(network.Config, usrConfig, m.ComputedKeys())
+	stateConfig := common.StripConfig(network.Config, m.Config, m.ComputedKeys())
 
 	// Convert config state into schema type.
-	config, diags := common.ToConfigMapType(ctx, stateConfig)
+	config, diags := common.ToConfigMapType(ctx, stateConfig, m.Config)
 	respDiags.Append(diags...)
 
 	m.Name = types.StringValue(network.Name)

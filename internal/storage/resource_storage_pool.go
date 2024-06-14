@@ -312,13 +312,10 @@ func (r StoragePoolResource) SyncState(ctx context.Context, tfState *tfsdk.State
 	}
 
 	// Extract user defined config and merge it with current config state.
-	userConfig, diags := common.ToConfigMap(ctx, m.Config)
-	respDiags.Append(diags...)
-
-	stateConfig := common.StripConfig(pool.Config, userConfig, m.ComputedKeys(pool.Driver))
+	stateConfig := common.StripConfig(pool.Config, m.Config, m.ComputedKeys(pool.Driver))
 
 	// Convert config state into schema type.
-	config, diags := common.ToConfigMapType(ctx, stateConfig)
+	config, diags := common.ToConfigMapType(ctx, stateConfig, m.Config)
 	respDiags.Append(diags...)
 
 	m.Name = types.StringValue(pool.Name)
