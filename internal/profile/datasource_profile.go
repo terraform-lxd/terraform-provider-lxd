@@ -108,7 +108,7 @@ func (d *ProfileDataSource) Read(ctx context.Context, req datasource.ReadRequest
 		return
 	}
 
-	config, diags := common.ToConfigMapType(ctx, profile.Config)
+	config, diags := common.ToConfigMapType(ctx, common.ToNullableConfig(profile.Config), state.Config)
 	resp.Diagnostics.Append(diags...)
 
 	devices, diags := common.ToDeviceSetType(ctx, profile.Devices)

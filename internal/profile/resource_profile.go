@@ -326,7 +326,7 @@ func (r ProfileResource) SyncState(ctx context.Context, tfState *tfsdk.State, se
 	}
 
 	// Convert config state and devices into schema types.
-	config, diags := common.ToConfigMapType(ctx, profile.Config)
+	config, diags := common.ToConfigMapType(ctx, common.ToNullableConfig(profile.Config), m.Config)
 	respDiags.Append(diags...)
 
 	devices, diags := common.ToDeviceSetType(ctx, profile.Devices)
