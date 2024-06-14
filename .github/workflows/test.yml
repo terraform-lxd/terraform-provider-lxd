@@ -103,7 +103,7 @@ jobs:
           go-version: ${{ matrix.go-version }}
 
       - name: Run GoReleaser in build mode to test all release platforms
-        uses: goreleaser/goreleaser-action@v5
+        uses: goreleaser/goreleaser-action@v6
         with:
           version: latest
           args: build --snapshot
