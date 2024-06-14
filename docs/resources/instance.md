@@ -160,7 +160,7 @@ The following attributes are exported:
 
 If your instance has multiple network interfaces, you can specify which one
 Terraform should report the IP addresses of. If you do not specify an interface,
-Terraform will use the _last_ address detected. Global IPv6 address will be favored if present.
+Terraform will use the first address from the best interface detected.
 
 To specify an interface, do the following:
 
