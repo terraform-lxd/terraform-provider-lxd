@@ -341,7 +341,7 @@ func (r NetworkZoneRecordResource) SyncState(ctx context.Context, tfState *tfsdk
 	entries, diags := ToZoneRecordEntrySetType(ctx, record.Entries)
 	respDiags.Append(diags...)
 
-	config, diags := common.ToConfigMapType(ctx, record.Config)
+	config, diags := common.ToConfigMapType(ctx, common.ToNullableConfig(record.Config), m.Config)
 	respDiags.Append(diags...)
 
 	m.Zone = types.StringValue(zoneName)

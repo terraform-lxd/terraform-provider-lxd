@@ -277,13 +277,10 @@ func (r ProjectResource) SyncState(ctx context.Context, tfState *tfsdk.State, se
 	}
 
 	// Extract user defined config and merge it with current config state.
-	usrConfig, diags := common.ToConfigMap(ctx, m.Config)
-	respDiags.Append(diags...)
-
-	stateConfig := common.StripConfig(project.Config, usrConfig, m.ComputedKeys())
+	stateConfig := common.StripConfig(project.Config, m.Config, m.ComputedKeys())
 
 	// Convert config state into schema type.
-	config, diags := common.ToConfigMapType(ctx, stateConfig)
+	config, diags := common.ToConfigMapType(ctx, stateConfig, m.Config)
 	respDiags.Append(diags...)
 
 	m.Name = types.StringValue(project.Name)
