@@ -6,6 +6,7 @@ import (
 
 	lxd "github.com/canonical/lxd/client"
 	"github.com/canonical/lxd/shared/api"
+	"github.com/hashicorp/terraform-plugin-framework-validators/mapvalidator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/diag"
@@ -28,6 +29,7 @@ type StoragePoolModel struct {
 	Name        types.String `tfsdk:"name"`
 	Description types.String `tfsdk:"description"`
 	Driver      types.String `tfsdk:"driver"`
+	Source      types.String `tfsdk:"source"`
 	Project     types.String `tfsdk:"project"`
 	Target      types.String `tfsdk:"target"`
 	Remote      types.String `tfsdk:"remote"`
@@ -74,6 +76,11 @@ func (r StoragePoolResource) Schema(_ context.Context, _ resource.SchemaRequest,
 				},
 			},
 
+			"source": schema.StringAttribute{
+				Description: "Source of the storage pool which is respected only when the storage pool is being created.",
+				Optional:    true,
+			},
+
 			"project": schema.StringAttribute{
 				Optional: true,
 				PlanModifiers: []planmodifier.String{
@@ -106,6 +113,9 @@ func (r StoragePoolResource) Schema(_ context.Context, _ resource.SchemaRequest,
 				Computed:    true,
 				ElementType: types.StringType,
 				Default:     mapdefault.StaticValue(types.MapValueMust(types.StringType, map[string]attr.Value{})),
+				Validators: []validator.Map{
+					mapvalidator.KeysAre(configSourceValidator{}),
+				},
 			},
 		},
 	}
@@ -149,6 +159,12 @@ func (r StoragePoolResource) Create(ctx context.Context, req resource.CreateRequ
 	resp.Diagnostics.Append(diag...)
 	if resp.Diagnostics.HasError() {
 		return
+	}
+
+	// If storage pool source is configured, set it in the storage pool config.
+	poolSource := plan.Source.ValueString()
+	if poolSource != "" {
+		config["source"] = poolSource
 	}
 
 	pool := api.StoragePoolsPost{

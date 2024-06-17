@@ -10,9 +10,6 @@ Manages an LXD storage pool.
 resource "lxd_storage_pool" "pool1" {
   name   = "mypool"
   driver = "dir"
-  config = {
-    source = "/var/lib/lxd/storage-pools/mypool"
-  }
 }
 ```
 
@@ -53,7 +50,12 @@ for more details on how to create a storage pool in clustered mode.
 
 * `name`   - **Required** - Name of the storage pool.
 
-* `driver` - **Required** - Storage Pool driver. Must be one of `dir`, `zfs`, `lvm`, `btrfs`, `ceph`, `cephfs`, or `cephobject`.
+* `driver` - **Required** - Storage pool driver. Must be one of `dir`, `zfs`, `lvm`, `btrfs`, `ceph`, `cephfs`, or `cephobject`.
+
+* `source` - *Optional* - Source of the storage pool that is applicable only during the creation.
+  While this corresponds to `config.source` in LXD, `config.source` is adjusted after creation by
+  LXD based on the underlying storage driver. Therefore, using `source` during creation prevents an
+  inconsistent Terraform plan.
 
 * `description` - *Optional* - Description of the storage pool.
 

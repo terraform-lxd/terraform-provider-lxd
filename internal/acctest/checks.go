@@ -2,6 +2,7 @@ package acctest
 
 import (
 	"fmt"
+	"os/exec"
 	"strings"
 	"testing"
 
@@ -96,6 +97,16 @@ func PreCheckClustering(t *testing.T) {
 
 	if !server.IsClustered() {
 		t.Skipf("Test %q skipped. LXD server is not running in clustered mode.", t.Name())
+	}
+}
+
+// PreCheckRoot skips the test if the user cannot escalate privileges without a password.
+// Root is required for certain tests, such as creating a loopback device for storage.
+// This ensures tests do not stop midway asking for password.
+func PreCheckRoot(t *testing.T) {
+	err := exec.Command("sudo", "-n", "true").Run()
+	if err != nil {
+		t.Skipf("Test %q skipped. Cannot escalate privilege without a password.", t.Name())
 	}
 }
 
