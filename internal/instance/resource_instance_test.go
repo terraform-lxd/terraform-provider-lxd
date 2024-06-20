@@ -5,8 +5,9 @@ import (
 	"regexp"
 	"testing"
 
-	petname "github.com/dustinkirkland/golang-petname"
+	"github.com/dustinkirkland/golang-petname"
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
+
 	"github.com/lxc/terraform-provider-incus/internal/acctest"
 )
 

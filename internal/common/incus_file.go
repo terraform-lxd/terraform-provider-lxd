@@ -11,9 +11,10 @@ import (
 
 	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/types"
-	incus "github.com/lxc/incus/v6/client"
-	"github.com/lxc/terraform-provider-incus/internal/errors"
+	"github.com/lxc/incus/v6/client"
 	"github.com/mitchellh/go-homedir"
+
+	"github.com/lxc/terraform-provider-incus/internal/errors"
 )
 
 type InstanceFileModel struct {

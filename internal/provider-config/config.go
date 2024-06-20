@@ -7,11 +7,12 @@ import (
 	"path/filepath"
 	"sync"
 
-	incus "github.com/lxc/incus/v6/client"
+	"github.com/lxc/incus/v6/client"
 	incus_api "github.com/lxc/incus/v6/shared/api"
 	incus_config "github.com/lxc/incus/v6/shared/cliconfig"
 	incus_tls "github.com/lxc/incus/v6/shared/tls"
 	incus_shared "github.com/lxc/incus/v6/shared/util"
+
 	"github.com/lxc/terraform-provider-incus/internal/utils"
 )
 
