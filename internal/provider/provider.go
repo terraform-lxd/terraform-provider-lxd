@@ -270,6 +270,7 @@ func (p *IncusProvider) Resources(_ context.Context) []func() resource.Resource 
 		network.NewNetworkLBResource,
 		network.NewNetworkZoneResource,
 		network.NewNetworkZoneRecordResource,
+		network.NewNetworkAclResource,
 		profile.NewProfileResource,
 		project.NewProjectResource,
 		storage.NewStoragePoolResource,
