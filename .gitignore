@@ -1,7 +1,10 @@
-terraform-provider-incus
-terraform-provider-incus.iml
+dist/
+
 .idea
 **/*.swp
 settings.json
+
+terraform-provider-incus
+terraform-provider-incus.iml
 **/terraform.tfstate*
 **/*.terraform
