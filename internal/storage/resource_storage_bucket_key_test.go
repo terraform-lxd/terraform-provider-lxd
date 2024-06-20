@@ -2,11 +2,13 @@ package storage_test
 
 import (
 	"fmt"
-	petname "github.com/dustinkirkland/golang-petname"
+	"testing"
+
+	"github.com/dustinkirkland/golang-petname"
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
 	"github.com/hashicorp/terraform-plugin-testing/terraform"
+
 	"github.com/lxc/terraform-provider-incus/internal/acctest"
-	"testing"
 )
 
 func TestAccStorageBucketKey_basic(t *testing.T) {
