@@ -267,10 +267,24 @@ func (p *LxdProviderConfig) createLxdServerClient(remote LxdProviderRemoteConfig
 		if server.Auth != "trusted" {
 			req := lxd_api.CertificatesPost{}
 			req.Type = "client"
-			req.Password = remote.Password
 
 			if remote.Token != "" {
-				req.Password = remote.Token
+				if instServer.HasExtension("explicit_trust_token") {
+					req.TrustToken = remote.Token
+				} else {
+					req.Password = remote.Token
+				}
+			} else if remote.Password != "" {
+				ok, err := utils.CheckVersion(server.Environment.ServerVersion, ">= 6.0.0")
+				if err != nil {
+					return err
+				}
+
+				if !ok {
+					return fmt.Errorf("LXD server does not support password authentication from version 6.0 onwards")
+				}
+
+				req.Password = remote.Password
 			}
 
 			// Create new certificate. Ignore error of type conflict (certificate
