@@ -4,7 +4,6 @@ import (
 	"encoding/pem"
 	"fmt"
 	"os"
-	"path/filepath"
 	"sync"
 	"time"
 
@@ -153,21 +152,9 @@ func (p *LxdProviderConfig) server(remoteName string) (lxd.Server, error) {
 		}
 	}
 
-	lxdRemoteConfig := p.getLxdConfigRemote(remoteName)
-
-	// If remote address is not provided or is only set to the prefix for
-	// Unix sockets (`unix://`) then determine which LXD directory
-	// contains a writable unix socket.
-	if lxdRemoteConfig.Addr == "" || lxdRemoteConfig.Addr == "unix://" {
-		lxdDir, err := determineLxdDir()
-		if err != nil {
-			return nil, err
-		}
-
-		_ = os.Setenv("LXD_DIR", lxdDir)
-	}
-
 	var err error
+
+	lxdRemoteConfig := p.getLxdConfigRemote(remoteName)
 
 	switch lxdRemoteConfig.Protocol {
 	case "simplestreams":
@@ -382,45 +369,6 @@ func determineLxdDaemonAddr(remote LxdProviderRemoteConfig) string {
 	}
 
 	return daemonAddr
-}
-
-// determineLxdDir determines which standard LXD directory contains a writable UNIX socket.
-// If environment variable LXD_DIR or LXD_SOCKET is set, the function will return LXD directory
-// based on the value from any of those variables.
-func determineLxdDir() (string, error) {
-	lxdSocket, ok := os.LookupEnv("LXD_SOCKET")
-	if ok {
-		if utils.IsSocketWritable(lxdSocket) {
-			return filepath.Dir(lxdSocket), nil
-		}
-
-		return "", fmt.Errorf("Environment variable LXD_SOCKET points to either a non-existing or non-writable unix socket")
-	}
-
-	lxdDir, ok := os.LookupEnv("LXD_DIR")
-	if ok {
-		socketPath := filepath.Join(lxdDir, "unix.socket")
-		if utils.IsSocketWritable(socketPath) {
-			return lxdDir, nil
-		}
-
-		return "", fmt.Errorf("Environment variable LXD_DIR points to a LXD directory that does not contain a writable unix socket")
-	}
-
-	lxdDirs := []string{
-		"/var/lib/lxd",
-		"/var/snap/lxd/common/lxd",
-	}
-
-	// Iterate over LXD directories and find a writable unix socket.
-	for _, lxdDir := range lxdDirs {
-		socketPath := filepath.Join(lxdDir, "unix.socket")
-		if utils.IsSocketWritable(socketPath) {
-			return lxdDir, nil
-		}
-	}
-
-	return "", fmt.Errorf("LXD socket with write permissions not found. Searched LXD directories: %v", lxdDirs)
 }
 
 /* Getters & Setters */
