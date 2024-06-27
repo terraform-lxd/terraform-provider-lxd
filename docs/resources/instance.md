@@ -238,8 +238,8 @@ resource "lxd_instance" "instance1" {
 ## Executing Commands in Instances
 
 The `execs` map defines commands to be executed within an instance. Each element in the map
-represents an exec command, uniquely identified by its map key. The commands are executed in
-an order determined alphabetically by their map keys.
+represents an exec command, uniquely identified by its map key. **The commands
+are executed in alphabetical order of their map keys.**
 
 ### Commands and Environment Access
 
@@ -252,8 +252,18 @@ resource "lxd_instance" "inst" {
   image = "ubuntu-daily:22.04"
 
   execs = {
-    "simple_cmd" = {
+    "00-run-first" = {
+      # wait for boot to complete
+      command = ["systemctl", "is-system-running", "--wait", "--quiet"]
+      trigger = "on_start"
+    }
+    "simple-cmd" = {
       command = ["ls", "/"]
+    }
+    "zz-run-last" = {
+      # show how long it took to boot
+      command = ["systemd-analyze", "--no-pager"]
+      trigger = "on_start"
     }
   }
 }
