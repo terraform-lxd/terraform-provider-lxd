@@ -210,6 +210,29 @@ func TestAccCachedImage_project(t *testing.T) {
 	})
 }
 
+func TestAccCachedImage_instanceFromImageFingerprint(t *testing.T) {
+	projectName := acctest.GenerateName(2, "")
+	instanceName := acctest.GenerateName(2, "")
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { acctest.PreCheck(t) },
+		ProtoV6ProviderFactories: acctest.ProtoV6ProviderFactories,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccCachedImage_instanceFromImageFingerprint(projectName, instanceName),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr("lxd_project.project1", "name", projectName),
+					resource.TestCheckResourceAttr("lxd_cached_image.img1", "project", projectName),
+					resource.TestCheckResourceAttr("lxd_cached_image.img1", "source_image", acctest.TestCachedImageSourceImage),
+					resource.TestCheckResourceAttr("lxd_cached_image.img1", "source_remote", acctest.TestCachedImageSourceRemote),
+					resource.TestCheckResourceAttr("lxd_instance.inst", "name", instanceName),
+					resource.TestCheckResourceAttr("lxd_instance.inst", "project", projectName),
+				),
+			},
+		},
+	})
+}
+
 func testAccCachedImage_basic() string {
 	return fmt.Sprintf(`
 resource "lxd_cached_image" "img1" {
@@ -298,10 +321,37 @@ func testAccCachedImage_project(project string) string {
 resource "lxd_project" "project1" {
   name = "%s"
 }
+
 resource "lxd_cached_image" "img1" {
   source_remote = "%s"
   source_image  = "%s"
   project       = lxd_project.project1.name
 }
 	`, project, acctest.TestCachedImageSourceRemote, acctest.TestCachedImageSourceImage)
+}
+
+func testAccCachedImage_instanceFromImageFingerprint(project string, instanceName string) string {
+	return fmt.Sprintf(`
+resource "lxd_project" "project1" {
+  name = "%s"
+
+  config = {
+    "features.images"   = true
+    "features.profiles" = false
+  }
+}
+
+resource "lxd_cached_image" "img1" {
+  source_remote = "%s"
+  source_image  = "%s"
+  project       = lxd_project.project1.name
+}
+
+resource "lxd_instance" "inst" {
+    name    = "%s"
+    project = lxd_project.project1.name
+    image   = lxd_cached_image.img1.fingerprint
+    running = false
+}
+	`, project, acctest.TestCachedImageSourceRemote, acctest.TestCachedImageSourceImage, instanceName)
 }
