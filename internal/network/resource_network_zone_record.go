@@ -119,6 +119,7 @@ func (r NetworkZoneRecordResource) Schema(_ context.Context, _ resource.SchemaRe
 
 						"ttl": schema.Int64Attribute{
 							Optional:    true,
+							Computed:    true,
 							Description: "Record entry TTL",
 							Validators: []validator.Int64{
 								int64validator.AtLeast(1),
