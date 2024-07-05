@@ -37,7 +37,7 @@ func TestAccNetworkZoneRecord_entries(t *testing.T) {
 	entry1 := map[string]string{
 		"type":  "CNAME",
 		"value": "one",
-		"ttl":   "3600",
+		"ttl":   "",
 	}
 
 	entry2 := map[string]string{
@@ -132,7 +132,6 @@ resource "lxd_network_zone_record" "record" {
   entry {
     type  = "CNAME"
     value = "one"
-    ttl   = 3600
   }
 }
 `, zoneName, recordName)
