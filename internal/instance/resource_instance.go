@@ -551,16 +551,17 @@ func (r InstanceResource) Create(ctx context.Context, req resource.CreateRequest
 		return
 	}
 
+	var imageRemote string
+	var imageServer lxd.ImageServer
+
 	// Evaluate image remote.
 	image := plan.Image.ValueString()
-	imageRemote := remote
 	imageParts := strings.SplitN(image, ":", 2)
 	if len(imageParts) == 2 {
 		imageRemote = imageParts[0]
 		image = imageParts[1]
 	}
 
-	var imageServer lxd.ImageServer
 	if imageRemote == "" {
 		// Use the instance server as an image server if image remote is empty.
 		imageServer = server
