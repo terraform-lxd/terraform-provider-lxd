@@ -53,6 +53,8 @@ resource "lxd_network_forward" "my_forward" {
 
 * `description` - *Optional* - Description of the network forward.
 
+* `ports` - *Optional* - List of port specifications. See reference below.
+
 * `config` - *Optional* - Map of key/value pairs of
   [network forward config settings](https://documentation.ubuntu.com/lxd/en/latest/howto/network_forwards/).
 
@@ -61,27 +63,25 @@ resource "lxd_network_forward" "my_forward" {
 * `remote` - *Optional* - The remote in which the resource will be created. If
   not provided, the provider's default remote will be used.
 
-* `ports` - *Optional* - List of port specifications. See reference below.
-
 The network forward port supports:
 
-* `protocol` - **Required** - Protocol for the port(s) (`tcp` or `udp`). If not set then `tcp` will be used.
-
-* `listen_port` - **Required** - Listen port(s) (e.g. `80,90-100`)
+* `protocol` - **Required** - Protocol for the port(s). Possible values are `tcp` and `udp`.
 
 * `target_address` - **Required** - IP address to forward to
 
-* `target_port` - *Optional* - T arget port(s) (e.g. `70,80-90` or `90`), same as listen_port if empty
+* `listen_port` - **Required** - Listen port(s) (e.g. `80,90-100`)
+
+* `target_port` - *Optional* - Target port(s) (e.g. `70,80-90` or `90`).
 
 * `description` - *Optional* - Description of port(s)
 
 ## Importing
 
-Import ID syntax: `[<remote>:][<project>/]<network-name>/<listen-address>`
+Import ID syntax: `[<remote>:][<project>/]<network>/<listen-address>`
 
 * `<remote>` - *Optional* - Remote name.
 * `<project>` - *Optional* - Project name.
-* `<network-name>` - **Required** - Network name.
+* `<network>` - **Required** - Network name.
 * `<listen-address>` - **Required** - IP Listen Address.
 
 ### Import example
@@ -96,7 +96,7 @@ Example using the import block (only available in Terraform v1.5.0 and later):
 
 ```hcl
 resource "lxd_network_forward" "forward1" {
-  network_name   = "my-network"
+  network        = "my-network"
   listen_address = "10.150.19.10"
   project        = "proj"
 }
