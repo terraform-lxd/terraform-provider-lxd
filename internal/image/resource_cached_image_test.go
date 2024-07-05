@@ -219,7 +219,24 @@ func TestAccCachedImage_instanceFromImageFingerprint(t *testing.T) {
 		ProtoV6ProviderFactories: acctest.ProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccCachedImage_instanceFromImageFingerprint(projectName, instanceName),
+				// Create an instance from the cached image and do not set instance
+				// remote. Test will succeed only if the image is searched in the
+				// remote and project where instance is created.
+				Config: testAccCachedImage_instanceFromImageFingerprint(projectName, instanceName, ""),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr("lxd_project.project1", "name", projectName),
+					resource.TestCheckResourceAttr("lxd_cached_image.img1", "project", projectName),
+					resource.TestCheckResourceAttr("lxd_cached_image.img1", "source_image", acctest.TestCachedImageSourceImage),
+					resource.TestCheckResourceAttr("lxd_cached_image.img1", "source_remote", acctest.TestCachedImageSourceRemote),
+					resource.TestCheckResourceAttr("lxd_instance.inst", "name", instanceName),
+					resource.TestCheckResourceAttr("lxd_instance.inst", "project", projectName),
+				),
+			},
+			{
+				// Create an instance from the cached image and set instance's remote.
+				// Test will succeed only if the image is searched in the remote and
+				// project where instance is created.
+				Config: testAccCachedImage_instanceFromImageFingerprint(projectName, instanceName, "local"),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("lxd_project.project1", "name", projectName),
 					resource.TestCheckResourceAttr("lxd_cached_image.img1", "project", projectName),
@@ -330,7 +347,7 @@ resource "lxd_cached_image" "img1" {
 	`, project, acctest.TestCachedImageSourceRemote, acctest.TestCachedImageSourceImage)
 }
 
-func testAccCachedImage_instanceFromImageFingerprint(project string, instanceName string) string {
+func testAccCachedImage_instanceFromImageFingerprint(project string, instanceName string, instanceRemote string) string {
 	return fmt.Sprintf(`
 resource "lxd_project" "project1" {
   name = "%s"
@@ -349,9 +366,10 @@ resource "lxd_cached_image" "img1" {
 
 resource "lxd_instance" "inst" {
     name    = "%s"
-    project = lxd_project.project1.name
     image   = lxd_cached_image.img1.fingerprint
+    remote  = "%s"
+    project = lxd_project.project1.name
     running = false
 }
-	`, project, acctest.TestCachedImageSourceRemote, acctest.TestCachedImageSourceImage, instanceName)
+	`, project, acctest.TestCachedImageSourceRemote, acctest.TestCachedImageSourceImage, instanceName, instanceRemote)
 }
