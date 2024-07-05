@@ -42,7 +42,7 @@ func TestAccNetworkForward_Ports(t *testing.T) {
 		"description":    "HTTP",
 		"protocol":       "tcp",
 		"listen_port":    "80",
-		"target_port":    "8080",
+		"target_port":    "",
 		"target_address": "10.150.19.112",
 	}
 
@@ -123,7 +123,6 @@ resource "lxd_network_forward" "forward" {
       description    = "HTTP"
       protocol       = "tcp"
       listen_port    = "80"
-      target_port    = "8080"
       target_address = "10.150.19.112"
     }
   ]

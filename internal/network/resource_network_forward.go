@@ -117,9 +117,7 @@ func (r *NetworkForwardResource) Schema(ctx context.Context, req resource.Schema
 						},
 
 						"protocol": schema.StringAttribute{
-							Optional:    true,
-							Computed:    true,
-							Default:     stringdefault.StaticString("tcp"),
+							Required:    true,
 							Description: "Port protocol",
 							Validators: []validator.String{
 								stringvalidator.OneOf("tcp", "udp"),
@@ -132,8 +130,9 @@ func (r *NetworkForwardResource) Schema(ctx context.Context, req resource.Schema
 						},
 
 						"target_port": schema.StringAttribute{
-							Required:    true,
-							Description: "Target port to forward listen port to",
+							Optional:    true,
+							Computed:    true,
+							Description: "Target port to forward listen port to. Defaults to the value of listen_port",
 						},
 
 						"target_address": schema.StringAttribute{
@@ -221,33 +220,6 @@ func (r *NetworkForwardResource) Create(ctx context.Context, req resource.Create
 
 	diags = r.SyncState(ctx, &resp.State, server, plan)
 	resp.Diagnostics.Append(diags...)
-}
-
-func ToNetworkForwardPortList(ctx context.Context, portsSet types.Set) ([]api.NetworkForwardPort, diag.Diagnostics) {
-	if portsSet.IsNull() || portsSet.IsUnknown() {
-		return []api.NetworkForwardPort{}, nil
-	}
-
-	modelPorts := make([]NetworkForwardPortModel, 0, len(portsSet.Elements()))
-	diags := portsSet.ElementsAs(ctx, &modelPorts, false)
-	if diags.HasError() {
-		return nil, diags
-	}
-
-	ports := make([]api.NetworkForwardPort, 0, len(modelPorts))
-	for _, modelPort := range modelPorts {
-		port := api.NetworkForwardPort{
-			Description:   modelPort.Description.ValueString(),
-			Protocol:      modelPort.Protocol.ValueString(),
-			ListenPort:    modelPort.ListenPort.ValueString(),
-			TargetPort:    modelPort.TargetPort.ValueString(),
-			TargetAddress: modelPort.TargetAddress.ValueString(),
-		}
-
-		ports = append(ports, port)
-	}
-
-	return ports, nil
 }
 
 func (r *NetworkForwardResource) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
@@ -397,6 +369,35 @@ func (r *NetworkForwardResource) SyncState(ctx context.Context, tfState *tfsdk.S
 	return tfState.Set(ctx, &m)
 }
 
+// ToNetworkForwardPortList converts forward ports from type types.Set into []api.NetworkForwardPort.
+func ToNetworkForwardPortList(ctx context.Context, portsSet types.Set) ([]api.NetworkForwardPort, diag.Diagnostics) {
+	if portsSet.IsNull() || portsSet.IsUnknown() {
+		return []api.NetworkForwardPort{}, nil
+	}
+
+	modelPorts := make([]NetworkForwardPortModel, 0, len(portsSet.Elements()))
+	diags := portsSet.ElementsAs(ctx, &modelPorts, false)
+	if diags.HasError() {
+		return nil, diags
+	}
+
+	ports := make([]api.NetworkForwardPort, 0, len(modelPorts))
+	for _, modelPort := range modelPorts {
+		port := api.NetworkForwardPort{
+			Description:   modelPort.Description.ValueString(),
+			Protocol:      modelPort.Protocol.ValueString(),
+			ListenPort:    modelPort.ListenPort.ValueString(),
+			TargetPort:    modelPort.TargetPort.ValueString(),
+			TargetAddress: modelPort.TargetAddress.ValueString(),
+		}
+
+		ports = append(ports, port)
+	}
+
+	return ports, nil
+}
+
+// ToNetworkForwardPortSetType converts []api.NetworkForwardPort into forward ports of type types.Set.
 func ToNetworkForwardPortSetType(ctx context.Context, ports []api.NetworkForwardPort) (types.Set, diag.Diagnostics) {
 	portObjectType := portObjectType()
 	nilSet := types.SetNull(portObjectType)
@@ -405,7 +406,7 @@ func ToNetworkForwardPortSetType(ctx context.Context, ports []api.NetworkForward
 		return nilSet, nil
 	}
 
-	var portList []attr.Value
+	portList := make([]attr.Value, 0, len(ports))
 	for _, port := range ports {
 		portMap := map[string]attr.Value{
 			"description":    types.StringValue(port.Description),
