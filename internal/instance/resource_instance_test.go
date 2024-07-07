@@ -33,6 +33,27 @@ func TestAccInstance_basic(t *testing.T) {
 	})
 }
 
+func TestAccInstance_noImage(t *testing.T) {
+	instanceName := petname.Generate(2, "-")
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { acctest.PreCheck(t) },
+		ProtoV6ProviderFactories: acctest.ProtoV6ProviderFactories,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccInstance_basic(instanceName),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr("incus_instance.instance1", "name", instanceName),
+					resource.TestCheckResourceAttr("incus_instance.instance1", "status", "Running"),
+					resource.TestCheckResourceAttr("incus_instance.instance1", "ephemeral", "false"),
+					resource.TestCheckResourceAttr("incus_instance.instance1", "profiles.#", "1"),
+					resource.TestCheckResourceAttr("incus_instance.instance1", "profiles.0", "default"),
+				),
+			},
+		},
+	})
+}
+
 func TestAccInstance_ephemeral(t *testing.T) {
 	instanceName := petname.Generate(2, "-")
 
