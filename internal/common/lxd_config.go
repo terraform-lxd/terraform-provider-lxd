@@ -14,14 +14,59 @@ func ToConfigMap(ctx context.Context, configMap types.Map) (map[string]string, d
 		return make(map[string]string), nil
 	}
 
-	config := make(map[string]string, len(configMap.Elements()))
-	diags := configMap.ElementsAs(ctx, &config, false)
-	return config, diags
+	// Convert to an intermediate nullable type.
+	tfConfig := make(map[string]*string, len(configMap.Elements()))
+	diags := configMap.ElementsAs(ctx, &tfConfig, false)
+	if diags != nil {
+		return nil, diags
+	}
+
+	// Then convert to our native type.
+	config := make(map[string]string, len(tfConfig))
+	for k, v := range tfConfig {
+		if v == nil {
+			continue
+		}
+
+		config[k] = *v
+	}
+
+	return config, nil
 }
 
 // ToConfigMapType converts map[string]string into config of type types.Map.
-func ToConfigMapType(ctx context.Context, config map[string]string) (types.Map, diag.Diagnostics) {
+func ToConfigMapType(ctx context.Context, config map[string]*string, modelConfig types.Map) (types.Map, diag.Diagnostics) {
+	// Add any missing nil values.
+	nullConfig := map[string]*string{}
+	if !modelConfig.IsNull() && !modelConfig.IsUnknown() {
+		_ = modelConfig.ElementsAs(context.Background(), &nullConfig, false)
+	}
+
+	for k, v := range nullConfig {
+		if v != nil {
+			continue
+		}
+
+		_, ok := config[k]
+		if !ok {
+			config[k] = nil
+		}
+	}
+
 	return types.MapValueFrom(ctx, types.StringType, config)
+}
+
+// ToNullableConfig converts map[string]string to map[string]*string.
+func ToNullableConfig(config map[string]string) map[string]*string {
+	nullConfig := make(map[string]*string, len(config))
+
+	for k := range config {
+		// Copy the value.
+		v := string(config[k])
+		nullConfig[k] = &v
+	}
+
+	return nullConfig
 }
 
 // MergeConfig merges resource (existing) configuration with user defined
@@ -55,14 +100,20 @@ func MergeConfig(resConfig map[string]string, usrConfig map[string]string, compu
 // file in order to be able to produce a consistent Terraform plan. If there
 // is a non-computed-key entry, it will be retained in the configuration and
 // will trigger an error.
-func StripConfig(resConfig map[string]string, usrConfig map[string]string, computedKeys []string) map[string]string {
-	config := make(map[string]string)
+func StripConfig(resConfig map[string]string, modelConfig types.Map, computedKeys []string) map[string]*string {
+	// Handle nulls in modelConfig.
+	usrConfig := map[string]*string{}
+	if !modelConfig.IsNull() && !modelConfig.IsUnknown() {
+		_ = modelConfig.ElementsAs(context.Background(), &usrConfig, false)
+	}
 
 	// Populate empty values from user config, so they do not "disappear"
 	// from the state.
+	config := make(map[string]*string)
+
 	for k, v := range usrConfig {
-		if v == "" {
-			config[k] = v
+		if v == nil {
+			config[k] = nil
 		}
 	}
 
@@ -76,7 +127,14 @@ func StripConfig(resConfig map[string]string, usrConfig map[string]string, compu
 
 		_, ok := usrConfig[k]
 		if ok || !isComputedKey(k, computedKeys) {
-			config[k] = v
+			if usrConfig[k] == nil && isComputedKey(k, computedKeys) {
+				// Keep as null.
+				config[k] = nil
+			} else {
+				// Copy the value.
+				v := string(resConfig[k])
+				config[k] = &v
+			}
 		}
 	}
 

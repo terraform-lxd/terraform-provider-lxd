@@ -1112,26 +1112,23 @@ func (r InstanceResource) SyncState(ctx context.Context, tfState *tfsdk.State, s
 	}
 
 	// Extract user defined config and merge it with current resource config.
-	usrConfig, diags := common.ToConfigMap(ctx, m.Config)
-	respDiags.Append(diags...)
-
-	stateConfig := common.StripConfig(instance.Config, usrConfig, m.ComputedKeys())
+	stateConfig := common.StripConfig(instance.Config, m.Config, m.ComputedKeys())
 
 	// Extract enteries with "limits." prefix.
 	instanceLimits := make(map[string]string)
 	for k, v := range stateConfig {
 		key, ok := strings.CutPrefix(k, "limits.")
 		if ok {
-			instanceLimits[key] = v
+			instanceLimits[key] = *v
 			delete(stateConfig, k)
 		}
 	}
 
 	// Convert config, limits, profiles, and devices into schema type.
-	config, diags := common.ToConfigMapType(ctx, stateConfig)
+	config, diags := common.ToConfigMapType(ctx, stateConfig, m.Config)
 	respDiags.Append(diags...)
 
-	limits, diags := common.ToConfigMapType(ctx, instanceLimits)
+	limits, diags := common.ToConfigMapType(ctx, common.ToNullableConfig(instanceLimits), m.Config)
 	respDiags.Append(diags...)
 
 	profiles, diags := ToProfileListType(ctx, instance.Profiles)

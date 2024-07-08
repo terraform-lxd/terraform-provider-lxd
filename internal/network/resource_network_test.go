@@ -51,6 +51,27 @@ func TestAccNetwork_description(t *testing.T) {
 	})
 }
 
+func TestAccNetwork_nullable(t *testing.T) {
+	networkName := acctest.GenerateName(2, "-")
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { acctest.PreCheck(t) },
+		ProtoV6ProviderFactories: acctest.ProtoV6ProviderFactories,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccNetwork_nullable(networkName),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr("lxd_network.network", "name", networkName),
+					resource.TestCheckResourceAttr("lxd_network.network", "type", "bridge"),
+					resource.TestCheckResourceAttr("lxd_network.network", "config.%", "2"),
+					resource.TestCheckNoResourceAttr("lxd_network.network", "config.ipv4.address"),
+					resource.TestCheckResourceAttr("lxd_network.network", "config.ipv6.address", "none"),
+				),
+			},
+		},
+	})
+}
+
 func TestAccNetwork_attach(t *testing.T) {
 	networkName := acctest.GenerateName(2, "-")
 	profileName := acctest.GenerateName(2, "-")
@@ -271,6 +292,23 @@ resource "lxd_network" "network" {
   config = {
     "ipv4.address" = "10.150.10.1/24"
     "ipv6.address" = "fd42:474b:622d:259d::1/64"
+  }
+}
+`, networkName)
+}
+
+func testAccNetwork_nullable(networkName string) string {
+	return fmt.Sprintf(`
+locals {
+  foo = "bar"
+}
+
+resource "lxd_network" "network" {
+  name = "%s"
+
+  config = {
+    "ipv4.address" = local.foo == "bar" ? null : "10.0.0.1/24"
+    "ipv6.address" = "none"
   }
 }
 `, networkName)

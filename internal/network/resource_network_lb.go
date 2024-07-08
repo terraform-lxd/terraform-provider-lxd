@@ -368,7 +368,7 @@ func (r LxdNetworkLBResource) SyncState(ctx context.Context, tfState *tfsdk.Stat
 	ports, diags := ToLBPortSetType(ctx, lb.Ports)
 	respDiags.Append(diags...)
 
-	config, diags := common.ToConfigMapType(ctx, lb.Config)
+	config, diags := common.ToConfigMapType(ctx, common.ToNullableConfig(lb.Config), m.Config)
 	respDiags.Append(diags...)
 
 	m.Description = types.StringValue(lb.Description)
