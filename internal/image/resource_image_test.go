@@ -218,6 +218,29 @@ func TestAccImage_project(t *testing.T) {
 	})
 }
 
+func TestAccImage_instanceFromImageFingerprint(t *testing.T) {
+	projectName := petname.Generate(2, "-")
+	instanceName := petname.Generate(2, "-")
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { acctest.PreCheck(t) },
+		ProtoV6ProviderFactories: acctest.ProtoV6ProviderFactories,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccImage_instanceFromImageFingerprint(projectName, instanceName),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr("incus_project.project1", "name", projectName),
+					resource.TestCheckResourceAttr("incus_image.img1", "project", projectName),
+					resource.TestCheckResourceAttr("incus_image.img1", "source_remote", "images"),
+					resource.TestCheckResourceAttr("incus_image.img1", "source_image", "alpine/edge"),
+					resource.TestCheckResourceAttr("incus_instance.inst", "name", instanceName),
+					resource.TestCheckResourceAttr("incus_instance.inst", "project", projectName),
+				),
+			},
+		},
+	})
+}
+
 func testAccImage_basic() string {
 	return `
 resource "incus_image" "img1" {
@@ -312,4 +335,34 @@ resource "incus_image" "img1" {
   project       = incus_project.project1.name
 }
 	`, project)
+}
+
+func testAccImage_instanceFromImageFingerprint(project string, instanceName string) string {
+	return fmt.Sprintf(`
+resource "incus_project" "project1" {
+  name = "%s"
+}
+
+resource "incus_image" "img1" {
+  source_remote = "images"
+  source_image  = "alpine/edge"
+  project       = incus_project.project1.name
+}
+
+resource "incus_instance" "inst" {
+  name    = "%s"
+  project = incus_project.project1.name
+  image   = incus_image.img1.fingerprint
+  running = false
+
+  device {
+    name = "root"
+    type = "disk"
+    properties = {
+	  pool = "default"
+	  path = "/"
+    }
+  }
+}
+	`, project, instanceName)
 }
