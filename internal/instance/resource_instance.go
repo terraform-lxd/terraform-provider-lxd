@@ -101,7 +101,7 @@ func (r InstanceResource) Schema(_ context.Context, _ resource.SchemaRequest, re
 			},
 
 			"image": schema.StringAttribute{
-				Required: true,
+				Optional: true,
 				PlanModifiers: []planmodifier.String{
 					stringplanmodifier.RequiresReplace(),
 				},
@@ -375,21 +375,6 @@ func (r InstanceResource) Create(ctx context.Context, req resource.CreateRequest
 		return
 	}
 
-	// Evaluate image remote.
-	image := plan.Image.ValueString()
-	imageRemote := remote
-	imageParts := strings.SplitN(image, ":", 2)
-	if len(imageParts) == 2 {
-		imageRemote = imageParts[0]
-		image = imageParts[1]
-	}
-
-	imageServer, err := r.provider.ImageServer(imageRemote)
-	if err != nil {
-		resp.Diagnostics.Append(errors.NewImageServerError(err))
-		return
-	}
-
 	// Extract profiles, devices, config and limits.
 	profiles, diags := ToProfileList(ctx, plan.Profiles)
 	resp.Diagnostics.Append(diags...)
@@ -426,42 +411,71 @@ func (r InstanceResource) Create(ctx context.Context, req resource.CreateRequest
 		},
 	}
 
-	var imageInfo *api.Image
-
-	// Gather info about source image.
-	conn, _ := imageServer.GetConnectionInfo()
-	if conn.Protocol == "simplestreams" {
-		// Optimisation for simplestreams.
-		imageInfo = &api.Image{}
-		imageInfo.Public = true
-		imageInfo.Fingerprint = image
-		instance.Source.Alias = image
-	} else {
-		// Attempt to resolve an image alias.
-		alias, _, err := imageServer.GetImageAlias(image)
-		if err == nil {
-			image = alias.Target
-			instance.Source.Alias = image
+	// Evaluate image remote.
+	if !plan.Image.IsNull() {
+		image := plan.Image.ValueString()
+		imageRemote := remote
+		imageParts := strings.SplitN(image, ":", 2)
+		if len(imageParts) == 2 {
+			imageRemote = imageParts[0]
+			image = imageParts[1]
 		}
 
-		// Get the image info.
-		imageInfo, _, err = imageServer.GetImage(image)
+		imageServer, err := r.provider.ImageServer(imageRemote)
 		if err != nil {
-			resp.Diagnostics.AddError(fmt.Sprintf("Failed to retrieve image info for instance %q", instance.Name), err.Error())
+			resp.Diagnostics.Append(errors.NewImageServerError(err))
 			return
 		}
-	}
 
-	// Initialize the instance. Instance will no be running after this call.
-	opCreate, err := server.CreateInstanceFromImage(imageServer, *imageInfo, instance)
-	if err == nil {
-		// Wait for the instance to be created.
-		err = opCreate.Wait()
-	}
+		var imageInfo *api.Image
 
-	if err != nil {
-		resp.Diagnostics.AddError(fmt.Sprintf("Failed to create instance %q", instance.Name), err.Error())
-		return
+		// Gather info about source image.
+		conn, _ := imageServer.GetConnectionInfo()
+		if conn.Protocol == "simplestreams" {
+			// Optimisation for simplestreams.
+			imageInfo = &api.Image{}
+			imageInfo.Public = true
+			imageInfo.Fingerprint = image
+			instance.Source.Alias = image
+		} else {
+			// Attempt to resolve an image alias.
+			alias, _, err := imageServer.GetImageAlias(image)
+			if err == nil {
+				image = alias.Target
+				instance.Source.Alias = image
+			}
+
+			// Get the image info.
+			imageInfo, _, err = imageServer.GetImage(image)
+			if err != nil {
+				resp.Diagnostics.AddError(fmt.Sprintf("Failed to retrieve image info for instance %q", instance.Name), err.Error())
+				return
+			}
+		}
+
+		opCreate, err := server.CreateInstanceFromImage(imageServer, *imageInfo, instance)
+		// Initialize the instance. Instance will no be running after this call.
+		if err == nil {
+			// Wait for the instance to be created.
+			err = opCreate.Wait()
+		}
+
+		if err != nil {
+			resp.Diagnostics.AddError(fmt.Sprintf("Failed to create instance %q", instance.Name), err.Error())
+			return
+		}
+	} else {
+		opCreate, err := server.CreateInstance(instance)
+		// Initialize the instance. Instance will no be running after this call.
+		if err == nil {
+			// Wait for the instance to be created.
+			err = opCreate.Wait()
+		}
+
+		if err != nil {
+			resp.Diagnostics.AddError(fmt.Sprintf("Failed to create instance %q", instance.Name), err.Error())
+			return
+		}
 	}
 
 	// Partially update state, to make terraform aware of
