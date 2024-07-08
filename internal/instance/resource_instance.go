@@ -421,10 +421,16 @@ func (r InstanceResource) Create(ctx context.Context, req resource.CreateRequest
 			image = imageParts[1]
 		}
 
-		imageServer, err := r.provider.ImageServer(imageRemote)
-		if err != nil {
-			resp.Diagnostics.Append(errors.NewImageServerError(err))
-			return
+		var imageServer incus.ImageServer
+		if imageRemote == "" {
+			// Use the instance server as an image server if image remote is empty.
+			imageServer = server
+		} else {
+			imageServer, err = r.provider.ImageServer(imageRemote)
+			if err != nil {
+				resp.Diagnostics.Append(errors.NewImageServerError(err))
+				return
+			}
 		}
 
 		var imageInfo *api.Image
