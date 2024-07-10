@@ -108,7 +108,6 @@ jobs:
       - name: Run GoReleaser in build mode to test all release platforms
         uses: goreleaser/goreleaser-action@v6
         with:
-          version: latest
           args: build --snapshot
 
   check-lint:
