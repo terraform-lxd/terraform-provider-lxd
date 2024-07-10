@@ -22,7 +22,7 @@ resource "lxd_network_zone" "zone" {
 
 resource "lxd_network_zone_record" "record" {
   name = "ns"
-  zone = lxd_network_zone.zone.id
+  zone = lxd_network_zone.zone.name
 
   entry {
       type  = "CNAME"
