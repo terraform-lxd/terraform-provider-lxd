@@ -1,3 +1,39 @@
+## 2.2.0 (July 10, 2024)
+
+## What's Changed
+### New Features 🎉
+* Add support for custom simplestreams remote by @MusicDin in https://github.com/terraform-lxd/terraform-provider-lxd/pull/463
+* Add support for client certificates by @MusicDin in https://github.com/terraform-lxd/terraform-provider-lxd/pull/471
+* Allow remote LXD authentication using token by @MusicDin in https://github.com/terraform-lxd/terraform-provider-lxd/pull/469
+* Support null values in config - from Incus by @MusicDin in https://github.com/terraform-lxd/terraform-provider-lxd/pull/492
+* Add network forward and ACL resources - from Incus by @MusicDin in https://github.com/terraform-lxd/terraform-provider-lxd/pull/493
+### Bug Fixes 🐝
+* Do not error out if client certificate already exists by @MusicDin in https://github.com/terraform-lxd/terraform-provider-lxd/pull/468
+* Fix update of cached/published images by @MusicDin in https://github.com/terraform-lxd/terraform-provider-lxd/pull/472
+* Fix storage pool source inconsistencies by @MusicDin in https://github.com/terraform-lxd/terraform-provider-lxd/pull/467
+* Fix cached image being searched only in default project by @MusicDin in https://github.com/terraform-lxd/terraform-provider-lxd/pull/490
+* Fix cached image not found if instance remote is set by @MusicDin in https://github.com/terraform-lxd/terraform-provider-lxd/pull/491
+### Maintenance and Chores 🛠
+* Update gomod by @simondeziel in https://github.com/terraform-lxd/terraform-provider-lxd/pull/473
+* docs: Refer to instance rather than container by @MusicDin in https://github.com/terraform-lxd/terraform-provider-lxd/pull/476
+* Use trust token instead of password for tests by @MusicDin in https://github.com/terraform-lxd/terraform-provider-lxd/pull/477
+* Update gomod by @simondeziel in https://github.com/terraform-lxd/terraform-provider-lxd/pull/478
+* build(deps): bump goreleaser/goreleaser-action from 5 to 6 by @dependabot in https://github.com/terraform-lxd/terraform-provider-lxd/pull/479
+* Use Alpine images for cached image test by @MusicDin in https://github.com/terraform-lxd/terraform-provider-lxd/pull/475
+* goreleaser: fix config for version 2 schema by @simondeziel in https://github.com/terraform-lxd/terraform-provider-lxd/pull/480
+* update go modules by @simondeziel in https://github.com/terraform-lxd/terraform-provider-lxd/pull/482
+* Pass trust token explicitly if server support it by @MusicDin in https://github.com/terraform-lxd/terraform-provider-lxd/pull/484
+* Let LXD decide the unix socket by @MusicDin in https://github.com/terraform-lxd/terraform-provider-lxd/pull/485
+* build(deps): bump golang.org/x/sys from 0.21.0 to 0.22.0 by @dependabot in https://github.com/terraform-lxd/terraform-provider-lxd/pull/495
+* build(deps): bump google.golang.org/grpc from 1.64.0 to 1.64.1 by @dependabot in https://github.com/terraform-lxd/terraform-provider-lxd/pull/496
+### Other Changes ❓
+* Use math/rand/v2 for string generation by @MusicDin in https://github.com/terraform-lxd/terraform-provider-lxd/pull/470
+* goreleaser: re-enable arm64 builds for Windows by @simondeziel in https://github.com/terraform-lxd/terraform-provider-lxd/pull/481
+* docs/resources/instance: add multiple ordered `execs` by @simondeziel in https://github.com/terraform-lxd/terraform-provider-lxd/pull/488
+* Fix network zone minor issue - from Incus by @MusicDin in https://github.com/terraform-lxd/terraform-provider-lxd/pull/494
+* Remove project attribute on provider by @MusicDin in https://github.com/terraform-lxd/terraform-provider-lxd/pull/497
+* github: set goreleaser version to v2 by @simondeziel in https://github.com/terraform-lxd/terraform-provider-lxd/pull/498
+
 ## 2.1.0 (May 27, 2024)
 
 ### New Features 🎉
