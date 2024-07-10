@@ -42,7 +42,6 @@ type LxdProviderRemoteModel struct {
 type LxdProviderModel struct {
 	Remotes                    []LxdProviderRemoteModel `tfsdk:"remote"`
 	ConfigDir                  types.String             `tfsdk:"config_dir"`
-	Project                    types.String             `tfsdk:"project"`
 	AcceptRemoteCertificate    types.Bool               `tfsdk:"accept_remote_certificate"`
 	GenerateClientCertificates types.Bool               `tfsdk:"generate_client_certificates"`
 }
@@ -82,11 +81,6 @@ func (p *LxdProvider) Schema(_ context.Context, _ provider.SchemaRequest, resp *
 			"accept_remote_certificate": schema.BoolAttribute{
 				Optional:    true,
 				Description: "Accept the server certificate.",
-			},
-
-			"project": schema.StringAttribute{
-				Optional:    true,
-				Description: "The project where project-scoped resources will be created. Can be overridden in individual resources. (default = default)",
 			},
 		},
 
@@ -214,12 +208,6 @@ func (p *LxdProvider) Configure(ctx context.Context, req provider.ConfigureReque
 			resp.Diagnostics.AddError("Failed to generate client certificate", err.Error())
 			return
 		}
-	}
-
-	// Determine project.
-	project := data.Project.ValueString()
-	if project != "" {
-		config.ProjectOverride = project
 	}
 
 	// Initialize global LxdProvider struct.
