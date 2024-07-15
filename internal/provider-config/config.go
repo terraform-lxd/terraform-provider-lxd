@@ -207,7 +207,7 @@ func (p *IncusProviderConfig) createIncusServerClient(remote IncusProviderRemote
 		return fmt.Errorf("Unable to determine daemon address for remote %q: %v", remote.Name, err)
 	}
 
-	incusRemote := incus_config.Remote{Addr: daemonAddr}
+	incusRemote := incus_config.Remote{Addr: daemonAddr, Protocol: "incus"}
 	p.setIncusConfigRemote(remote.Name, incusRemote)
 
 	if remote.Scheme == "https" {
