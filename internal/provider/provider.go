@@ -2,12 +2,10 @@ package provider
 
 import (
 	"context"
-	"log"
+	"fmt"
 	"os"
-	"path/filepath"
 
-	lxd_config "github.com/canonical/lxd/lxc/config"
-	lxd_shared "github.com/canonical/lxd/shared"
+	"github.com/canonical/lxd/shared"
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/path"
@@ -16,11 +14,13 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
+	"github.com/hashicorp/terraform-plugin-log/tflog"
 	"github.com/terraform-lxd/terraform-provider-lxd/internal/image"
 	"github.com/terraform-lxd/terraform-provider-lxd/internal/instance"
 	"github.com/terraform-lxd/terraform-provider-lxd/internal/network"
 	"github.com/terraform-lxd/terraform-provider-lxd/internal/profile"
 	"github.com/terraform-lxd/terraform-provider-lxd/internal/project"
+	config "github.com/terraform-lxd/terraform-provider-lxd/internal/provider-config"
 	provider_config "github.com/terraform-lxd/terraform-provider-lxd/internal/provider-config"
 	"github.com/terraform-lxd/terraform-provider-lxd/internal/storage"
 	"github.com/terraform-lxd/terraform-provider-lxd/internal/truststore"
@@ -92,24 +92,30 @@ func (p *LxdProvider) Schema(_ context.Context, _ provider.SchemaRequest, resp *
 						"name": schema.StringAttribute{
 							Required:    true,
 							Description: "Name of the LXD remote. Required when lxd_scheme set to https, to enable locating server certificate.",
+							Validators: []validator.String{
+								stringvalidator.LengthAtLeast(1),
+							},
 						},
 
 						"address": schema.StringAttribute{
 							Optional:    true,
-							Description: "The FQDN or IP where the LXD daemon can be contacted. (default = \"\" (read from lxc config))",
+							Description: "The FQDN or IP where the LXD daemon can be contacted. (default = \"\")",
 						},
 
+						// Deprecated, leave the attribute in so that we error out if it's used.
+						// DeprecationMessage would just print the warning, but we want to error
+						// out with a custom message.
 						"port": schema.StringAttribute{
 							Optional:    true,
 							Description: "Port LXD Daemon API is listening on. (default = 8443)",
 						},
 
+						// Deprecated, leave the attribute in so that we error out if it's used.
+						// DeprecationMessage would just print the warning, but we want to error
+						// out with a custom message.
 						"scheme": schema.StringAttribute{
 							Optional:    true,
 							Description: "Unix (unix) or HTTPs (https). (default = unix)",
-							Validators: []validator.String{
-								stringvalidator.OneOf("unix", "https"),
-							},
 						},
 
 						"password": schema.StringAttribute{
@@ -154,144 +160,85 @@ func (p *LxdProvider) Configure(ctx context.Context, req provider.ConfigureReque
 	diags := req.Config.Get(ctx, &data)
 	resp.Diagnostics.Append(diags...)
 
-	// Determine LXD configuration directory. First check for the presence
-	// of the /var/snap/lxd directory. If the directory exists, return
-	// snap's config path. Otherwise return the fallback path.
-	configDir := data.ConfigDir.ValueString()
-	if configDir == "" {
-		_, err := os.Stat("/var/snap/lxd")
-		if err == nil || os.IsExist(err) {
-			configDir = "$HOME/snap/lxd/common/config"
-		} else {
-			configDir = "$HOME/.config/lxc"
-		}
-	}
-
-	configDir = os.ExpandEnv(configDir)
-
-	// Try to load config.yml from determined configDir. If there's
-	// an error loading config.yml, default config will be used.
-	configPath := filepath.Join(configDir, "config.yml")
-	config, err := lxd_config.LoadConfig(configPath)
-	if err != nil {
-		config = lxd_config.DefaultConfig()
-		config.ConfigDir = configDir
-	}
-
-	log.Printf("[DEBUG] LXD Config: %#v", config)
-
-	// Determine if the LXD server's SSL certificates should be
-	// accepted. If this is set to false and if the remote's
-	// certificates haven't already been accepted, the user will
-	// need to accept the certificates out of band of Terraform.
+	// Determine if the LXD server's SSL certificates should be accepted.
+	// If this is set to false and if the remote's certificates haven't
+	// already been accepted, the user will need to accept the certificates
+	// out of band of Terraform.
 	acceptServerCertificate := data.AcceptRemoteCertificate.ValueBool()
 	if data.AcceptRemoteCertificate.IsNull() || data.AcceptRemoteCertificate.IsUnknown() {
 		v, ok := os.LookupEnv("LXD_ACCEPT_SERVER_CERTIFICATE")
 		if ok {
-			acceptServerCertificate = lxd_shared.IsTrue(v)
+			acceptServerCertificate = shared.IsTrue(v)
 		}
 	}
 
-	// Determine if the client LXD (ie: the workstation running Terraform)
-	// should generate client certificates if they don't already exist.
+	// Determine if the missing client certificates should be generated.
+	// This has no effect if the certificates already exist.
 	generateClientCertificates := data.GenerateClientCertificates.ValueBool()
-	if data.AcceptRemoteCertificate.IsNull() || data.GenerateClientCertificates.IsUnknown() {
+	if data.GenerateClientCertificates.IsNull() || data.GenerateClientCertificates.IsUnknown() {
 		v, ok := os.LookupEnv("LXD_GENERATE_CLIENT_CERTS")
 		if ok {
-			generateClientCertificates = lxd_shared.IsTrue(v)
+			generateClientCertificates = shared.IsTrue(v)
 		}
 	}
 
-	if generateClientCertificates {
-		err := config.GenerateClientCertificate()
-		if err != nil {
-			resp.Diagnostics.AddError("Failed to generate client certificate", err.Error())
-			return
-		}
-	}
+	remotes := make(map[string]config.LxdRemote)
 
-	// Initialize global LxdProvider struct.
-	// This struct is used to store information about this Terraform
-	// provider's configuration for reference throughout the lifecycle.
-	lxdProvider := provider_config.NewLxdProvider(config, acceptServerCertificate)
-
-	// Create LXD remote from environment variables (if defined).
-	// This emulates the Terraform provider "remote" config:
-	//
-	// remote {
-	//   name    = LXD_REMOTE
-	//   address = LXD_ADDR
-	//   ...
-	// }
-	envName := os.Getenv("LXD_REMOTE")
-	if envName != "" {
-		envRemote := provider_config.LxdProviderRemoteConfig{
-			Name:     envName,
-			Address:  os.Getenv("LXD_ADDR"),
-			Port:     os.Getenv("LXD_PORT"),
-			Password: os.Getenv("LXD_PASSWORD"),
-			Token:    os.Getenv("LXD_TOKEN"),
-			Scheme:   os.Getenv("LXD_SCHEME"),
-			Protocol: "lxd",
-		}
-
-		// This will be the default remote unless overridden by an
-		// explicitly defined remote in the Terraform configuration.
-		lxdProvider.SetRemote(envRemote, true)
-	}
-
-	// Loop over LXD Remotes defined in the schema and create
-	// an lxdRemoteConfig for each one.
-	//
-	// This does not yet connect to any of the defined remotes,
-	// it only stores the configuration information until it is
-	// necessary to connect to the remote.
-	//
-	// This lazy loading allows this LXD provider to be used
-	// in Terraform configurations where the LXD remote might not
-	// exist yet.
+	// Read remotes from Terraform schema.
 	for _, remote := range data.Remotes {
+		name := remote.Name.ValueString()
+
 		protocol := remote.Protocol.ValueString()
 		if protocol == "" {
 			protocol = "lxd"
 		}
 
-		port := remote.Port.ValueString()
-		if port == "" {
-			port = "8443"
-			if protocol == "simplestreams" {
-				port = "443"
-			}
+		address, err := config.DetermineLXDAddress(protocol, remote.Address.ValueString())
+		if err != nil {
+			resp.Diagnostics.AddError(fmt.Sprintf("Invalid remote %q", name), err.Error())
+			return
 		}
 
-		scheme := remote.Scheme.ValueString()
-		if scheme == "" {
-			scheme = "unix"
-			if protocol == "simplestreams" {
-				scheme = "https"
-			}
+		// Error out if deprecated port and scheme attributes are used.
+		if remote.Port.ValueString() != "" {
+			resp.Diagnostics.AddError(
+				fmt.Sprintf(`Remote %q contains deprecated attribute "port"`, name),
+				fmt.Sprintf(`Please remove the attribute "port" and set "address" to the fully qualified address instead. For example, "address=%s".`, address),
+			)
+			return
 		}
 
-		lxdRemote := provider_config.LxdProviderRemoteConfig{
-			Name:     remote.Name.ValueString(),
-			Password: remote.Password.ValueString(),
-			Token:    remote.Token.ValueString(),
-			Address:  remote.Address.ValueString(),
-			Protocol: protocol,
-			Port:     port,
-			Scheme:   scheme,
+		if remote.Scheme.ValueString() != "" {
+			resp.Diagnostics.AddError(
+				fmt.Sprintf(`Remote %q contains deprecated attribute "scheme"`, name),
+				fmt.Sprintf(`Please remove the attribute "port" and set "address" to the fully qualified address instead. For example, "address=%s".`, address),
+			)
+			return
 		}
 
-		isDefault := remote.Default.ValueBool()
-		if protocol == "simplestreams" {
-			// Simplestreams cannot be default.
-			isDefault = false
+		remotes[name] = provider_config.LxdRemote{
+			Address:   address,
+			Protocol:  protocol,
+			Password:  remote.Password.ValueString(),
+			Token:     remote.Token.ValueString(),
+			IsDefault: remote.Default.ValueBool(),
 		}
-
-		lxdProvider.SetRemote(lxdRemote, isDefault)
 	}
 
-	log.Printf("[DEBUG] LXD Provider: %#v", &lxdProvider)
+	options := provider_config.Options{
+		ConfigDir:                  data.ConfigDir.ValueString(),
+		AcceptServerCertificate:    acceptServerCertificate,
+		GenerateClientCertificates: generateClientCertificates,
+	}
+
+	// Initialize LXD provider configuration.
+	lxdProvider, err := provider_config.NewLxdProviderConfig(p.version, remotes, options)
+	if err != nil {
+		resp.Diagnostics.AddError("Failed initialize LXD provider", err.Error())
+		return
+	}
+
+	tflog.Debug(ctx, "LXD Provider configured", map[string]any{"provider": lxdProvider})
 
 	resp.ResourceData = lxdProvider
 	resp.DataSourceData = lxdProvider
