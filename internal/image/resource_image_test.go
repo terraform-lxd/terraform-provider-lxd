@@ -260,6 +260,30 @@ func TestAccImage_instanceFromImageFingerprint(t *testing.T) {
 	})
 }
 
+func TestAccImage_architecture(t *testing.T) {
+	projectName := acctest.GenerateName(2, "")
+	architecture := "aarch64"
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { acctest.PreCheck(t) },
+		ProtoV6ProviderFactories: acctest.ProtoV6ProviderFactories,
+		Steps: []resource.TestStep{
+			{
+				Config: acctest.Provider() + testAccImage_architecture(projectName, architecture),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr("lxd_project.project1", "name", projectName),
+					resource.TestCheckResourceAttr("lxd_image.img1", "source_remote", acctest.TestCachedImageSourceRemote),
+					resource.TestCheckResourceAttr("lxd_image.img1", "source_image", acctest.TestCachedImageSourceImage),
+					resource.TestCheckResourceAttr("lxd_image.img1", "project", projectName),
+					resource.TestCheckResourceAttr("lxd_image.img1", "aliases.#", "0"),
+					resource.TestCheckResourceAttr("lxd_image.img1", "copied_aliases.#", "0"),
+					resource.TestCheckResourceAttr("lxd_image.img1", "architecture", architecture),
+				),
+			},
+		},
+	})
+}
+
 func testAccImage_basic() string {
 	return fmt.Sprintf(`
 resource "lxd_image" "img1" {
@@ -382,4 +406,19 @@ resource "lxd_instance" "inst" {
     running = false
 }
 	`, project, acctest.TestCachedImageSourceRemote, acctest.TestCachedImageSourceImage, instanceName, instanceRemote)
+}
+
+func testAccImage_architecture(project string, architecture string) string {
+	return fmt.Sprintf(`
+resource "lxd_project" "project1" {
+  name = "%s"
+}
+
+resource "lxd_image" "img1" {
+  source_remote = "%s"
+  source_image  = "%s"
+  project       = lxd_project.project1.name
+  architecture  = "%s"
+}
+	`, project, acctest.TestCachedImageSourceRemote, acctest.TestCachedImageSourceImage, architecture)
 }
