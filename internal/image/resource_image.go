@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"slices"
+	"strings"
 
 	lxd "github.com/canonical/lxd/client"
 	"github.com/canonical/lxd/shared/api"
@@ -126,14 +127,19 @@ func (r ImageResource) Schema(_ context.Context, _ resource.SchemaRequest, resp 
 				Optional: true,
 			},
 
-			// Computed attributes.
-
 			"architecture": schema.StringAttribute{
+				Optional: true,
 				Computed: true,
 				PlanModifiers: []planmodifier.String{
 					stringplanmodifier.UseStateForUnknown(),
+					stringplanmodifier.RequiresReplace(),
+				},
+				Validators: []validator.String{
+					architectureValidator{},
 				},
 			},
+
+			// Computed attributes.
 
 			"created_at": schema.Int64Attribute{
 				Computed: true,
@@ -202,7 +208,36 @@ func (r ImageResource) Create(ctx context.Context, req resource.CreateRequest, r
 		return
 	}
 
-	// Determine whether the user has provided an fingerprint or an alias.
+	// Determine the correct image for the specified architecture.
+	architecture := plan.Architecture.ValueString()
+	if architecture != "" {
+		availableArchitectures, err := imageServer.GetImageAliasArchitectures(imageType, imageName)
+		if err != nil {
+			resp.Diagnostics.AddError("Failed to get image alias architectures", err.Error())
+			return
+		}
+
+		found := false
+		for imageArchitecture, imageAlias := range availableArchitectures {
+			if imageArchitecture == architecture {
+				imageName = imageAlias.Target
+				found = true
+			}
+		}
+
+		if !found {
+			keys := make([]string, 0, len(availableArchitectures))
+			for key := range availableArchitectures {
+				keys = append(keys, key)
+			}
+			keyList := strings.Join(keys, ", ")
+
+			resp.Diagnostics.AddError(fmt.Sprintf("No image alias found for architecture: %s. Available architectures: %s ", architecture, keyList), "")
+			return
+		}
+	}
+
+	// Determine whether the user has provided a fingerprint or an alias.
 	aliasTarget, _, _ := imageServer.GetImageAliasType(imageType, imageName)
 	if aliasTarget != nil {
 		imageName = aliasTarget.Target
