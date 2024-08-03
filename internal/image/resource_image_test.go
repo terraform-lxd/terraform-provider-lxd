@@ -241,6 +241,30 @@ func TestAccImage_instanceFromImageFingerprint(t *testing.T) {
 	})
 }
 
+func TestAccImage_architecture(t *testing.T) {
+	projectName := petname.Name()
+	architecture := "aarch64"
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { acctest.PreCheck(t) },
+		ProtoV6ProviderFactories: acctest.ProtoV6ProviderFactories,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccImage_architecture(projectName, architecture),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr("incus_project.project1", "name", projectName),
+					resource.TestCheckResourceAttr("incus_image.img1", "source_remote", "images"),
+					resource.TestCheckResourceAttr("incus_image.img1", "source_image", "alpine/edge"),
+					resource.TestCheckResourceAttr("incus_image.img1", "project", projectName),
+					resource.TestCheckNoResourceAttr("incus_image.img1", "aliases"),
+					resource.TestCheckResourceAttr("incus_image.img1", "copied_aliases.#", "0"),
+					resource.TestCheckResourceAttr("incus_image.img1", "architecture", architecture),
+				),
+			},
+		},
+	})
+}
+
 func testAccImage_basic() string {
 	return `
 resource "incus_image" "img1" {
@@ -365,4 +389,18 @@ resource "incus_instance" "inst" {
   }
 }
 	`, project, instanceName)
+}
+
+func testAccImage_architecture(project string, architecture string) string {
+	return fmt.Sprintf(`
+resource "incus_project" "project1" {
+  name = "%s"
+}
+resource "incus_image" "img1" {
+  source_remote = "images"
+  source_image  = "alpine/edge"
+  project       = incus_project.project1.name
+  architecture  = "%s"
+}
+	`, project, architecture)
 }

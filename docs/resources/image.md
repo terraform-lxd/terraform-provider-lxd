@@ -38,11 +38,11 @@ resource "incus_instance" "test1" {
 * `remote` - *Optional* - The remote in which the resource will be created. If
 	not provided, the provider's default remote will be used.
 
+* `architecture` - The image architecture (e.g. x86_64, aarch64). See [Architectures](https://linuxcontainers.org/incus/docs/main/architectures/) for all possible values.
+
 ## Attribute Reference
 
 The following attributes are exported:
-
-* `architecture` - The image architecture (e.g. amd64, i386).
 
 * `created_at` - The datetime of image creation, in Unix time.
 
