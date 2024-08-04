@@ -108,7 +108,9 @@ func (r LxdNetworkLBResource) Schema(_ context.Context, _ resource.SchemaRequest
 
 						"description": schema.StringAttribute{
 							Optional:    true,
+							Computed:    true,
 							Description: "LB backend description",
+							Default:     stringdefault.StaticString(""),
 						},
 
 						"target_address": schema.StringAttribute{
