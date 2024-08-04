@@ -116,6 +116,41 @@ func TestAccNetworkLB_withBackend(t *testing.T) {
 	})
 }
 
+func TestAccNetworkLB_withBackend_noDescriptions(t *testing.T) {
+	backend := api.NetworkLoadBalancerBackend{
+		Name:          "backend",
+		TargetAddress: "10.0.0.2",
+		TargetPort:    "80",
+	}
+
+	port := api.NetworkLoadBalancerPort{
+		Protocol:   "tcp",
+		ListenPort: "8080",
+	}
+
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			acctest.PreCheck(t)
+			acctest.PreCheckAPIExtensions(t, "network_load_balancer")
+		},
+		ProtoV6ProviderFactories: acctest.ProtoV6ProviderFactories,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccNetworkLB_withBackendAndPort_noDescription(backend, port),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr("lxd_network.ovnbr", "name", "ovnbr"),
+					resource.TestCheckResourceAttr("lxd_network.ovn", "name", "ovn"),
+					resource.TestCheckResourceAttr("lxd_network_lb.test", "network", "ovn"),
+					resource.TestCheckResourceAttr("lxd_network_lb.test", "backend.#", "1"),
+					resource.TestCheckResourceAttr("lxd_network_lb.test", "backend.0.description", ""),
+					resource.TestCheckResourceAttr("lxd_network_lb.test", "port.#", "1"),
+					resource.TestCheckResourceAttr("lxd_network_lb.test", "port.0.description", ""),
+				),
+			},
+		},
+	})
+}
+
 func testAccNetworkLB_basic() string {
 	lbRes := `
 resource "lxd_network_lb" "test" {
@@ -196,6 +231,38 @@ resource "lxd_network_lb" "test" {
     protocol       = "%[8]s"
     listen_port    = "%[9]s"
     target_backend = ["%[3]s"]
+  }
+}
+`, args...)
+
+	return fmt.Sprintf("%s\n%s", ovnNetworkResource(), lbRes)
+}
+
+func testAccNetworkLB_withBackendAndPort_noDescription(backend api.NetworkLoadBalancerBackend, port api.NetworkLoadBalancerPort) string {
+	args := []any{
+		backend.Name,          // 1
+		backend.TargetAddress, // 2
+		backend.TargetPort,    // 3
+		port.Protocol,         // 4
+		port.ListenPort,       // 5
+	}
+
+	lbRes := fmt.Sprintf(`
+resource "lxd_network_lb" "test" {
+  network        = lxd_network.ovn.name
+  listen_address = "10.10.10.200"
+  description    = "Load Balancer with Backend and Port"
+
+  backend {
+    name           = "%[1]s"
+    target_address = "%[2]s"
+    target_port    = "%[3]s"
+  }
+
+  port {
+    protocol       = "%[4]s"
+    listen_port    = "%[5]s"
+    target_backend = ["%[1]s"]
   }
 }
 `, args...)
