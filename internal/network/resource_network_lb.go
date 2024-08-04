@@ -109,7 +109,9 @@ func (r IncusNetworkLBResource) Schema(_ context.Context, _ resource.SchemaReque
 
 						"description": schema.StringAttribute{
 							Optional:    true,
+							Computed:    true,
 							Description: "LB backend description",
+							Default:     stringdefault.StaticString(""),
 						},
 
 						"target_address": schema.StringAttribute{
