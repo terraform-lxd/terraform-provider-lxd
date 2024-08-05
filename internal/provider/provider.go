@@ -308,6 +308,7 @@ func (p *LxdProvider) Resources(_ context.Context) []func() resource.Resource {
 		network.NewNetworkAclResource,
 		network.NewNetworkForwardResource,
 		network.NewNetworkLBResource,
+		network.NewNetworkPeerResource,
 		network.NewNetworkZoneResource,
 		network.NewNetworkZoneRecordResource,
 		profile.NewProfileResource,
