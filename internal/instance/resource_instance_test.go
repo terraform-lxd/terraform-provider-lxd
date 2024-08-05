@@ -19,7 +19,7 @@ func TestAccInstance_basic(t *testing.T) {
 		ProtoV6ProviderFactories: acctest.ProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccInstance_basic(instanceName),
+				Config: testAccInstance_basic(instanceName, acctest.TestImage),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("incus_instance.instance1", "name", instanceName),
 					resource.TestCheckResourceAttr("incus_instance.instance1", "status", "Running"),
@@ -41,7 +41,7 @@ func TestAccInstance_noImage(t *testing.T) {
 		ProtoV6ProviderFactories: acctest.ProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccInstance_basic(instanceName),
+				Config: testAccInstance_basic(instanceName, acctest.TestImage),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("incus_instance.instance1", "name", instanceName),
 					resource.TestCheckResourceAttr("incus_instance.instance1", "status", "Running"),
@@ -724,7 +724,7 @@ func TestAccInstance_importBasic(t *testing.T) {
 		ProtoV6ProviderFactories: acctest.ProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccInstance_basic(instanceName),
+				Config: testAccInstance_basic(instanceName, acctest.TestImage),
 			},
 			{
 				ResourceName:                         resourceName,
@@ -760,13 +760,36 @@ func TestAccInstance_importProject(t *testing.T) {
 	})
 }
 
-func testAccInstance_basic(name string) string {
+func TestAccInstance_oci(t *testing.T) {
+	instanceName := petname.Generate(2, "-")
+	ociImage := "docker:alpine:latest"
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { acctest.PreCheck(t) },
+		ProtoV6ProviderFactories: acctest.ProtoV6ProviderFactories,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccInstance_basic(instanceName, ociImage),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr("incus_instance.instance1", "name", instanceName),
+					resource.TestCheckResourceAttr("incus_instance.instance1", "status", "Running"),
+					resource.TestCheckResourceAttr("incus_instance.instance1", "ephemeral", "false"),
+					resource.TestCheckResourceAttr("incus_instance.instance1", "image", ociImage),
+					resource.TestCheckResourceAttr("incus_instance.instance1", "profiles.#", "1"),
+					resource.TestCheckResourceAttr("incus_instance.instance1", "profiles.0", "default"),
+				),
+			},
+		},
+	})
+}
+
+func testAccInstance_basic(name string, image string) string {
 	return fmt.Sprintf(`
 resource "incus_instance" "instance1" {
   name  = "%s"
   image = "%s"
 }
-	`, name, acctest.TestImage)
+	`, name, image)
 }
 
 func testAccInstance_ephemeral(name string) string {
