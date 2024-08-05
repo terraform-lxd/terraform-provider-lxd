@@ -132,7 +132,9 @@ func (r LxdNetworkLBResource) Schema(_ context.Context, _ resource.SchemaRequest
 					Attributes: map[string]schema.Attribute{
 						"description": schema.StringAttribute{
 							Optional:    true,
+							Computed:    true,
 							Description: "Port description",
+							Default:     stringdefault.StaticString(""),
 						},
 
 						"protocol": schema.StringAttribute{
