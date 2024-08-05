@@ -437,8 +437,8 @@ func (r InstanceResource) Create(ctx context.Context, req resource.CreateRequest
 
 		// Gather info about source image.
 		conn, _ := imageServer.GetConnectionInfo()
-		if conn.Protocol == "simplestreams" {
-			// Optimisation for simplestreams.
+		if conn.Protocol != "incus" {
+			// Optimisation for public servers.
 			imageInfo = &api.Image{}
 			imageInfo.Public = true
 			imageInfo.Fingerprint = image
@@ -912,6 +912,7 @@ func (r InstanceResource) SyncState(ctx context.Context, tfState *tfsdk.State, s
 // ComputedKeys returns list of computed config keys.
 func (_ InstanceModel) ComputedKeys() []string {
 	return []string{
+		"environment.",
 		"image.",
 		"volatile.",
 	}
