@@ -60,6 +60,8 @@ jobs:
 
           INCUS_TOKEN=$(incus config trust add terraform --quiet)
           incus remote add localhost "${INCUS_TOKEN}"
+  
+          incus remote add docker https://docker.io --protocol=oci
 
       - name: Configure OVN
         run: |

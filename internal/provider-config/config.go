@@ -118,7 +118,7 @@ func (p *IncusProviderConfig) ImageServer(remoteName string) (incus.ImageServer,
 		return nil, err
 	}
 
-	if connInfo.Protocol == "simplestreams" || connInfo.Protocol == "incus" {
+	if connInfo.Protocol == "simplestreams" || connInfo.Protocol == "incus" || connInfo.Protocol == "oci" {
 		return server.(incus.ImageServer), nil
 	}
 
@@ -169,6 +169,11 @@ func (p *IncusProviderConfig) server(remoteName string) (incus.Server, error) {
 
 	switch incusRemoteConfig.Protocol {
 	case "simplestreams":
+		server, err = p.getIncusConfigImageServer(remoteName)
+		if err != nil {
+			return nil, err
+		}
+	case "oci":
 		server, err = p.getIncusConfigImageServer(remoteName)
 		if err != nil {
 			return nil, err
