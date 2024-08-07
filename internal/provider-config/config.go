@@ -11,7 +11,6 @@ import (
 	lxd_config "github.com/canonical/lxd/lxc/config"
 	lxd_shared "github.com/canonical/lxd/shared"
 	lxd_api "github.com/canonical/lxd/shared/api"
-	"github.com/terraform-lxd/terraform-provider-lxd/internal/errors"
 	"github.com/terraform-lxd/terraform-provider-lxd/internal/utils"
 )
 
@@ -274,11 +273,19 @@ func (p *LxdProviderConfig) createLxdServerClient(remote LxdProviderRemoteConfig
 				req.Password = remote.Password
 			}
 
-			// Create new certificate. Ignore error of type conflict (certificate
-			// already exists).
-			err = instServer.CreateCertificate(req)
-			if err != nil && !errors.IsConflictError(err) {
-				return fmt.Errorf("Unable to authenticate with remote server: %v", err)
+			// Create new certificate.
+			errCert := instServer.CreateCertificate(req)
+			if errCert != nil {
+				// If request to create a certificate failed, refresh the
+				// server and check again whether the server is trusted.
+				server, _, err = instServer.GetServer()
+				if err != nil {
+					return err
+				}
+
+				if server.Auth != "trusted" {
+					return fmt.Errorf("Unable to authenticate with remote server: %v", errCert)
+				}
 			}
 		}
 	}
