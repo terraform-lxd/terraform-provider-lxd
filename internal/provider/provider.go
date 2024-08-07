@@ -317,6 +317,7 @@ func (p *LxdProvider) Resources(_ context.Context) []func() resource.Resource {
 		storage.NewStorageVolumeResource,
 		storage.NewStorageVolumeCopyResource,
 		truststore.NewTrustCertificateResource,
+		truststore.NewTrustTokenResource,
 	}
 }
 
