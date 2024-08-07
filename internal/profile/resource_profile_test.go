@@ -2,6 +2,7 @@ package profile_test
 
 import (
 	"fmt"
+	"regexp"
 	"testing"
 
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
@@ -227,6 +228,39 @@ func TestAccProfile_project(t *testing.T) {
 					resource.TestCheckResourceAttr("lxd_profile.profile1", "project", projectName),
 					resource.TestCheckResourceAttr("lxd_profile.profile1", "device.#", "1"),
 					resource.TestCheckResourceAttr("lxd_profile.profile1", "device.0.name", "foo"),
+				),
+			},
+		},
+	})
+}
+
+func TestAccProfile_defaultProfile(t *testing.T) {
+	projectName := acctest.GenerateName(2, "-")
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { acctest.PreCheck(t) },
+		ProtoV6ProviderFactories: acctest.ProtoV6ProviderFactories,
+		Steps: []resource.TestStep{
+			{
+				// Ensure default profile cannot be managed in default project.
+				Config:      testAccProfile_basic("default"),
+				ExpectError: regexp.MustCompile("Cannot import existing profile"),
+			},
+			{
+				// Ensure default profile cannot be managed in project with "features.profiles".
+				Config:      testAccProfile_defaultProfile(projectName, false),
+				ExpectError: regexp.MustCompile("Cannot import existing profile"),
+			},
+			{
+				// Ensure default profile can be managed in non-default project that
+				// have "features.profiles" enabled.
+				Config: testAccProfile_defaultProfile(projectName, true),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr("lxd_project.project1", "name", projectName),
+					resource.TestCheckResourceAttr("lxd_profile.default", "name", "default"),
+					resource.TestCheckResourceAttr("lxd_profile.default", "project", projectName),
+					resource.TestCheckResourceAttr("lxd_profile.default", "device.#", "1"),
+					resource.TestCheckResourceAttr("lxd_profile.default", "device.0.name", "foo"),
 				),
 			},
 		},
@@ -468,7 +502,7 @@ resource "lxd_instance" "instance1" {
 	`, profileName, instanceName, acctest.TestImage)
 }
 
-func testAccProfile_project(projectName, profileName string) string {
+func testAccProfile_project(projectName string, profileName string) string {
 	return fmt.Sprintf(`
 resource "lxd_project" "project1" {
   name = "%s"
@@ -493,4 +527,31 @@ resource "lxd_profile" "profile1" {
   }
 }
 	`, projectName, profileName)
+}
+
+func testAccProfile_defaultProfile(projectName string, enableProfileFeature bool) string {
+	return fmt.Sprintf(`
+resource "lxd_project" "project1" {
+  name = "%s"
+  config = {
+	"features.images"   = false
+	"features.profiles" = %v
+  }
+}
+
+resource "lxd_profile" "default" {
+  name    = "default"
+  project = lxd_project.project1.name
+
+  device {
+    name = "foo"
+    type = "nic"
+    properties = {
+      name    = "bar"
+      nictype = "bridged"
+      parent  = "lxdbr0"
+    }
+  }
+}
+	`, projectName, enableProfileFeature)
 }
