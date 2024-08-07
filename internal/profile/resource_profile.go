@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	lxd "github.com/canonical/lxd/client"
+	"github.com/canonical/lxd/shared"
 	"github.com/canonical/lxd/shared/api"
 	"github.com/hashicorp/terraform-plugin-framework-validators/mapvalidator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
@@ -172,8 +173,10 @@ func (r ProfileResource) Create(ctx context.Context, req resource.CreateRequest,
 		return
 	}
 
+	profileName := plan.Name.ValueString()
+
 	profile := api.ProfilesPost{
-		Name: plan.Name.ValueString(),
+		Name: profileName,
 		ProfilePut: api.ProfilePut{
 			Description: plan.Description.ValueString(),
 			Config:      config,
@@ -181,10 +184,39 @@ func (r ProfileResource) Create(ctx context.Context, req resource.CreateRequest,
 		},
 	}
 
-	err = server.CreateProfile(profile)
-	if err != nil {
-		resp.Diagnostics.AddError(fmt.Sprintf("Failed to create profile %q", profile.Name), err.Error())
-		return
+	if profileName == "default" {
+		// Resolve empty project name.
+		projectName := project
+		if projectName == "" {
+			projectName = "default"
+		}
+
+		err := checkDefaultProject(server, projectName, profileName)
+		if err != nil {
+			resp.Diagnostics.AddError(fmt.Sprintf("Cannot import existing profile %q from project %q", profileName, projectName), err.Error())
+			return
+		}
+
+		// Default profile is automatically created in each project and we cannot remove it.
+		// However, if default profile is added, instead of creating it, we need fetch the
+		// existing one and update it.
+		_, etag, err := server.GetProfile(profileName)
+		if err != nil {
+			resp.Diagnostics.AddError(fmt.Sprintf("Failed to retrieve existing profile %q", profileName), err.Error())
+			return
+		}
+
+		err = server.UpdateProfile(profileName, profile.ProfilePut, etag)
+		if err != nil {
+			resp.Diagnostics.AddError(fmt.Sprintf("Failed to update profile %q", profile.Name), err.Error())
+			return
+		}
+	} else {
+		err = server.CreateProfile(profile)
+		if err != nil {
+			resp.Diagnostics.AddError(fmt.Sprintf("Failed to create profile %q", profile.Name), err.Error())
+			return
+		}
 	}
 
 	// Update Terraform state.
@@ -255,6 +287,23 @@ func (r ProfileResource) Update(ctx context.Context, req resource.UpdateRequest,
 		Devices:     devices,
 	}
 
+	if profileName == "default" {
+		// Resolve empty project name.
+		projectName := project
+		if projectName == "" {
+			projectName = "default"
+		}
+
+		// Ensure default profile is not located within the default project. This can
+		// occur if the profiles's project feature `feature.profiles` was manually
+		// changed after the default profile was made managed.
+		err := checkDefaultProject(server, projectName, profileName)
+		if err != nil {
+			resp.Diagnostics.AddError(fmt.Sprintf(`Cannot update profile "default" in project "%q"`, projectName), err.Error())
+			return
+		}
+	}
+
 	err = server.UpdateProfile(profileName, profile, etag)
 	if err != nil {
 		resp.Diagnostics.AddError(fmt.Sprintf("Failed to update profile %q", profileName), err.Error())
@@ -284,9 +333,34 @@ func (r ProfileResource) Delete(ctx context.Context, req resource.DeleteRequest,
 	}
 
 	profileName := state.Name.ValueString()
-	err = server.DeleteProfile(profileName)
-	if err != nil {
-		resp.Diagnostics.AddError(fmt.Sprintf("Failed to remove profile %q", profileName), err.Error())
+
+	// Default profile cannot be removed.
+	if profileName == "default" {
+		// If default profile is located in the default project, simply remove it
+		// from the state.
+		if checkDefaultProject(server, project, profileName) != nil {
+			return
+		}
+
+		// Otherwise, try to empty the profile's configuration to ensure the profile
+		// is not being used by any resource.
+		profile := api.ProfilePut{
+			Description: "",
+			Config:      nil,
+			Devices:     nil,
+		}
+
+		// Also ignore the not found error, which may occur if a project where
+		// the profile is located is already removed.
+		err = server.UpdateProfile(profileName, profile, "")
+		if err != nil && !errors.IsNotFoundError(err) {
+			resp.Diagnostics.AddError(fmt.Sprintf("Failed to empty configuration of the profile %q", profileName), err.Error())
+		}
+	} else {
+		err = server.DeleteProfile(profileName)
+		if err != nil && !errors.IsNotFoundError(err) {
+			resp.Diagnostics.AddError(fmt.Sprintf("Failed to remove profile %q", profileName), err.Error())
+		}
 	}
 }
 
@@ -342,4 +416,33 @@ func (r ProfileResource) SyncState(ctx context.Context, tfState *tfsdk.State, se
 	}
 
 	return tfState.Set(ctx, &m)
+}
+
+// checkDefaultProject returns an error if default profile is located within the default
+// project or if the project does not exist.
+func checkDefaultProject(server lxd.InstanceServer, projectName string, profileName string) error {
+	if profileName != "default" {
+		// Nothing to check for.
+		return nil
+	}
+
+	// Default profile in default project cannot be managed as there may be resources
+	// linked to that profile that cannot be managed by Terraform.
+	if projectName == "" || projectName == "default" {
+		return fmt.Errorf(`Profile "default" cannot be managed in project "default"`)
+	}
+
+	project, _, err := server.GetProject(projectName)
+	if err != nil {
+		return err
+	}
+
+	// Ensure project has "features.profiles" disabled. If this feature is enabled,
+	// project's profiles are located in default project, which we cannot manage.
+	feature, ok := project.Config["features.profiles"]
+	if !ok || shared.IsFalse(feature) {
+		return fmt.Errorf(`Project %q has "features.profiles" disabled which means the profile "default" is located in project "default". This profile cannot be managed.`, projectName)
+	}
+
+	return nil
 }
