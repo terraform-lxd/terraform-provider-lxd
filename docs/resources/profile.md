@@ -41,6 +41,25 @@ resource "lxd_instance" "test1" {
 }
 ```
 
+Default profiles in LXD are special because they are created automatically and cannot be removed.
+The provider will attempt to update these profiles and, if successful, import them into the Terraform state.
+```hcl
+resource "lxd_project" "myproject" {
+  name = "myproject"
+  config = {
+    "features.profiles": true
+  }
+}
+
+resource "lxd_profile" "default" {
+  name        = "default"
+  project     = lxd_project.myproject.name
+  description = "Modified default profile description"
+}
+```
+
+~> **Note:** Default profiles can be managed only in non-default projects that have `features.profiles` set to `true`.
+
 ## Argument Reference
 
 * `name` - **Required** - Name of the profile.
