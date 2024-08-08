@@ -162,6 +162,11 @@ func (r *TrustCertificateResource) ModifyPlan(ctx context.Context, req resource.
 		}
 	}
 
+	// Confirm that `certContent` is not an unknown value.
+	if plan.Content.IsUnknown() {
+		return
+	}
+
 	// Parse the certificate.
 	x509Cert, err := ParseCertX509(certContent)
 	if err != nil {
