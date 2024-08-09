@@ -72,12 +72,34 @@ resource "incus_instance" "instance2" {
 }
 ```
 
+## Example to create a new instance from an existing instance
+
+```hcl
+resource "incus_instance" "instance1" {
+  project = "default"
+  name    = "instance1"
+  image   = "images:debian/12"
+}
+
+resource "incus_instance" "instance2" {
+  project = "default"
+  name    = "instance2"
+
+  source_instance = {
+    project = "default"
+    name    = "instance1"
+  }
+}
+```
+
 ## Argument Reference
 
 * `name` - **Required** - Name of the instance.
 
-* `image` - **Required** - Base image from which the instance will be created. Must
+* `image` - *Optional* - Base image from which the instance will be created. Must
   specify [an image accessible from the provider remote](https://linuxcontainers.org/incus/docs/main/reference/remote_image_servers/).
+
+* `source_instance` - *Optional* - The source instance from which the instance will be created. See reference below.
 
 * `description` - *Optional* - Description of the instance.
 
@@ -110,6 +132,14 @@ resource "incus_instance" "instance2" {
 	not provided, the provider's default remote will be used.
 
 * `target` - *Optional* - Specify a target node in a cluster.
+
+The `source_instance` block supports:
+
+* `project` - **Required** - Name of the project in which the source instance exists.
+
+* `name` - **Required** - Name of the source instance.
+
+* `snapshot`- *Optiona** - Name of the snapshot of the source instance
 
 The `device` block supports:
 
