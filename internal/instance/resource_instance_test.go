@@ -41,10 +41,10 @@ func TestAccInstance_noImage(t *testing.T) {
 		ProtoV6ProviderFactories: acctest.ProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccInstance_basic(instanceName, acctest.TestImage),
+				Config: testAccInstance_noImage(instanceName),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("incus_instance.instance1", "name", instanceName),
-					resource.TestCheckResourceAttr("incus_instance.instance1", "status", "Running"),
+					resource.TestCheckResourceAttr("incus_instance.instance1", "status", "Stopped"),
 					resource.TestCheckResourceAttr("incus_instance.instance1", "ephemeral", "false"),
 					resource.TestCheckResourceAttr("incus_instance.instance1", "profiles.#", "1"),
 					resource.TestCheckResourceAttr("incus_instance.instance1", "profiles.0", "default"),
@@ -783,6 +783,56 @@ func TestAccInstance_oci(t *testing.T) {
 	})
 }
 
+func TestAccInstance_sourceInstance(t *testing.T) {
+	projectName := petname.Name()
+	sourceInstanceName := petname.Generate(2, "-")
+	instanceName := petname.Generate(2, "-")
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { acctest.PreCheck(t) },
+		ProtoV6ProviderFactories: acctest.ProtoV6ProviderFactories,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccInstance_sourceInstance(projectName, sourceInstanceName, instanceName),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr("incus_instance.instance2", "name", instanceName),
+					resource.TestCheckResourceAttr("incus_instance.instance2", "status", "Running"),
+					resource.TestCheckResourceAttr("incus_instance.instance2", "ephemeral", "false"),
+					resource.TestCheckResourceAttr("incus_instance.instance2", "source_instance.name", sourceInstanceName),
+					resource.TestCheckResourceAttr("incus_instance.instance2", "profiles.#", "1"),
+					resource.TestCheckResourceAttr("incus_instance.instance2", "profiles.0", "default"),
+				),
+			},
+		},
+	})
+}
+
+func TestAccInstance_sourceInstanceWithSnapshot(t *testing.T) {
+	projectName := petname.Name()
+	sourceInstanceName := petname.Generate(2, "-")
+	snapshotName := "snap0"
+	instanceName := petname.Generate(2, "-")
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { acctest.PreCheck(t) },
+		ProtoV6ProviderFactories: acctest.ProtoV6ProviderFactories,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccInstance_sourceInstanceWithSnapshot(projectName, sourceInstanceName, snapshotName, instanceName),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr("incus_instance.instance2", "name", instanceName),
+					resource.TestCheckResourceAttr("incus_instance.instance2", "status", "Running"),
+					resource.TestCheckResourceAttr("incus_instance.instance2", "ephemeral", "false"),
+					resource.TestCheckResourceAttr("incus_instance.instance2", "source_instance.name", sourceInstanceName),
+					resource.TestCheckResourceAttr("incus_instance.instance2", "source_instance.snapshot", snapshotName),
+					resource.TestCheckResourceAttr("incus_instance.instance2", "profiles.#", "1"),
+					resource.TestCheckResourceAttr("incus_instance.instance2", "profiles.0", "default"),
+				),
+			},
+		},
+	})
+}
+
 func testAccInstance_basic(name string, image string) string {
 	return fmt.Sprintf(`
 resource "incus_instance" "instance1" {
@@ -790,6 +840,15 @@ resource "incus_instance" "instance1" {
   image = "%s"
 }
 	`, name, image)
+}
+
+func testAccInstance_noImage(name string) string {
+	return fmt.Sprintf(`
+resource "incus_instance" "instance1" {
+  name  = "%s"
+  running = false
+}
+	`, name)
 }
 
 func testAccInstance_ephemeral(name string) string {
@@ -1309,4 +1368,68 @@ resource "incus_instance" "instance1" {
   image = "%s"
 }
 	`, projectName, instanceName, acctest.TestImage)
+}
+
+func testAccInstance_sourceInstance(projectName, sourceInstanceName string, instanceName string) string {
+	return fmt.Sprintf(`
+resource "incus_project" "project1" {
+  name = "%[1]s"
+  config = {
+	"features.images"   = false
+	"features.profiles" = false
+  }
+}
+
+resource "incus_instance" "instance1" {
+  project = incus_project.project1.name
+  name  = "%[2]s"
+  image = "%[4]s"
+}
+
+resource "incus_instance" "instance2" {
+  project = incus_project.project1.name
+  name  = "%[3]s"
+
+  source_instance = {
+    project = incus_project.project1.name
+    name    = incus_instance.instance1.name
+  }
+}
+	`, projectName, sourceInstanceName, instanceName, acctest.TestImage)
+}
+
+func testAccInstance_sourceInstanceWithSnapshot(projectName, sourceInstanceName string, snapshotName string, instanceName string) string {
+	return fmt.Sprintf(`
+resource "incus_project" "project1" {
+  name = "%[1]s"
+  config = {
+	"features.images"   = false
+	"features.profiles" = false
+  }
+}
+
+resource "incus_instance" "instance1" {
+  project = incus_project.project1.name
+  name  = "%[2]s"
+  image = "%[5]s"
+}
+
+resource "incus_instance_snapshot" "snapshot1" {
+  name     = "%[3]s"
+  instance = incus_instance.instance1.name
+  stateful = false
+  project  = incus_project.project1.name
+}
+
+resource "incus_instance" "instance2" {
+  project = incus_project.project1.name
+  name  = "%[4]s"
+
+  source_instance = {
+    project  = incus_project.project1.name
+    name     = incus_instance.instance1.name
+    snapshot = incus_instance_snapshot.snapshot1.name
+  }
+}
+	`, projectName, sourceInstanceName, snapshotName, instanceName, acctest.TestImage)
 }

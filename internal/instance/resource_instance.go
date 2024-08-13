@@ -18,20 +18,23 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/booldefault"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/boolplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/mapdefault"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/objectplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringdefault"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/tfsdk"
 	"github.com/hashicorp/terraform-plugin-framework/types"
+	"github.com/hashicorp/terraform-plugin-framework/types/basetypes"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/retry"
 	"github.com/lxc/incus/v6/client"
 	"github.com/lxc/incus/v6/shared/api"
 
 	"github.com/lxc/terraform-provider-incus/internal/common"
 	"github.com/lxc/terraform-provider-incus/internal/errors"
-	provider_config "github.com/lxc/terraform-provider-incus/internal/provider-config"
 	"github.com/lxc/terraform-provider-incus/internal/utils"
+
+	provider_config "github.com/lxc/terraform-provider-incus/internal/provider-config"
 )
 
 type InstanceModel struct {
@@ -50,12 +53,19 @@ type InstanceModel struct {
 	Project        types.String `tfsdk:"project"`
 	Remote         types.String `tfsdk:"remote"`
 	Target         types.String `tfsdk:"target"`
+	SourceInstance types.Object `tfsdk:"source_instance"`
 
 	// Computed.
 	IPv4   types.String `tfsdk:"ipv4_address"`
 	IPv6   types.String `tfsdk:"ipv6_address"`
 	MAC    types.String `tfsdk:"mac_address"`
 	Status types.String `tfsdk:"status"`
+}
+
+type SourceInstanceModel struct {
+	Project  types.String `tfsdk:"project"`
+	Name     types.String `tfsdk:"name"`
+	Snapshot types.String `tfsdk:"snapshot"`
 }
 
 // InstanceResource represent Incus instance resource.
@@ -129,7 +139,7 @@ func (r InstanceResource) Schema(_ context.Context, _ resource.SchemaRequest, re
 			},
 
 			// If profiles are null, use "default" profile.
-			// If profiles lengeth is 0, no profiles are applied.
+			// If profiles length is 0, no profiles are applied.
 			"profiles": schema.ListAttribute{
 				Optional:    true,
 				Computed:    true,
@@ -187,6 +197,24 @@ func (r InstanceResource) Schema(_ context.Context, _ resource.SchemaRequest, re
 				Default:     mapdefault.StaticValue(types.MapValueMust(types.StringType, map[string]attr.Value{})),
 				Validators: []validator.Map{
 					mapvalidator.KeysAre(configKeyValidator{}),
+				},
+			},
+
+			"source_instance": schema.SingleNestedAttribute{
+				Optional: true,
+				Attributes: map[string]schema.Attribute{
+					"project": schema.StringAttribute{
+						Required: true,
+					},
+					"name": schema.StringAttribute{
+						Required: true,
+					},
+					"snapshot": schema.StringAttribute{
+						Optional: true,
+					},
+				},
+				PlanModifiers: []planmodifier.Object{
+					objectplanmodifier.RequiresReplace(),
 				},
 			},
 
@@ -355,6 +383,14 @@ func (r InstanceResource) ValidateConfig(ctx context.Context, req resource.Valid
 			fmt.Sprintf("Ephemeral instances are removed when stopped, therefore attribute %q must be set to %q.", "running", "true"),
 		)
 	}
+
+	if !config.Image.IsNull() && !config.SourceInstance.IsNull() {
+		resp.Diagnostics.AddError(
+			"Invalid Configuration",
+			"Only image or source_instance can be set.",
+		)
+		return
+	}
 }
 
 func (r InstanceResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
@@ -375,118 +411,31 @@ func (r InstanceResource) Create(ctx context.Context, req resource.CreateRequest
 		return
 	}
 
-	// Extract profiles, devices, config and limits.
-	profiles, diags := ToProfileList(ctx, plan.Profiles)
-	resp.Diagnostics.Append(diags...)
+	if !plan.Image.IsNull() {
+		diags = r.createInstanceFromImage(ctx, server, plan)
+		resp.Diagnostics.Append(diags...)
+	} else if !plan.SourceInstance.IsNull() {
+		diags = r.createInstanceFromSourceInstance(ctx, server, plan)
+		resp.Diagnostics.Append(diags...)
+	} else {
+		if plan.Running.ValueBool() {
+			resp.Diagnostics.AddError("running must be set to false if the instance is created without image or source_instance", "")
+			return
+		}
 
-	devices, diags := common.ToDeviceMap(ctx, plan.Devices)
-	resp.Diagnostics.Append(diags...)
+		diags = r.createInstanceWithoutImage(ctx, server, plan)
+		resp.Diagnostics.Append(diags...)
+	}
 
-	config, diags := common.ToConfigMap(ctx, plan.Config)
-	resp.Diagnostics.Append(diags...)
-
-	limits, diags := common.ToConfigMap(ctx, plan.Limits)
-	resp.Diagnostics.Append(diags...)
-
-	if resp.Diagnostics.HasError() {
+	if diags.HasError() {
 		return
 	}
 
-	// Merge limits into instance config.
-	for k, v := range limits {
-		key := fmt.Sprintf("limits.%s", k)
-		config[key] = v
-	}
-
-	// Prepare instance request.
-	instance := api.InstancesPost{
-		Name: plan.Name.ValueString(),
-		Type: api.InstanceType(plan.Type.ValueString()),
-		InstancePut: api.InstancePut{
-			Description: plan.Description.ValueString(),
-			Ephemeral:   plan.Ephemeral.ValueBool(),
-			Config:      config,
-			Profiles:    profiles,
-			Devices:     devices,
-		},
-	}
-
-	// Evaluate image remote.
-	if !plan.Image.IsNull() {
-		image := plan.Image.ValueString()
-		imageRemote := remote
-		imageParts := strings.SplitN(image, ":", 2)
-		if len(imageParts) == 2 {
-			imageRemote = imageParts[0]
-			image = imageParts[1]
-		}
-
-		var imageServer incus.ImageServer
-		if imageRemote == "" {
-			// Use the instance server as an image server if image remote is empty.
-			imageServer = server
-		} else {
-			imageServer, err = r.provider.ImageServer(imageRemote)
-			if err != nil {
-				resp.Diagnostics.Append(errors.NewImageServerError(err))
-				return
-			}
-		}
-
-		var imageInfo *api.Image
-
-		// Gather info about source image.
-		conn, _ := imageServer.GetConnectionInfo()
-		if conn.Protocol != "incus" {
-			// Optimisation for public servers.
-			imageInfo = &api.Image{}
-			imageInfo.Public = true
-			imageInfo.Fingerprint = image
-			instance.Source.Alias = image
-		} else {
-			// Attempt to resolve an image alias.
-			alias, _, err := imageServer.GetImageAlias(image)
-			if err == nil {
-				image = alias.Target
-				instance.Source.Alias = image
-			}
-
-			// Get the image info.
-			imageInfo, _, err = imageServer.GetImage(image)
-			if err != nil {
-				resp.Diagnostics.AddError(fmt.Sprintf("Failed to retrieve image info for instance %q", instance.Name), err.Error())
-				return
-			}
-		}
-
-		opCreate, err := server.CreateInstanceFromImage(imageServer, *imageInfo, instance)
-		// Initialize the instance. Instance will no be running after this call.
-		if err == nil {
-			// Wait for the instance to be created.
-			err = opCreate.Wait()
-		}
-
-		if err != nil {
-			resp.Diagnostics.AddError(fmt.Sprintf("Failed to create instance %q", instance.Name), err.Error())
-			return
-		}
-	} else {
-		opCreate, err := server.CreateInstance(instance)
-		// Initialize the instance. Instance will no be running after this call.
-		if err == nil {
-			// Wait for the instance to be created.
-			err = opCreate.Wait()
-		}
-
-		if err != nil {
-			resp.Diagnostics.AddError(fmt.Sprintf("Failed to create instance %q", instance.Name), err.Error())
-			return
-		}
-	}
+	instanceName := plan.Name.ValueString()
 
 	// Partially update state, to make terraform aware of
 	// an existing instance.
-	diags = resp.State.SetAttribute(ctx, path.Root("name"), instance.Name)
+	diags = resp.State.SetAttribute(ctx, path.Root("name"), instanceName)
 	if diags.HasError() {
 		resp.Diagnostics.Append(diags...)
 		return
@@ -501,17 +450,16 @@ func (r InstanceResource) Create(ctx context.Context, req resource.CreateRequest
 		}
 
 		for _, f := range files {
-			err := common.InstanceFileUpload(server, instance.Name, f)
+			err := common.InstanceFileUpload(server, instanceName, f)
 			if err != nil {
-				resp.Diagnostics.AddError(fmt.Sprintf("Failed to upload file to instance %q", instance.Name), err.Error())
+				resp.Diagnostics.AddError(fmt.Sprintf("Failed to upload file to instance %q", instanceName), err.Error())
 				return
 			}
 		}
 	}
 
 	if plan.Running.ValueBool() {
-		// Start the instance.
-		diag := startInstance(ctx, server, instance.Name)
+		diag := startInstance(ctx, server, instanceName)
 		if diag != nil {
 			resp.Diagnostics.Append(diag)
 			return
@@ -520,7 +468,7 @@ func (r InstanceResource) Create(ctx context.Context, req resource.CreateRequest
 		// Wait for the instance to obtain an IP address if network
 		// availability is requested by the user.
 		if plan.WaitForNetwork.ValueBool() {
-			diag := waitInstanceNetwork(ctx, server, instance.Name)
+			diag := waitInstanceNetwork(ctx, server, instanceName)
 			if diag != nil {
 				resp.Diagnostics.Append(diag)
 				return
@@ -907,6 +855,325 @@ func (r InstanceResource) SyncState(ctx context.Context, tfState *tfsdk.State, s
 	}
 
 	return tfState.Set(ctx, &m)
+}
+
+func (r InstanceResource) createInstanceFromImage(ctx context.Context, server incus.InstanceServer, plan InstanceModel) diag.Diagnostics {
+	var diags diag.Diagnostics
+
+	instance, diags := prepareInstancesPost(ctx, plan)
+	if diags.HasError() {
+		return diags
+	}
+
+	image := plan.Image.ValueString()
+	imageRemote := plan.Remote.ValueString()
+	imageParts := strings.SplitN(image, ":", 2)
+	if len(imageParts) == 2 {
+		imageRemote = imageParts[0]
+		image = imageParts[1]
+	}
+
+	var imageServer incus.ImageServer
+	if imageRemote == "" {
+		imageServer = server
+	} else {
+		var err error
+		imageServer, err = r.provider.ImageServer(imageRemote)
+		if err != nil {
+			diags.Append(errors.NewImageServerError(err))
+			return diags
+		}
+	}
+
+	var imageInfo *api.Image
+
+	// Gather info about source image.
+	conn, _ := imageServer.GetConnectionInfo()
+	if conn.Protocol != "incus" {
+		// Optimisation for public servers.
+		imageInfo = &api.Image{}
+		imageInfo.Public = true
+		imageInfo.Fingerprint = image
+		instance.Source.Alias = image
+	} else {
+		alias, _, err := imageServer.GetImageAlias(image)
+		if err == nil {
+			image = alias.Target
+			instance.Source.Alias = image
+		}
+
+		imageInfo, _, err = imageServer.GetImage(image)
+		if err != nil {
+			diags.AddError(fmt.Sprintf("Failed to retrieve image info for instance %q", instance.Name), err.Error())
+			return diags
+		}
+	}
+
+	opCreate, err := server.CreateInstanceFromImage(imageServer, *imageInfo, instance)
+	// Initialize the instance. Instance will not be running after this call.
+	if err == nil {
+		// Wait for the instance to be created.
+		err = opCreate.Wait()
+	}
+
+	if err != nil {
+		diags.AddError(fmt.Sprintf("Failed to create instance %q", instance.Name), err.Error())
+		return diags
+	}
+
+	return diags
+}
+
+func (r InstanceResource) createInstanceFromSourceInstance(ctx context.Context, destServer incus.InstanceServer, plan InstanceModel) diag.Diagnostics {
+	var diags diag.Diagnostics
+	var sourceInstanceModel SourceInstanceModel
+
+	diags = plan.SourceInstance.As(ctx, &sourceInstanceModel, basetypes.ObjectAsOptions{})
+	if diags.HasError() {
+		return diags
+	}
+
+	name := plan.Name.ValueString()
+
+	remote := plan.Remote.ValueString()
+	sourceInstanceProject := sourceInstanceModel.Project.ValueString()
+	target := plan.Target.ValueString()
+	sourceServer, err := r.provider.InstanceServer(remote, sourceInstanceProject, target)
+	if err != nil {
+		diags.Append(errors.NewInstanceServerError(err))
+		return diags
+	}
+
+	sourceInstanceName := sourceInstanceModel.Name.ValueString()
+
+	if sourceInstanceModel.Snapshot.IsNull() {
+		args := incus.InstanceCopyArgs{
+			Name:              name,
+			Live:              true,
+			InstanceOnly:      true,
+			Refresh:           false,
+			AllowInconsistent: false,
+		}
+
+		sourceInstance, _, err := sourceServer.GetInstance(sourceInstanceName)
+		if err != nil {
+			diags.AddError(fmt.Sprintf("Failed to retrieve instance %q", sourceInstanceName), err.Error())
+			return diags
+		}
+
+		// Extract profiles, devices, config and limits.
+		profiles, diags := ToProfileList(ctx, plan.Profiles)
+		diags.Append(diags...)
+
+		devices, diags := common.ToDeviceMap(ctx, plan.Devices)
+		diags.Append(diags...)
+
+		config, diags := common.ToConfigMap(ctx, plan.Config)
+		diags.Append(diags...)
+
+		limits, diags := common.ToConfigMap(ctx, plan.Limits)
+		diags.Append(diags...)
+
+		if diags.HasError() {
+			return diags
+		}
+
+		sourceInstance.Profiles = profiles
+
+		// Allow setting additional config keys
+		for key, value := range config {
+			sourceInstance.Config[key] = value
+		}
+
+		for k, v := range limits {
+			key := fmt.Sprintf("limits.%s", k)
+			config[key] = v
+		}
+
+		// Allow setting device overrides
+		for k, m := range devices {
+			if sourceInstance.Devices[k] == nil {
+				sourceInstance.Devices[k] = m
+				continue
+			}
+
+			for key, value := range m {
+				sourceInstance.Devices[k][key] = value
+			}
+		}
+
+		for k := range sourceInstance.Config {
+			if !instanceIncludeWhenCopying(k, true) {
+				delete(sourceInstance.Config, k)
+			}
+		}
+
+		opCreate, err := destServer.CopyInstance(sourceServer, *sourceInstance, &args)
+		if err == nil {
+			err = opCreate.Wait()
+		}
+
+		if err != nil {
+			diags.AddError(fmt.Sprintf("Failed to create instance %q", name), err.Error())
+			return diags
+		}
+
+		return diags
+	} else {
+		args := incus.InstanceSnapshotCopyArgs{
+			Name: name,
+			Live: true,
+		}
+
+		sourceSnapshotName := sourceInstanceModel.Snapshot.ValueString()
+		sourceSnapshot, _, err := sourceServer.GetInstanceSnapshot(sourceInstanceName, sourceSnapshotName)
+		if err != nil {
+			diags.AddError(fmt.Sprintf("Failed to retrieve snapshot %q from instance %q", sourceSnapshotName, sourceInstanceName), err.Error())
+			return diags
+		}
+
+		// Extract profiles, devices, config and limits.
+		profiles, diags := ToProfileList(ctx, plan.Profiles)
+		diags.Append(diags...)
+
+		devices, diags := common.ToDeviceMap(ctx, plan.Devices)
+		diags.Append(diags...)
+
+		config, diags := common.ToConfigMap(ctx, plan.Config)
+		diags.Append(diags...)
+
+		limits, diags := common.ToConfigMap(ctx, plan.Limits)
+		diags.Append(diags...)
+
+		if diags.HasError() {
+			return diags
+		}
+
+		sourceSnapshot.Profiles = profiles
+
+		// Allow setting additional config keys
+		for key, value := range config {
+			sourceSnapshot.Config[key] = value
+		}
+
+		for k, v := range limits {
+			key := fmt.Sprintf("limits.%s", k)
+			config[key] = v
+		}
+
+		// Allow setting device overrides
+		for k, m := range devices {
+			if sourceSnapshot.Devices[k] == nil {
+				sourceSnapshot.Devices[k] = m
+				continue
+			}
+
+			for key, value := range m {
+				sourceSnapshot.Devices[k][key] = value
+			}
+		}
+
+		for k := range sourceSnapshot.Config {
+			if !instanceIncludeWhenCopying(k, true) {
+				delete(sourceSnapshot.Config, k)
+			}
+		}
+
+		opCreate, err := destServer.CopyInstanceSnapshot(sourceServer, sourceInstanceName, *sourceSnapshot, &args)
+		if err == nil {
+			err = opCreate.Wait()
+		}
+
+		if err != nil {
+			diags.AddError(fmt.Sprintf("Failed to create instance %q from snapshot %q", name, sourceSnapshotName), err.Error())
+			return diags
+		}
+
+		return diags
+	}
+}
+
+func instanceIncludeWhenCopying(configKey string, remoteCopy bool) bool {
+	if configKey == "volatile.base_image" {
+		return true // Include volatile.base_image always as it can help optimize copies.
+	}
+
+	if configKey == "volatile.last_state.idmap" && !remoteCopy {
+		return true // Include volatile.last_state.idmap when doing local copy to avoid needless remapping.
+	}
+
+	if strings.HasPrefix(configKey, "volatile.") {
+		return false // Exclude all other volatile keys.
+	}
+
+	return true // Keep all other keys.
+}
+
+func (r InstanceResource) createInstanceWithoutImage(ctx context.Context, server incus.InstanceServer, plan InstanceModel) diag.Diagnostics {
+	var diags diag.Diagnostics
+
+	instance, diags := prepareInstancesPost(ctx, plan)
+	if diags.HasError() {
+		return diags
+	}
+
+	instance.Source = api.InstanceSource{
+		Type: "none",
+	}
+
+	opCreate, err := server.CreateInstance(instance)
+	// Initialize the instance. Instance will not be running after this call.
+	if err == nil {
+		// Wait for the instance to be created.
+		err = opCreate.Wait()
+	}
+
+	if err != nil {
+		diags.AddError(fmt.Sprintf("Failed to create instance %q", instance.Name), err.Error())
+		return diags
+	}
+
+	return diags
+}
+
+func prepareInstancesPost(ctx context.Context, plan InstanceModel) (api.InstancesPost, diag.Diagnostics) {
+	var diags diag.Diagnostics
+
+	// Extract profiles, devices, config and limits.
+	profiles, diags := ToProfileList(ctx, plan.Profiles)
+	diags.Append(diags...)
+
+	devices, diags := common.ToDeviceMap(ctx, plan.Devices)
+	diags.Append(diags...)
+
+	config, diags := common.ToConfigMap(ctx, plan.Config)
+	diags.Append(diags...)
+
+	limits, diags := common.ToConfigMap(ctx, plan.Limits)
+	diags.Append(diags...)
+
+	if diags.HasError() {
+		return api.InstancesPost{}, diags
+	}
+
+	// Merge limits into instance config.
+	for k, v := range limits {
+		key := fmt.Sprintf("limits.%s", k)
+		config[key] = v
+	}
+
+	instance := api.InstancesPost{
+		Name: plan.Name.ValueString(),
+		Type: api.InstanceType(plan.Type.ValueString()),
+		InstancePut: api.InstancePut{
+			Description: plan.Description.ValueString(),
+			Ephemeral:   plan.Ephemeral.ValueBool(),
+			Config:      config,
+			Profiles:    profiles,
+			Devices:     devices,
+		},
+	}
+	return instance, nil
 }
 
 // ComputedKeys returns list of computed config keys.
