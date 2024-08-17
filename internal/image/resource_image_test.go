@@ -265,6 +265,24 @@ func TestAccImage_architecture(t *testing.T) {
 	})
 }
 
+func TestAccImage_oci(t *testing.T) {
+	imageName := "alpine:latest"
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { acctest.PreCheck(t) },
+		ProtoV6ProviderFactories: acctest.ProtoV6ProviderFactories,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccImage_oci(imageName),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr("incus_image.oci_img1", "source_remote", "docker"),
+					resource.TestCheckResourceAttr("incus_image.oci_img1", "source_image", imageName),
+				),
+			},
+		},
+	})
+}
+
 func testAccImage_basic() string {
 	return `
 resource "incus_image" "img1" {
@@ -403,4 +421,13 @@ resource "incus_image" "img1" {
   architecture  = "%s"
 }
 	`, project, architecture)
+}
+
+func testAccImage_oci(image string) string {
+	return fmt.Sprintf(`
+resource "incus_image" "oci_img1" {
+	source_remote = "docker"
+	source_image  = "%s"
+}
+	`, image)
 }

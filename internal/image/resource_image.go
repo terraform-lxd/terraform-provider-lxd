@@ -210,6 +210,12 @@ func (r ImageResource) Create(ctx context.Context, req resource.CreateRequest, r
 		return
 	}
 
+	connInfo, err := imageServer.GetConnectionInfo()
+	if err != nil {
+		resp.Diagnostics.AddError("Failed to retrieve server connection info", err.Error())
+		return
+	}
+
 	// Determine the correct image for the specified architecture.
 	architecture := plan.Architecture.ValueString()
 	if architecture != "" {
@@ -240,7 +246,12 @@ func (r ImageResource) Create(ctx context.Context, req resource.CreateRequest, r
 	}
 
 	// Determine whether the user has provided a fingerprint or an alias.
-	aliasTarget, _, _ := imageServer.GetImageAliasType(imageType, image)
+	aliasTarget, _, err := imageServer.GetImageAliasType(imageType, image)
+	if connInfo.Protocol == "oci" && err != nil {
+		resp.Diagnostics.AddError(fmt.Sprintf("Failed to get image alias for OCI image %s", image), err.Error())
+		return
+	}
+
 	if aliasTarget != nil {
 		image = aliasTarget.Target
 	}
@@ -280,7 +291,18 @@ func (r ImageResource) Create(ctx context.Context, req resource.CreateRequest, r
 		Public:  false,
 	}
 
-	opCopy, err := server.CopyImage(imageServer, *imageInfo, &args)
+	var opCopy incus.RemoteOperation
+	if connInfo.Protocol == "oci" {
+		// For OCI images, we need to use the actual image name to pull the image from the current OCI images registry.
+		// Nevertheless, we need to restore the actual fingerprint after copying the image by name.
+		realFingerprint := imageInfo.Fingerprint
+		imageInfo.Fingerprint = plan.SourceImage.ValueString()
+		opCopy, err = server.CopyImage(imageServer, *imageInfo, &args)
+		imageInfo.Fingerprint = realFingerprint
+	} else {
+		opCopy, err = server.CopyImage(imageServer, *imageInfo, &args)
+	}
+
 	if err != nil {
 		resp.Diagnostics.AddError(fmt.Sprintf("Failed to copy image %q", image), err.Error())
 		return
