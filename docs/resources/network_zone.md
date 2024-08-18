@@ -22,13 +22,13 @@ resource "incus_network_zone_record" "record" {
   zone = incus_network_zone.zone.name
 
   entry {
-      type  = "CNAME"
-      value = "<incus.host.name>."
+    type  = "CNAME"
+    value = "<incus.host.name>."
   }
 
   entry {
-      type = "A"
-      value = "<incus.host.ip>"
+    type  = "A"
+    value = "<incus.host.ip>"
   }
 }
 ```

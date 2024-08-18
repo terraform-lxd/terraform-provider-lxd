@@ -57,7 +57,7 @@ Example using the import block (only available in Terraform v1.5.0 and later):
 
 ```hcl
 resource "incus_project" "myproj" {
-  name    = "proj1"
+  name = "proj1"
 }
 
 import {

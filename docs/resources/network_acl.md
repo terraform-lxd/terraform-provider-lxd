@@ -8,7 +8,7 @@ See Incus network ACL [configuration reference](https://linuxcontainers.org/incu
 
 ```hcl
 resource "incus_network_acl" "acl1" {
-  name    = "my-acl"
+  name = "my-acl"
 
   egress = [
     {

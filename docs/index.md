@@ -38,18 +38,18 @@ provider "incus" {
   accept_remote_certificate    = true
 
   remote {
-    name     = "incus-server-1"
-    scheme   = "https"
-    address  = "10.1.1.8"
-    token    = "token"
-    default  = true
+    name    = "incus-server-1"
+    scheme  = "https"
+    address = "10.1.1.8"
+    token   = "token"
+    default = true
   }
 
   remote {
-    name     = "incus-server-2"
-    scheme   = "https"
-    address  = "10.1.2.8"
-    token    = "token"
+    name    = "incus-server-2"
+    scheme  = "https"
+    address = "10.1.2.8"
+    token   = "token"
   }
 }
 ```

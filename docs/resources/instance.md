@@ -196,8 +196,8 @@ To specify an interface, do the following:
 
 ```hcl
 resource "incus_instance" "instance1" {
-  name = "instance1"
-  image = "images:alpine/edge/amd64"
+  name     = "instance1"
+  image    = "images:alpine/edge/amd64"
   profiles = ["default"]
 
   config = {
