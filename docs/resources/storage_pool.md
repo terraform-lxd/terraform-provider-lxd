@@ -83,7 +83,7 @@ Import ID syntax: `[<remote>:][<project>/]<name>`
 Example using terraform import command:
 
 ```shell
-$ terraform import incus_storage_pool.mypool proj/pool1
+terraform import incus_storage_pool.mypool proj/pool1
 ```
 
 Example using the import block (only available in Terraform v1.5.0 and later):

@@ -74,7 +74,7 @@ No attributes are exported.
 Profiles can be imported with the following command:
 
 ```shell
-$ terraform import incus_profile.my_profile [<remote>:][<project>/]<profile_name>
+terraform import incus_profile.my_profile [<remote>:][<project>/]<profile_name>
 ```
 
 ## Importing
@@ -90,7 +90,7 @@ Import ID syntax: `[<remote>:][<project>/]<name>`
 Example using terraform import command:
 
 ```shell
-$ terraform import incus_profile.myprofile proj/profile1
+terraform import incus_profile.myprofile proj/profile1
 ```
 
 Example using the import block (only available in Terraform v1.5.0 and later):
