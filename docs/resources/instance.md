@@ -139,7 +139,7 @@ The `source_instance` block supports:
 
 * `name` - **Required** - Name of the source instance.
 
-* `snapshot`- *Optiona** - Name of the snapshot of the source instance
+* `snapshot`- *Optional* - Name of the snapshot of the source instance
 
 The `device` block supports:
 
