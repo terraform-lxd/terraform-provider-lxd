@@ -261,15 +261,6 @@ func (p *LxdProviderConfig) createLxdServerClient(remote LxdProviderRemoteConfig
 					req.Password = remote.Token
 				}
 			} else if remote.Password != "" {
-				ok, err := utils.CheckVersion(server.Environment.ServerVersion, ">= 6.0.0")
-				if err != nil {
-					return err
-				}
-
-				if !ok {
-					return fmt.Errorf("LXD server does not support password authentication from version 6.0 onwards")
-				}
-
 				req.Password = remote.Password
 			}
 
