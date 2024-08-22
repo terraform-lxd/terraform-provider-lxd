@@ -16,7 +16,7 @@ resource "incus_network" "network" {
   type = "ovn"
 
   config = {
-    ...
+    # ...
   }
 }
 
@@ -44,16 +44,15 @@ resource "incus_network_lb" "load_balancer" {
   }
 
   port {
-    description    = "Port 8080/tcp"
-    protocol       = "tcp"
-    listen_port    = "8080"
+    description = "Port 8080/tcp"
+    protocol    = "tcp"
+    listen_port = "8080"
     target_backend = [
       "instance-1",
       "instance-2",
     ]
   }
 }
-
 ```
 
 ## Argument Reference

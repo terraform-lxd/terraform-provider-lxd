@@ -50,14 +50,14 @@ Import ID syntax: `[<remote>:]<name>`
 Example using terraform import command:
 
 ```shell
-$ terraform import incus_project.myproj proj1
+terraform import incus_project.myproj proj1
 ```
 
 Example using the import block (only available in Terraform v1.5.0 and later):
 
 ```hcl
 resource "incus_project" "myproj" {
-  name    = "proj1"
+  name = "proj1"
 }
 
 import {

@@ -22,13 +22,13 @@ resource "incus_network_zone_record" "record" {
   zone = incus_network_zone.zone.name
 
   entry {
-      type  = "CNAME"
-      value = "<incus.host.name>."
+    type  = "CNAME"
+    value = "<incus.host.name>."
   }
 
   entry {
-      type  = "A"
-      value = "<incus.host.ip>"
+    type  = "A"
+    value = "<incus.host.ip>"
   }
 }
 ```
@@ -79,7 +79,7 @@ Import ID syntax: `[<remote>:][<project>]/<zone>/<name>`
 Example using terraform import command:
 
 ```shell
-$ terraform import incus_network_zone_record.myrecord proj/zone1/record1
+terraform import incus_network_zone_record.myrecord proj/zone1/record1
 ```
 
 Example using the import block (only available in Terraform v1.5.0 and later):

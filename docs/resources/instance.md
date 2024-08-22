@@ -139,7 +139,7 @@ The `source_instance` block supports:
 
 * `name` - **Required** - Name of the source instance.
 
-* `snapshot`- *Optiona** - Name of the snapshot of the source instance
+* `snapshot`- *Optional* - Name of the snapshot of the source instance
 
 The `device` block supports:
 
@@ -196,8 +196,8 @@ To specify an interface, do the following:
 
 ```hcl
 resource "incus_instance" "instance1" {
-  name = "instance1"
-  image = "images:alpine/edge/amd64"
+  name     = "instance1"
+  image    = "images:alpine/edge/amd64"
   profiles = ["default"]
 
   config = {
@@ -223,7 +223,7 @@ Import ID syntax: `[<remote>:][<project>/]<name>[,image=<image>]`
 Example using terraform import command:
 
 ```shell
-$ terraform import incus_instance.myinst proj/c1,image=images:alpine/edge/amd64
+terraform import incus_instance.myinst proj/c1,image=images:alpine/edge/amd64
 ```
 
 Example using the import block (only available in Terraform v1.5.0 and later):

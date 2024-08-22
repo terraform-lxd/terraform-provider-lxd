@@ -56,7 +56,7 @@ Import ID syntax: `[<remote>:][<project>]/<pool>/<name>`
 Example using terraform import command:
 
 ```shell
-$ terraform import incus_storage_bucket.bucket1 proj/pool1/bucket1
+terraform import incus_storage_bucket.bucket1 proj/pool1/bucket1
 ```
 
 Example using the import block (only available in Terraform v1.5.0 and later):

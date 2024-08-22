@@ -89,7 +89,7 @@ Import ID syntax: `[<remote>:][<project>/]<network-name>/<listen-address>`
 Example using terraform import command:
 
 ```shell
-$ terraform import incus_network_forward.forward1 proj/my-network/10.150.19.10
+terraform import incus_network_forward.forward1 proj/my-network/10.150.19.10
 ```
 
 Example using the import block (only available in Terraform v1.5.0 and later):
