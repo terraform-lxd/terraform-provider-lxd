@@ -16,8 +16,8 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/booldefault"
-	"github.com/hashicorp/terraform-plugin-framework/resource/schema/boolplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/int64planmodifier"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/objectplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/setdefault"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/setplanmodifier"
@@ -26,6 +26,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/tfsdk"
 	"github.com/hashicorp/terraform-plugin-framework/types"
+	"github.com/hashicorp/terraform-plugin-framework/types/basetypes"
 	"github.com/terraform-lxd/terraform-provider-lxd/internal/errors"
 	provider_config "github.com/terraform-lxd/terraform-provider-lxd/internal/provider-config"
 	"github.com/terraform-lxd/terraform-provider-lxd/internal/utils"
@@ -33,19 +34,30 @@ import (
 
 // ImageModel resource data model that matches the schema.
 type ImageModel struct {
-	SourceImage  types.String `tfsdk:"source_image"`
-	SourceRemote types.String `tfsdk:"source_remote"`
-	Aliases      types.Set    `tfsdk:"aliases"`
-	CopyAliases  types.Bool   `tfsdk:"copy_aliases"`
-	Type         types.String `tfsdk:"type"`
-	Project      types.String `tfsdk:"project"`
-	Remote       types.String `tfsdk:"remote"`
+	SourceImage    types.Object `tfsdk:"source_image"`
+	SourceInstance types.Object `tfsdk:"source_instance"`
+	Aliases        types.Set    `tfsdk:"aliases"`
+	Project        types.String `tfsdk:"project"`
+	Remote         types.String `tfsdk:"remote"`
 
 	// Computed.
-	Architecture  types.String `tfsdk:"architecture"`
+	ResourceID    types.String `tfsdk:"resource_id"`
 	CreatedAt     types.Int64  `tfsdk:"created_at"`
 	Fingerprint   types.String `tfsdk:"fingerprint"`
 	CopiedAliases types.Set    `tfsdk:"copied_aliases"`
+}
+
+type SourceImageModel struct {
+	Remote       types.String `tfsdk:"remote"`
+	Name         types.String `tfsdk:"name"`
+	Type         types.String `tfsdk:"type"`
+	Architecture types.String `tfsdk:"architecture"`
+	CopyAliases  types.Bool   `tfsdk:"copy_aliases"`
+}
+
+type SourceInstanceModel struct {
+	Name     types.String `tfsdk:"name"`
+	Snapshot types.String `tfsdk:"snapshot"`
 }
 
 // ImageResource represent LXD image resource.
@@ -65,17 +77,56 @@ func (r ImageResource) Metadata(_ context.Context, req resource.MetadataRequest,
 func (r ImageResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *resource.SchemaResponse) {
 	resp.Schema = schema.Schema{
 		Attributes: map[string]schema.Attribute{
-			"source_image": schema.StringAttribute{
-				Required: true,
-				PlanModifiers: []planmodifier.String{
-					stringplanmodifier.RequiresReplace(),
+			"source_image": schema.SingleNestedAttribute{
+				Optional: true,
+				Attributes: map[string]schema.Attribute{
+					"remote": schema.StringAttribute{
+						Required: true,
+					},
+					"name": schema.StringAttribute{
+						Required: true,
+					},
+					"type": schema.StringAttribute{
+						Optional: true,
+						Computed: true,
+						Default:  stringdefault.StaticString("container"),
+						Validators: []validator.String{
+							stringvalidator.OneOf("container", "virtual-machine"),
+						},
+					},
+					"architecture": schema.StringAttribute{
+						Optional: true,
+						Computed: true,
+						PlanModifiers: []planmodifier.String{
+							stringplanmodifier.UseStateForUnknown(),
+						},
+						Validators: []validator.String{
+							architectureValidator{},
+						},
+					},
+					"copy_aliases": schema.BoolAttribute{
+						Optional: true,
+						Computed: true,
+						Default:  booldefault.StaticBool(false),
+					},
+				},
+				PlanModifiers: []planmodifier.Object{
+					objectplanmodifier.RequiresReplace(),
 				},
 			},
 
-			"source_remote": schema.StringAttribute{
-				Required: true,
-				PlanModifiers: []planmodifier.String{
-					stringplanmodifier.RequiresReplace(),
+			"source_instance": schema.SingleNestedAttribute{
+				Optional: true,
+				Attributes: map[string]schema.Attribute{
+					"name": schema.StringAttribute{
+						Required: true,
+					},
+					"snapshot": schema.StringAttribute{
+						Optional: true,
+					},
+				},
+				PlanModifiers: []planmodifier.Object{
+					objectplanmodifier.RequiresReplace(),
 				},
 			},
 
@@ -87,27 +138,6 @@ func (r ImageResource) Schema(_ context.Context, _ resource.SchemaRequest, resp 
 				Validators: []validator.Set{
 					// Prevent empty values.
 					setvalidator.ValueStringsAre(stringvalidator.LengthAtLeast(1)),
-				},
-			},
-
-			"copy_aliases": schema.BoolAttribute{
-				Optional: true,
-				Computed: true,
-				Default:  booldefault.StaticBool(false),
-				PlanModifiers: []planmodifier.Bool{
-					boolplanmodifier.RequiresReplace(),
-				},
-			},
-
-			"type": schema.StringAttribute{
-				Optional: true,
-				Computed: true,
-				Default:  stringdefault.StaticString("container"),
-				PlanModifiers: []planmodifier.String{
-					stringplanmodifier.RequiresReplace(),
-				},
-				Validators: []validator.String{
-					stringvalidator.OneOf("container", "virtual-machine"),
 				},
 			},
 
@@ -127,19 +157,14 @@ func (r ImageResource) Schema(_ context.Context, _ resource.SchemaRequest, resp 
 				Optional: true,
 			},
 
-			"architecture": schema.StringAttribute{
-				Optional: true,
+			// Computed attributes.
+
+			"resource_id": schema.StringAttribute{
 				Computed: true,
 				PlanModifiers: []planmodifier.String{
 					stringplanmodifier.UseStateForUnknown(),
-					stringplanmodifier.RequiresReplace(),
-				},
-				Validators: []validator.String{
-					architectureValidator{},
 				},
 			},
-
-			// Computed attributes.
 
 			"created_at": schema.Int64Attribute{
 				Computed: true,
@@ -181,139 +206,52 @@ func (r *ImageResource) Configure(_ context.Context, req resource.ConfigureReque
 	r.provider = provider
 }
 
+func (r ImageResource) ValidateConfig(ctx context.Context, req resource.ValidateConfigRequest, resp *resource.ValidateConfigResponse) {
+	if req.Config.Raw.IsNull() {
+		return
+	}
+
+	var config ImageModel
+
+	diags := req.Config.Get(ctx, &config)
+	resp.Diagnostics.Append(diags...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	if config.SourceImage.IsNull() && config.SourceInstance.IsNull() {
+		resp.Diagnostics.AddError(
+			"Invalid Configuration",
+			"Either source_image or source_instance must be set.",
+		)
+		return
+	}
+
+	if !config.SourceImage.IsNull() && !config.SourceInstance.IsNull() {
+		resp.Diagnostics.AddError(
+			"Invalid Configuration",
+			"Only source_image or source_instance can be set.",
+		)
+		return
+	}
+}
+
 func (r ImageResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
 	var plan ImageModel
 
-	// Fetch resource model from Terraform plan.
 	diags := req.Plan.Get(ctx, &plan)
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
 
-	remote := plan.Remote.ValueString()
-	project := plan.Project.ValueString()
-	server, err := r.provider.InstanceServer(remote, project, "")
-	if err != nil {
-		resp.Diagnostics.Append(errors.NewInstanceServerError(err))
+	if !plan.SourceImage.IsNull() {
+		r.createImageFromSourceImage(ctx, resp, &plan)
+		return
+	} else if !plan.SourceInstance.IsNull() {
+		r.createImageFromSourceInstance(ctx, resp, &plan)
 		return
 	}
-
-	imageName := plan.SourceImage.ValueString()
-	imageType := plan.Type.ValueString()
-	imageRemote := plan.SourceRemote.ValueString()
-	imageServer, err := r.provider.ImageServer(imageRemote)
-	if err != nil {
-		resp.Diagnostics.Append(errors.NewImageServerError(err))
-		return
-	}
-
-	// Determine the correct image for the specified architecture.
-	architecture := plan.Architecture.ValueString()
-	if architecture != "" {
-		availableArchitectures, err := imageServer.GetImageAliasArchitectures(imageType, imageName)
-		if err != nil {
-			resp.Diagnostics.AddError("Failed to get image alias architectures", err.Error())
-			return
-		}
-
-		found := false
-		for imageArchitecture, imageAlias := range availableArchitectures {
-			if imageArchitecture == architecture {
-				imageName = imageAlias.Target
-				found = true
-			}
-		}
-
-		if !found {
-			keys := make([]string, 0, len(availableArchitectures))
-			for key := range availableArchitectures {
-				keys = append(keys, key)
-			}
-			keyList := strings.Join(keys, ", ")
-
-			resp.Diagnostics.AddError(fmt.Sprintf("No image alias found for architecture: %s. Available architectures: %s ", architecture, keyList), "")
-			return
-		}
-	}
-
-	// Determine whether the user has provided a fingerprint or an alias.
-	aliasTarget, _, _ := imageServer.GetImageAliasType(imageType, imageName)
-	if aliasTarget != nil {
-		imageName = aliasTarget.Target
-	}
-
-	aliases, diags := ToAliasList(ctx, plan.Aliases)
-	resp.Diagnostics.Append(diags...)
-	if resp.Diagnostics.HasError() {
-		return
-	}
-
-	imageAliases := make([]api.ImageAlias, 0, len(aliases))
-	for _, alias := range aliases {
-		imageAlias := api.ImageAlias{
-			Name: alias,
-		}
-
-		imageAliases = append(imageAliases, imageAlias)
-	}
-
-	// Get data about remote image (also checks if image exists).
-	imageInfo, _, err := imageServer.GetImage(imageName)
-	if err != nil {
-		resp.Diagnostics.AddError(fmt.Sprintf("Failed to retrieve info about image %q", imageName), err.Error())
-		return
-	}
-
-	if plan.CopyAliases.ValueBool() {
-		// Copy only image aliases that are not already defined by the user.
-		for _, imageAlias := range imageInfo.Aliases {
-			if !slices.Contains(aliases, imageAlias.Name) {
-				imageAliases = append(imageAliases, imageAlias)
-			}
-		}
-	}
-
-	// Copy image.
-	args := lxd.ImageCopyArgs{
-		Aliases: imageAliases,
-		Public:  false,
-	}
-
-	opCopy, err := server.CopyImage(imageServer, *imageInfo, &args)
-	if err != nil {
-		resp.Diagnostics.AddError(fmt.Sprintf("Failed to copy image %q", imageName), err.Error())
-		return
-	}
-
-	// Wait for copy operation to finish.
-	err = opCopy.Wait()
-	if err != nil {
-		resp.Diagnostics.AddError(fmt.Sprintf("Failed to copy image %q", imageName), err.Error())
-		return
-	}
-
-	// Store remote aliases that we've copied, so we can filter them
-	// out later.
-	copied := make([]string, 0)
-	if plan.CopyAliases.ValueBool() {
-		for _, a := range imageInfo.Aliases {
-			copied = append(copied, a.Name)
-		}
-	}
-
-	copiedAliases, diags := types.SetValueFrom(ctx, types.StringType, copied)
-	resp.Diagnostics.Append(diags...)
-	if resp.Diagnostics.HasError() {
-		return
-	}
-
-	plan.Fingerprint = types.StringValue(imageInfo.Fingerprint)
-	plan.CopiedAliases = copiedAliases
-
-	// Update Terraform state.
-	diags = r.SyncState(ctx, &resp.State, server, plan)
-	resp.Diagnostics.Append(diags...)
 }
 
 func (r ImageResource) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
@@ -357,14 +295,13 @@ func (r ImageResource) Update(ctx context.Context, req resource.UpdateRequest, r
 		return
 	}
 
-	// Extract imageName metadata (fingerprint is retained from previous state).
-	imageName := plan.SourceImage.ValueString()
-	imageFingerprint := state.Fingerprint.ValueString()
+	// Extract image metadata.
+	_, imageFingerprint := splitImageResourceID(plan.ResourceID.ValueString())
 
 	// Get info about the image.
 	image, _, err := server.GetImage(imageFingerprint)
 	if err != nil {
-		resp.Diagnostics.AddError(fmt.Sprintf("Failed to retrieve image %q", imageName), err.Error())
+		resp.Diagnostics.AddError(fmt.Sprintf("Failed to retrieve image with fingerprint %q", imageFingerprint), err.Error())
 		return
 	}
 
@@ -395,7 +332,7 @@ func (r ImageResource) Update(ctx context.Context, req resource.UpdateRequest, r
 	for _, alias := range removed {
 		err := server.DeleteImageAlias(alias)
 		if err != nil {
-			resp.Diagnostics.AddError(fmt.Sprintf("Failed to delete alias %q for image %q", alias, imageName), err.Error())
+			resp.Diagnostics.AddError(fmt.Sprintf("Failed to delete alias %q for image with fingerprint %q", alias, imageFingerprint), err.Error())
 			return
 		}
 	}
@@ -408,7 +345,7 @@ func (r ImageResource) Update(ctx context.Context, req resource.UpdateRequest, r
 
 		err := server.CreateImageAlias(req)
 		if err != nil {
-			resp.Diagnostics.AddError(fmt.Sprintf("Failed to create alias %q for image %q", alias, imageName), err.Error())
+			resp.Diagnostics.AddError(fmt.Sprintf("Failed to create alias %q for image with fingerprint %q", alias, imageFingerprint), err.Error())
 			return
 		}
 	}
@@ -437,14 +374,15 @@ func (r ImageResource) Delete(ctx context.Context, req resource.DeleteRequest, r
 		return
 	}
 
-	imageFingerprint := state.Fingerprint.ValueString()
+	_, imageFingerprint := splitImageResourceID(state.ResourceID.ValueString())
+
 	opDelete, err := server.DeleteImage(imageFingerprint)
 	if err == nil {
-		err = opDelete.Wait()
+		err = opDelete.WaitContext(ctx)
 	}
 
 	if err != nil {
-		resp.Diagnostics.AddError(fmt.Sprintf("Failed to remove image %q", state.SourceImage.ValueString()), err.Error())
+		resp.Diagnostics.AddError(fmt.Sprintf("Failed to remove image with fingerprint %q", imageFingerprint), err.Error())
 		return
 	}
 }
@@ -454,8 +392,8 @@ func (r ImageResource) Delete(ctx context.Context, req resource.DeleteRequest, r
 func (r ImageResource) SyncState(ctx context.Context, tfState *tfsdk.State, server lxd.InstanceServer, m ImageModel) diag.Diagnostics {
 	var respDiags diag.Diagnostics
 
-	imageFingerprint := m.Fingerprint.ValueString()
-	imageName := m.SourceImage.ValueString()
+	_, imageFingerprint := splitImageResourceID(m.ResourceID.ValueString())
+
 	image, _, err := server.GetImage(imageFingerprint)
 	if err != nil {
 		if errors.IsNotFoundError(err) {
@@ -463,8 +401,31 @@ func (r ImageResource) SyncState(ctx context.Context, tfState *tfsdk.State, serv
 			return nil
 		}
 
-		respDiags.AddError(fmt.Sprintf("Failed to retrieve image %q", imageName), err.Error())
+		respDiags.AddError(fmt.Sprintf("Failed to retrieve image with fingerprint %q", imageFingerprint), err.Error())
 		return respDiags
+	}
+
+	if !m.SourceImage.IsNull() {
+		var sourceImageModel SourceImageModel
+		respDiags = m.SourceImage.As(ctx, &sourceImageModel, basetypes.ObjectAsOptions{})
+		if respDiags.HasError() {
+			return respDiags
+		}
+
+		// Store architecture if computed
+		if sourceImageModel.Architecture.IsNull() || sourceImageModel.Architecture.IsUnknown() {
+			sourceImageModel.Architecture = types.StringValue(image.Architecture)
+			m.SourceImage, respDiags = types.ObjectValue(m.SourceImage.AttributeTypes(ctx), map[string]attr.Value{
+				"remote":       sourceImageModel.Remote,
+				"name":         sourceImageModel.Name,
+				"type":         sourceImageModel.Type,
+				"architecture": sourceImageModel.Architecture,
+				"copy_aliases": sourceImageModel.CopyAliases,
+			})
+			if respDiags.HasError() {
+				return respDiags
+			}
+		}
 	}
 
 	configAliases, diags := ToAliasList(ctx, m.Aliases)
@@ -486,7 +447,6 @@ func (r ImageResource) SyncState(ctx context.Context, tfState *tfsdk.State, serv
 	respDiags.Append(diags...)
 
 	m.Fingerprint = types.StringValue(image.Fingerprint)
-	m.Architecture = types.StringValue(image.Architecture)
 	m.CreatedAt = types.Int64Value(image.CreatedAt.Unix())
 	m.Aliases = aliasSet
 
@@ -495,6 +455,252 @@ func (r ImageResource) SyncState(ctx context.Context, tfState *tfsdk.State, serv
 	}
 
 	return tfState.Set(ctx, &m)
+}
+
+func (r ImageResource) createImageFromSourceImage(ctx context.Context, resp *resource.CreateResponse, plan *ImageModel) {
+	var sourceImageModel SourceImageModel
+
+	diags := plan.SourceImage.As(ctx, &sourceImageModel, basetypes.ObjectAsOptions{})
+	if diags.HasError() {
+		resp.Diagnostics.Append(diags...)
+		return
+	}
+
+	remote := plan.Remote.ValueString()
+	project := plan.Project.ValueString()
+	server, err := r.provider.InstanceServer(remote, project, "")
+	if err != nil {
+		resp.Diagnostics.Append(errors.NewInstanceServerError(err))
+		return
+	}
+
+	image := sourceImageModel.Name.ValueString()
+	imageType := sourceImageModel.Type.ValueString()
+	imageRemote := sourceImageModel.Remote.ValueString()
+	imageServer, err := r.provider.ImageServer(imageRemote)
+	if err != nil {
+		resp.Diagnostics.Append(errors.NewImageServerError(err))
+		return
+	}
+
+	// Determine the correct image for the specified architecture.
+	architecture := sourceImageModel.Architecture.ValueString()
+	if architecture != "" {
+		availableArchitectures, err := imageServer.GetImageAliasArchitectures(imageType, image)
+		if err == nil {
+			// Find the image alias that matches the specified architecture.
+			found := false
+			for imageArchitecture, imageAlias := range availableArchitectures {
+				if imageArchitecture == architecture {
+					image = imageAlias.Target
+					found = true
+				}
+			}
+
+			if !found {
+				keys := make([]string, 0, len(availableArchitectures))
+				for key := range availableArchitectures {
+					keys = append(keys, key)
+				}
+
+				keyList := strings.Join(keys, ", ")
+				resp.Diagnostics.AddError(fmt.Sprintf("No image alias found for architecture %q. Available architectures: %s ", architecture, keyList), "")
+				return
+			}
+		} else if !errors.IsNotFoundError(err) {
+			resp.Diagnostics.AddError("Failed to get image alias architectures", err.Error())
+			return
+		}
+	}
+
+	// Determine whether the user has provided a fingerprint or an alias.
+	aliasTarget, _, _ := imageServer.GetImageAliasType(imageType, image)
+	if aliasTarget != nil {
+		image = aliasTarget.Target
+	}
+
+	aliases, diags := ToAliasList(ctx, plan.Aliases)
+	if diags.HasError() {
+		resp.Diagnostics.Append(diags...)
+		return
+	}
+
+	imageAliases := make([]api.ImageAlias, 0, len(aliases))
+	for _, alias := range aliases {
+		// Ensure image alias does not already exist.
+		aliasTarget, _, _ := server.GetImageAlias(alias)
+		if aliasTarget != nil {
+			resp.Diagnostics.AddError(fmt.Sprintf("Image alias %q already exists", alias), "")
+			return
+		}
+
+		ia := api.ImageAlias{
+			Name: alias,
+		}
+
+		imageAliases = append(imageAliases, ia)
+	}
+
+	// Get data about remote image (also checks if image exists).
+	imageInfo, _, err := imageServer.GetImage(image)
+	if err != nil {
+		resp.Diagnostics.AddError(fmt.Sprintf("Failed to retrieve info about image %q", image), err.Error())
+		return
+	}
+
+	// Store remote aliases that we've copied, so we can filter them out later.
+	copied := make([]string, 0)
+	if sourceImageModel.CopyAliases.ValueBool() {
+		for _, a := range imageInfo.Aliases {
+			copied = append(copied, a.Name)
+
+			// Skip aliases already defined by the user.
+			if slices.Contains(aliases, a.Name) {
+				continue
+			}
+
+			imageAliases = append(imageAliases, api.ImageAlias{Name: a.Name})
+		}
+	}
+
+	// Copy image.
+	args := lxd.ImageCopyArgs{
+		Aliases: imageAliases,
+		Public:  false,
+	}
+
+	opCopy, err := server.CopyImage(imageServer, *imageInfo, &args)
+	if err != nil {
+		resp.Diagnostics.AddError(fmt.Sprintf("Failed to copy image %q", image), err.Error())
+		return
+	}
+
+	// Wait for copy operation to finish.
+	err = opCopy.Wait()
+	if err != nil {
+		resp.Diagnostics.AddError(fmt.Sprintf("Failed to copy image %q", image), err.Error())
+		return
+	}
+
+	copiedAliases, diags := types.SetValueFrom(ctx, types.StringType, copied)
+	if diags.HasError() {
+		resp.Diagnostics.Append(diags...)
+		return
+	}
+
+	imageID := createImageResourceID(remote, imageInfo.Fingerprint)
+	plan.ResourceID = types.StringValue(imageID)
+
+	plan.CopiedAliases = copiedAliases
+
+	// Update Terraform state.
+	diags = r.SyncState(ctx, &resp.State, server, *plan)
+	resp.Diagnostics.Append(diags...)
+}
+
+func (r ImageResource) createImageFromSourceInstance(ctx context.Context, resp *resource.CreateResponse, plan *ImageModel) {
+	var sourceInstanceModel SourceInstanceModel
+
+	diags := plan.SourceInstance.As(ctx, &sourceInstanceModel, basetypes.ObjectAsOptions{})
+	if diags.HasError() {
+		resp.Diagnostics.Append(diags...)
+		return
+	}
+
+	remote := plan.Remote.ValueString()
+	project := plan.Project.ValueString()
+	server, err := r.provider.InstanceServer(remote, project, "")
+	if err != nil {
+		resp.Diagnostics.Append(errors.NewInstanceServerError(err))
+		return
+	}
+
+	instanceName := sourceInstanceModel.Name.ValueString()
+	instanceState, _, err := server.GetInstanceState(instanceName)
+	if err != nil {
+		resp.Diagnostics.AddError(fmt.Sprintf("Failed to retrieve state of instance %q", instanceName), err.Error())
+		return
+	}
+
+	if sourceInstanceModel.Snapshot.IsNull() && instanceState.StatusCode != api.Stopped {
+		resp.Diagnostics.AddError(fmt.Sprintf("Cannot publish image because instance %q is running", instanceName), "")
+		return
+	}
+
+	aliases, diags := ToAliasList(ctx, plan.Aliases)
+	resp.Diagnostics.Append(diags...)
+
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	imageAliases := make([]api.ImageAlias, 0, len(aliases))
+	for _, alias := range aliases {
+		// Ensure image alias does not already exist.
+		aliasTarget, _, _ := server.GetImageAlias(alias)
+		if aliasTarget != nil {
+			resp.Diagnostics.AddError(fmt.Sprintf("Image alias %q already exists", alias), "")
+			return
+		}
+
+		ia := api.ImageAlias{
+			Name: alias,
+		}
+
+		imageAliases = append(imageAliases, ia)
+	}
+
+	var source *api.ImagesPostSource
+	if !sourceInstanceModel.Snapshot.IsNull() {
+		snapshotName := sourceInstanceModel.Snapshot.ValueString()
+		source = &api.ImagesPostSource{
+			Name: fmt.Sprintf("%s/%s", instanceName, snapshotName),
+			Type: "snapshot",
+		}
+	} else {
+		source = &api.ImagesPostSource{
+			Name: instanceName,
+			Type: "instance",
+		}
+	}
+
+	imageReq := api.ImagesPost{
+		Aliases:  imageAliases,
+		ImagePut: api.ImagePut{},
+		Source:   source,
+	}
+
+	// Publish image.
+	op, err := server.CreateImage(imageReq, nil)
+	if err != nil {
+		resp.Diagnostics.AddError(fmt.Sprintf("Failed to publish instance %q image", instanceName), err.Error())
+		return
+	}
+
+	// Wait for create operation to finish.
+	err = op.WaitContext(ctx)
+	if err != nil {
+		resp.Diagnostics.AddError(fmt.Sprintf("Failed to publish instance %q image", instanceName), err.Error())
+		return
+	}
+
+	// Extract fingerprint from operation response.
+	opResp := op.Get()
+	imageFingerprint, ok := opResp.Metadata["fingerprint"].(string)
+	if !ok {
+		resp.Diagnostics.AddError("Failed to determine fingerprint of the published image", "")
+		return
+	}
+
+	imageID := createImageResourceID(remote, imageFingerprint)
+
+	plan.Fingerprint = types.StringValue(imageFingerprint)
+	plan.ResourceID = types.StringValue(imageID)
+	plan.CopiedAliases = types.SetValueMust(types.StringType, []attr.Value{})
+
+	// Update Terraform state.
+	diags = r.SyncState(ctx, &resp.State, server, *plan)
+	resp.Diagnostics.Append(diags...)
 }
 
 // ToAliasList converts aliases of type types.Set into a slice of strings.
@@ -516,4 +722,20 @@ func ToAliasSetType(ctx context.Context, aliases []string) (types.Set, diag.Diag
 	}
 
 	return types.SetValueFrom(ctx, types.StringType, aliases)
+}
+
+// createImageResourceID creates new image ID by concatenating remote and
+// image fingerprint using colon.
+func createImageResourceID(remote string, fingerprint string) string {
+	return fmt.Sprintf("%s:%s", remote, fingerprint)
+}
+
+// splitImageResourceID splits an image ID into remote and fingerprint strings.
+func splitImageResourceID(id string) (string, string) {
+	pieces := strings.SplitN(id, ":", 2)
+	if len(pieces) != 2 {
+		return "", id
+	}
+
+	return pieces[0], pieces[1]
 }
