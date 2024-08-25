@@ -97,7 +97,7 @@ resource "incus_instance" "instance2" {
 * `name` - **Required** - Name of the instance.
 
 * `image` - *Optional* - Base image from which the instance will be created. Must
-  specify [an image accessible from the provider remote](https://linuxcontainers.org/incus/docs/main/reference/remote_image_servers/).
+  specify [an image accessible from the provider remote](https://linuxcontainers.org/incus/docs/main/reference/image_servers/).
 
 * `source_instance` - *Optional* - The source instance from which the instance will be created. See reference below.
 
