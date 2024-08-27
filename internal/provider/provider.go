@@ -263,7 +263,6 @@ func (p *IncusProvider) Configure(ctx context.Context, req provider.ConfigureReq
 func (p *IncusProvider) Resources(_ context.Context) []func() resource.Resource {
 	return []func() resource.Resource{
 		image.NewImageResource,
-		image.NewImagePublishResource,
 		instance.NewInstanceResource,
 		instance.NewInstanceSnapshotResource,
 		network.NewNetworkResource,
