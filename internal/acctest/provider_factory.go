@@ -1,10 +1,10 @@
 package acctest
 
 import (
+	"fmt"
 	"strings"
 	"sync"
 
-	lxd_config "github.com/canonical/lxd/lxc/config"
 	"github.com/hashicorp/terraform-plugin-framework/providerserver"
 	"github.com/hashicorp/terraform-plugin-go/tfprotov6"
 	"github.com/terraform-lxd/terraform-provider-lxd/internal/provider"
@@ -35,9 +35,16 @@ func testProvider() *provider_config.LxdProviderConfig {
 	defer testProviderMutex.Unlock()
 
 	if testProviderConfig == nil {
-		config := lxd_config.DefaultConfig()
-		acceptClientCert := true
-		testProviderConfig = provider_config.NewLxdProvider(config, acceptClientCert)
+		var err error
+
+		options := provider_config.Options{
+			AcceptServerCertificate: true,
+		}
+
+		testProviderConfig, err = provider_config.NewLxdProviderConfig("test", nil, options)
+		if err != nil {
+			panic(fmt.Sprintf("Failed to initialize provider: %v", err))
+		}
 	}
 
 	return testProviderConfig

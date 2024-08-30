@@ -39,16 +39,14 @@ provider "lxd" {
 
   remote {
     name     = "lxd-server-1"
-    scheme   = "https"
-    address  = "10.1.1.8"
+    address  = "https://10.1.1.8:8443"
     password = "password"
     default  = true
   }
 
   remote {
     name    = "lxd-server-2"
-    scheme  = "https"
-    address = "10.1.2.8"
+    address = "https://10.1.2.8"
     token   = "token"
   }
 }
@@ -77,7 +75,13 @@ The following arguments are supported:
 
 The `remote` block supports:
 
-* `address` - *Optional* - The address of the remote.
+* `name` - *Optional* - The name of the remote.
+
+* `protocol` - *Optional* - The protocol of remote server (`lxd` or `simplestreams`).
+
+* `address` - *Optional* - The remote address in format `[<scheme>://]<host>[:<port>]`.
+  Scheme can be set to either `unix` or `https`. If scheme is not set, it will default to `unix` if first character is `/`, otherwise to `https`.
+  Port can be set only for remote HTTPS servers. Port value defaults to `8443` for `lxd` protocol, and to `443` for `simplestreams` protocol.
 
 * `default` - *Optional* - Whether this should be the default remote.
 	This remote will then be used when one is not specified in a resource.
@@ -88,21 +92,12 @@ The `remote` block supports:
 	for more information.
 	The default can also be set with the `LXD_REMOTE` Environment variable.
 
-* `name` - *Optional* - The name of the remote.
-
 * `password` - *Optional* - The [trust password](https://documentation.ubuntu.com/lxd/en/latest/authentication/#adding-client-certificates-using-a-trust-password)
   used for initial authentication with the LXD remote. This method is **not recommended** and has
   been removed in LXD 6.1. Please, use `token` instead.
 
 * `token` - *Optional* - The one-time trust [token](https://documentation.ubuntu.com/lxd/en/latest/authentication/#adding-client-certificates-using-tokens)
   used for initial authentication with the LXD remote.
-
-* `port` - *Optional* - The port of the remote.
-
-* `protocol` - *Optional* - The protocol of remote server (`lxd` or `simplestreams`).
-
-* `scheme` - *Optional* Whether to connect to the remote via `https` or
-	`unix` (UNIX socket). Defaults to `unix` for LXD remote and `https` for simplestreams remote.
 
 ## Undefined Remote
 
@@ -117,9 +112,8 @@ The required variables are:
 
 * `LXD_REMOTE` - The name of the remote.
 * `LXD_ADDR` - The address of the LXD remote.
-* `LXD_PORT` - The port of the LXD remote.
 * `LXD_PASSWORD` - The password of the LXD remote.
-* `LXD_SCHEME` - The scheme to use (`unix` or `https`).
+* `LXD_TOKEN` - The trust token of the LXD remote.
 
 ## PKI Support
 
