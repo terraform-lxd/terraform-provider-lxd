@@ -91,8 +91,8 @@ The `remote` block supports:
 * `name` - *Optional* - The name of the remote.
 
 * `password` - *Optional* - The [trust password](https://documentation.ubuntu.com/lxd/en/latest/authentication/#adding-client-certificates-using-a-trust-password)
-  used for initial authentication with the LXD remote. This method is **not recommended** and will
-  most likely be removed from LXD in a future release. Use `token` instead.
+  used for initial authentication with the LXD remote. This method is **not recommended** and has
+  been removed in LXD 6.1. Please, use `token` instead.
 
 * `token` - *Optional* - The one-time trust [token](https://documentation.ubuntu.com/lxd/en/latest/authentication/#adding-client-certificates-using-tokens)
   used for initial authentication with the LXD remote.
