@@ -156,6 +156,32 @@ func TestAccTrustCertificate_restricted(t *testing.T) {
 		},
 	})
 }
+func TestAccTrustCertificate_generatedCertificate(t *testing.T) {
+	certName := acctest.GenerateName(2, "-")
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { acctest.PreCheck(t) },
+		ProtoV6ProviderFactories: acctest.ProtoV6ProviderFactories,
+		ExternalProviders: map[string]resource.ExternalProvider{
+			"tls": {
+				VersionConstraint: "4.0.5",
+				Source:            "hashicorp/tls",
+			},
+		},
+		Steps: []resource.TestStep{
+			{
+				// Ensure the certificate generated within the same Terraform
+				// configuration as the trust_certificate can be used.
+				Config: testAccTrustCertificate_generatedCertificate(certName),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr("lxd_trust_certificate.cert", "name", certName),
+					resource.TestCheckResourceAttrSet("lxd_trust_certificate.cert", "content"),
+					resource.TestCheckResourceAttrSet("lxd_trust_certificate.cert", "fingerprint"),
+				),
+			},
+		},
+	})
+}
 
 func testAccTrustCertificate_content(name string, cert string, projects ...string) string {
 	return fmt.Sprintf(`
@@ -190,6 +216,28 @@ EOF
   projects = [%s]
 }
 	`, name, certType, strings.TrimRight(cert, "\n"), acctest.QuoteStrings(projects))
+}
+
+func testAccTrustCertificate_generatedCertificate(certName string) string {
+	return fmt.Sprintf(`
+resource "tls_private_key" "client_key" {
+  algorithm = "ECDSA"
+}
+
+resource "tls_self_signed_cert" "client_cert" {
+  private_key_pem       = tls_private_key.client_key.private_key_pem
+  validity_period_hours = 1
+
+  allowed_uses = [
+    "client_auth",
+  ]
+}
+
+resource "lxd_trust_certificate" "cert" {
+  name    = %q
+  content = tls_self_signed_cert.client_cert.cert_pem
+}
+`, certName)
 }
 
 func generateCert(t *testing.T) (certificate string, fingerprint string) {
