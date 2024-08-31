@@ -5,40 +5,53 @@ Manages a locally-stored Incus image.
 ## Example Usage
 
 ```hcl
-resource "incus_image" "xenial" {
-  source_remote = "ubuntu"
-  source_image  = "xenial/amd64"
+resource "incus_image" "alpine" {
+  source_image = {
+    remote = "images"
+    name   = "alpine/edge"
+  }
 }
 
 resource "incus_instance" "test1" {
   name      = "test1"
-  image     = incus_image.xenial.fingerprint
+  image     = incus_image.alpine.fingerprint
   ephemeral = false
 }
 ```
 
 ## Argument Reference
 
-* `source_image` - **Required** - Fingerprint or alias of image to pull.
+* `source_instance` - *Optional* - The source image from which the image will be created. See reference below.
 
-* `source_remote` - **Required** - Name of the Incus remote from where image will
-	be pulled.
-
-* `type` - *Optional* - Type of image to cache. Must be one of `container` or
-  `virtual-machine`. Defaults to `container`.
+* `source_instance` - *Optional* - The source instance from which the image will be created. See reference below.
 
 * `aliases` - *Optional* - A list of aliases to assign to the image after
 	pulling.
-
-* `copy_aliases` - *Optional* - Whether to copy the aliases of the image from
-	the remote. Valid values are `true` and `false`. Defaults to `true`.
 
 * `project` - *Optional* - Name of the project where the image will be stored.
 
 * `remote` - *Optional* - The remote in which the resource will be created. If
 	not provided, the provider's default remote will be used.
 
-* `architecture` - The image architecture (e.g. x86_64, aarch64). See [Architectures](https://linuxcontainers.org/incus/docs/main/architectures/) for all possible values.
+The `source_image` block supports:
+
+* `remote` - **Required** - The remote where the image will be pulled from.
+
+* `name` - **Required** - Name of the image.
+
+* `type` - *Optional* - Type of image to cache. Must be one of `container` or
+  `virtual-machine`. Defaults to `container`.
+
+* `architecture` - *Optional* - The image architecture (e.g. x86_64, aarch64). See [Architectures](https://linuxcontainers.org/incus/docs/main/architectures/) for all possible values.
+
+* `copy_aliases` - *Optional* - Whether to copy the aliases of the image from
+  the remote. Valid values are `true` and `false`. Defaults to `true`.
+
+The `source_instance` block supports:
+
+* `name` - **Required** - Name of the source instance.
+
+* `snapshot`- *Optional* - Name of the snapshot of the source instance
 
 ## Attribute Reference
 
