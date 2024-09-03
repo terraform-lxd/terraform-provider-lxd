@@ -1,3 +1,25 @@
+## 2.3.0 (September 3, 2024)
+
+## What's Changed
+### Breaking Changes ⚠️
+* Refactor provider config and test trust token/password by @MusicDin in https://github.com/terraform-lxd/terraform-provider-lxd/pull/518
+### New Features 🎉
+* Add network peer resource by @MusicDin in https://github.com/terraform-lxd/terraform-provider-lxd/pull/504
+* Allow managing default profiles in non-default projects by @MusicDin in https://github.com/terraform-lxd/terraform-provider-lxd/pull/510
+* Add trust token resource by @MusicDin in https://github.com/terraform-lxd/terraform-provider-lxd/pull/512
+### Bug Fixes 🐝
+* Allow null description in LB backend and port by @MusicDin in https://github.com/terraform-lxd/terraform-provider-lxd/pull/505
+* Don't check fingerprint if 'Content' is unknown by @jsimpso in https://github.com/terraform-lxd/terraform-provider-lxd/pull/509
+* Remove LXD version check during password auth by @MusicDin in https://github.com/terraform-lxd/terraform-provider-lxd/pull/516
+### Maintenance and Chores 🛠
+* build(deps): bump the hashicorp group with 3 updates by @dependabot in https://github.com/terraform-lxd/terraform-provider-lxd/pull/500
+* build(deps): bump the hashicorp group with 2 updates by @dependabot in https://github.com/terraform-lxd/terraform-provider-lxd/pull/513
+### Other Changes ❓
+* Fix server already trusted check by @MusicDin in https://github.com/terraform-lxd/terraform-provider-lxd/pull/511
+* Test truststore certificate using cert generated within the same TF config by @MusicDin in https://github.com/terraform-lxd/terraform-provider-lxd/pull/519
+* docs: Emphasize the trust password is no longer supported by @MusicDin in https://github.com/terraform-lxd/terraform-provider-lxd/pull/521
+* Ignore network peer status inconsistency in import test by @MusicDin in https://github.com/terraform-lxd/terraform-provider-lxd/pull/522
+
 ## 2.2.0 (July 10, 2024)
 
 ## What's Changed
