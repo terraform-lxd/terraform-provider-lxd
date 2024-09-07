@@ -301,6 +301,27 @@ func TestAccProfile_importDevice(t *testing.T) {
 	})
 }
 
+func TestAccProfile_default(t *testing.T) {
+	projectName := petname.Name()
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { acctest.PreCheck(t) },
+		ProtoV6ProviderFactories: acctest.ProtoV6ProviderFactories,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccProfile_default(projectName),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr("incus_project.project1", "name", projectName),
+					resource.TestCheckResourceAttr("incus_profile.profile1", "name", "default"),
+					resource.TestCheckResourceAttr("incus_profile.profile1", "project", projectName),
+					resource.TestCheckResourceAttr("incus_profile.profile1", "device.#", "1"),
+					resource.TestCheckResourceAttr("incus_profile.profile1", "device.0.name", "foo"),
+				),
+			},
+		},
+	})
+}
+
 func testAccProfile_basic(name string) string {
 	return fmt.Sprintf(`
 resource "incus_profile" "profile1" {
@@ -495,4 +516,31 @@ resource "incus_profile" "profile1" {
   }
 }
 	`, projectName, profileName)
+}
+
+func testAccProfile_default(projectName string) string {
+	return fmt.Sprintf(`
+resource "incus_project" "project1" {
+  name = "%s"
+  config = {
+	"features.images"   = false
+	"features.profiles" = true
+  }
+}
+
+resource "incus_profile" "profile1" {
+  name    = "default"
+  project = incus_project.project1.name
+
+  device {
+    name = "foo"
+    type = "nic"
+    properties = {
+      name    = "bar"
+      nictype = "bridged"
+      parent  = "incusbr0"
+    }
+  }
+}
+	`, projectName)
 }
