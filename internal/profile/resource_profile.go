@@ -145,12 +145,60 @@ func (r *ProfileResource) Configure(_ context.Context, req resource.ConfigureReq
 	r.provider = provider
 }
 
+func (r *ProfileResource) ModifyPlan(ctx context.Context, req resource.ModifyPlanRequest, resp *resource.ModifyPlanResponse) {
+	priorState := req.State
+	plannedState := req.Plan
+
+	// Detection creation: no prior state
+	if priorState.Raw.IsNull() {
+		var profileName types.String
+		diags := plannedState.GetAttribute(ctx, path.Root("name"), &profileName)
+		if diags.HasError() {
+			resp.Diagnostics.Append(diags...)
+			return
+		}
+
+		// We only print the warning here and take care of the correct changes in the ProfileResource#Create
+		if profileName.ValueString() == "default" {
+			resp.Diagnostics.AddWarning(
+				"Default Profile Creation Attempted",
+				"'default' profile cannot be created in an Incus project. Instead, its config and devices will be updated accordingly.",
+			)
+		}
+		return
+	}
+
+	// Detect deletion: no planned state
+	if plannedState.Raw.IsNull() {
+		var profileName types.String
+		diags := priorState.GetAttribute(ctx, path.Root("name"), &profileName)
+		if diags.HasError() {
+			resp.Diagnostics.Append(diags...)
+			return
+		}
+
+		// We only print the warning here and take care of the correct changes in the ProfileResource#Delete
+		if profileName.ValueString() == "default" {
+			resp.Diagnostics.AddWarning(
+				"Default Profile Deletion Attempted",
+				"'default' profile cannot be deleted in an Incus project. Instead, its config and devices will be set to the Incus default profile state.",
+			)
+		}
+		return
+	}
+}
+
 func (r ProfileResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
 	var plan ProfileModel
 
 	diags := req.Plan.Get(ctx, &plan)
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	if plan.Name.ValueString() == "default" {
+		r.importAndUpdateDefaultProfile(ctx, plan, resp)
 		return
 	}
 
@@ -276,6 +324,11 @@ func (r ProfileResource) Delete(ctx context.Context, req resource.DeleteRequest,
 		return
 	}
 
+	if state.Name.ValueString() == "default" {
+		r.resetDefaultProfile(ctx, state, resp)
+		return
+	}
+
 	remote := state.Remote.ValueString()
 	project := state.Project.ValueString()
 	server, err := r.provider.InstanceServer(remote, project, "")
@@ -343,4 +396,127 @@ func (r ProfileResource) SyncState(ctx context.Context, tfState *tfsdk.State, se
 	}
 
 	return tfState.Set(ctx, &m)
+}
+
+func (r ProfileResource) importAndUpdateDefaultProfile(ctx context.Context, plan ProfileModel, resp *resource.CreateResponse) {
+	remote := plan.Remote.ValueString()
+	project := plan.Project.ValueString()
+	profileName := plan.Name.ValueString()
+
+	// 1. We import the default profile.
+	var id string
+	if project != "" {
+		id = fmt.Sprintf("%s/%s", project, profileName)
+	} else {
+		id = profileName
+	}
+
+	meta := common.ImportMetadata{
+		ResourceName:   "profile",
+		RequiredFields: []string{"name"},
+	}
+
+	fields, diag := meta.ParseImportID(id)
+	if diag != nil {
+		resp.Diagnostics.Append(diag)
+		return
+	}
+
+	for k, v := range fields {
+		resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root(k), v)...)
+	}
+
+	// 2. After we have imported the default profile, we can now update it.
+	server, err := r.provider.InstanceServer(remote, project, "")
+	if err != nil {
+		resp.Diagnostics.Append(errors.NewInstanceServerError(err))
+		return
+	}
+
+	_, etag, err := server.GetProfile(profileName)
+	if err != nil {
+		resp.Diagnostics.AddError(fmt.Sprintf("Failed to retrieve existing profile %q", profileName), err.Error())
+		return
+	}
+
+	config, diags := common.ToConfigMap(ctx, plan.Config)
+	resp.Diagnostics.Append(diags...)
+
+	devices, diags := common.ToDeviceMap(ctx, plan.Devices)
+	resp.Diagnostics.Append(diags...)
+
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	profile := api.ProfilePut{
+		Description: plan.Description.ValueString(),
+		Config:      config,
+		Devices:     devices,
+	}
+
+	err = server.UpdateProfile(profileName, profile, etag)
+	if err != nil {
+		resp.Diagnostics.AddError(fmt.Sprintf("Failed to update profile %q", profileName), err.Error())
+		return
+	}
+
+	// 3. Sync Terraform state.
+	diags = r.SyncState(ctx, &resp.State, server, plan)
+	resp.Diagnostics.Append(diags...)
+}
+
+func (r ProfileResource) resetDefaultProfile(ctx context.Context, plan ProfileModel, resp *resource.DeleteResponse) {
+	remote := plan.Remote.ValueString()
+	projectName := plan.Project.ValueString()
+	profileName := plan.Name.ValueString()
+
+	server, err := r.provider.InstanceServer(remote, projectName, "")
+	if err != nil {
+		resp.Diagnostics.Append(errors.NewInstanceServerError(err))
+		return
+	}
+
+	_, etag, err := server.GetProfile(profileName)
+	if err != nil {
+		resp.Diagnostics.AddError(fmt.Sprintf("Failed to retrieve existing profile %q", profileName), err.Error())
+		return
+	}
+
+	devices, diags := common.ToDeviceMap(ctx, plan.Devices)
+	resp.Diagnostics.Append(diags...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	defaultDevices := make(map[string]map[string]string)
+	defaultConfig := make(map[string]string)
+
+	// We must keep the root device if features.profiles is set to false.
+	project, _, err := server.GetProject(projectName)
+	if err != nil {
+		resp.Diagnostics.AddError(fmt.Sprintf("Failed to retrieve project %q", projectName), err.Error())
+		return
+	}
+
+	if project.Config["features.profiles"] == "false" {
+		if value, exists := devices["root"]; exists {
+			defaultDevices["root"] = value
+		}
+	}
+
+	profile := api.ProfilePut{
+		Description: plan.Description.ValueString(),
+		Config:      defaultConfig,
+		Devices:     defaultDevices,
+	}
+
+	err = server.UpdateProfile(profileName, profile, etag)
+	if err != nil {
+		resp.Diagnostics.AddError(fmt.Sprintf("Failed to update profile %q", profileName), err.Error())
+		return
+	}
+
+	diags = r.SyncState(ctx, &resp.State, server, plan)
+	resp.Diagnostics.Append(diags...)
 }
