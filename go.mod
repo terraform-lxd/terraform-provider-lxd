@@ -1,7 +1,8 @@
 module github.com/lxc/terraform-provider-incus
 
-go 1.21
-toolchain go1.22.5
+go 1.22.0
+
+toolchain go1.22.6
 
 require (
 	github.com/dustinkirkland/golang-petname v0.0.0-20240428194347-eebcea082ee0
