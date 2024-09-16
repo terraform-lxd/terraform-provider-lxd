@@ -48,7 +48,6 @@ type InstanceModel struct {
 	Profiles       types.List   `tfsdk:"profiles"`
 	Devices        types.Set    `tfsdk:"device"`
 	Files          types.Set    `tfsdk:"file"`
-	Limits         types.Map    `tfsdk:"limits"`
 	Config         types.Map    `tfsdk:"config"`
 	Project        types.String `tfsdk:"project"`
 	Remote         types.String `tfsdk:"remote"`
@@ -147,18 +146,6 @@ func (r InstanceResource) Schema(_ context.Context, _ resource.SchemaRequest, re
 				Validators: []validator.List{
 					// Prevent empty values.
 					listvalidator.ValueStringsAre(stringvalidator.LengthAtLeast(1)),
-				},
-			},
-
-			"limits": schema.MapAttribute{
-				Optional:    true,
-				Computed:    true,
-				ElementType: types.StringType,
-				Default:     mapdefault.StaticValue(types.MapValueMust(types.StringType, map[string]attr.Value{})),
-				Validators: []validator.Map{
-					// Prevent empty keys or values.
-					mapvalidator.KeysAre(stringvalidator.LengthAtLeast(1)),
-					mapvalidator.ValueStringsAre(stringvalidator.LengthAtLeast(1)),
 				},
 			},
 
@@ -506,7 +493,7 @@ func (r InstanceResource) Read(ctx context.Context, req resource.ReadRequest, re
 
 // Update updates the instance in the following order:
 // - Ensure instance state (stopped/running)
-// - Update configuration (config, limits, devices, profiles)
+// - Update configuration (config, devices, profiles)
 // - Upload files
 // - Run exec commands
 func (r InstanceResource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
@@ -574,16 +561,13 @@ func (r InstanceResource) Update(ctx context.Context, req resource.UpdateRequest
 		return
 	}
 
-	// First extract profiles, devices, limits, config and config state.
+	// First extract profiles, devices, config and config state.
 	// Then merge user defined config with instance config (state).
 	profiles, diags := ToProfileList(ctx, plan.Profiles)
 	resp.Diagnostics.Append(diags...)
 
 	devices, diags := common.ToDeviceMap(ctx, plan.Devices)
 	resp.Diagnostics.Append(diags...)
-
-	limits, diag := common.ToConfigMap(ctx, plan.Limits)
-	resp.Diagnostics.Append(diag...)
 
 	userConfig, diags := common.ToConfigMap(ctx, plan.Config)
 	resp.Diagnostics.Append(diags...)
@@ -592,12 +576,6 @@ func (r InstanceResource) Update(ctx context.Context, req resource.UpdateRequest
 
 	if resp.Diagnostics.HasError() {
 		return
-	}
-
-	// Merge limits into instance config.
-	for k, v := range limits {
-		key := fmt.Sprintf("limits.%s", k)
-		config[key] = v
 	}
 
 	newInstance := api.InstancePut{
@@ -802,21 +780,8 @@ func (r InstanceResource) SyncState(ctx context.Context, tfState *tfsdk.State, s
 	// Extract user defined config and merge it with current resource config.
 	stateConfig := common.StripConfig(instance.Config, m.Config, m.ComputedKeys())
 
-	// Extract enteries with "limits." prefix.
-	instanceLimits := make(map[string]string)
-	for k, v := range stateConfig {
-		key, ok := strings.CutPrefix(k, "limits.")
-		if ok {
-			instanceLimits[key] = *v
-			delete(stateConfig, k)
-		}
-	}
-
-	// Convert config, limits, profiles, and devices into schema type.
+	// Convert config, profiles, and devices into schema type.
 	config, diags := common.ToConfigMapType(ctx, stateConfig, m.Config)
-	respDiags.Append(diags...)
-
-	limits, diags := common.ToConfigMapType(ctx, common.ToNullableConfig(instanceLimits), m.Config)
 	respDiags.Append(diags...)
 
 	profiles, diags := ToProfileListType(ctx, instance.Profiles)
@@ -835,7 +800,6 @@ func (r InstanceResource) SyncState(ctx context.Context, tfState *tfsdk.State, s
 	m.Ephemeral = types.BoolValue(instance.Ephemeral)
 	m.Status = types.StringValue(instance.Status)
 	m.Profiles = profiles
-	m.Limits = limits
 	m.Devices = devices
 	m.Config = config
 
@@ -961,7 +925,7 @@ func (r InstanceResource) createInstanceFromSourceInstance(ctx context.Context, 
 			return diags
 		}
 
-		// Extract profiles, devices, config and limits.
+		// Extract profiles, devices and config.
 		profiles, diags := ToProfileList(ctx, plan.Profiles)
 		diags.Append(diags...)
 
@@ -969,9 +933,6 @@ func (r InstanceResource) createInstanceFromSourceInstance(ctx context.Context, 
 		diags.Append(diags...)
 
 		config, diags := common.ToConfigMap(ctx, plan.Config)
-		diags.Append(diags...)
-
-		limits, diags := common.ToConfigMap(ctx, plan.Limits)
 		diags.Append(diags...)
 
 		if diags.HasError() {
@@ -983,11 +944,6 @@ func (r InstanceResource) createInstanceFromSourceInstance(ctx context.Context, 
 		// Allow setting additional config keys
 		for key, value := range config {
 			sourceInstance.Config[key] = value
-		}
-
-		for k, v := range limits {
-			key := fmt.Sprintf("limits.%s", k)
-			config[key] = v
 		}
 
 		// Allow setting device overrides
@@ -1032,7 +988,7 @@ func (r InstanceResource) createInstanceFromSourceInstance(ctx context.Context, 
 			return diags
 		}
 
-		// Extract profiles, devices, config and limits.
+		// Extract profiles, devices and config.
 		profiles, diags := ToProfileList(ctx, plan.Profiles)
 		diags.Append(diags...)
 
@@ -1040,9 +996,6 @@ func (r InstanceResource) createInstanceFromSourceInstance(ctx context.Context, 
 		diags.Append(diags...)
 
 		config, diags := common.ToConfigMap(ctx, plan.Config)
-		diags.Append(diags...)
-
-		limits, diags := common.ToConfigMap(ctx, plan.Limits)
 		diags.Append(diags...)
 
 		if diags.HasError() {
@@ -1054,11 +1007,6 @@ func (r InstanceResource) createInstanceFromSourceInstance(ctx context.Context, 
 		// Allow setting additional config keys
 		for key, value := range config {
 			sourceSnapshot.Config[key] = value
-		}
-
-		for k, v := range limits {
-			key := fmt.Sprintf("limits.%s", k)
-			config[key] = v
 		}
 
 		// Allow setting device overrides
@@ -1139,7 +1087,7 @@ func (r InstanceResource) createInstanceWithoutImage(ctx context.Context, server
 func prepareInstancesPost(ctx context.Context, plan InstanceModel) (api.InstancesPost, diag.Diagnostics) {
 	var diags diag.Diagnostics
 
-	// Extract profiles, devices, config and limits.
+	// Extract profiles, devices and config.
 	profiles, diags := ToProfileList(ctx, plan.Profiles)
 	diags.Append(diags...)
 
@@ -1149,17 +1097,8 @@ func prepareInstancesPost(ctx context.Context, plan InstanceModel) (api.Instance
 	config, diags := common.ToConfigMap(ctx, plan.Config)
 	diags.Append(diags...)
 
-	limits, diags := common.ToConfigMap(ctx, plan.Limits)
-	diags.Append(diags...)
-
 	if diags.HasError() {
 		return api.InstancesPost{}, diags
-	}
-
-	// Merge limits into instance config.
-	for k, v := range limits {
-		key := fmt.Sprintf("limits.%s", k)
-		config[key] = v
 	}
 
 	instance := api.InstancesPost{
