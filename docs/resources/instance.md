@@ -13,10 +13,7 @@ resource "incus_instance" "instance1" {
 
   config = {
     "boot.autostart" = true
-  }
-
-  limits = {
-    cpu = 2
+    "limits.cpu" = 2
   }
 }
 ```
@@ -119,9 +116,6 @@ resource "incus_instance" "instance2" {
 * `device` - *Optional* - Device definition. See reference below.
 
 * `file` - *Optional* - File to upload to the instance. See reference below.
-
-* `limits` - *Optional* - Map of key/value pairs that define the
-	[instance resources limits](https://linuxcontainers.org/incus/docs/main/reference/instance_options/#resource-limits).
 
 * `config` - *Optional* - Map of key/value pairs of
 	[instance config settings](https://linuxcontainers.org/incus/docs/main/reference/instance_options/).
