@@ -586,8 +586,8 @@ func TestAccInstance_configLimits(t *testing.T) {
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("incus_instance.instance1", "name", instanceName),
 					resource.TestCheckResourceAttr("incus_instance.instance1", "status", "Running"),
-					resource.TestCheckResourceAttr("incus_instance.instance1", "limits.%", "1"),
-					resource.TestCheckResourceAttr("incus_instance.instance1", "limits.cpu", "1"),
+					resource.TestCheckResourceAttr("incus_instance.instance1", "config.%", "1"),
+					resource.TestCheckResourceAttr("incus_instance.instance1", "config.limits.cpu", "1"),
 				),
 			},
 			{
@@ -595,9 +595,9 @@ func TestAccInstance_configLimits(t *testing.T) {
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("incus_instance.instance1", "name", instanceName),
 					resource.TestCheckResourceAttr("incus_instance.instance1", "status", "Running"),
-					resource.TestCheckResourceAttr("incus_instance.instance1", "limits.%", "2"),
-					resource.TestCheckResourceAttr("incus_instance.instance1", "limits.cpu", "2"),
-					resource.TestCheckResourceAttr("incus_instance.instance1", "limits.memory", "128MiB"),
+					resource.TestCheckResourceAttr("incus_instance.instance1", "config.%", "2"),
+					resource.TestCheckResourceAttr("incus_instance.instance1", "config.limits.cpu", "2"),
+					resource.TestCheckResourceAttr("incus_instance.instance1", "config.limits.memory", "128MiB"),
 				),
 			},
 		},
@@ -1251,8 +1251,8 @@ resource "incus_instance" "instance1" {
   name  = "%s"
   image = "%s"
 
-  limits = {
-    "cpu" = 1
+  config = {
+    "limits.cpu" = 1
   }
 }
 	`, name, acctest.TestImage)
@@ -1264,9 +1264,9 @@ resource "incus_instance" "instance1" {
   name  = "%s"
   image = "%s"
 
-  limits = {
-    "cpu"    = 2
-    "memory" = "128MiB"
+  config = {
+    "limits.cpu"    = 2
+    "limits.memory" = "128MiB"
   }
 }
 	`, name, acctest.TestImage)
