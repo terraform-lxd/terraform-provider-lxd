@@ -21,35 +21,6 @@ resource "lxd_instance" "instance1" {
 }
 ```
 
-## Example to Attach a Volume
-
-```hcl
-resource "lxd_storage_pool" "pool1" {
-  name   = "mypool"
-  driver = "zfs"
-}
-
-resource "lxd_volume" "volume1" {
-  name = "myvolume"
-  pool = lxd_storage_pool.pool1.name
-}
-
-resource "lxd_instance" "instance1" {
-  name  = "%s"
-  image = "ubuntu"
-
-  device {
-    name = "volume1"
-    type = "disk"
-    properties = {
-      path   = "/mount/point/in/instance"
-      source = lxd_volume.volume1.name
-      pool   = lxd_storage_pool.pool1.name
-    }
-  }
-}
-```
-
 ## Example to proxy/forward ports
 
 ```hcl
