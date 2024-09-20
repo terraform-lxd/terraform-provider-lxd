@@ -63,6 +63,23 @@ jobs:
           # Add HTTPS remote.
           lxc remote add localhost "$(lxc config trust add --name lxd-terraform-provider --quiet)"
 
+      - name: Configure MinIO
+        run: |
+          arch=$(dpkg --print-architecture)
+          mkdir -p /opt/minio
+
+          # Download the minio server.
+          curl -sSfL "https://dl.min.io/server/minio/release/linux-${arch}/minio" --output "/opt/minio/minio"
+          chmod +x "/opt/minio/minio"
+
+          # Download the minio client.
+          curl -sSfL "https://dl.min.io/client/mc/release/linux-${arch}/mc" --output "/opt/minio/mc"
+          chmod +x "/opt/minio/mc"
+
+          # Set the snap config key for minio and reload LXD to have it take effect.
+          sudo snap set lxd minio.path=/opt/minio
+          sudo systemctl reload snap.lxd.daemon
+
       - name: Configure OVN
         run: |
           sudo apt-get update
