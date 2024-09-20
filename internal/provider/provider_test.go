@@ -32,7 +32,6 @@ func TestAccProvider_configDir(t *testing.T) {
 			},
 		},
 	})
-	resetLXDRemoteEnvVars()
 }
 
 func TestAccProvider_trustToken(t *testing.T) {
