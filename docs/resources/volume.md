@@ -4,15 +4,52 @@ Manages an LXD volume.
 
 ## Example Usage
 
+Example of how to create a custom storage pool volume:
 ```hcl
-resource "lxd_storage_pool" "pool1" {
+resource "lxd_storage_pool" "pool" {
   name   = "mypool"
   driver = "zfs"
 }
 
-resource "lxd_volume" "volume1" {
+resource "lxd_volume" "volume" {
   name = "myvolume"
-  pool = lxd_storage_pool.pool1.name
+  pool = lxd_storage_pool.pool.name
+}
+```
+
+Example of how to create and attach a custom storage pool volume to an instance:
+```hcl
+# Create storage pool.
+resource "lxd_storage_pool" "pool" {
+  name   = "mypool"
+  driver = "zfs"
+}
+
+# Create custom volume.
+resource "lxd_volume" "volume" {
+  name = "myvol"
+  pool = lxd_storage_pool.pool.name
+
+  config = {
+    size = "5GiB"
+  }
+}
+
+# Create an instance with attached custom volume.
+resource "lxd_instance" "instance" {
+  name    = "myinstance"
+  image   = "ubuntu:22.04"
+
+  # Attach additional volume.
+  device {
+    name = "vol-01"
+    type = "disk"
+    properties = {
+      path   = "/var/lib/docker"           # Path where volume is mounted within an instance.
+      pool   = lxd_storage_pool.pool.name  # Storage pool name where volume is created.
+      source = lxd_volume.volume.name      # Volume name.
+    }
+  }
 }
 ```
 
