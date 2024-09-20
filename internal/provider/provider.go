@@ -260,6 +260,8 @@ func (p *LxdProvider) Resources(_ context.Context) []func() resource.Resource {
 		network.NewNetworkZoneRecordResource,
 		profile.NewProfileResource,
 		project.NewProjectResource,
+		storage.NewStorageBucketResource,
+		storage.NewStorageBucketKeyResource,
 		storage.NewStoragePoolResource,
 		storage.NewStorageVolumeResource,
 		storage.NewStorageVolumeCopyResource,
