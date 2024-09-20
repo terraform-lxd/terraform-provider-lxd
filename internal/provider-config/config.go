@@ -320,7 +320,7 @@ func (p *LxdProviderConfig) server(remoteName string) (lxd.Server, error) {
 			}
 
 			// Try to accept the remote certificate.
-			err := p.acceptRemoteCertificate(remoteName, remote.Address)
+			err := p.acceptRemoteCertificate(remoteName, remote.Token, remote.Address)
 			if err != nil {
 				return nil, fmt.Errorf("Failed to accept server certificate for remote %q: %v", remoteName, err)
 			}
@@ -428,18 +428,34 @@ func (p *LxdProviderConfig) setRemote(remoteName string, remote LxdRemote) error
 
 // acceptRemoteCertificate retrieves the unverified peer certificate found at
 // the remote address and stores it locally.
-func (p *LxdProviderConfig) acceptRemoteCertificate(remoteName string, url string) error {
-	// Check if we are allowed to accept the remote certificate.
-	if !p.acceptServerCertificate {
+func (p *LxdProviderConfig) acceptRemoteCertificate(remoteName string, token string, url string) error {
+	// Check if we are allowed to blindly accept the remote certificate.
+	// When the trust token is used, the fingerprint contained in the token
+	// is used to ensure we get the right certificate.
+	if token == "" && !p.acceptServerCertificate {
 		return errors.New("Unable to communicate with remote server. " +
-			`Either set "accept_remote_certificate" to true or add ` +
-			"the remote out of band of Terraform and try again.")
+			`You can set "accept_remote_certificate" to true, add ` +
+			"the remote out of band of Terraform, or use the trust token.")
 	}
 
 	// Try to retrieve server's certificate.
 	cert, err := shared.GetRemoteCertificate(url, fmt.Sprintf("terraform-provider-lxd/%s", p.version))
 	if err != nil {
 		return err
+	}
+
+	if token != "" {
+		// Decode token.
+		decodedToken, err := shared.CertificateTokenDecode(token)
+		if err != nil {
+			return fmt.Errorf("Failed decoding trust token for remote %q: %v", remoteName, err)
+		}
+
+		// Compare token and certificate fingerprints.
+		certFingerprint := shared.CertFingerprint(cert)
+		if certFingerprint != decodedToken.Fingerprint {
+			return fmt.Errorf("Fingerprint mismatch between trust token and certificate from remote %q", remoteName)
+		}
 	}
 
 	certPath := p.config.ServerCertPath(remoteName)
