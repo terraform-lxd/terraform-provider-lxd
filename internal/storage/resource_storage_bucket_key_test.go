@@ -16,7 +16,10 @@ func TestAccStorageBucketKey_basic(t *testing.T) {
 	keyName := petname.Generate(2, "-")
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:                 func() { acctest.PreCheck(t) },
+		PreCheck: func() {
+			acctest.PreCheck(t)
+			acctest.PreCheckAPIExtensions(t, "storage_buckets")
+		},
 		ProtoV6ProviderFactories: acctest.ProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
@@ -46,6 +49,7 @@ func TestAccStorageBucketKey_role(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			acctest.PreCheck(t)
+			acctest.PreCheckAPIExtensions(t, "storage_buckets")
 		},
 		ProtoV6ProviderFactories: acctest.ProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
@@ -74,6 +78,7 @@ func TestAccStorageBucketKey_project(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			acctest.PreCheck(t)
+			acctest.PreCheckAPIExtensions(t, "storage_buckets")
 		},
 		ProtoV6ProviderFactories: acctest.ProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
@@ -104,7 +109,10 @@ func TestAccStorageBucketKey_importBasic(t *testing.T) {
 	resourceName := "lxd_storage_bucket_key.key1"
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:                 func() { acctest.PreCheck(t) },
+		PreCheck: func() {
+			acctest.PreCheck(t)
+			acctest.PreCheckAPIExtensions(t, "storage_buckets")
+		},
 		ProtoV6ProviderFactories: acctest.ProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
@@ -143,7 +151,10 @@ func TestAccStorageBucketKey_importProject(t *testing.T) {
 	resourceName := "lxd_storage_bucket_key.key1"
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:                 func() { acctest.PreCheck(t) },
+		PreCheck: func() {
+			acctest.PreCheck(t)
+			acctest.PreCheckAPIExtensions(t, "storage_buckets")
+		},
 		ProtoV6ProviderFactories: acctest.ProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{

@@ -14,7 +14,10 @@ func TestAccStorageBucket_basic(t *testing.T) {
 	bucketName := petname.Generate(2, "-")
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:                 func() { acctest.PreCheck(t) },
+		PreCheck: func() {
+			acctest.PreCheck(t)
+			acctest.PreCheckAPIExtensions(t, "storage_buckets")
+		},
 		ProtoV6ProviderFactories: acctest.ProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
@@ -37,6 +40,7 @@ func TestAccStorageBucket_target(t *testing.T) {
 		PreCheck: func() {
 			acctest.PreCheck(t)
 			acctest.PreCheckClustering(t)
+			acctest.PreCheckAPIExtensions(t, "storage_buckets")
 		},
 		ProtoV6ProviderFactories: acctest.ProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
@@ -58,6 +62,7 @@ func TestAccStorageBucket_project(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			acctest.PreCheck(t)
+			acctest.PreCheckAPIExtensions(t, "storage_buckets")
 		},
 		ProtoV6ProviderFactories: acctest.ProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
@@ -80,7 +85,10 @@ func TestAccStorageBucket_importBasic(t *testing.T) {
 	resourceName := "lxd_storage_bucket.bucket1"
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:                 func() { acctest.PreCheck(t) },
+		PreCheck: func() {
+			acctest.PreCheck(t)
+			acctest.PreCheckAPIExtensions(t, "storage_buckets")
+		},
 		ProtoV6ProviderFactories: acctest.ProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
@@ -103,7 +111,10 @@ func TestAccStorageBucket_importProject(t *testing.T) {
 	resourceName := "lxd_storage_bucket.bucket1"
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:                 func() { acctest.PreCheck(t) },
+		PreCheck: func() {
+			acctest.PreCheck(t)
+			acctest.PreCheckAPIExtensions(t, "storage_buckets")
+		},
 		ProtoV6ProviderFactories: acctest.ProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
