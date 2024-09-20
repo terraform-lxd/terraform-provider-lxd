@@ -82,9 +82,6 @@ func (r InstanceResource) Schema(ctx context.Context, _ resource.SchemaRequest, 
 		Attributes: map[string]schema.Attribute{
 			"name": schema.StringAttribute{
 				Required: true,
-				PlanModifiers: []planmodifier.String{
-					stringplanmodifier.RequiresReplace(),
-				},
 			},
 
 			"description": schema.StringAttribute{
@@ -789,11 +786,23 @@ func (r InstanceResource) Update(ctx context.Context, req resource.UpdateRequest
 		return
 	}
 
-	instanceName := plan.Name.ValueString()
+	instanceName := state.Name.ValueString()
 	instanceState, _, err := server.GetInstanceState(instanceName)
 	if err != nil {
 		resp.Diagnostics.AddError(fmt.Sprintf("Failed to retrieve state of instance %q", instanceName), err.Error())
 		return
+	}
+
+	// Handle instance rename if instance is already stopped.
+	newInstanceName := plan.Name.ValueString()
+	if instanceName != newInstanceName && isInstanceStopped(*instanceState) {
+		err := renameInstance(ctx, server, instanceName, newInstanceName)
+		if err != nil {
+			resp.Diagnostics.AddError(fmt.Sprintf("Failed to rename instance %q", instanceName), err.Error())
+			return
+		}
+
+		instanceName = newInstanceName
 	}
 
 	// Indicates if the instance has been just started.
@@ -830,6 +839,17 @@ func (r InstanceResource) Update(ctx context.Context, req resource.UpdateRequest
 			resp.Diagnostics.Append(diag)
 			return
 		}
+	}
+
+	// Handle instance rename.
+	if instanceName != newInstanceName {
+		err := renameInstance(ctx, server, instanceName, newInstanceName)
+		if err != nil {
+			resp.Diagnostics.AddError(fmt.Sprintf("Failed to rename instance %q", instanceName), err.Error())
+			return
+		}
+
+		instanceName = newInstanceName
 	}
 
 	// Get instance.
@@ -1305,6 +1325,17 @@ func stopInstance(ctx context.Context, server lxd.InstanceServer, instanceName s
 	}
 
 	return true, nil
+}
+
+// renameInstance renames an instance with the given old name to a new name.
+// Instance has to be stopped beforehand, otherwise the operation will fail.
+func renameInstance(ctx context.Context, server lxd.InstanceServer, oldName string, newName string) error {
+	op, err := server.RenameInstance(oldName, api.InstancePost{Name: newName})
+	if err != nil {
+		return err
+	}
+
+	return op.WaitContext(ctx)
 }
 
 // waitInstanceNetwork waits for an instance with the given name to receive
