@@ -53,7 +53,7 @@ resource "incus_instance" "test1" {
 
 ## Multiple Network Example
 
-This example uses the "default" Incus nework on `eth0` (unspecified) and a
+This example uses the "default" Incus network on `eth0` (unspecified) and a
 custom network on `eth1`
 
 ```hcl
