@@ -63,15 +63,13 @@ The following arguments are supported:
 	configuration. Defaults to `$HOME/snap/lxd/common/config` (and fallbacks to `$HOME/.config/lxc`).
 
 * `generate_client_certificates` - *Optional* - Automatically generate the LXD
-	client certificate if it does not exist. Valid values are `true` and `false`.
-	This can also be set with the `LXD_GENERATE_CLIENT_CERTS` Environment
-	variable. Defaults to `false`.
+	client certificate if it does not exist. Defaults to `false`.
 
 * `accept_remote_certificate` - *Optional* - Automatically accept the LXD
-	remote's certificate. Valid values are `true` and `false`. If this is not set
-	to `true`, you must accept the certificate out of band of Terraform. This can
-	also be set with the `LXD_ACCEPT_SERVER_CERTIFICATE` environment variable.
-  Defaults to `false`
+	remote's certificate during initial authentication. If this is not set
+	to `true`, you must accept the certificate out of band of Terraform or
+  use a trust token instead (recommended, see `token` in `remote`).
+  Defaults to `false`.
 
 The `remote` block supports:
 
@@ -85,7 +83,6 @@ The `remote` block supports:
 
 * `default` - *Optional* - Whether this should be the default remote.
 	This remote will then be used when one is not specified in a resource.
-	Valid values are `true` and `false`.
 	If you choose to _not_ set default=true on a `remote` and do not specify
 	a remote in a resource, this provider will attempt to connect to an LXD
 	server running on the same host through the UNIX socket. See `Undefined Remote`
@@ -108,12 +105,13 @@ socket.
 ## Environment Variable Remote
 
 It is possible to define a single `remote` through environment variables.
-The required variables are:
-
+The supported variables are:
 * `LXD_REMOTE` - The name of the remote.
 * `LXD_ADDR` - The address of the LXD remote.
 * `LXD_PASSWORD` - The password of the LXD remote.
 * `LXD_TOKEN` - The trust token of the LXD remote.
+* `LXD_GENERATE_CLIENT_CERTS` - Automatically generate the LXD client certificate if missing.
+* `LXD_ACCEPT_SERVER_CERTIFICATE` - Automatically accept the LXD remote's certificate during initial authentication.
 
 ## PKI Support
 

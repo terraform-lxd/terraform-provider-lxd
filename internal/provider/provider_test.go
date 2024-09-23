@@ -32,7 +32,6 @@ func TestAccProvider_configDir(t *testing.T) {
 			},
 		},
 	})
-	resetLXDRemoteEnvVars()
 }
 
 func TestAccProvider_trustToken(t *testing.T) {
@@ -40,6 +39,13 @@ func TestAccProvider_trustToken(t *testing.T) {
 
 	token := acctest.ConfigureTrustToken(t)
 	configDir := t.TempDir()
+
+	invalidToken := `
+ewogICJjbGllbnRfbmFtZSI6ICJ0bXBfdG9rZW4iLAogICJmaW5nZXJwcmludCI6ICJZb3VfaGF2
+ZV9kZWNvZGVkX2FfdGVtcG9yYXJ5X3Rva2VuLkNvbmdyYXR1bGF0aW9ucyEiLAogICJhZGRyZXNz
+ZXMiOiBbCiAgICAiMTI3LjAuMC4xOjg0NDMiCiAgXSwKICAic2VjcmV0IjogIlRoaXNfaXNfYV90
+b3Bfc2VjcmV0LkRvX25vdF90ZWxsX2l0X3RvX2FueW9uZSEiLAogICJleHBpcmVzX2F0IjogIjAw
+MDEtMDEtMDFUMDA6MDA6MDBaIgp9Cg==`
 
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
@@ -50,8 +56,8 @@ func TestAccProvider_trustToken(t *testing.T) {
 		Steps: []resource.TestStep{
 			{
 				// Ensure authentication fails with incorrect token.
-				Config:      testAccProvider_remoteServer(configDir, "", "invalid", true),
-				ExpectError: regexp.MustCompile(`not authorized`),
+				Config:      testAccProvider_remoteServer(configDir, "", invalidToken, true),
+				ExpectError: regexp.MustCompile(`mismatch between trust token and certificate`),
 			},
 			{
 				// Ensure authentication succeeds with correct token.
@@ -154,7 +160,7 @@ func TestAccProvider_generateClientCertificate(t *testing.T) {
 }
 
 func TestAccProvider_acceptRemoteCertificate(t *testing.T) {
-	token := acctest.ConfigureTrustToken(t)
+	password := acctest.ConfigureTrustPassword(t)
 	configDir := t.TempDir()
 
 	resource.Test(t, resource.TestCase{
@@ -166,12 +172,12 @@ func TestAccProvider_acceptRemoteCertificate(t *testing.T) {
 		Steps: []resource.TestStep{
 			{
 				// Ensure authentication fails if remote server is not accepted.
-				Config:      testAccProvider_remoteServer(configDir, "", token, false),
+				Config:      testAccProvider_remoteServer(configDir, password, "", false),
 				ExpectError: regexp.MustCompile(`Failed to accept server certificate`),
 			},
 			{
 				// Ensure authentication succeeds if remote server is accepted.
-				Config: testAccProvider_remoteServer(configDir, "", token, true),
+				Config: testAccProvider_remoteServer(configDir, password, "", true),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("lxd_noop.noop", "remote", "tf-remote"),
 					resource.TestCheckResourceAttr("lxd_noop.noop", "project", "default"),
