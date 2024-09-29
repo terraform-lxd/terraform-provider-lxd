@@ -21,7 +21,7 @@ resource "incus_instance" "test1" {
 
 ## Argument Reference
 
-* `source_instance` - *Optional* - The source image from which the image will be created. See reference below.
+* `source_image` - *Optional* - The source image from which the image will be created. See reference below.
 
 * `source_instance` - *Optional* - The source instance from which the image will be created. See reference below.
 
