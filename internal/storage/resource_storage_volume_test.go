@@ -172,6 +172,35 @@ func TestAccStorageVolume_importProject(t *testing.T) {
 	})
 }
 
+func TestAccStorageVolume_inheritedStoragePoolKeys(t *testing.T) {
+	poolName := acctest.GenerateName(2, "-")
+	volumeName := acctest.GenerateName(2, "-")
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { acctest.PreCheck(t) },
+		ProtoV6ProviderFactories: acctest.ProtoV6ProviderFactories,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccStorageVolume_inheritedStoragePoolVolumeKeys(poolName, volumeName),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr("lxd_storage_pool.pool1", "name", poolName),
+					resource.TestCheckResourceAttr("lxd_storage_pool.pool1", "driver", "zfs"),
+					resource.TestCheckResourceAttr("lxd_storage_pool.pool1", "config.volume.zfs.remove_snapshots", "true"),
+					resource.TestCheckResourceAttr("lxd_storage_pool.pool1", "config.volume.zfs.use_refquota", "true"),
+					resource.TestCheckResourceAttr("lxd_volume.volume1", "name", volumeName),
+					resource.TestCheckResourceAttr("lxd_volume.volume1", "pool", poolName),
+					resource.TestCheckResourceAttr("lxd_volume.volume1", "type", "custom"),
+					resource.TestCheckResourceAttr("lxd_volume.volume1", "content_type", "block"),
+
+					// Ensure computed keys are not tracked.
+					resource.TestCheckNoResourceAttr("lxd_volume.volume1", "config.zfs.remove_snapshots"),
+					resource.TestCheckNoResourceAttr("lxd_volume.volume1", "config.zfs.use_refquota"),
+				),
+			},
+		},
+	})
+}
+
 func testAccStorageVolume_basic(poolName, volumeName string) string {
 	return fmt.Sprintf(`
 resource "lxd_storage_pool" "pool1" {
@@ -254,6 +283,28 @@ resource "lxd_volume" "volume1" {
   name         = "%s"
   pool         = lxd_storage_pool.pool1.name
   content_type = "block"
+}
+	`, poolName, volumeName)
+}
+
+func testAccStorageVolume_inheritedStoragePoolVolumeKeys(poolName, volumeName string) string {
+	return fmt.Sprintf(`
+resource "lxd_storage_pool" "pool1" {
+  name   = "%s"
+  driver = "zfs"
+  config = {
+    "volume.zfs.remove_snapshots" = true
+    "volume.zfs.use_refquota"     = true
+  }
+}
+
+resource "lxd_volume" "volume1" {
+  name         = "%s"
+  pool         = lxd_storage_pool.pool1.name
+  content_type = "block"
+  config = {
+    "size" = "1GiB"
+  }
 }
 	`, poolName, volumeName)
 }
