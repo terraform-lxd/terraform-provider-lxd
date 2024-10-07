@@ -12,12 +12,14 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/mapdefault"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/objectplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringdefault"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/tfsdk"
 	"github.com/hashicorp/terraform-plugin-framework/types"
+	"github.com/hashicorp/terraform-plugin-framework/types/basetypes"
 	"github.com/lxc/incus/v6/client"
 	"github.com/lxc/incus/v6/shared/api"
 
@@ -27,15 +29,16 @@ import (
 )
 
 type StorageVolumeModel struct {
-	Name        types.String `tfsdk:"name"`
-	Description types.String `tfsdk:"description"`
-	Pool        types.String `tfsdk:"pool"`
-	Type        types.String `tfsdk:"type"`
-	ContentType types.String `tfsdk:"content_type"`
-	Project     types.String `tfsdk:"project"`
-	Target      types.String `tfsdk:"target"`
-	Remote      types.String `tfsdk:"remote"`
-	Config      types.Map    `tfsdk:"config"`
+	Name         types.String `tfsdk:"name"`
+	Description  types.String `tfsdk:"description"`
+	Pool         types.String `tfsdk:"pool"`
+	Type         types.String `tfsdk:"type"`
+	ContentType  types.String `tfsdk:"content_type"`
+	Project      types.String `tfsdk:"project"`
+	Target       types.String `tfsdk:"target"`
+	Remote       types.String `tfsdk:"remote"`
+	Config       types.Map    `tfsdk:"config"`
+	SourceVolume types.Object `tfsdk:"source_volume"`
 
 	// Computed.
 	Location types.String `tfsdk:"location"`
@@ -44,6 +47,12 @@ type StorageVolumeModel struct {
 // StorageVolumeResource represent Incus storage volume resource.
 type StorageVolumeResource struct {
 	provider *provider_config.IncusProviderConfig
+}
+
+type SourceVolumeModel struct {
+	Pool   types.String `tfsdk:"pool"`
+	Name   types.String `tfsdk:"name"`
+	Remote types.String `tfsdk:"remote"`
 }
 
 // NewStorageVolumeResource returns a new storage volume resource.
@@ -134,6 +143,24 @@ func (r StorageVolumeResource) Schema(_ context.Context, _ resource.SchemaReques
 				Default:     mapdefault.StaticValue(types.MapValueMust(types.StringType, map[string]attr.Value{})),
 			},
 
+			"source_volume": schema.SingleNestedAttribute{
+				Optional: true,
+				Attributes: map[string]schema.Attribute{
+					"pool": schema.StringAttribute{
+						Required: true,
+					},
+					"name": schema.StringAttribute{
+						Required: true,
+					},
+					"remote": schema.StringAttribute{
+						Optional: true,
+					},
+				},
+				PlanModifiers: []planmodifier.Object{
+					objectplanmodifier.RequiresReplace(),
+				},
+			},
+
 			// Computed.
 
 			"location": schema.StringAttribute{
@@ -167,6 +194,16 @@ func (r StorageVolumeResource) Create(ctx context.Context, req resource.CreateRe
 		return
 	}
 
+	if !plan.SourceVolume.IsNull() {
+		r.copyStoragePoolVolume(ctx, resp, &plan)
+		return
+	} else {
+		r.createStoragePoolVolume(ctx, resp, &plan)
+		return
+	}
+}
+
+func (r StorageVolumeResource) createStoragePoolVolume(ctx context.Context, resp *resource.CreateResponse, plan *StorageVolumeModel) {
 	remote := plan.Remote.ValueString()
 	project := plan.Project.ValueString()
 	target := plan.Target.ValueString()
@@ -203,7 +240,66 @@ func (r StorageVolumeResource) Create(ctx context.Context, req resource.CreateRe
 	}
 
 	// Update Terraform state.
-	diags = r.SyncState(ctx, &resp.State, server, plan)
+	diags = r.SyncState(ctx, &resp.State, server, *plan)
+	resp.Diagnostics.Append(diags...)
+}
+
+func (r StorageVolumeResource) copyStoragePoolVolume(ctx context.Context, resp *resource.CreateResponse, plan *StorageVolumeModel) {
+	var sourceVolumeModel SourceVolumeModel
+
+	diags := plan.SourceVolume.As(ctx, &sourceVolumeModel, basetypes.ObjectAsOptions{})
+	if diags.HasError() {
+		resp.Diagnostics.Append(diags...)
+		return
+	}
+
+	remote := plan.Remote.ValueString()
+	project := plan.Project.ValueString()
+	target := plan.Target.ValueString()
+	server, err := r.provider.InstanceServer(remote, project, target)
+	if err != nil {
+		resp.Diagnostics.Append(errors.NewInstanceServerError(err))
+		return
+	}
+
+	srcServer, err := r.provider.InstanceServer(sourceVolumeModel.Remote.ValueString(), "", "")
+	if err != nil {
+		resp.Diagnostics.Append(errors.NewInstanceServerError(err))
+		return
+	}
+
+	dstName := plan.Name.ValueString()
+	dstPool := plan.Pool.ValueString()
+	srcName := sourceVolumeModel.Name.ValueString()
+	srcPool := sourceVolumeModel.Pool.ValueString()
+
+	dstVolID := fmt.Sprintf("%s/%s", dstPool, dstName)
+	srcVolID := fmt.Sprintf("%s/%s", srcPool, srcName)
+
+	srcVol := api.StorageVolume{
+		Name: srcName,
+		Type: "custom",
+	}
+
+	args := incus.StoragePoolVolumeCopyArgs{
+		Name:       dstName,
+		VolumeOnly: true,
+	}
+
+	opCopy, err := server.CopyStoragePoolVolume(dstPool, srcServer, srcPool, srcVol, &args)
+	if err != nil {
+		resp.Diagnostics.AddError(fmt.Sprintf("Failed to copy storage volume %q -> %q", srcVolID, dstVolID), err.Error())
+		return
+	}
+
+	err = opCopy.Wait()
+	if err != nil {
+		resp.Diagnostics.AddError(fmt.Sprintf("Failed to copy storage volume %q -> %q", srcVolID, dstVolID), err.Error())
+		return
+	}
+
+	// Update Terraform state.
+	diags = resp.State.Set(ctx, &plan)
 	resp.Diagnostics.Append(diags...)
 }
 
