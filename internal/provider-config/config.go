@@ -192,7 +192,7 @@ func NewLxdProviderConfig(version string, remotes map[string]LxdRemote, options 
 	}
 
 	// Ensure only one remote is configured as default.
-	if len(defaultRemotes) > 0 {
+	if len(defaultRemotes) > 1 {
 		return nil, fmt.Errorf("Multiple remotes are configured as default: [%v]", strings.Join(defaultRemotes, ", "))
 	}
 
