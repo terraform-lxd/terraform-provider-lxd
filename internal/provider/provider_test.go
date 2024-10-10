@@ -5,6 +5,7 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
+	"strings"
 	"testing"
 
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
@@ -188,6 +189,31 @@ func TestAccProvider_acceptRemoteCertificate(t *testing.T) {
 	})
 }
 
+func TestAccProvider_defaultRemote(t *testing.T) {
+	configDir := t.TempDir()
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { acctest.PreCheck(t) },
+		ProtoV6ProviderFactories: acctest.ProtoV6ProviderFactories,
+		Steps: []resource.TestStep{
+			{
+				// Ensure an error is returned if multiple default remotes are configured.
+				Config:      testAccProvider_defaultRemote(configDir, 2),
+				ExpectError: regexp.MustCompile(`Multiple remotes are configured as default`),
+				PlanOnly:    true, // This error should be thrown during the plan.
+			},
+			{
+				// Ensure a default remote can be configured.
+				Config: testAccProvider_defaultRemote(configDir, 1),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr("lxd_noop.noop", "remote", "remote-0"),
+					resource.TestCheckResourceAttr("lxd_noop.noop", "project", "default"),
+					resource.TestCheckResourceAttrSet("lxd_noop.noop", "server_version"),
+				),
+			},
+		},
+	})
+}
+
 func testAccProvider_configDir(configDir string) string {
 	return fmt.Sprintf(`
 provider "lxd" {
@@ -253,6 +279,32 @@ provider "lxd" {
 resource "lxd_noop" "noop" {
 }
 	`, configDir)
+}
+
+func testAccProvider_defaultRemote(configDir string, remoteCount int) string {
+	var remotes string
+
+	for i := 0; i < remoteCount; i++ {
+		remotes += fmt.Sprintf(`
+remote {
+  name    = "remote-%d"
+  default = true
+}
+`, i)
+	}
+
+	return fmt.Sprintf(`
+provider "lxd" {
+  generate_client_certificates = true
+  accept_remote_certificate    = true
+  config_dir  	       	       = %q
+
+  # Remotes.
+  %s
+}
+
+resource "lxd_noop" "noop" {}
+	`, configDir, strings.Join([]string{remotes}, "\n"))
 }
 
 // testCheckClientCert checks that the client certificate was generated.
