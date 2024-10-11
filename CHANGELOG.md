@@ -1,3 +1,17 @@
+## 2.4.0 (October 11, 2024)
+
+## What's Changed
+### New Features 🎉
+* Add storage bucket resource by @MusicDin in https://github.com/terraform-lxd/terraform-provider-lxd/pull/527
+* Allow instance rename by @MusicDin in https://github.com/terraform-lxd/terraform-provider-lxd/pull/526
+* Combine the computed volume keys with the inherited storage pool keys (from Incus) by @MusicDin in https://github.com/terraform-lxd/terraform-provider-lxd/pull/531
+### Bug Fixes 🐝
+* Do not blindly accept remote certificate when using trust token by @MusicDin in https://github.com/terraform-lxd/terraform-provider-lxd/pull/529
+* provider: Fix incorrect check for configured default remote  by @MusicDin in https://github.com/terraform-lxd/terraform-provider-lxd/pull/534
+### Maintenance and Chores 🛠
+* docs: Move attach custom volume example to lxd_volume by @MusicDin in https://github.com/terraform-lxd/terraform-provider-lxd/pull/528
+* build(deps): bump the hashicorp group with 2 updates by @dependabot in https://github.com/terraform-lxd/terraform-provider-lxd/pull/530
+
 ## 2.3.0 (September 3, 2024)
 
 ## What's Changed
