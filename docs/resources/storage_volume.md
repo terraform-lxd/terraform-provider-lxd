@@ -14,6 +14,16 @@ resource "incus_storage_volume" "volume1" {
   name = "myvolume"
   pool = incus_storage_pool.pool1.name
 }
+
+resource "incus_storage_volume" "volume1_copy" {
+  name = "myvolume_copy"
+  pool = "default"
+
+  source_volume = {
+    name = incus_storage_volume_volume1.name
+    pool = incus_storage_pool.pool1.name
+  }
+}
 ```
 
 ## Argument Reference
@@ -40,6 +50,16 @@ resource "incus_storage_volume" "volume1" {
 
 * `target` - *Optional* - Specify a target node in a cluster.
 
+* `source_volume` - *Optional* - The source volume from which the volume will be created. See reference below.
+
+The `source_volume` block supports:
+
+* `name` - **Required** - Name of the storage volume.
+
+* `pool` - **Required** - The storage pool that will receive the copy of the volume copy.
+
+* `remote` - *Optional* - The remote in which the resource will be created. If
+	not provided, the provider's default remote will be used.
 
 ## Attribute Reference
 
