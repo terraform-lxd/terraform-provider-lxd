@@ -253,10 +253,9 @@ func (r StorageVolumeResource) copyStoragePoolVolume(ctx context.Context, resp *
 		return
 	}
 
-	remote := plan.Remote.ValueString()
-	project := plan.Project.ValueString()
-	target := plan.Target.ValueString()
-	server, err := r.provider.InstanceServer(remote, project, target)
+	dstProject := plan.Project.ValueString()
+	dstTarget := plan.Target.ValueString()
+	dstServer, err := r.provider.InstanceServer(plan.Remote.ValueString(), dstProject, dstTarget)
 	if err != nil {
 		resp.Diagnostics.Append(errors.NewInstanceServerError(err))
 		return
@@ -286,7 +285,7 @@ func (r StorageVolumeResource) copyStoragePoolVolume(ctx context.Context, resp *
 		VolumeOnly: true,
 	}
 
-	opCopy, err := server.CopyStoragePoolVolume(dstPool, srcServer, srcPool, srcVol, &args)
+	opCopy, err := dstServer.CopyStoragePoolVolume(dstPool, srcServer, srcPool, srcVol, &args)
 	if err != nil {
 		resp.Diagnostics.AddError(fmt.Sprintf("Failed to copy storage volume %q -> %q", srcVolID, dstVolID), err.Error())
 		return
@@ -299,7 +298,7 @@ func (r StorageVolumeResource) copyStoragePoolVolume(ctx context.Context, resp *
 	}
 
 	// Update Terraform state.
-	diags = resp.State.Set(ctx, &plan)
+	diags = r.SyncState(ctx, &resp.State, dstServer, *plan)
 	resp.Diagnostics.Append(diags...)
 }
 
