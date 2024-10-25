@@ -275,7 +275,6 @@ func (p *IncusProvider) Resources(_ context.Context) []func() resource.Resource 
 		project.NewProjectResource,
 		storage.NewStoragePoolResource,
 		storage.NewStorageVolumeResource,
-		storage.NewStorageVolumeCopyResource,
 		storage.NewStorageBucketResource,
 		storage.NewStorageBucketKeyResource,
 	}
