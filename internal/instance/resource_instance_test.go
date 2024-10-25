@@ -551,6 +551,30 @@ func TestAccInstance_fileUploadContent(t *testing.T) {
 	})
 }
 
+func TestAccInstance_fileUploadContent_VM(t *testing.T) {
+	instanceName := petname.Generate(2, "-")
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { acctest.PreCheck(t) },
+		ProtoV6ProviderFactories: acctest.ProtoV6ProviderFactories,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccInstance_fileUploadContent_VM(instanceName),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr("incus_instance.instance1", "name", instanceName),
+					resource.TestCheckResourceAttr("incus_instance.instance1", "type", "virtual-machine"),
+					resource.TestCheckResourceAttr("incus_instance.instance1", "status", "Running"),
+					resource.TestCheckResourceAttr("incus_instance.instance1", "file.#", "1"),
+					resource.TestCheckResourceAttr("incus_instance.instance1", "file.0.mode", "0777"),
+					resource.TestCheckResourceAttr("incus_instance.instance1", "file.0.content", "Hello from VM!\n"),
+					resource.TestCheckResourceAttr("incus_instance.instance1", "file.0.target_path", "/foo/bar.txt"),
+					resource.TestCheckResourceAttr("incus_instance.instance1", "file.0.create_directories", "true"),
+				),
+			},
+		},
+	})
+}
+
 func TestAccInstance_fileUploadSource(t *testing.T) {
 	instanceName := petname.Generate(2, "-")
 
@@ -1215,6 +1239,28 @@ resource "incus_instance" "instance1" {
     target_path        = "/foo/bar.txt"
     mode               = "0777"
     create_directories = false
+  }
+}
+	`, name, acctest.TestImage)
+}
+
+func testAccInstance_fileUploadContent_VM(name string) string {
+	return fmt.Sprintf(`
+resource "incus_instance" "instance1" {
+  name  = "%s"
+  image = "%s"
+  type  = "virtual-machine"
+
+  config = {
+    # Alpine images do not support secureboot.
+    "security.secureboot" = false
+  }
+
+  file {
+    content            = "Hello from VM!\n"
+    target_path        = "/foo/bar.txt"
+    mode               = "0777"
+    create_directories = true
   }
 }
 	`, name, acctest.TestImage)
