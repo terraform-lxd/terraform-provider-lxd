@@ -428,24 +428,8 @@ func (r InstanceResource) Create(ctx context.Context, req resource.CreateRequest
 		return
 	}
 
-	// Upload files.
-	if !plan.Files.IsNull() && !plan.Files.IsUnknown() {
-		files, diags := common.ToFileMap(ctx, plan.Files)
-		if diags.HasError() {
-			resp.Diagnostics.Append(diags...)
-			return
-		}
-
-		for _, f := range files {
-			err := common.InstanceFileUpload(server, instanceName, f)
-			if err != nil {
-				resp.Diagnostics.AddError(fmt.Sprintf("Failed to upload file to instance %q", instanceName), err.Error())
-				return
-			}
-		}
-	}
-
-	if plan.Running.ValueBool() {
+	// We must ensure that the instance is running before we can upload files.
+	if plan.Running.ValueBool() || (!plan.Files.IsNull() && !plan.Files.IsUnknown()) {
 		diag := startInstance(ctx, server, instanceName)
 		if diag != nil {
 			resp.Diagnostics.Append(diag)
@@ -458,6 +442,23 @@ func (r InstanceResource) Create(ctx context.Context, req resource.CreateRequest
 			diag := waitInstanceNetwork(ctx, server, instanceName)
 			if diag != nil {
 				resp.Diagnostics.Append(diag)
+				return
+			}
+		}
+	}
+
+	// Upload files.
+	if !plan.Files.IsNull() && !plan.Files.IsUnknown() {
+		files, diags := common.ToFileMap(ctx, plan.Files)
+		if diags.HasError() {
+			resp.Diagnostics.Append(diags...)
+			return
+		}
+
+		for _, f := range files {
+			err := common.InstanceFileUpload(server, instanceName, f)
+			if err != nil {
+				resp.Diagnostics.AddError(fmt.Sprintf("Failed to upload file to instance %q", instanceName), err.Error())
 				return
 			}
 		}
