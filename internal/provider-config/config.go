@@ -179,15 +179,22 @@ func (p *IncusProviderConfig) server(remoteName string) (incus.Server, error) {
 			return nil, err
 		}
 	default:
-		server, err = p.getIncusConfigInstanceServer(remoteName)
-		if err != nil {
-			return nil, err
-		}
+		if incusRemoteConfig.Public {
+			server, err = p.getIncusConfigImageServer(remoteName)
+			if err != nil {
+				return nil, err
+			}
+		} else {
+			server, err = p.getIncusConfigInstanceServer(remoteName)
+			if err != nil {
+				return nil, err
+			}
 
-		// Ensure that Incusversion meets the provider's version constraint.
-		err := verifyIncusServerVersion(server.(incus.InstanceServer))
-		if err != nil {
-			return nil, fmt.Errorf("Remote %q: %v", remoteName, err)
+			// Ensure that Incus version meets the provider's version constraint.
+			err := verifyIncusServerVersion(server.(incus.InstanceServer))
+			if err != nil {
+				return nil, fmt.Errorf("Remote %q: %v", remoteName, err)
+			}
 		}
 	}
 
