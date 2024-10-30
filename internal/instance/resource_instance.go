@@ -831,7 +831,7 @@ func (r InstanceResource) createInstanceFromImage(ctx context.Context, server in
 	}
 
 	image := plan.Image.ValueString()
-	imageRemote := plan.Remote.ValueString()
+	imageRemote := ""
 	imageParts := strings.SplitN(image, ":", 2)
 	if len(imageParts) == 2 {
 		imageRemote = imageParts[0]
