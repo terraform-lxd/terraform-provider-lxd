@@ -90,7 +90,7 @@ The `remote` block supports:
 
 * `name` - *Optional* - The name of the Incus remote.
 
-* `token` - *Optional* - The trust token to authenticate to the Incus remote.
+* `token` - *Optional* - The one-time trust [token](https://linuxcontainers.org/incus/docs/main/authentication/#adding-client-certificates-using-tokens) used for initial authentication with the Incus remote.
 
 * `port` - *Optional* - The port of the Incus remote.
 
@@ -116,7 +116,7 @@ The required variables are:
 
 ## PKI Support
 
-Incus is capable of authenticating via PKI. In order to do this, you must
+Incus is capable of [authenticating via PKI](https://linuxcontainers.org/incus/docs/main/authentication/#using-a-pki-system). In order to do this, you must
 generate appropriate certificates on _both_ the remote/server side and client
 side. Details on how to generate these certificates is out of scope of this
 document.
