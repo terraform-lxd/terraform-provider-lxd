@@ -277,5 +277,7 @@ func (p *LxdProvider) Resources(_ context.Context) []func() resource.Resource {
 }
 
 func (p *LxdProvider) DataSources(_ context.Context) []func() datasource.DataSource {
-	return nil
+	return []func() datasource.DataSource{
+		project.NewProjectDataSource,
+	}
 }
