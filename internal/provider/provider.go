@@ -284,5 +284,6 @@ func (p *IncusProvider) DataSources(_ context.Context) []func() datasource.DataS
 	return []func() datasource.DataSource{
 		image.NewImageDataSource,
 		profile.NewProfileDataSource,
+		project.NewProjectDataSource,
 	}
 }
