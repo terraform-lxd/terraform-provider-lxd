@@ -16,6 +16,7 @@ import (
 	incus_config "github.com/lxc/incus/v6/shared/cliconfig"
 	incus_shared "github.com/lxc/incus/v6/shared/util"
 
+	"github.com/lxc/terraform-provider-incus/internal/clustering"
 	"github.com/lxc/terraform-provider-incus/internal/image"
 	"github.com/lxc/terraform-provider-incus/internal/instance"
 	"github.com/lxc/terraform-provider-incus/internal/network"
@@ -262,21 +263,23 @@ func (p *IncusProvider) Configure(ctx context.Context, req provider.ConfigureReq
 
 func (p *IncusProvider) Resources(_ context.Context) []func() resource.Resource {
 	return []func() resource.Resource{
+		clustering.NewClusterGroupAssignmentResource,
+		clustering.NewClusterGroupResource,
 		image.NewImageResource,
 		instance.NewInstanceResource,
 		instance.NewInstanceSnapshotResource,
-		network.NewNetworkResource,
-		network.NewNetworkLBResource,
-		network.NewNetworkZoneResource,
-		network.NewNetworkZoneRecordResource,
 		network.NewNetworkAclResource,
 		network.NewNetworkForwardResource,
+		network.NewNetworkLBResource,
+		network.NewNetworkResource,
+		network.NewNetworkZoneRecordResource,
+		network.NewNetworkZoneResource,
 		profile.NewProfileResource,
 		project.NewProjectResource,
+		storage.NewStorageBucketKeyResource,
+		storage.NewStorageBucketResource,
 		storage.NewStoragePoolResource,
 		storage.NewStorageVolumeResource,
-		storage.NewStorageBucketResource,
-		storage.NewStorageBucketKeyResource,
 	}
 }
 
