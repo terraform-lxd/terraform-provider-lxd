@@ -569,10 +569,10 @@ func DetermineLXDAddress(protocol string, address string) (string, error) {
 				port = "443"
 			}
 
-			address = fmt.Sprintf("%s:%s", address, port)
+			url.Host = fmt.Sprintf("%s:%s", url.Hostname(), port)
 		}
 
-		return address, nil
+		return url.String(), nil
 	default:
 		return "", fmt.Errorf("Invalid scheme %q: Value must be one of: [unix, https]", scheme)
 	}
