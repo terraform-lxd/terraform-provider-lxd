@@ -30,7 +30,16 @@ resource "lxd_volume" "volume" {
   name = "myvol"
   pool = lxd_storage_pool.pool.name
 
+  # Set content_type to "filesystem" (default) to create a filesystem.
+  # Set content_type to "block" to create a block device without a filesystem.
+  # Note: Block volumes can only be attached to virtual machines.
+  content_type = "filesystem"
+
   config = {
+    # Some drivers support block-backed filesystem volumes.
+    # Note: This is a storage driver specific option.
+    "zfs.block_mode" = true
+
     size = "5GiB"
   }
 }
