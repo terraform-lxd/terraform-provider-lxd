@@ -52,6 +52,18 @@ func TestDetermineLXDAddress(t *testing.T) {
 			Address: "https://localhost:1234",
 			Expect:  "https://localhost:1234",
 		},
+		{
+			Name:     "Scheme, hostname, port | URL path",
+			Protocol: "simplestreams",
+			Address:  "https://example.com/cloud-images/releases",
+			Expect:   "https://example.com:443/cloud-images/releases",
+		},
+		{
+			Name:     "Scheme, hostname, port | URL path with preconfigured port",
+			Protocol: "simplestreams",
+			Address:  "https://example.com:1234/cloud-images/releases",
+			Expect:   "https://example.com:1234/cloud-images/releases",
+		},
 		// Expected errors.
 		{
 			Name:      "Unsupported simplestreams scheme",
