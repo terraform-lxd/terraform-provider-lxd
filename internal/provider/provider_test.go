@@ -74,9 +74,9 @@ MDEtMDEtMDFUMDA6MDA6MDBaIgp9Cg==`
 				// as environment variable.
 				PreConfig: func() {
 					configDir = t.TempDir()
-					os.Setenv("LXD_REMOTE", "tf-remote-token-fqdn")
-					os.Setenv("LXD_ADDR", "https://127.0.0.1:8443")
-					os.Setenv("LXD_TOKEN", acctest.ConfigureTrustToken(t))
+					_ = os.Setenv("LXD_REMOTE", "tf-remote-token-fqdn")
+					_ = os.Setenv("LXD_ADDR", "https://127.0.0.1:8443")
+					_ = os.Setenv("LXD_TOKEN", acctest.ConfigureTrustToken(t))
 				},
 				Config: testAccProvider_remoteServerEnv(configDir),
 				Check: resource.ComposeTestCheckFunc(
@@ -121,9 +121,9 @@ func TestAccProvider_trustPassword(t *testing.T) {
 				// as environment variable.
 				PreConfig: func() {
 					configDir = t.TempDir()
-					os.Setenv("LXD_REMOTE", "tf-remote-pass-fqdn")
-					os.Setenv("LXD_ADDR", "https://127.0.0.1:8443")
-					os.Setenv("LXD_PASSWORD", acctest.ConfigureTrustPassword(t))
+					_ = os.Setenv("LXD_REMOTE", "tf-remote-pass-fqdn")
+					_ = os.Setenv("LXD_ADDR", "https://127.0.0.1:8443")
+					_ = os.Setenv("LXD_PASSWORD", acctest.ConfigureTrustPassword(t))
 				},
 				Config: testAccProvider_remoteServerEnv(configDir),
 				Check: resource.ComposeTestCheckFunc(
@@ -329,8 +329,8 @@ func testCheckClientCert(configDir string, shouldExist bool) resource.TestCheckF
 // resetLXDRemoteEnvVars unsets all environment variables that are supported by
 // the provider.
 func resetLXDRemoteEnvVars() {
-	os.Unsetenv("LXD_REMOTE")
-	os.Unsetenv("LXD_ADDR")
-	os.Unsetenv("LXD_PASSWORD")
-	os.Unsetenv("LXD_TOKEN")
+	_ = os.Unsetenv("LXD_REMOTE")
+	_ = os.Unsetenv("LXD_ADDR")
+	_ = os.Unsetenv("LXD_PASSWORD")
+	_ = os.Unsetenv("LXD_TOKEN")
 }
