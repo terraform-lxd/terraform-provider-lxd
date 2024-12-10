@@ -35,7 +35,7 @@ type NetworkForwardModel struct {
 	Config        types.Map    `tfsdk:"config"`
 }
 
-// NetworkForwardModel resource data model that matches the schema.
+// NetworkForwardPortModel resource data model that matches the schema.
 type NetworkForwardPortModel struct {
 	Description   types.String `tfsdk:"description"`
 	Protocol      types.String `tfsdk:"protocol"`
