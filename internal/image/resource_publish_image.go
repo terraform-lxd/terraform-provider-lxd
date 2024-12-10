@@ -267,7 +267,12 @@ func (r PublishImageResource) Create(ctx context.Context, req resource.CreateReq
 
 	// Extract fingerprint from operation response.
 	opResp := op.Get()
-	imageFingerprint := opResp.Metadata["fingerprint"].(string)
+	imageFingerprint, ok := opResp.Metadata["fingerprint"].(string)
+	if !ok {
+		resp.Diagnostics.AddError("Failed to extract fingerprint from operation response", "")
+		return
+	}
+
 	plan.Fingerprint = types.StringValue(imageFingerprint)
 
 	// Update Terraform state.
