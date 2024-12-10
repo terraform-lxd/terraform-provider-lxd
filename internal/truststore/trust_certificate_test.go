@@ -241,7 +241,7 @@ resource "lxd_trust_certificate" "cert" {
 }
 
 func generateCert(t *testing.T) (certificate string, fingerprint string) {
-	certBytes, _, err := lxd_shared.GenerateMemCert(true, false)
+	certBytes, _, err := lxd_shared.GenerateMemCert(true, lxd_shared.CertOptions{AddHosts: false})
 	if err != nil {
 		t.Fatalf("Failed to generate certificate: %v", err)
 	}
