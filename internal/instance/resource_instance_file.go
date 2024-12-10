@@ -342,5 +342,9 @@ func createFileResourceID(remote string, instanceName string, targetPath string)
 // targetPath strings.
 func splitFileResourceID(id string) (remote string, instanceName string, targetPath string) {
 	pieces := strings.SplitN(id, ":", 3)
+	if len(pieces) != 3 {
+		return "", "", ""
+	}
+
 	return pieces[0], pieces[1], pieces[2]
 }
