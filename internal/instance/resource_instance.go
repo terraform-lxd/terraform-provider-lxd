@@ -1195,7 +1195,7 @@ func (r InstanceResource) SyncState(ctx context.Context, tfState *tfsdk.State, s
 }
 
 // ComputedKeys returns list of computed config keys.
-func (_ InstanceModel) ComputedKeys() []string {
+func (m InstanceModel) ComputedKeys() []string {
 	return []string{
 		"image.",
 		"volatile.",
