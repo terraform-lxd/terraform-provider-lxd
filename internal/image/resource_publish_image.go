@@ -423,7 +423,7 @@ func (r PublishImageResource) Delete(ctx context.Context, req resource.DeleteReq
 // SyncState fetches the server's current state for a published image and
 // updates the provided model. It then applies this updated model as the
 // new state in Terraform.
-func (_ PublishImageResource) SyncState(ctx context.Context, tfState *tfsdk.State, server lxd.InstanceServer, m PublishImageModel) diag.Diagnostics {
+func (r PublishImageResource) SyncState(ctx context.Context, tfState *tfsdk.State, server lxd.InstanceServer, m PublishImageModel) diag.Diagnostics {
 	var respDiags diag.Diagnostics
 
 	imageFingerprint := m.Fingerprint.ValueString()
