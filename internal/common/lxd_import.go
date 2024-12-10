@@ -37,25 +37,25 @@ type ImportMetadata struct {
 //	  "image":   "jammy" // option
 //	  "optKey2": "value"  // option
 //	}
-func (m ImportMetadata) ParseImportID(importId string) (map[string]string, diag.Diagnostic) {
-	if strings.TrimSpace(importId) == "" {
-		return nil, newImportIDError(m, importId, fmt.Errorf("Import ID cannot be empty"))
+func (m ImportMetadata) ParseImportID(importID string) (map[string]string, diag.Diagnostic) {
+	if strings.TrimSpace(importID) == "" {
+		return nil, newImportIDError(m, importID, fmt.Errorf("Import ID cannot be empty"))
 	}
 
 	// First split by comma to determine mandatory and optional parts.
-	parts := strings.Split(importId, ",")
+	parts := strings.Split(importID, ",")
 
 	// Extract fields (including project and remote) from first part.
 	result, err := processFields(parts[0], m.RequiredFields)
 	if err != nil {
-		return nil, newImportIDError(m, importId, err)
+		return nil, newImportIDError(m, importID, err)
 	}
 
 	// Extract options.
 	if len(parts) > 1 {
 		options, err := processOptions(parts[1:], m.AllowedOptions)
 		if err != nil {
-			return nil, newImportIDError(m, importId, err)
+			return nil, newImportIDError(m, importID, err)
 		}
 
 		for k, v := range options {
