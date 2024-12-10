@@ -142,7 +142,7 @@ func processOptions(options []string, allowedOptions []string) (map[string]strin
 }
 
 // newImportIDError converts an error into terraform diagnostic.
-func newImportIDError(m ImportMetadata, importId string, err error) diag.Diagnostic {
+func newImportIDError(m ImportMetadata, importID string, err error) diag.Diagnostic {
 	remote := "[<remote>:]"
 	project := "[<project>/]"
 	if len(m.RequiredFields) > 1 {
@@ -157,7 +157,7 @@ func newImportIDError(m ImportMetadata, importId string, err error) diag.Diagnos
 	fields := fmt.Sprintf("<%s>", strings.Join(m.RequiredFields, ">/<"))
 
 	return diag.NewErrorDiagnostic(
-		fmt.Sprintf("Invalid import ID: %q", importId),
+		fmt.Sprintf("Invalid import ID: %q", importID),
 		fmt.Sprintf(
 			"%v.\n\nValid import format:\nimport lxd_%s.<resource> %s%s%s%s",
 			err, m.ResourceName, remote, project, fields, options,
