@@ -22,6 +22,7 @@ import (
 	provider_config "github.com/terraform-lxd/terraform-provider-lxd/internal/provider-config"
 )
 
+// StorageBucketKeyModel represents a LXD storage bucket key.
 type StorageBucketKeyModel struct {
 	Name        types.String `tfsdk:"name"`
 	Description types.String `tfsdk:"description"`
