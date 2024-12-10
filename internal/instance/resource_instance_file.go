@@ -340,7 +340,7 @@ func createFileResourceID(remote string, instanceName string, targetPath string)
 
 // splitFileResourceID splits file ID into remote, intanceName, and
 // targetPath strings.
-func splitFileResourceID(id string) (string, string, string) {
+func splitFileResourceID(id string) (remote string, instanceName string, targetPath string) {
 	pieces := strings.SplitN(id, ":", 3)
 	return pieces[0], pieces[1], pieces[2]
 }
