@@ -335,7 +335,7 @@ func (r InstanceFileResource) Delete(ctx context.Context, req resource.DeleteReq
 // createFileResourceID creates new file ID by concatenating remote,
 // instnaceName, and targetPath using colon.
 func createFileResourceID(remote string, instanceName string, targetPath string) string {
-	return fmt.Sprintf("%s:%s:%s", remote, instanceName, targetPath)
+	return remote + ":" + instanceName + ":" + targetPath
 }
 
 // splitFileResourceID splits file ID into remote, intanceName, and
