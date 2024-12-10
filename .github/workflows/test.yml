@@ -55,7 +55,7 @@ jobs:
           if snap info lxd --verbose | grep -qxE 'base:\s+core20'; then
             echo "WARN: Using external lvm command to workaround bug in core20" >&2
             sudo snap set lxd lvm.external=true
-            sudo snap restart --reload lxd
+            sudo systemctl restart snap.lxd.daemon.service
           fi
 
           # Add HTTPS remote.
