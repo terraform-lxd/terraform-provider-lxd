@@ -65,7 +65,7 @@ static-analysis:
 .PHONY: update-gomod
 update-gomod:
 	$(GO) get -t -v -u ./...
-	$(GO) mod tidy --go=1.23.3
+	$(GO) mod tidy
 	$(GO) get toolchain@none
 	@echo "Dependencies updated"
 
