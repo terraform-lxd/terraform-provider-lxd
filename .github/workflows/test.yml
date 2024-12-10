@@ -43,7 +43,7 @@ jobs:
 
       - name: Setup LXD from ${{ matrix.channel }} channel
         run: |
-          sudo snap refresh lxd --channel=${{ matrix.channel }}
+          sudo snap install lxd --channel=${{ matrix.channel }}
           sudo lxd waitready --timeout 60
           sudo lxd init --auto --network-port=8443 --network-address=localhost
           sudo chmod 777 /var/snap/lxd/common/lxd/unix.socket
@@ -98,7 +98,7 @@ jobs:
       - run: make test
 
   build-platforms:
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
       - name: Setup Go
@@ -112,7 +112,7 @@ jobs:
           args: build --snapshot
 
   check-lint:
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
       - name: Setup Go
