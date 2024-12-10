@@ -224,7 +224,11 @@ func (p *LxdProviderConfig) InstanceServer(remoteName string, project string, ta
 		return nil, fmt.Errorf("Remote %q (%s) is not an InstanceServer", remoteName, connInfo.Protocol)
 	}
 
-	instServer := server.(lxd.InstanceServer)
+	instServer, ok := server.(lxd.InstanceServer)
+	if !ok {
+		return nil, fmt.Errorf("Remote %q is not an InstanceServer", remoteName)
+	}
+
 	instServer = instServer.UseProject(project)
 	instServer = instServer.UseTarget(target)
 
@@ -248,7 +252,12 @@ func (p *LxdProviderConfig) ImageServer(remoteName string) (lxd.ImageServer, err
 		return nil, fmt.Errorf("Remote %q (%s / %s) is not an ImageServer", remoteName, connInfo.Protocol, connInfo.Addresses[0])
 	}
 
-	return server.(lxd.ImageServer), nil
+	imageServer, ok := server.(lxd.ImageServer)
+	if !ok {
+		return nil, fmt.Errorf("Remote %q is not an ImageServer", remoteName)
+	}
+
+	return imageServer, nil
 }
 
 // server returns a server for the named remote. The returned server

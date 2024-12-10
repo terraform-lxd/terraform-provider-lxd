@@ -343,7 +343,7 @@ func (r NetworkResource) SyncState(ctx context.Context, tfState *tfsdk.State, se
 }
 
 // ComputedKeys returns list of computed LXD config keys.
-func (_ NetworkModel) ComputedKeys() []string {
+func (m NetworkModel) ComputedKeys() []string {
 	return []string{
 		"bridge.mtu",
 		"ipv4.address",

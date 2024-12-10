@@ -20,7 +20,6 @@ import (
 	"github.com/terraform-lxd/terraform-provider-lxd/internal/network"
 	"github.com/terraform-lxd/terraform-provider-lxd/internal/profile"
 	"github.com/terraform-lxd/terraform-provider-lxd/internal/project"
-	config "github.com/terraform-lxd/terraform-provider-lxd/internal/provider-config"
 	provider_config "github.com/terraform-lxd/terraform-provider-lxd/internal/provider-config"
 	"github.com/terraform-lxd/terraform-provider-lxd/internal/storage"
 	"github.com/terraform-lxd/terraform-provider-lxd/internal/truststore"
@@ -182,7 +181,7 @@ func (p *LxdProvider) Configure(ctx context.Context, req provider.ConfigureReque
 		}
 	}
 
-	remotes := make(map[string]config.LxdRemote)
+	remotes := make(map[string]provider_config.LxdRemote)
 
 	// Read remotes from Terraform schema.
 	for _, remote := range data.Remotes {
@@ -193,7 +192,7 @@ func (p *LxdProvider) Configure(ctx context.Context, req provider.ConfigureReque
 			protocol = "lxd"
 		}
 
-		address, err := config.DetermineLXDAddress(protocol, remote.Address.ValueString())
+		address, err := provider_config.DetermineLXDAddress(protocol, remote.Address.ValueString())
 		if err != nil {
 			resp.Diagnostics.AddError(fmt.Sprintf("Invalid remote %q", name), err.Error())
 			return

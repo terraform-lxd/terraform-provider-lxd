@@ -10,7 +10,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/types"
 )
 
-// Interface represents LXD instance network interface.
+// InterfaceModel represents LXD instance network interface.
 type InterfaceModel struct {
 	// Real name of the interface within the instance. If config interface is
 	// defined as "eth0", the real interface within a container will have the
@@ -27,7 +27,7 @@ type InterfaceModel struct {
 	Addresses types.List `tfsdk:"ips"`
 }
 
-// Interface IP is a wrapper of the interface IP address.
+// IPModel is a wrapper of the interface IP address.
 type IPModel struct {
 	// IP address.
 	Address types.String `tfsdk:"address"`

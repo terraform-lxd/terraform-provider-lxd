@@ -121,7 +121,7 @@ func PreCheckLocalServerHTTPS(t *testing.T) {
 		t.Skip(`Skipping remote provider test. LXD is not available on "https://127.0.0.1:8443"`)
 	}
 
-	conn.Close()
+	_ = conn.Close()
 }
 
 // ConfigureTrustPassword sets and returns the trust password. If the server

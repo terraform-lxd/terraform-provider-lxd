@@ -13,6 +13,7 @@ import (
 	"github.com/terraform-lxd/terraform-provider-lxd/internal/utils"
 )
 
+// ExecTriggerType represents an exec trigger.
 type ExecTriggerType string
 
 const (
@@ -25,6 +26,7 @@ func (t ExecTriggerType) String() string {
 	return string(t)
 }
 
+// ExecModel represents exec command to be executed on LXD instance.
 type ExecModel struct {
 	Command      types.List   `tfsdk:"command"`
 	Environment  types.Map    `tfsdk:"environment"`

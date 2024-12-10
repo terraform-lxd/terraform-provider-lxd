@@ -20,7 +20,7 @@ type bufferCloser struct {
 	mux *sync.RWMutex
 }
 
-// BufferCloser returns a buffer that wraps bytes.Buffer and satisfies
+// NewBufferCloser returns a buffer that wraps bytes.Buffer and satisfies
 // io.Closer.
 func NewBufferCloser() Buffer {
 	return bufferCloser{
@@ -58,18 +58,22 @@ func NewDiscardCloser() Buffer {
 	return discardCloser{}
 }
 
+// Write provides a nop implementation for io.discardCloser.
 func (b discardCloser) Write(p []byte) (int, error) {
 	return len(p), nil
 }
 
+// Read provides a nop implementation for io.discardCloser.
 func (b discardCloser) Read(p []byte) (int, error) {
 	return len(p), nil
 }
 
+// Close provides a nop implementation for io.discardCloser.
 func (b discardCloser) Close() error {
 	return nil
 }
 
+// String implements fmt.Stringer for io.discardCloser.
 func (b discardCloser) String() string {
 	return ""
 }

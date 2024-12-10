@@ -959,16 +959,16 @@ func (r InstanceResource) Update(ctx context.Context, req resource.UpdateRequest
 
 	// Execute commands.
 	for _, k := range utils.SortMapKeys(newExecs) {
-		new := newExecs[k]
-		old := oldExecs[k]
+		newExec := newExecs[k]
+		oldExec := oldExecs[k]
 
 		// Copy run count from state (if exists).
-		if old != nil {
-			new.RunCount = old.RunCount
+		if oldExec != nil {
+			newExec.RunCount = oldExec.RunCount
 		}
 
-		if instanceRunning && new.IsTriggered(instanceStarted) {
-			diags := new.Execute(ctx, server, instance.Name)
+		if instanceRunning && newExec.IsTriggered(instanceStarted) {
+			diags := newExec.Execute(ctx, server, instance.Name)
 			if diags.HasError() {
 				resp.Diagnostics.Append(diags...)
 				return
@@ -1195,7 +1195,7 @@ func (r InstanceResource) SyncState(ctx context.Context, tfState *tfsdk.State, s
 }
 
 // ComputedKeys returns list of computed config keys.
-func (_ InstanceModel) ComputedKeys() []string {
+func (m InstanceModel) ComputedKeys() []string {
 	return []string{
 		"image.",
 		"volatile.",

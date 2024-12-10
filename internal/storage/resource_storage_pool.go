@@ -25,6 +25,7 @@ import (
 	provider_config "github.com/terraform-lxd/terraform-provider-lxd/internal/provider-config"
 )
 
+// StoragePoolModel represents a LXD storage pool.
 type StoragePoolModel struct {
 	Name        types.String `tfsdk:"name"`
 	Description types.String `tfsdk:"description"`
@@ -347,7 +348,7 @@ func (r StoragePoolResource) SyncState(ctx context.Context, tfState *tfsdk.State
 }
 
 // ComputedKeys returns list of computed config keys.
-func (_ StoragePoolModel) ComputedKeys(driver string) []string {
+func (m StoragePoolModel) ComputedKeys(driver string) []string {
 	var keys []string
 
 	switch driver {
