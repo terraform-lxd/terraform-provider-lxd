@@ -63,8 +63,10 @@ jobs:
 
       - name: Download minio/mc
         uses: canonical/lxd/.github/actions/download-minio@main
+        if: ${{ matrix.channel != '5.0/stable' && matrix.test != '5.0/edge' }}
 
       - name: Configure MinIO
+        if: ${{ matrix.channel != '5.0/stable' && matrix.test != '5.0/edge' }}
         run: |
           mkdir -p /opt/minio
           mv "$(go env GOPATH)/bin/minio" /opt/minio/
