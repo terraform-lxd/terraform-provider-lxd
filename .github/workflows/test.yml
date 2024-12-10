@@ -20,8 +20,6 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        go-version:
-          - "1.22"
         channel:
           - 5.0/stable
           - 5.0/edge
@@ -38,10 +36,10 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
-      - name: Setup Go ${{ matrix.go-version }}
+      - name: Setup Go
         uses: actions/setup-go@v5
         with:
-          go-version: ${{ matrix.go-version }}
+          go-version-file: 'go.mod'
 
       - name: Setup LXD from ${{ matrix.channel }} channel
         run: |
@@ -105,18 +103,12 @@ jobs:
 
   build-platforms:
     runs-on: ubuntu-22.04
-    strategy:
-      fail-fast: false
-      matrix:
-        go-version:
-          - "1.22"
-
     steps:
       - uses: actions/checkout@v4
-      - name: Setup Go ${{ matrix.go-version }}
+      - name: Setup Go
         uses: actions/setup-go@v5
         with:
-          go-version: ${{ matrix.go-version }}
+          go-version-file: 'go.mod'
 
       - name: Run GoReleaser in build mode to test all release platforms
         uses: goreleaser/goreleaser-action@v6
@@ -125,18 +117,12 @@ jobs:
 
   check-lint:
     runs-on: ubuntu-22.04
-    strategy:
-      fail-fast: false
-      matrix:
-        go-version:
-          - "1.22"
-
     steps:
       - uses: actions/checkout@v4
-      - name: Setup Go ${{ matrix.go-version }}
+      - name: Setup Go
         uses: actions/setup-go@v5
         with:
-          go-version: ${{ matrix.go-version }}
+          go-version-file: 'go.mod'
 
       - name: Install dependencies
         run: |
