@@ -17,6 +17,7 @@ import (
 	provider_config "github.com/terraform-lxd/terraform-provider-lxd/internal/provider-config"
 )
 
+// StorageVolumeCopyModel represents a LXD storage volume copy.
 type StorageVolumeCopyModel struct {
 	Name         types.String `tfsdk:"name"`
 	Pool         types.String `tfsdk:"pool"`
