@@ -152,16 +152,16 @@ func (r InstanceSnapshotResource) Create(ctx context.Context, req resource.Creat
 
 		// Wait for snapshot operation to complete.
 		serr = op.Wait()
-		if serr != nil {
-			if snapshotReq.Stateful && strings.Contains(serr.Error(), "Dumping FAILED") {
-				log.Printf("[DEBUG] Error creating stateful snapshot [retry %d]: %v", i, serr)
-				time.Sleep(3 * time.Second)
-			} else if strings.Contains(serr.Error(), "file has vanished") {
-				// Ignore, try again.
-				time.Sleep(3 * time.Second)
-			} else {
-				break
-			}
+		if serr == nil {
+			break
+		}
+
+		if snapshotReq.Stateful && strings.Contains(serr.Error(), "Dumping FAILED") {
+			log.Printf("[DEBUG] Error creating stateful snapshot [retry %d]: %v", i, serr)
+			time.Sleep(3 * time.Second)
+		} else if strings.Contains(serr.Error(), "file has vanished") {
+			// Ignore, try again.
+			time.Sleep(3 * time.Second)
 		} else {
 			break
 		}
