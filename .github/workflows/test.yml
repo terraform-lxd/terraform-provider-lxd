@@ -36,6 +36,7 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
+
       - name: Setup Go
         uses: actions/setup-go@v5
         with:
@@ -63,10 +64,10 @@ jobs:
 
       - name: Download minio/mc
         uses: canonical/lxd/.github/actions/download-minio@main
-        if: ${{ matrix.channel != '5.0/stable' && matrix.test != '5.0/edge' }}
+        if: ${{ matrix.channel != '5.0/stable' && matrix.channel != '5.0/edge' }}
 
       - name: Configure MinIO
-        if: ${{ matrix.channel != '5.0/stable' && matrix.test != '5.0/edge' }}
+        if: ${{ matrix.channel != '5.0/stable' && matrix.channel != '5.0/edge' }}
         run: |
           mkdir -p /opt/minio
           mv "$(go env GOPATH)/bin/minio" /opt/minio/
@@ -90,19 +91,19 @@ jobs:
             external_ids:ovn-encap-type=geneve \
             external_ids:ovn-encap-ip=127.0.0.1
 
-      - name: Install dependencies
-        run: |
-          curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(go env GOPATH)/bin
-
-      - uses: hashicorp/setup-terraform@v3
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
         with:
           terraform_wrapper: false
-      - run: make test
+
+      - name: Run acceptance tests
+        run: make test
 
   build-platforms:
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
+
       - name: Setup Go
         uses: actions/setup-go@v5
         with:
@@ -117,6 +118,7 @@ jobs:
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
+
       - name: Setup Go
         uses: actions/setup-go@v5
         with:
