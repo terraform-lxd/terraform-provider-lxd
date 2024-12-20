@@ -215,7 +215,10 @@ func TestAccCachedImage_instanceFromImageFingerprint(t *testing.T) {
 	instanceName := acctest.GenerateName(2, "")
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:                 func() { acctest.PreCheck(t) },
+		PreCheck: func() {
+			acctest.PreCheck(t)
+			acctest.PreCheckStandalone(t) // The remote "local" does not point to clustered LXD.
+		},
 		ProtoV6ProviderFactories: acctest.ProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{

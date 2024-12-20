@@ -51,6 +51,7 @@ MDEtMDEtMDFUMDA6MDA6MDBaIgp9Cg==`
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			acctest.PreCheck(t)
+			acctest.PreCheckStandalone(t) // Cluster is not accessible on localhost.
 			acctest.PreCheckLocalServerHTTPS(t)
 		},
 		ProtoV6ProviderFactories: acctest.ProtoV6ProviderFactories,
@@ -98,6 +99,7 @@ func TestAccProvider_trustPassword(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			acctest.PreCheck(t)
+			acctest.PreCheckStandalone(t) // Cluster is not accessible on localhost.
 			acctest.PreCheckLocalServerHTTPS(t)
 		},
 		ProtoV6ProviderFactories: acctest.ProtoV6ProviderFactories,
@@ -167,6 +169,7 @@ func TestAccProvider_acceptRemoteCertificate(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			acctest.PreCheck(t)
+			acctest.PreCheckStandalone(t) // Cluster is not accessible on localhost.
 			acctest.PreCheckLocalServerHTTPS(t)
 		},
 		ProtoV6ProviderFactories: acctest.ProtoV6ProviderFactories,

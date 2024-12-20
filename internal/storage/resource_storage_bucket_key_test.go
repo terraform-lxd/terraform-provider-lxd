@@ -18,6 +18,7 @@ func TestAccStorageBucketKey_basic(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			acctest.PreCheck(t)
+			acctest.PreCheckStandalone(t)
 			acctest.PreCheckAPIExtensions(t, "storage_buckets")
 		},
 		ProtoV6ProviderFactories: acctest.ProtoV6ProviderFactories,
@@ -111,6 +112,7 @@ func TestAccStorageBucketKey_importBasic(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			acctest.PreCheck(t)
+			acctest.PreCheckStandalone(t)
 			acctest.PreCheckAPIExtensions(t, "storage_buckets")
 		},
 		ProtoV6ProviderFactories: acctest.ProtoV6ProviderFactories,

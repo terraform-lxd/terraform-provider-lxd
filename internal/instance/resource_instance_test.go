@@ -419,7 +419,10 @@ func TestAccInstance_noProfile(t *testing.T) {
 	name := acctest.GenerateName(2, "-")
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:                 func() { acctest.PreCheck(t) },
+		PreCheck: func() {
+			acctest.PreCheck(t)
+			acctest.PreCheckStandalone(t) // Due to standalone storage pool creation.
+		},
 		ProtoV6ProviderFactories: acctest.ProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
@@ -1084,7 +1087,10 @@ func TestAccInstance_accessInterface(t *testing.T) {
 	instanceName := acctest.GenerateName(2, "-")
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:                 func() { acctest.PreCheck(t) },
+		PreCheck: func() {
+			acctest.PreCheck(t)
+			acctest.PreCheckStandalone(t) // Due to standalone network creation.
+		},
 		ProtoV6ProviderFactories: acctest.ProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
@@ -1118,7 +1124,10 @@ func TestAccInstance_accessInterfaceFromProfile(t *testing.T) {
 	networkName := acctest.GenerateName(1, "-")
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:                 func() { acctest.PreCheck(t) },
+		PreCheck: func() {
+			acctest.PreCheck(t)
+			acctest.PreCheckStandalone(t) // Due to standalone network creation.
+		},
 		ProtoV6ProviderFactories: acctest.ProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
