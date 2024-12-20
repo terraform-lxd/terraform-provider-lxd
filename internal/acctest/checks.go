@@ -103,6 +103,20 @@ func PreCheckClustering(t *testing.T) {
 	}
 }
 
+// PreCheckStandalone skips the test if LXD server is not running
+// in standalone mode (or in other words if LXD is clustered).
+func PreCheckStandalone(t *testing.T) {
+	p := testProvider()
+	server, err := p.InstanceServer("", "", "")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if server.IsClustered() {
+		t.Skipf("Test %q skipped. LXD server is not running in standalone mode.", t.Name())
+	}
+}
+
 // PreCheckRoot skips the test if the user cannot escalate privileges without a password.
 // Root is required for certain tests, such as creating a loopback device for storage.
 // This ensures tests do not stop midway asking for password.
