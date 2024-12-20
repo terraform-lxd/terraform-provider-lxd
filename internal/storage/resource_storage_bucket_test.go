@@ -35,21 +35,22 @@ func TestAccStorageBucket_basic(t *testing.T) {
 }
 
 func TestAccStorageBucket_target(t *testing.T) {
+	targets := acctest.PreCheckClustering(t, 1)
 	bucketName := petname.Generate(2, "-")
 
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			acctest.PreCheck(t)
-			acctest.PreCheckClustering(t)
 			acctest.PreCheckAPIExtensions(t, "storage_buckets")
 		},
 		ProtoV6ProviderFactories: acctest.ProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccStorageBucket_target(bucketName),
+				Config: testAccStorageBucket_target(bucketName, targets[0]),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("lxd_storage_bucket.bucket1", "name", bucketName),
 					resource.TestCheckResourceAttr("lxd_storage_bucket.bucket1", "pool", "default"),
+					resource.TestCheckResourceAttr("lxd_storage_bucket.bucket1", "target", targets[0]),
 				),
 			},
 		},
@@ -147,14 +148,14 @@ resource "lxd_storage_bucket" "bucket1" {
 	`, poolName, bucketName)
 }
 
-func testAccStorageBucket_target(bucketName string) string {
+func testAccStorageBucket_target(bucketName string, target string) string {
 	return fmt.Sprintf(`
 resource "lxd_storage_bucket" "bucket1" {
   name   = "%s"
   pool   = "default"
-  target = "node-2"
+  target = "%s"
 }
- 	`, bucketName)
+ 	`, bucketName, target)
 }
 
 func testAccStorageBucket_project(projectName string, bucketName string) string {
