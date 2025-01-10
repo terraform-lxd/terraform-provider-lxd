@@ -90,8 +90,9 @@ func PreCheckVirtualization(t *testing.T) {
 }
 
 // PreCheckClustering skips the test if LXD server is not running
-// in clustered mode.
-func PreCheckClustering(t *testing.T) {
+// in clustered mode. Additionally, it returns the cluster member
+// names.
+func PreCheckClustering(t *testing.T, minMembers int) []string {
 	p := testProvider()
 	server, err := p.InstanceServer("", "", "")
 	if err != nil {
@@ -101,6 +102,25 @@ func PreCheckClustering(t *testing.T) {
 	if !server.IsClustered() {
 		t.Skipf("Test %q skipped. LXD server is not running in clustered mode.", t.Name())
 	}
+
+	// Extract cluster member names if not already done.
+	clusterMembers, err := server.GetClusterMembers()
+	if err != nil {
+		t.Fatalf("Failed to retrieve cluster member names: %v", err)
+	}
+
+	// Ensure minimum number of members are available.
+	if len(clusterMembers) < minMembers {
+		t.Skipf("Test %q skipped. LXD cluster has %d members, but %d are required.", t.Name(), len(clusterMembers), minMembers)
+	}
+
+	// Extract cluster member names.
+	clusterMemberNames := make([]string, 0, len(clusterMembers))
+	for _, m := range clusterMembers {
+		clusterMemberNames = append(clusterMemberNames, m.ServerName)
+	}
+
+	return clusterMemberNames
 }
 
 // PreCheckStandalone skips the test if LXD server is not running
