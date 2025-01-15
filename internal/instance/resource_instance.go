@@ -56,6 +56,7 @@ type InstanceModel struct {
 	IPv4       types.String `tfsdk:"ipv4_address"`
 	IPv6       types.String `tfsdk:"ipv6_address"`
 	MAC        types.String `tfsdk:"mac_address"`
+	Location   types.String `tfsdk:"location"`
 	Status     types.String `tfsdk:"status"`
 	Interfaces types.Map    `tfsdk:"interfaces"`
 
@@ -173,7 +174,6 @@ func (r InstanceResource) Schema(ctx context.Context, _ resource.SchemaRequest, 
 
 			"target": schema.StringAttribute{
 				Optional: true,
-				Computed: true,
 				PlanModifiers: []planmodifier.String{
 					stringplanmodifier.RequiresReplaceIfConfigured(),
 				},
@@ -364,6 +364,10 @@ func (r InstanceResource) Schema(ctx context.Context, _ resource.SchemaRequest, 
 			},
 
 			"mac_address": schema.StringAttribute{
+				Computed: true,
+			},
+
+			"location": schema.StringAttribute{
 				Computed: true,
 			},
 
@@ -740,8 +744,7 @@ func (r InstanceResource) Read(ctx context.Context, req resource.ReadRequest, re
 
 	remote := state.Remote.ValueString()
 	project := state.Project.ValueString()
-	target := state.Target.ValueString()
-	server, err := r.provider.InstanceServer(remote, project, target)
+	server, err := r.provider.InstanceServer(remote, project, "")
 	if err != nil {
 		resp.Diagnostics.Append(errors.NewInstanceServerError(err))
 		return
@@ -1008,8 +1011,7 @@ func (r InstanceResource) Delete(ctx context.Context, req resource.DeleteRequest
 
 	remote := state.Remote.ValueString()
 	project := state.Project.ValueString()
-	target := state.Target.ValueString()
-	server, err := r.provider.InstanceServer(remote, project, target)
+	server, err := r.provider.InstanceServer(remote, project, "")
 	if err != nil {
 		resp.Diagnostics.Append(errors.NewInstanceServerError(err))
 		return
@@ -1181,9 +1183,9 @@ func (r InstanceResource) SyncState(ctx context.Context, tfState *tfsdk.State, s
 	// does not match the expected one.
 	m.Running = types.BoolValue(instanceState.Status == api.Running.String())
 
-	m.Target = types.StringValue("")
+	m.Location = types.StringValue("")
 	if server.IsClustered() || instance.Location != "none" {
-		m.Target = types.StringValue(instance.Location)
+		m.Location = types.StringValue(instance.Location)
 	}
 
 	// Ensure default value is set (to prevent plan diff on import).
