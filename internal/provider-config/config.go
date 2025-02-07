@@ -408,7 +408,7 @@ func (p *LxdProviderConfig) setRemote(remoteName string, remote LxdRemote) error
 	}
 
 	if !strings.HasPrefix(remote.Address, "https:") && !strings.HasPrefix(remote.Address, "unix:") {
-		return fmt.Errorf(`invalid address %q. Address must start with "https:" or "unix:"`, remote.Address)
+		return fmt.Errorf(`Invalid address %q. Address must start with "https:" or "unix:"`, remote.Address)
 	}
 
 	validProtocols := []string{"lxd", "simplestreams"}
