@@ -58,7 +58,7 @@ func NewCachedImageResource() resource.Resource {
 }
 
 func (r CachedImageResource) Metadata(_ context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
-	resp.TypeName = fmt.Sprintf("%s_cached_image", req.ProviderTypeName)
+	resp.TypeName = req.ProviderTypeName + "_cached_image"
 }
 
 func (r CachedImageResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *resource.SchemaResponse) {
