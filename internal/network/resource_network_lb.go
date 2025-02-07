@@ -46,7 +46,7 @@ func NewNetworkLBResource() resource.Resource {
 }
 
 func (r LxdNetworkLBResource) Metadata(_ context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
-	resp.TypeName = fmt.Sprintf("%s_network_lb", req.ProviderTypeName)
+	resp.TypeName = req.ProviderTypeName + "_network_lb"
 }
 
 func (r LxdNetworkLBResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *resource.SchemaResponse) {
@@ -523,5 +523,5 @@ func ToLBPortSetType(ctx context.Context, ports []api.NetworkLoadBalancerPort) (
 
 // toLBName creates a unique load balancer name (id).
 func toLBName(networkName string, listenAddr string) string {
-	return fmt.Sprintf("%s/%s", networkName, listenAddr)
+	return networkName + "/" + listenAddr
 }
