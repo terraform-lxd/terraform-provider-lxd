@@ -42,7 +42,7 @@ func NewNetworkZoneResource() resource.Resource {
 }
 
 func (r NetworkZoneResource) Metadata(_ context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
-	resp.TypeName = fmt.Sprintf("%s_network_zone", req.ProviderTypeName)
+	resp.TypeName = req.ProviderTypeName + "_network_zone"
 }
 
 func (r NetworkZoneResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *resource.SchemaResponse) {
