@@ -53,7 +53,7 @@ func NewNetworkPeerResource() resource.Resource {
 
 // Metadata for network peer resource.
 func (r NetworkPeerResource) Metadata(_ context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
-	resp.TypeName = fmt.Sprintf("%s_network_peer", req.ProviderTypeName)
+	resp.TypeName = req.ProviderTypeName + "_network_peer"
 }
 
 // Schema for network peer resource.
