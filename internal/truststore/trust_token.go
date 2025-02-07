@@ -44,7 +44,7 @@ func NewTrustTokenResource() resource.Resource {
 }
 
 func (r TrustTokenResource) Metadata(_ context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
-	resp.TypeName = fmt.Sprintf("%s_trust_token", req.ProviderTypeName)
+	resp.TypeName = req.ProviderTypeName + "_trust_token"
 }
 
 func (r TrustTokenResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *resource.SchemaResponse) {
