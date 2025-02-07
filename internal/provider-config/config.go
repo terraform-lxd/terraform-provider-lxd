@@ -352,10 +352,10 @@ func (p *LxdProviderConfig) server(remoteName string) (lxd.Server, error) {
 				if instServer.HasExtension("explicit_trust_token") {
 					req.TrustToken = remote.Token
 				} else {
-					req.Password = remote.Token
+					req.Password = remote.Token // nolint: staticcheck
 				}
 			} else if remote.Password != "" {
-				req.Password = remote.Password
+				req.Password = remote.Password // nolint: staticcheck
 			}
 
 			// Create new certificate.
@@ -408,7 +408,7 @@ func (p *LxdProviderConfig) setRemote(remoteName string, remote LxdRemote) error
 	}
 
 	if !strings.HasPrefix(remote.Address, "https:") && !strings.HasPrefix(remote.Address, "unix:") {
-		return fmt.Errorf(`"Invalid address %q. Address must start with "https:" or "unix:"`, remote.Address)
+		return fmt.Errorf(`invalid address %q. Address must start with "https:" or "unix:"`, remote.Address)
 	}
 
 	validProtocols := []string{"lxd", "simplestreams"}
@@ -419,7 +419,7 @@ func (p *LxdProviderConfig) setRemote(remoteName string, remote LxdRemote) error
 	// Set default server. Only LXD server can be default server.
 	if remote.IsDefault {
 		if remote.Protocol != "lxd" {
-			return fmt.Errorf(`Remote %q cannot be set as default remote. Default remote must use "lxd"protocol`, remoteName)
+			return fmt.Errorf(`Remote %q cannot be set as default remote. Default remote must use "lxd" protocol`, remoteName)
 		}
 
 		p.config.DefaultRemote = remoteName
