@@ -157,8 +157,8 @@ func (r StorageVolumeCopyResource) Create(ctx context.Context, req resource.Crea
 	srcName := plan.SourceName.ValueString()
 	srcPool := plan.SourcePool.ValueString()
 
-	dstVolID := fmt.Sprintf("%s/%s", dstPool, dstName)
-	srcVolID := fmt.Sprintf("%s/%s", srcPool, srcName)
+	dstVolID := dstPool + "/" + dstName
+	srcVolID := srcPool + "/" + srcName
 
 	srcVol := api.StorageVolume{
 		Name: srcName,
