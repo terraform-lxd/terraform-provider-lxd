@@ -448,7 +448,7 @@ func (p *LxdProviderConfig) acceptRemoteCertificate(remoteName string, token str
 	}
 
 	// Try to retrieve server's certificate.
-	cert, err := shared.GetRemoteCertificate(url, fmt.Sprintf("terraform-provider-lxd/%s", p.version))
+	cert, err := shared.GetRemoteCertificate(url, "terraform-provider-lxd/"+p.version)
 	if err != nil {
 		return err
 	}
@@ -552,8 +552,8 @@ func DetermineLXDAddress(protocol string, address string) (string, error) {
 	}
 
 	// Prepend the scheme to the address.
-	if !strings.HasPrefix(address, fmt.Sprintf("%s://", scheme)) {
-		address = fmt.Sprintf("%s://%s", scheme, address)
+	if !strings.HasPrefix(address, scheme+"://") {
+		address = scheme + "://" + address
 	}
 
 	switch scheme {
@@ -578,7 +578,7 @@ func DetermineLXDAddress(protocol string, address string) (string, error) {
 				port = "443"
 			}
 
-			url.Host = fmt.Sprintf("%s:%s", url.Hostname(), port)
+			url.Host = url.Hostname() + ":" + port
 		}
 
 		return url.String(), nil
