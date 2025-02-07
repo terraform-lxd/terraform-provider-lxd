@@ -419,7 +419,7 @@ func (p *LxdProviderConfig) setRemote(remoteName string, remote LxdRemote) error
 	// Set default server. Only LXD server can be default server.
 	if remote.IsDefault {
 		if remote.Protocol != "lxd" {
-			return fmt.Errorf(`Remote %q cannot be set as default remote. Default remote must use "lxd"protocol`, remoteName)
+			return fmt.Errorf(`Remote %q cannot be set as default remote. Default remote must use "lxd" protocol`, remoteName)
 		}
 
 		p.config.DefaultRemote = remoteName
