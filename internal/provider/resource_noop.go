@@ -41,7 +41,7 @@ func newNoopResource() resource.Resource {
 
 // Metadata for noop resource.
 func (r noopResource) Metadata(_ context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
-	resp.TypeName = fmt.Sprintf("%s_noop", req.ProviderTypeName)
+	resp.TypeName = req.ProviderTypeName + "_noop"
 }
 
 // Schema for noop resource.
