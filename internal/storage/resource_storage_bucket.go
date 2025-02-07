@@ -48,7 +48,7 @@ func NewStorageBucketResource() resource.Resource {
 }
 
 func (r StorageBucketResource) Metadata(ctx context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
-	resp.TypeName = fmt.Sprintf("%s_storage_bucket", req.ProviderTypeName)
+	resp.TypeName = req.ProviderTypeName + "_storage_bucket"
 }
 
 func (r StorageBucketResource) Schema(ctx context.Context, req resource.SchemaRequest, resp *resource.SchemaResponse) {
