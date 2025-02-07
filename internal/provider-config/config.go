@@ -352,10 +352,10 @@ func (p *LxdProviderConfig) server(remoteName string) (lxd.Server, error) {
 				if instServer.HasExtension("explicit_trust_token") {
 					req.TrustToken = remote.Token
 				} else {
-					req.Password = remote.Token
+					req.Password = remote.Token // nolint: staticcheck
 				}
 			} else if remote.Password != "" {
-				req.Password = remote.Password
+				req.Password = remote.Password // nolint: staticcheck
 			}
 
 			// Create new certificate.
