@@ -13,7 +13,10 @@ func TestAccStorageVolume_basic(t *testing.T) {
 	volumeName := acctest.GenerateName(2, "-")
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:                 func() { acctest.PreCheck(t) },
+		PreCheck: func() {
+			acctest.PreCheck(t)
+			acctest.PreCheckStandalone(t)
+		},
 		ProtoV6ProviderFactories: acctest.ProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
@@ -37,7 +40,10 @@ func TestAccStorageVolume_instanceAttach(t *testing.T) {
 	volumeName := acctest.GenerateName(2, "-")
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:                 func() { acctest.PreCheck(t) },
+		PreCheck: func() {
+			acctest.PreCheck(t)
+			acctest.PreCheckStandalone(t)
+		},
 		ProtoV6ProviderFactories: acctest.ProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
@@ -62,21 +68,19 @@ func TestAccStorageVolume_instanceAttach(t *testing.T) {
 }
 
 func TestAccStorageVolume_target(t *testing.T) {
+	targets := acctest.PreCheckClustering(t, 1)
 	volumeName := acctest.GenerateName(2, "-")
 
 	resource.Test(t, resource.TestCase{
-		PreCheck: func() {
-			acctest.PreCheck(t)
-			acctest.PreCheckClustering(t)
-		},
+		PreCheck:                 func() { acctest.PreCheck(t) },
 		ProtoV6ProviderFactories: acctest.ProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccStorageVolume_target(volumeName),
+				Config: testAccStorageVolume_target(volumeName, targets[0]),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("lxd_volume.volume1", "name", volumeName),
 					resource.TestCheckResourceAttr("lxd_volume.volume1", "pool", "default"),
-					resource.TestCheckResourceAttr("lxd_volume.volume1", "target", "node-2"),
+					resource.TestCheckResourceAttr("lxd_volume.volume1", "target", targets[0]),
 				),
 			},
 		},
@@ -109,7 +113,10 @@ func TestAccStorageVolume_contentType(t *testing.T) {
 	volumeName := acctest.GenerateName(2, "-")
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:                 func() { acctest.PreCheck(t) },
+		PreCheck: func() {
+			acctest.PreCheck(t)
+			acctest.PreCheckStandalone(t)
+		},
 		ProtoV6ProviderFactories: acctest.ProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
@@ -132,7 +139,10 @@ func TestAccStorageVolume_importBasic(t *testing.T) {
 	resourceName := "lxd_volume.volume1"
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:                 func() { acctest.PreCheck(t) },
+		PreCheck: func() {
+			acctest.PreCheck(t)
+			acctest.PreCheckStandalone(t)
+		},
 		ProtoV6ProviderFactories: acctest.ProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
@@ -155,7 +165,10 @@ func TestAccStorageVolume_importProject(t *testing.T) {
 	resourceName := "lxd_volume.volume1"
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:                 func() { acctest.PreCheck(t) },
+		PreCheck: func() {
+			acctest.PreCheck(t)
+			acctest.PreCheckStandalone(t)
+		},
 		ProtoV6ProviderFactories: acctest.ProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
@@ -177,7 +190,10 @@ func TestAccStorageVolume_inheritedStoragePoolKeys(t *testing.T) {
 	volumeName := acctest.GenerateName(2, "-")
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:                 func() { acctest.PreCheck(t) },
+		PreCheck: func() {
+			acctest.PreCheck(t)
+			acctest.PreCheckStandalone(t)
+		},
 		ProtoV6ProviderFactories: acctest.ProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
@@ -245,14 +261,14 @@ resource "lxd_instance" "instance1" {
 	`, poolName, volumeName, instanceName, acctest.TestImage)
 }
 
-func testAccStorageVolume_target(volumeName string) string {
+func testAccStorageVolume_target(volumeName string, target string) string {
 	return fmt.Sprintf(`
 resource "lxd_volume" "volume1" {
   name   = "%s"
   pool   = "default"
-  target = "node-2"
+  target = "%s"
 }
-	`, volumeName)
+	`, volumeName, target)
 }
 
 func testAccStorageVolume_project(projectName, volumeName string) string {

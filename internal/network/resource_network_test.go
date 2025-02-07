@@ -2,6 +2,8 @@ package network_test
 
 import (
 	"fmt"
+	"strconv"
+	"strings"
 	"testing"
 
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
@@ -12,7 +14,10 @@ func TestAccNetwork_basic(t *testing.T) {
 	networkName := acctest.GenerateName(2, "-")
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:                 func() { acctest.PreCheck(t) },
+		PreCheck: func() {
+			acctest.PreCheck(t)
+			acctest.PreCheckStandalone(t)
+		},
 		ProtoV6ProviderFactories: acctest.ProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
@@ -33,7 +38,10 @@ func TestAccNetwork_description(t *testing.T) {
 	networkName := acctest.GenerateName(2, "-")
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:                 func() { acctest.PreCheck(t) },
+		PreCheck: func() {
+			acctest.PreCheck(t)
+			acctest.PreCheckStandalone(t)
+		},
 		ProtoV6ProviderFactories: acctest.ProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
@@ -55,7 +63,10 @@ func TestAccNetwork_nullable(t *testing.T) {
 	networkName := acctest.GenerateName(2, "-")
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:                 func() { acctest.PreCheck(t) },
+		PreCheck: func() {
+			acctest.PreCheck(t)
+			acctest.PreCheckStandalone(t)
+		},
 		ProtoV6ProviderFactories: acctest.ProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
@@ -78,7 +89,10 @@ func TestAccNetwork_attach(t *testing.T) {
 	instanceName := acctest.GenerateName(2, "-")
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:                 func() { acctest.PreCheck(t) },
+		PreCheck: func() {
+			acctest.PreCheck(t)
+			acctest.PreCheckStandalone(t)
+		},
 		ProtoV6ProviderFactories: acctest.ProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
@@ -109,7 +123,10 @@ func TestAccNetwork_updateConfig(t *testing.T) {
 	instanceName := acctest.GenerateName(2, "-")
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:                 func() { acctest.PreCheck(t) },
+		PreCheck: func() {
+			acctest.PreCheck(t)
+			acctest.PreCheckStandalone(t)
+		},
 		ProtoV6ProviderFactories: acctest.ProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
@@ -146,7 +163,10 @@ func TestAccNetwork_typeMacvlan(t *testing.T) {
 	networkName := acctest.GenerateName(2, "-")
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:                 func() { acctest.PreCheck(t) },
+		PreCheck: func() {
+			acctest.PreCheck(t)
+			acctest.PreCheckStandalone(t)
+		},
 		ProtoV6ProviderFactories: acctest.ProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
@@ -162,23 +182,21 @@ func TestAccNetwork_typeMacvlan(t *testing.T) {
 }
 
 func TestAccNetwork_target(t *testing.T) {
+	targets := acctest.PreCheckClustering(t, 2)
 	networkName := acctest.GenerateName(2, "-")
 
 	resource.Test(t, resource.TestCase{
-		PreCheck: func() {
-			acctest.PreCheck(t)
-			acctest.PreCheckClustering(t)
-		},
+		PreCheck:                 func() { acctest.PreCheck(t) },
 		ProtoV6ProviderFactories: acctest.ProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccNetwork_target(networkName),
+				Config: testAccNetwork_target(networkName, targets),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("lxd_network.cluster_network_node1", "name", networkName),
-					resource.TestCheckResourceAttr("lxd_network.cluster_network_node1", "target", "node-1"),
+					resource.TestCheckResourceAttr("lxd_network.cluster_network_node1", "target", targets[0]),
 					resource.TestCheckResourceAttr("lxd_network.cluster_network_node1", "config.bridge.external_interfaces", "nosuchint"),
 					resource.TestCheckResourceAttr("lxd_network.cluster_network_node2", "name", networkName),
-					resource.TestCheckResourceAttr("lxd_network.cluster_network_node2", "target", "node-2"),
+					resource.TestCheckResourceAttr("lxd_network.cluster_network_node2", "target", targets[1]),
 					resource.TestCheckResourceAttr("lxd_network.cluster_network_node2", "config.bridge.external_interfaces", "nosuchint"),
 					resource.TestCheckResourceAttr("lxd_network.cluster_network", "name", networkName),
 					resource.TestCheckResourceAttr("lxd_network.cluster_network", "type", "bridge"),
@@ -194,7 +212,10 @@ func TestAccNetwork_project(t *testing.T) {
 	networkName := acctest.GenerateName(2, "-")
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:                 func() { acctest.PreCheck(t) },
+		PreCheck: func() {
+			acctest.PreCheck(t)
+			acctest.PreCheckStandalone(t)
+		},
 		ProtoV6ProviderFactories: acctest.ProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
@@ -214,7 +235,10 @@ func TestAccNetwork_importBasic(t *testing.T) {
 	networkName := acctest.GenerateName(2, "-")
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:                 func() { acctest.PreCheck(t) },
+		PreCheck: func() {
+			acctest.PreCheck(t)
+			acctest.PreCheckStandalone(t)
+		},
 		ProtoV6ProviderFactories: acctest.ProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
@@ -236,7 +260,10 @@ func TestAccNetwork_importDesc(t *testing.T) {
 	networkName := acctest.GenerateName(2, "-")
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:                 func() { acctest.PreCheck(t) },
+		PreCheck: func() {
+			acctest.PreCheck(t)
+			acctest.PreCheckStandalone(t)
+		},
 		ProtoV6ProviderFactories: acctest.ProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
@@ -259,7 +286,10 @@ func TestAccNetwork_importProject(t *testing.T) {
 	projectName := acctest.GenerateName(2, "-")
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:                 func() { acctest.PreCheck(t) },
+		PreCheck: func() {
+			acctest.PreCheck(t)
+			acctest.PreCheckStandalone(t)
+		},
 		ProtoV6ProviderFactories: acctest.ProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
@@ -416,38 +446,36 @@ resource "lxd_network" "network" {
 `, networkName)
 }
 
-func testAccNetwork_target(networkName string) string {
-	return fmt.Sprintf(`
-resource "lxd_network" "cluster_network_node1" {
-  name   = "%[1]s"
-  target = "node-1"
+func testAccNetwork_target(networkName string, targets []string) string {
+	var config string
+	var deps []string
+
+	// Generate resources for pending networks.
+	for i, target := range targets {
+		deps = append(deps, `lxd_network.cluster_network_node`+strconv.Itoa(i+1))
+		config += fmt.Sprintf(`
+resource "lxd_network" "cluster_network_node%d" {
+  name   = "%s"
+  target = "%s"
 
   config = {
     "bridge.external_interfaces" = "nosuchint"
   }
-}
+}`, i+1, networkName, target)
+	}
 
-resource "lxd_network" "cluster_network_node2" {
-  name   = "%[1]s"
-  target = "node-2"
-
-  config = {
-    "bridge.external_interfaces" = "nosuchint"
-  }
-}
-
+	// Append main network resource.
+	config += fmt.Sprintf(`
 resource "lxd_network" "cluster_network" {
-  depends_on = [
-    lxd_network.cluster_network_node1,
-    lxd_network.cluster_network_node2,
-  ]
+  depends_on = [ %s ]
+  name       = %q
 
-  name = lxd_network.cluster_network_node1.name
   config = {
     "ipv4.address" = "10.150.50.1/24"
   }
-}
-`, networkName)
+}`, strings.Join(deps, ", "), networkName)
+
+	return config
 }
 
 func testAccNetwork_project(networkName string, projectName string) string {

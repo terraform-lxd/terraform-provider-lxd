@@ -13,9 +13,15 @@ concurrency:
 permissions:
   contents: read
 
+env:
+  TF_ACC: "1"
+  GO111MODULE: "on"
+  LXD_GENERATE_CLIENT_CERTS: "true"
+  LXD_ACCEPT_SERVER_CERTIFICATE: "true"
+
 name: Test
 jobs:
-  acceptance-tests:
+  acceptance-standalone:
     runs-on: ubuntu-22.04
     strategy:
       fail-fast: false
@@ -27,12 +33,6 @@ jobs:
           - 5.21/edge
           - latest/stable
           - latest/edge
-
-    env:
-      TF_ACC: "1"
-      GO111MODULE: "on"
-      LXD_GENERATE_CLIENT_CERTS: "true"
-      LXD_ACCEPT_SERVER_CERTIFICATE: "true"
 
     steps:
       - uses: actions/checkout@v4
@@ -90,6 +90,39 @@ jobs:
             external_ids:ovn-remote=unix:/var/run/ovn/ovnsb_db.sock \
             external_ids:ovn-encap-type=geneve \
             external_ids:ovn-encap-ip=127.0.0.1
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_wrapper: false
+
+      - name: Run acceptance tests
+        run: make test
+
+  acceptance-cluster:
+    runs-on: ubuntu-22.04
+    strategy:
+      fail-fast: false
+      matrix:
+        channel:
+          - 5.0/edge
+          - 5.21/edge
+          - latest/candidate
+          # - latest/edge
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: 'go.mod'
+
+      - name: Setup LXD cluster
+        uses: ./.github/actions/cluster
+        with:
+          cluster-name: acctest
+          lxd-version: ${{ matrix.channel }}
 
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v3

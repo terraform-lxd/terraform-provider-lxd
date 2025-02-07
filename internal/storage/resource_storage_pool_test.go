@@ -6,6 +6,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"testing"
 
@@ -18,7 +19,10 @@ func TestAccStoragePool_dir(t *testing.T) {
 	driverName := "dir"
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:                 func() { acctest.PreCheck(t) },
+		PreCheck: func() {
+			acctest.PreCheck(t)
+			acctest.PreCheckStandalone(t)
+		},
 		ProtoV6ProviderFactories: acctest.ProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
@@ -49,7 +53,10 @@ func TestAccStoragePool_zfs(t *testing.T) {
 	driverName := "zfs"
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:                 func() { acctest.PreCheck(t) },
+		PreCheck: func() {
+			acctest.PreCheck(t)
+			acctest.PreCheckStandalone(t)
+		},
 		ProtoV6ProviderFactories: acctest.ProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
@@ -82,7 +89,10 @@ func TestAccStoragePool_lvm(t *testing.T) {
 	driverName := "lvm"
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:                 func() { acctest.PreCheck(t) },
+		PreCheck: func() {
+			acctest.PreCheck(t)
+			acctest.PreCheckStandalone(t)
+		},
 		ProtoV6ProviderFactories: acctest.ProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
@@ -116,7 +126,10 @@ func TestAccStoragePool_btrfs(t *testing.T) {
 	driverName := "btrfs"
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:                 func() { acctest.PreCheck(t) },
+		PreCheck: func() {
+			acctest.PreCheck(t)
+			acctest.PreCheckStandalone(t)
+		},
 		ProtoV6ProviderFactories: acctest.ProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
@@ -147,7 +160,10 @@ func TestAccStoragePool_config(t *testing.T) {
 	poolName := acctest.GenerateName(2, "-")
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:                 func() { acctest.PreCheck(t) },
+		PreCheck: func() {
+			acctest.PreCheck(t)
+			acctest.PreCheckStandalone(t)
+		},
 		ProtoV6ProviderFactories: acctest.ProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
@@ -195,7 +211,10 @@ func TestAccStoragePool_configSource(t *testing.T) {
 		t.Run(fmt.Sprintf("%s[%s]", t.Name(), poolDriver), func(t *testing.T) {
 			defer cleanup()
 			resource.Test(t, resource.TestCase{
-				PreCheck:                 func() { acctest.PreCheck(t) },
+				PreCheck: func() {
+					acctest.PreCheck(t)
+					acctest.PreCheckStandalone(t)
+				},
 				ProtoV6ProviderFactories: acctest.ProtoV6ProviderFactories,
 				Steps: []resource.TestStep{
 					{
@@ -223,7 +242,10 @@ func TestAccStoragePool_project(t *testing.T) {
 	driverName := "dir"
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:                 func() { acctest.PreCheck(t) },
+		PreCheck: func() {
+			acctest.PreCheck(t)
+			acctest.PreCheckStandalone(t)
+		},
 		ProtoV6ProviderFactories: acctest.ProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
@@ -242,27 +264,25 @@ func TestAccStoragePool_project(t *testing.T) {
 }
 
 func TestAccStoragePool_target(t *testing.T) {
+	targets := acctest.PreCheckClustering(t, 2)
 	poolName := acctest.GenerateName(2, "-")
 	driverName := "dir"
 
 	resource.Test(t, resource.TestCase{
-		PreCheck: func() {
-			acctest.PreCheck(t)
-			acctest.PreCheckClustering(t)
-		},
+		PreCheck:                 func() { acctest.PreCheck(t) },
 		ProtoV6ProviderFactories: acctest.ProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccStoragePool_target(poolName, driverName),
+				Config: testAccStoragePool_target(poolName, driverName, targets),
 				Check: resource.ComposeTestCheckFunc(
-					resource.TestCheckResourceAttr("lxd_storage_pool.storage_pool1_node1", "name", poolName),
-					resource.TestCheckResourceAttr("lxd_storage_pool.storage_pool1_node1", "driver", driverName),
-					resource.TestCheckResourceAttr("lxd_storage_pool.storage_pool1_node1", "target", "node-1"),
-					resource.TestCheckResourceAttr("lxd_storage_pool.storage_pool1_node2", "name", poolName),
-					resource.TestCheckResourceAttr("lxd_storage_pool.storage_pool1_node2", "driver", driverName),
-					resource.TestCheckResourceAttr("lxd_storage_pool.storage_pool1_node2", "target", "node-2"),
-					resource.TestCheckResourceAttr("lxd_storage_pool.storage_pool1", "name", poolName),
-					resource.TestCheckResourceAttr("lxd_storage_pool.storage_pool1", "driver", driverName),
+					resource.TestCheckResourceAttr("lxd_storage_pool.storage_pool_node1", "name", poolName),
+					resource.TestCheckResourceAttr("lxd_storage_pool.storage_pool_node1", "driver", driverName),
+					resource.TestCheckResourceAttr("lxd_storage_pool.storage_pool_node1", "target", targets[0]),
+					resource.TestCheckResourceAttr("lxd_storage_pool.storage_pool_node2", "name", poolName),
+					resource.TestCheckResourceAttr("lxd_storage_pool.storage_pool_node2", "driver", driverName),
+					resource.TestCheckResourceAttr("lxd_storage_pool.storage_pool_node2", "target", targets[1]),
+					resource.TestCheckResourceAttr("lxd_storage_pool.storage_pool", "name", poolName),
+					resource.TestCheckResourceAttr("lxd_storage_pool.storage_pool", "driver", driverName),
 				),
 			},
 		},
@@ -275,7 +295,10 @@ func TestAccStoragePool_importBasic(t *testing.T) {
 	resourceName := "lxd_storage_pool.storage_pool1"
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:                 func() { acctest.PreCheck(t) },
+		PreCheck: func() {
+			acctest.PreCheck(t)
+			acctest.PreCheckStandalone(t)
+		},
 		ProtoV6ProviderFactories: acctest.ProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
@@ -298,7 +321,10 @@ func TestAccStoragePool_importConfig(t *testing.T) {
 	resourceName := "lxd_storage_pool.storage_pool1"
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:                 func() { acctest.PreCheck(t) },
+		PreCheck: func() {
+			acctest.PreCheck(t)
+			acctest.PreCheckStandalone(t)
+		},
 		ProtoV6ProviderFactories: acctest.ProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
@@ -322,7 +348,10 @@ func TestAccStoragePool_importProject(t *testing.T) {
 	resourceName := "lxd_storage_pool.storage_pool1"
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:                 func() { acctest.PreCheck(t) },
+		PreCheck: func() {
+			acctest.PreCheck(t)
+			acctest.PreCheckStandalone(t)
+		},
 		ProtoV6ProviderFactories: acctest.ProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
@@ -388,30 +417,28 @@ resource "lxd_storage_pool" "storage_pool1" {
 	`, project, name, driver)
 }
 
-func testAccStoragePool_target(name, driver string) string {
-	return fmt.Sprintf(`
-resource "lxd_storage_pool" "storage_pool1_node1" {
-  name   = "%[1]s"
-  driver = "%[2]s"
-  target = "node-1"
-}
+func testAccStoragePool_target(name string, driver string, targets []string) string {
+	var config string
+	var deps []string
 
-resource "lxd_storage_pool" "storage_pool1_node2" {
-  name   = "%[1]s"
-  driver = "%[2]s"
-  target = "node-2"
-}
+	for i, target := range targets {
+		deps = append(deps, "lxd_storage_pool.storage_pool_node"+strconv.Itoa(i+1))
+		config += fmt.Sprintf(`
+resource "lxd_storage_pool" "storage_pool_node%d" {
+  name   = "%s"
+  driver = "%s"
+  target = "%s"
+}`, i+1, name, driver, target)
+	}
 
-resource "lxd_storage_pool" "storage_pool1" {
-  depends_on = [
-    lxd_storage_pool.storage_pool1_node1,
-    lxd_storage_pool.storage_pool1_node2,
-  ]
+	config += fmt.Sprintf(`
+resource "lxd_storage_pool" "storage_pool" {
+  depends_on = [ %[3]s ]
+  name       = "%[1]s"
+  driver     = "%[2]s"
+}`, name, driver, strings.Join(deps, ", "))
 
-  name   = "%[1]s"
-  driver = "%[2]s"
-}
-	`, name, driver)
+	return config
 }
 
 // ensureSource ensures temporary storage pool source is created based on the provided
