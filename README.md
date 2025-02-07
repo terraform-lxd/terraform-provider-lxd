@@ -82,13 +82,3 @@ TF_LOG=info make testacc
 ## Documentation
 
 Full documentation can be found in the [`docs`](docs) directory.
-
-## Contributors
-
-Some recognition for great contributors to this project:
-
-- [jgraichen](https://github.com/jgraichen)
-- [jtopjian](https://github.com/jtopjian)
-- [mjrider](https://github.com/mjrider)
-- [sl1pm4t](https://github.com/sl1pm4t)
-- [yobert](https://github.com/yobert)
