@@ -21,7 +21,7 @@ env:
 
 name: Test
 jobs:
-  acceptance-standalone:
+  acc-standalone:
     runs-on: ubuntu-22.04
     strategy:
       fail-fast: false
@@ -99,7 +99,7 @@ jobs:
       - name: Run acceptance tests
         run: make test
 
-  acceptance-cluster:
+  acc-cluster:
     runs-on: ubuntu-22.04
     strategy:
       fail-fast: false
