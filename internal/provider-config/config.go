@@ -534,7 +534,7 @@ func DetermineLXDAddress(protocol string, address string) (string, error) {
 
 	// Try to extract scheme from the address.
 	if strings.Contains(address, "://") {
-		scheme = strings.SplitN(address, "://", 2)[0]
+		scheme, _, _ = strings.Cut(address, "://")
 	}
 
 	// If scheme is still empty, determine it based on the value.
