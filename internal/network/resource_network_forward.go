@@ -54,7 +54,7 @@ func NewNetworkForwardResource() resource.Resource {
 }
 
 func (r *NetworkForwardResource) Metadata(ctx context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
-	resp.TypeName = fmt.Sprintf("%s_network_forward", req.ProviderTypeName)
+	resp.TypeName = req.ProviderTypeName + "_network_forward"
 }
 
 func (r *NetworkForwardResource) Schema(ctx context.Context, req resource.SchemaRequest, resp *resource.SchemaResponse) {

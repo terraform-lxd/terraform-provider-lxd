@@ -55,7 +55,7 @@ func NewInstanceFileResource() resource.Resource {
 }
 
 func (r InstanceFileResource) Metadata(_ context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
-	resp.TypeName = fmt.Sprintf("%s_instance_file", req.ProviderTypeName)
+	resp.TypeName = req.ProviderTypeName + "_instance_file"
 }
 
 func (r InstanceFileResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *resource.SchemaResponse) {

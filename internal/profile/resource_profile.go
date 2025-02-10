@@ -48,7 +48,7 @@ func NewProfileResource() resource.Resource {
 
 // Metadata for profile resource.
 func (r ProfileResource) Metadata(_ context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
-	resp.TypeName = fmt.Sprintf("%s_profile", req.ProviderTypeName)
+	resp.TypeName = req.ProviderTypeName + "_profile"
 }
 
 // Schema for profile resource.

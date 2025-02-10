@@ -48,7 +48,7 @@ func NewStoragePoolResource() resource.Resource {
 }
 
 func (r StoragePoolResource) Metadata(_ context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
-	resp.TypeName = fmt.Sprintf("%s_storage_pool", req.ProviderTypeName)
+	resp.TypeName = req.ProviderTypeName + "_storage_pool"
 }
 
 func (r StoragePoolResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *resource.SchemaResponse) {

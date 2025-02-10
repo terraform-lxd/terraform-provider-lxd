@@ -74,7 +74,7 @@ func NewInstanceResource() resource.Resource {
 }
 
 func (r InstanceResource) Metadata(_ context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
-	resp.TypeName = fmt.Sprintf("%s_instance", req.ProviderTypeName)
+	resp.TypeName = req.ProviderTypeName + "_instance"
 }
 
 func (r InstanceResource) Schema(ctx context.Context, _ resource.SchemaRequest, resp *resource.SchemaResponse) {
@@ -589,7 +589,7 @@ func (r InstanceResource) Create(ctx context.Context, req resource.CreateRequest
 
 	// Merge limits into instance config.
 	for k, v := range limits {
-		key := fmt.Sprintf("limits.%s", k)
+		key := "limits." + k
 		config[key] = v
 	}
 
@@ -881,7 +881,7 @@ func (r InstanceResource) Update(ctx context.Context, req resource.UpdateRequest
 
 	// Merge limits into instance config.
 	for k, v := range limits {
-		key := fmt.Sprintf("limits.%s", k)
+		key := "limits." + k
 		config[key] = v
 	}
 

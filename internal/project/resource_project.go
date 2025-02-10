@@ -42,7 +42,7 @@ func NewProjectResource() resource.Resource {
 
 // Metadata for project resource.
 func (r ProjectResource) Metadata(_ context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
-	resp.TypeName = fmt.Sprintf("%s_project", req.ProviderTypeName)
+	resp.TypeName = req.ProviderTypeName + "_project"
 }
 
 // Schema for project resource.

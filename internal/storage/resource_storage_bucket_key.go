@@ -48,7 +48,7 @@ func NewStorageBucketKeyResource() resource.Resource {
 }
 
 func (r StorageBucketKeyResource) Metadata(ctx context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
-	resp.TypeName = fmt.Sprintf("%s_storage_bucket_key", req.ProviderTypeName)
+	resp.TypeName = req.ProviderTypeName + "_storage_bucket_key"
 }
 
 // TODO: setup proper schema for storage bucket key like volume for pool!

@@ -408,7 +408,7 @@ func (p *LxdProviderConfig) setRemote(remoteName string, remote LxdRemote) error
 	}
 
 	if !strings.HasPrefix(remote.Address, "https:") && !strings.HasPrefix(remote.Address, "unix:") {
-		return fmt.Errorf(`invalid address %q. Address must start with "https:" or "unix:"`, remote.Address)
+		return fmt.Errorf(`Invalid address %q. Address must start with "https:" or "unix:"`, remote.Address)
 	}
 
 	validProtocols := []string{"lxd", "simplestreams"}
@@ -448,7 +448,7 @@ func (p *LxdProviderConfig) acceptRemoteCertificate(remoteName string, token str
 	}
 
 	// Try to retrieve server's certificate.
-	cert, err := shared.GetRemoteCertificate(url, fmt.Sprintf("terraform-provider-lxd/%s", p.version))
+	cert, err := shared.GetRemoteCertificate(url, "terraform-provider-lxd/"+p.version)
 	if err != nil {
 		return err
 	}
@@ -534,7 +534,7 @@ func DetermineLXDAddress(protocol string, address string) (string, error) {
 
 	// Try to extract scheme from the address.
 	if strings.Contains(address, "://") {
-		scheme = strings.SplitN(address, "://", 2)[0]
+		scheme, _, _ = strings.Cut(address, "://")
 	}
 
 	// If scheme is still empty, determine it based on the value.
@@ -552,8 +552,8 @@ func DetermineLXDAddress(protocol string, address string) (string, error) {
 	}
 
 	// Prepend the scheme to the address.
-	if !strings.HasPrefix(address, fmt.Sprintf("%s://", scheme)) {
-		address = fmt.Sprintf("%s://%s", scheme, address)
+	if !strings.HasPrefix(address, scheme+"://") {
+		address = scheme + "://" + address
 	}
 
 	switch scheme {
@@ -578,7 +578,7 @@ func DetermineLXDAddress(protocol string, address string) (string, error) {
 				port = "443"
 			}
 
-			url.Host = fmt.Sprintf("%s:%s", url.Hostname(), port)
+			url.Host = url.Hostname() + ":" + port
 		}
 
 		return url.String(), nil

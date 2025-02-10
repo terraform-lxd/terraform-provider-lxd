@@ -51,7 +51,7 @@ func NewTrustCertificateResource() resource.Resource {
 }
 
 func (r TrustCertificateResource) Metadata(_ context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
-	resp.TypeName = fmt.Sprintf("%s_trust_certificate", req.ProviderTypeName)
+	resp.TypeName = req.ProviderTypeName + "_trust_certificate"
 }
 
 func (r TrustCertificateResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *resource.SchemaResponse) {

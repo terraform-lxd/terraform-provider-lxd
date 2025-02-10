@@ -59,8 +59,9 @@ func NewNetworkAclResource() resource.Resource {
 }
 
 func (r *NetworkAclResource) Metadata(_ context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
-	resp.TypeName = fmt.Sprintf("%s_network_acl", req.ProviderTypeName)
+	resp.TypeName = req.ProviderTypeName + "_network_acl"
 }
+
 func (r *NetworkAclResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *resource.SchemaResponse) {
 	aclRuleObjectType := aclRuleObjectType()
 

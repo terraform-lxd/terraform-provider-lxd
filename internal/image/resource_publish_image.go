@@ -58,7 +58,7 @@ func NewPublishImageResource() resource.Resource {
 }
 
 func (r PublishImageResource) Metadata(_ context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
-	resp.TypeName = fmt.Sprintf("%s_publish_image", req.ProviderTypeName)
+	resp.TypeName = req.ProviderTypeName + "_publish_image"
 }
 
 func (r PublishImageResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *resource.SchemaResponse) {
