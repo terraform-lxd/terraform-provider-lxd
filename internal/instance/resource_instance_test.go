@@ -229,7 +229,7 @@ func TestAccInstance_renameInstance(t *testing.T) {
 		Steps: []resource.TestStep{
 			{
 				// Launch a new instance.
-				Config: testAccInstance_rename(instanceNameA, true),
+				Config: testAccInstance_rename(instanceNameA, true, false),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("lxd_instance.instance1", "name", instanceNameA),
 					resource.TestCheckResourceAttr("lxd_instance.instance1", "status", "Running"),
@@ -237,7 +237,7 @@ func TestAccInstance_renameInstance(t *testing.T) {
 			},
 			{
 				// Stop and rename the instance.
-				Config: testAccInstance_rename(instanceNameB, false),
+				Config: testAccInstance_rename(instanceNameB, false, false),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("lxd_instance.instance1", "name", instanceNameB),
 					resource.TestCheckResourceAttr("lxd_instance.instance1", "status", "Stopped"),
@@ -245,7 +245,7 @@ func TestAccInstance_renameInstance(t *testing.T) {
 			},
 			{
 				// Rename the instance while stopped.
-				Config: testAccInstance_rename(instanceNameC, false),
+				Config: testAccInstance_rename(instanceNameC, false, false),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("lxd_instance.instance1", "name", instanceNameC),
 					resource.TestCheckResourceAttr("lxd_instance.instance1", "status", "Stopped"),
@@ -253,7 +253,7 @@ func TestAccInstance_renameInstance(t *testing.T) {
 			},
 			{
 				// Rename and start the instance.
-				Config: testAccInstance_rename(instanceNameD, true),
+				Config: testAccInstance_rename(instanceNameD, true, false),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("lxd_instance.instance1", "name", instanceNameD),
 					resource.TestCheckResourceAttr("lxd_instance.instance1", "status", "Running"),
@@ -261,12 +261,21 @@ func TestAccInstance_renameInstance(t *testing.T) {
 			},
 			{
 				// Ensure instance rename fails when instance is running.
-				Config: testAccInstance_rename(instanceNameE, true),
+				Config: testAccInstance_rename(instanceNameE, true, false),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("lxd_instance.instance1", "name", instanceNameD), // Ensure name is unchanged.
 					resource.TestCheckResourceAttr("lxd_instance.instance1", "status", "Running"),
 				),
-				ExpectError: regexp.MustCompile("Renaming of running instance not allowed"),
+				ExpectError: regexp.MustCompile("Instance stop not allowed"),
+			},
+			{
+				// Ensure instance rename succeeds when instance is running
+				// and restart is allowed.
+				Config: testAccInstance_rename(instanceNameE, true, true),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr("lxd_instance.instance1", "name", instanceNameE), // Ensure name is unchanged.
+					resource.TestCheckResourceAttr("lxd_instance.instance1", "status", "Running"),
+				),
 			},
 		},
 	})
@@ -1950,14 +1959,15 @@ resource "lxd_instance" "instance1" {
 	`, instanceName, acctest.TestImage)
 }
 
-func testAccInstance_rename(name string, running bool) string {
+func testAccInstance_rename(name string, running bool, allowRestart bool) string {
 	return fmt.Sprintf(`
 resource "lxd_instance" "instance1" {
-  name    = "%s"
-  running = %v
-  image   = "%s"
+  name          = "%s"
+  running       = %v
+  allow_restart = %v
+  image         = "%s"
 }
-	`, name, running, acctest.TestImage)
+	`, name, running, allowRestart, acctest.TestImage)
 }
 
 func testAccInstance_remoteImage(name string) string {
