@@ -42,6 +42,7 @@ type InstanceModel struct {
 	Image          types.String `tfsdk:"image"`
 	Ephemeral      types.Bool   `tfsdk:"ephemeral"`
 	Running        types.Bool   `tfsdk:"running"`
+	AllowRestart   types.Bool   `tfsdk:"allow_restart"`
 	WaitForNetwork types.Bool   `tfsdk:"wait_for_network"`
 	Profiles       types.List   `tfsdk:"profiles"`
 	Devices        types.Set    `tfsdk:"device"`
@@ -126,6 +127,13 @@ func (r InstanceResource) Schema(ctx context.Context, _ resource.SchemaRequest, 
 				Default:  booldefault.StaticBool(true),
 			},
 
+			"allow_restart": schema.BoolAttribute{
+				Description: "Allow instance to be stopped and restarted if required by the provider for operations like migration or renaming.",
+				Optional:    true,
+				Computed:    true,
+				Default:     booldefault.StaticBool(false),
+			},
+
 			"wait_for_network": schema.BoolAttribute{
 				Optional: true,
 				Computed: true,
@@ -175,12 +183,6 @@ func (r InstanceResource) Schema(ctx context.Context, _ resource.SchemaRequest, 
 
 			"target": schema.StringAttribute{
 				Optional: true,
-				PlanModifiers: []planmodifier.String{
-					stringplanmodifier.RequiresReplaceIfConfigured(),
-				},
-				Validators: []validator.String{
-					stringvalidator.LengthAtLeast(1),
-				},
 			},
 
 			"config": schema.MapAttribute{
@@ -797,24 +799,78 @@ func (r InstanceResource) Update(ctx context.Context, req resource.UpdateRequest
 		return
 	}
 
-	// Handle instance rename if instance is already stopped.
+	// Get instance.
+	instance, _, err := server.GetInstance(instanceName)
+	if err != nil {
+		resp.Diagnostics.AddError(fmt.Sprintf("Failed to retrieve existing instance %q", instanceName), err.Error())
+		return
+	}
+
+	// Indicates if the instance has been just started.
+	instanceStarted := false
+	instanceRunning := isInstanceOperational(*instanceState)
 	newInstanceName := plan.Name.ValueString()
-	if instanceName != newInstanceName && isInstanceStopped(*instanceState) {
+
+	requireInstanceMigration := false
+	requireInstanceRename := instanceName != newInstanceName
+
+	// Compare current instance location against the desired location.
+	if server.IsClustered() {
+		onExpectedLocation, err := checkInstanceLocation(server, instance.Location, target)
+		if err != nil {
+			resp.Diagnostics.AddError("Failed to verify suitability of current instance location", err.Error())
+			return
+		}
+
+		// Require instance migration if instance is misplaced.
+		requireInstanceMigration = !onExpectedLocation
+	}
+
+	// If migration or instance rename is required, ensure the instance is stopped.
+	if instanceRunning && (requireInstanceRename || requireInstanceMigration) {
+		// If the instance is currently running and is not planned to be stopped,
+		// we need to reject the update in case the provider is not allowed to
+		// temporarily stop the instance. Otherwise, we could render the instance
+		// unavailable without user's permission.
+		if plan.Running.ValueBool() && !plan.AllowRestart.ValueBool() {
+			resp.Diagnostics.AddError(
+				"Instance stop not allowed",
+				fmt.Sprintf(`The provider must temporarily stop the instance %q for migration or renaming, but stopping is not allowed. Either stop the instance manually or set the "allow_restart" attribute to "true".`, instanceName),
+			)
+			return
+		}
+
+		_, diag := stopInstance(ctx, server, instanceName, false)
+		if diag != nil {
+			resp.Diagnostics.Append(diag)
+			return
+		}
+
+		instanceRunning = false
+	}
+
+	// Handle instance rename.
+	if requireInstanceRename {
 		err := renameInstance(ctx, server, instanceName, newInstanceName)
 		if err != nil {
 			resp.Diagnostics.AddError(fmt.Sprintf("Failed to rename instance %q", instanceName), err.Error())
 			return
 		}
 
+		// Use new instance name for further operations.
 		instanceName = newInstanceName
 	}
 
-	// Indicates if the instance has been just started.
-	instanceStarted := false
-	instanceRunning := isInstanceOperational(*instanceState)
+	// Handle instance migration.
+	if requireInstanceMigration {
+		err := migrateInstance(ctx, server, instanceName, target)
+		if err != nil {
+			resp.Diagnostics.AddError(fmt.Sprintf("Failed to migrate instance %q to %q", instanceName, target), err.Error())
+			return
+		}
+	}
 
-	// First ensure the desired state of the instance (stopped/running).
-	// This ensures we fail fast if instance runs into an issue.
+	// Ensure the instance is in desired state (stopped/running).
 	if plan.Running.ValueBool() && !instanceRunning {
 		instanceStarted = true
 		instanceRunning = true
@@ -845,18 +901,7 @@ func (r InstanceResource) Update(ctx context.Context, req resource.UpdateRequest
 		}
 	}
 
-	// Handle instance rename.
-	if instanceName != newInstanceName {
-		err := renameInstance(ctx, server, instanceName, newInstanceName)
-		if err != nil {
-			resp.Diagnostics.AddError(fmt.Sprintf("Failed to rename instance %q", instanceName), err.Error())
-			return
-		}
-
-		instanceName = newInstanceName
-	}
-
-	// Get instance.
+	// Get instance and its etag.
 	instance, etag, err := server.GetInstance(instanceName)
 	if err != nil {
 		resp.Diagnostics.AddError(fmt.Sprintf("Failed to retrieve existing instance %q", instanceName), err.Error())
@@ -1187,11 +1232,30 @@ func (r InstanceResource) SyncState(ctx context.Context, tfState *tfsdk.State, s
 	m.Location = types.StringValue("")
 	if server.IsClustered() || instance.Location != "none" {
 		m.Location = types.StringValue(instance.Location)
+
+		// Check if the instance is located on the configured cluster
+		// member or within the configured cluster member group.
+		ok, err := checkInstanceLocation(server, instance.Location, m.Target.ValueString())
+		if err != nil {
+			respDiags.AddError("Failed to check if instance is located on correct cluster member", err.Error())
+			return respDiags
+		}
+
+		if !ok {
+			// Trigger plan mismatch by setting target to an
+			// actual instance location.
+			m.Target = m.Location
+		}
 	}
 
-	// Ensure default value is set (to prevent plan diff on import).
+	// Ensure default values are set for provider specific attributes
+	// to prevent plan diff on import.
 	if m.WaitForNetwork.IsNull() {
 		m.WaitForNetwork = types.BoolValue(true)
+	}
+
+	if m.AllowRestart.IsNull() {
+		m.AllowRestart = types.BoolValue(false)
 	}
 
 	return tfState.Set(ctx, &m)
@@ -1333,7 +1397,26 @@ func stopInstance(ctx context.Context, server lxd.InstanceServer, instanceName s
 // renameInstance renames an instance with the given old name to a new name.
 // Instance has to be stopped beforehand, otherwise the operation will fail.
 func renameInstance(ctx context.Context, server lxd.InstanceServer, oldName string, newName string) error {
-	op, err := server.RenameInstance(oldName, api.InstancePost{Name: newName})
+	// Unset target to prevent LXD from assuming we are attempting migration
+	// in case both instance name and target were changed.
+	op, err := server.UseTarget("").RenameInstance(oldName, api.InstancePost{Name: newName})
+	if err != nil {
+		return err
+	}
+
+	return op.WaitContext(ctx)
+}
+
+// migrateInstance moves an instance to a different cluster member.
+func migrateInstance(ctx context.Context, server lxd.InstanceServer, instanceName string, target string) error {
+	// Migrate the instance to the desired location.
+	req := api.InstancePost{
+		Name:      instanceName,
+		Migration: true,
+		Live:      false, // We do not support live migration (yet).
+	}
+
+	op, err := server.UseTarget(target).MigrateInstance(instanceName, req)
 	if err != nil {
 		return err
 	}
