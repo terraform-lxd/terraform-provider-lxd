@@ -1276,6 +1276,103 @@ func TestAccInstance_timeout(t *testing.T) {
 	})
 }
 
+// TODO: Create multiple cluster groups and test migration between them
+// by setting target to "@group1" and "@group2".
+func TestAccInstance_migration(t *testing.T) {
+	instanceName := acctest.GenerateName(2, "-")
+	targets := acctest.PreCheckClustering(t, 2)
+
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			acctest.PreCheck(t)
+		},
+		ProtoV6ProviderFactories: acctest.ProtoV6ProviderFactories,
+		Steps: []resource.TestStep{
+			{
+				// Create instance on 1st cluster member.
+				Config: testAccInstance_migration(instanceName, targets[0], true, false),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr("lxd_instance.instance1", "name", instanceName),
+					resource.TestCheckResourceAttr("lxd_instance.instance1", "status", "Running"),
+					resource.TestCheckResourceAttr("lxd_instance.instance1", "target", targets[0]),
+					resource.TestCheckResourceAttr("lxd_instance.instance1", "location", targets[0]),
+				),
+			},
+			{
+				// Set instance target to cluster group "@default" (noop).
+				// All cluster members are part of default group.
+				Config: testAccInstance_migration(instanceName, "@default", true, false),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr("lxd_instance.instance1", "name", instanceName),
+					resource.TestCheckResourceAttr("lxd_instance.instance1", "status", "Running"),
+					resource.TestCheckResourceAttr("lxd_instance.instance1", "target", "@default"),
+					resource.TestCheckResourceAttr("lxd_instance.instance1", "location", targets[0]),
+				),
+			},
+			{
+				// Unset instance target (noop).
+				// Empty target means that we do not care where the instance is
+				// running.
+				Config: testAccInstance_migration(instanceName, "", true, false),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr("lxd_instance.instance1", "name", instanceName),
+					resource.TestCheckResourceAttr("lxd_instance.instance1", "status", "Running"),
+					resource.TestCheckResourceAttr("lxd_instance.instance1", "target", ""),
+					resource.TestCheckResourceAttr("lxd_instance.instance1", "location", targets[0]),
+				),
+			},
+			{
+				// Move the instance to 2nd cluster member.
+				// Instance is running and is planned to remain running.
+				// Restart is not allowed, therefore expect an error.
+				Config: testAccInstance_migration(instanceName, targets[1], true, false),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr("lxd_instance.instance1", "name", instanceName),
+					resource.TestCheckResourceAttr("lxd_instance.instance1", "status", "Running"),
+					resource.TestCheckResourceAttr("lxd_instance.instance1", "target", targets[1]),
+					resource.TestCheckResourceAttr("lxd_instance.instance1", "location", targets[0]),
+				),
+				ExpectError: regexp.MustCompile("Instance stop not allowed"),
+			},
+			{
+				// Move the instance to 2nd cluster member target (again).
+				// This time restart is allowed and the instance should be moved.
+				Config: testAccInstance_migration(instanceName, targets[1], true, true),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr("lxd_instance.instance1", "name", instanceName),
+					resource.TestCheckResourceAttr("lxd_instance.instance1", "status", "Running"),
+					resource.TestCheckResourceAttr("lxd_instance.instance1", "target", targets[1]),
+					resource.TestCheckResourceAttr("lxd_instance.instance1", "location", targets[1]),
+				),
+			},
+			{
+				// Move the instance back to 1st cluster member.
+				// The instance is planned to be stopped, therefore the move
+				// should succeed despite the restart not being allowed.
+				Config: testAccInstance_migration(instanceName, targets[0], false, false),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr("lxd_instance.instance1", "name", instanceName),
+					resource.TestCheckResourceAttr("lxd_instance.instance1", "status", "Stopped"),
+					resource.TestCheckResourceAttr("lxd_instance.instance1", "target", targets[0]),
+					resource.TestCheckResourceAttr("lxd_instance.instance1", "location", targets[0]),
+				),
+			},
+			{
+				// Move the instance back to 2nd cluster member.
+				// Similar to the previous case, the instance is already stopped,
+				// therefore the move will be done before the instance is started.
+				Config: testAccInstance_migration(instanceName, targets[1], true, false),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr("lxd_instance.instance1", "name", instanceName),
+					resource.TestCheckResourceAttr("lxd_instance.instance1", "status", "Running"),
+					resource.TestCheckResourceAttr("lxd_instance.instance1", "target", targets[1]),
+					resource.TestCheckResourceAttr("lxd_instance.instance1", "location", targets[1]),
+				),
+			},
+		},
+	})
+}
+
 func TestAccInstance_importBasic(t *testing.T) {
 	instanceName := acctest.GenerateName(2, "-")
 	resourceName := "lxd_instance.instance1"
@@ -2208,4 +2305,16 @@ resource "lxd_instance" "instance1" {
   }
 }
 	`, instanceName, acctest.TestImage)
+}
+
+func testAccInstance_migration(instanceName string, target string, running bool, allowRestart bool) string {
+	return fmt.Sprintf(`
+resource "lxd_instance" "instance1" {
+  name          = %q
+  target        = %q
+  running       = %v
+  allow_restart = %v
+  image         = %q
+}
+	`, instanceName, target, running, allowRestart, acctest.TestImage)
 }
