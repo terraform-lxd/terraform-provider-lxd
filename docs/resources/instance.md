@@ -61,6 +61,8 @@ resource "lxd_instance" "instance2" {
 * `wait_for_network` - *Optional* - Boolean indicating if the provider should wait for the instance to get an IPv4 address before considering the instance as started.
   If `running` is set to false or instance is already running (on update), this value has no effect. Defaults to `true`.
 
+* `allow_restart` - *Optional* - Allow instance to be stopped and restarted if required by the provider for operations like migration or renaming.
+
 * `profiles` - *Optional* - List of LXD config profiles to apply to the new
 	instance. Profile `default` will be applied if profiles are not set (are `null`).
   However, if an empty array (`[]`) is set as a value, no profiles will be applied.
@@ -82,7 +84,7 @@ resource "lxd_instance" "instance2" {
 * `remote` - *Optional* - The remote in which the resource will be created. If
 	not provided, the provider's default remote will be used.
 
-* `target` - *Optional* - Specify a target node in a cluster.
+* `target` - *Optional* - Specify a target cluster member or cluster member group.
 
 The `device` block supports:
 
@@ -160,6 +162,8 @@ The following attributes are exported:
   Access for more details.
 
 * `interfaces` - Map of all instance network interfaces (excluding loopback device). The map key represents the name of the network device (from LXD configuration).
+
+* `location` - Name of the cluster member where instance is located.
 
 * `status` - The status of the instance.
 
