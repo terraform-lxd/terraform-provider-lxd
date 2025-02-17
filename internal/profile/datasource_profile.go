@@ -31,16 +31,16 @@ func (d *ProfileDataSource) Schema(_ context.Context, req datasource.SchemaReque
 				Required: true,
 			},
 
-			"description": schema.StringAttribute{
-				Computed: true,
-			},
-
 			"project": schema.StringAttribute{
 				Optional: true,
 			},
 
 			"remote": schema.StringAttribute{
 				Optional: true,
+			},
+
+			"description": schema.StringAttribute{
+				Computed: true,
 			},
 
 			"config": schema.MapAttribute{
@@ -123,7 +123,4 @@ func (d *ProfileDataSource) Read(ctx context.Context, req datasource.ReadRequest
 
 	diags = resp.State.Set(ctx, &state)
 	resp.Diagnostics.Append(diags...)
-	if resp.Diagnostics.HasError() {
-		return
-	}
 }
