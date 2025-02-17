@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"regexp"
+	"slices"
 	"strings"
 	"time"
 
@@ -1427,4 +1428,37 @@ func findGlobalIPAddresses(network api.InstanceStateNetwork) (ipv4 string, ipv6 
 	}
 
 	return ipv4, ipv6
+}
+
+// checkInstanceLocation checks whether the instance is located on the
+// desired cluster member or within the desired cluster member group.
+func checkInstanceLocation(server lxd.InstanceServer, location string, target string) (bool, error) {
+	// If server is not clustered, there is only one option where
+	// instance can be located. If the target matches the location,
+	// the instance is already present on the desired cluster member.
+	// Finally, if the server is clustered and target is empty, we do
+	// not really care where the instance is located.
+	if !server.IsClustered() || target == location || target == "" {
+		return true, nil
+	}
+
+	// If target has prefix "@", we are dealing with the cluster
+	// member group.
+	targetGroup, ok := strings.CutPrefix(target, "@")
+	if ok {
+		group, _, err := server.GetClusterGroup(targetGroup)
+		if err != nil {
+			return false, err
+		}
+
+		// If the current cluster member (location) is part of the target
+		// cluster group, then the instance is located on the correct
+		// cluster member.
+		if slices.Contains(group.Members, location) {
+			return true, nil
+		}
+	}
+
+	// The instance is not located on the desired cluster member/group.
+	return false, nil
 }
