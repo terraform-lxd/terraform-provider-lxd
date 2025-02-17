@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"strings"
 
+	lxd "github.com/canonical/lxd/client"
 	"github.com/canonical/lxd/shared/api"
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
@@ -136,11 +137,16 @@ func (d *ImageDataSource) Read(ctx context.Context, req datasource.ReadRequest, 
 	}
 
 	remote := state.Remote.ValueString()
-	project := state.Project.ValueString()
-	server, err := d.provider.InstanceServer(remote, project, "")
+	server, err := d.provider.ImageServer(remote)
 	if err != nil {
 		resp.Diagnostics.Append(errors.NewImageServerError(err))
 		return
+	}
+
+	// Set project if we are dealing with instance server.
+	_, ok := server.(lxd.InstanceServer)
+	if ok {
+		server = server.(lxd.InstanceServer).UseProject(state.Project.ValueString())
 	}
 
 	var fingerprint string
