@@ -283,5 +283,6 @@ func (p *LxdProvider) DataSources(_ context.Context) []func() datasource.DataSou
 		network.NewNetworkDataSource,
 		profile.NewProfileDataSource,
 		project.NewProjectDataSource,
+		storage.NewStoragePoolDataSource,
 	}
 }
