@@ -384,7 +384,7 @@ func (r InstanceResource) Schema(ctx context.Context, _ resource.SchemaRequest, 
 
 		Blocks: map[string]schema.Block{
 			"device": schema.SetNestedBlock{
-				Description: "Profile device",
+				Description: "Instance device",
 				NestedObject: schema.NestedBlockObject{
 					Attributes: map[string]schema.Attribute{
 						"name": schema.StringAttribute{
@@ -1131,7 +1131,7 @@ func (r InstanceResource) SyncState(ctx context.Context, tfState *tfsdk.State, s
 		return respDiags
 	}
 
-	// Reset IPv4, IPv6, and MAC addresses. If case instance has lost
+	// Reset IPv4, IPv6, and MAC addresses. In case instance has lost
 	// network connectivity, we should reflect that in state.
 	m.IPv4 = types.StringNull()
 	m.IPv6 = types.StringNull()

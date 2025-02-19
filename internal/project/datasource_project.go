@@ -30,17 +30,18 @@ func (d *ProjectDataSource) Schema(ctx context.Context, req datasource.SchemaReq
 			"name": schema.StringAttribute{
 				Required: true,
 			},
-			"description": schema.StringAttribute{
-				Optional: true,
-				Computed: true,
-			},
-			"config": schema.MapAttribute{
-				Optional:    true,
-				Computed:    true,
-				ElementType: types.StringType,
-			},
+
 			"remote": schema.StringAttribute{
 				Optional: true,
+			},
+
+			"description": schema.StringAttribute{
+				Computed: true,
+			},
+
+			"config": schema.MapAttribute{
+				Computed:    true,
+				ElementType: types.StringType,
 			},
 		},
 	}

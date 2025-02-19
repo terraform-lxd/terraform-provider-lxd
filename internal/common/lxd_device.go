@@ -89,3 +89,38 @@ func ToDeviceSetType(ctx context.Context, devices map[string]map[string]string) 
 
 	return types.SetValueFrom(ctx, types.ObjectType{AttrTypes: deviceType}, deviceList)
 }
+
+// ToDeviceMapType converts devices from map[string]map[string]string
+// into types.Map.
+func ToDeviceMapType(ctx context.Context, devices map[string]map[string]string) (types.Map, diag.Diagnostics) {
+	deviceType := map[string]attr.Type{
+		"type":       types.StringType,
+		"properties": types.MapType{ElemType: types.StringType},
+	}
+
+	nilMap := types.MapNull(types.ObjectType{AttrTypes: deviceType})
+
+	if len(devices) == 0 {
+		return nilMap, nil
+	}
+
+	deviceMap := make(map[string]attr.Value, len(devices))
+	for key, props := range devices {
+		devType := types.StringValue(props["type"])
+
+		delete(props, "type")
+		devProps, diags := types.MapValueFrom(ctx, types.StringType, props)
+		if diags.HasError() {
+			return nilMap, diags
+		}
+
+		dev := types.ObjectValueMust(deviceType, map[string]attr.Value{
+			"type":       devType,
+			"properties": devProps,
+		})
+
+		deviceMap[key] = dev
+	}
+
+	return types.MapValueFrom(ctx, types.ObjectType{AttrTypes: deviceType}, deviceMap)
+}

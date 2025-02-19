@@ -67,17 +67,17 @@ func (d *ImageDataSource) Schema(_ context.Context, req datasource.SchemaRequest
 				},
 			},
 
-			"aliases": schema.SetAttribute{
-				Computed:    true,
-				ElementType: types.StringType,
-			},
-
 			"project": schema.StringAttribute{
 				Optional: true,
 			},
 
 			"remote": schema.StringAttribute{
 				Optional: true,
+			},
+
+			"aliases": schema.SetAttribute{
+				Computed:    true,
+				ElementType: types.StringType,
 			},
 
 			"created_at": schema.Int64Attribute{
@@ -144,9 +144,9 @@ func (d *ImageDataSource) Read(ctx context.Context, req datasource.ReadRequest, 
 	}
 
 	// Set project if we are dealing with instance server.
-	_, ok := server.(lxd.InstanceServer)
+	instServer, ok := server.(lxd.InstanceServer)
 	if ok {
-		server = server.(lxd.InstanceServer).UseProject(state.Project.ValueString())
+		server = instServer.UseProject(state.Project.ValueString())
 	}
 
 	var fingerprint string
