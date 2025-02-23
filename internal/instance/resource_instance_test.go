@@ -67,6 +67,40 @@ func TestAccInstance_ephemeralStopped(t *testing.T) {
 	})
 }
 
+func TestAccInstance_empty_vm(t *testing.T) {
+	t.Skip("The VM is not coming up due to no OS image being used; we could use an ISO")
+
+	instanceName := acctest.GenerateName(2, "-")
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { acctest.PreCheck(t) },
+		ProtoV6ProviderFactories: acctest.ProtoV6ProviderFactories,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccInstance_empty(instanceName, "virtual-machine"),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr("lxd_instance.instance1", "name", instanceName),
+					resource.TestCheckResourceAttr("lxd_instance.instance1", "image", ""),
+				),
+			},
+		},
+	})
+}
+
+func TestAccInstance_empty_container(t *testing.T) {
+	instanceName := acctest.GenerateName(2, "-")
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { acctest.PreCheck(t) },
+		ProtoV6ProviderFactories: acctest.ProtoV6ProviderFactories,
+		Steps: []resource.TestStep{
+			{
+				Config:      testAccInstance_empty(instanceName, "container"),
+				ExpectError: regexp.MustCompile(fmt.Sprintf("Instance %q is a container and requires image", instanceName)),
+			},
+		},
+	})
+}
+
 func TestAccInstance_container(t *testing.T) {
 	instanceName := acctest.GenerateName(2, "-")
 
@@ -1506,6 +1540,25 @@ resource "lxd_instance" "instance1" {
   }
 }
 	`, name, acctest.TestImage, instanceType, config)
+}
+
+func testAccInstance_empty(name string, instanceType string) string {
+	var config string
+	if instanceType == "virtual-machine" {
+		config = `"security.secureboot" = false`
+	}
+
+	return fmt.Sprintf(`
+resource "lxd_instance" "instance1" {
+  name    = "%s"
+  type    = "%s"
+  running = true
+
+  config = {
+    %s
+  }
+}
+	`, name, instanceType, config)
 }
 
 func testAccInstance_stopped(name string, instanceType string) string {
