@@ -256,6 +256,9 @@ func (r InstanceFileResource) Read(ctx context.Context, req resource.ReadRequest
 	instance, _, err := server.GetInstance(instanceName)
 	if err != nil {
 		if errors.IsNotFoundError(err) {
+			// If instance is not found, file cannot exist. Remove it
+			// from the state to ensure it is created on next apply.
+			resp.State.RemoveResource(ctx)
 			return
 		}
 
