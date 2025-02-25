@@ -324,20 +324,9 @@ func (r InstanceFileResource) Delete(ctx context.Context, req resource.DeleteReq
 		return
 	}
 
-	file := common.InstanceFileModel{
-		Content:    state.Content,
-		SourcePath: state.SourcePath,
-		TargetPath: state.TargetPath,
-		UserID:     state.UserID,
-		GroupID:    state.GroupID,
-		Mode:       state.Mode,
-		CreateDirs: state.CreateDirs,
-		Append:     state.Append,
-	}
-
 	// Delete file.
-	err = common.InstanceFileUpload(server, instanceName, file)
-	if err != nil {
+	err = common.InstanceFileDelete(server, instanceName, state.TargetPath.ValueString())
+	if err != nil && !errors.IsNotFoundError(err) {
 		resp.Diagnostics.AddError(fmt.Sprintf("Failed to delete file %q from instance %q", targetFile, instanceName), err.Error())
 		return
 	}
