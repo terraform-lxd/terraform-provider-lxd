@@ -653,12 +653,14 @@ func (r InstanceResource) Create(ctx context.Context, req resource.CreateRequest
 
 	// In case the image is set, create the instance from it, otherwise create it without rootfs. Similar to the --empty CLI flag on lxc.
 	if image != "" {
-		opCreateFromImage, err := server.CreateInstanceFromImage(imageServer, *imageInfo, instance)
+		var opCreateFromImage lxd.RemoteOperation
+		opCreateFromImage, err = server.CreateInstanceFromImage(imageServer, *imageInfo, instance)
 		if err == nil {
 			err = opCreateFromImage.Wait()
 		}
 	} else {
-		opCreate, err := server.CreateInstance(instance)
+		var opCreate lxd.Operation
+		opCreate, err = server.CreateInstance(instance)
 		if err == nil {
 			err = opCreate.Wait()
 		}
