@@ -256,6 +256,9 @@ func (r InstanceFileResource) Read(ctx context.Context, req resource.ReadRequest
 	instance, _, err := server.GetInstance(instanceName)
 	if err != nil {
 		if errors.IsNotFoundError(err) {
+			// If instance is not found, file cannot exist. Remove it
+			// from the state to ensure it is created on next apply.
+			resp.State.RemoveResource(ctx)
 			return
 		}
 
@@ -263,10 +266,18 @@ func (r InstanceFileResource) Read(ctx context.Context, req resource.ReadRequest
 		return
 	}
 
-	// Fetch file
+	// Fetch an existing file.
 	_, file, err := server.GetInstanceFile(instanceName, targetPath)
 	if err != nil {
+		if errors.IsNotFoundError(err) {
+			// If file is not found, remove it from the Terraform state
+			// to ensure it is recreated.
+			resp.State.RemoveResource(ctx)
+			return
+		}
+
 		resp.Diagnostics.AddError(fmt.Sprintf("Failed to retrieve file %q from instance %q", targetPath, instanceName), err.Error())
+		return
 	}
 
 	state.Instance = types.StringValue(instanceName)
@@ -313,20 +324,9 @@ func (r InstanceFileResource) Delete(ctx context.Context, req resource.DeleteReq
 		return
 	}
 
-	file := common.InstanceFileModel{
-		Content:    state.Content,
-		SourcePath: state.SourcePath,
-		TargetPath: state.TargetPath,
-		UserID:     state.UserID,
-		GroupID:    state.GroupID,
-		Mode:       state.Mode,
-		CreateDirs: state.CreateDirs,
-		Append:     state.Append,
-	}
-
 	// Delete file.
-	err = common.InstanceFileUpload(server, instanceName, file)
-	if err != nil {
+	err = common.InstanceFileDelete(server, instanceName, state.TargetPath.ValueString())
+	if err != nil && !errors.IsNotFoundError(err) {
 		resp.Diagnostics.AddError(fmt.Sprintf("Failed to delete file %q from instance %q", targetFile, instanceName), err.Error())
 		return
 	}
