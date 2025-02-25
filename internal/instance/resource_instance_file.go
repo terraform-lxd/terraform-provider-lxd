@@ -267,6 +267,7 @@ func (r InstanceFileResource) Read(ctx context.Context, req resource.ReadRequest
 	_, file, err := server.GetInstanceFile(instanceName, targetPath)
 	if err != nil {
 		resp.Diagnostics.AddError(fmt.Sprintf("Failed to retrieve file %q from instance %q", targetPath, instanceName), err.Error())
+		return
 	}
 
 	state.Instance = types.StringValue(instanceName)
