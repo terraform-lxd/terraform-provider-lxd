@@ -263,9 +263,16 @@ func (r InstanceFileResource) Read(ctx context.Context, req resource.ReadRequest
 		return
 	}
 
-	// Fetch file
+	// Fetch an existing file.
 	_, file, err := server.GetInstanceFile(instanceName, targetPath)
 	if err != nil {
+		if errors.IsNotFoundError(err) {
+			// If file is not found, remove it from the Terraform state
+			// to ensure it is recreated.
+			resp.State.RemoveResource(ctx)
+			return
+		}
+
 		resp.Diagnostics.AddError(fmt.Sprintf("Failed to retrieve file %q from instance %q", targetPath, instanceName), err.Error())
 		return
 	}
