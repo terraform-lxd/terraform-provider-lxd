@@ -671,11 +671,11 @@ func (r InstanceResource) Create(ctx context.Context, req resource.CreateRequest
 		return
 	}
 
-	// Partially update state, to make terraform aware of
-	// an existing instance.
-	diags = resp.State.SetAttribute(ctx, path.Root("name"), instance.Name)
-	if diags.HasError() {
-		resp.Diagnostics.Append(diags...)
+	// Partially update state to make Terraform aware of the created resource.
+	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("name"), instance.Name)...)
+	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("project"), project)...)
+	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("remote"), remote)...)
+	if resp.Diagnostics.HasError() {
 		return
 	}
 

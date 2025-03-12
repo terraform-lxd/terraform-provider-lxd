@@ -183,6 +183,14 @@ func (r StoragePoolResource) Create(ctx context.Context, req resource.CreateRequ
 		return
 	}
 
+	// Partially update state to make Terraform aware of the created resource.
+	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("name"), pool.Name)...)
+	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("project"), project)...)
+	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("remote"), remote)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
 	// Update Terraform state.
 	diags = r.SyncState(ctx, &resp.State, server, plan)
 	resp.Diagnostics.Append(diags...)
