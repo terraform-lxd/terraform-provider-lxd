@@ -2,6 +2,7 @@ package instance_test
 
 import (
 	"fmt"
+	"regexp"
 	"testing"
 
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
@@ -116,7 +117,23 @@ func TestAccInstanceSnapshot_project(t *testing.T) {
 	})
 }
 
-func testAccInstanceSnapshot_basic(cName, sName string, stateful bool) string {
+func TestAccInstanceSnapshot_missingInstance(t *testing.T) {
+	instanceName := acctest.GenerateName(2, "-")
+	snapshotName := acctest.GenerateName(2, "-")
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { acctest.PreCheck(t) },
+		ProtoV6ProviderFactories: acctest.ProtoV6ProviderFactories,
+		Steps: []resource.TestStep{
+			{
+				Config:      testAccInstanceSnapshot_missingInstance(instanceName, snapshotName),
+				ExpectError: regexp.MustCompile("Instance not[ \n]found"),
+			},
+		},
+	})
+}
+
+func testAccInstanceSnapshot_basic(instanceName, snapshotName string, stateful bool) string {
 	return fmt.Sprintf(`
 resource "lxd_instance" "instance1" {
   name  = "%s"
@@ -128,10 +145,10 @@ resource "lxd_snapshot" "snapshot1" {
   name     = "%s"
   stateful = "%v"
 }
-	`, cName, acctest.TestImage, sName, stateful)
+	`, instanceName, acctest.TestImage, snapshotName, stateful)
 }
 
-func testAccInstanceSnapshot_multiple1(cName, sName string) string {
+func testAccInstanceSnapshot_multiple1(instanceName, snapshotName string) string {
 	return fmt.Sprintf(`
 resource "lxd_instance" "instance1" {
   name  = "%s"
@@ -143,10 +160,10 @@ resource "lxd_snapshot" "snapshot1" {
   instance = lxd_instance.instance1.name
   stateful = false
 }
-	`, cName, acctest.TestImage, sName)
+	`, instanceName, acctest.TestImage, snapshotName)
 }
 
-func testAccInstanceSnapshot_multiple2(cName, sName1, sName2 string) string {
+func testAccInstanceSnapshot_multiple2(instanceName, snapshotName1, snapshotName2 string) string {
 	return fmt.Sprintf(`
 resource "lxd_instance" "instance1" {
   name = "%s"
@@ -164,7 +181,7 @@ resource "lxd_snapshot" "snapshot2" {
   instance = lxd_instance.instance1.name
   stateful = "false"
 }
-	`, cName, acctest.TestImage, sName1, sName2)
+	`, instanceName, acctest.TestImage, snapshotName1, snapshotName2)
 }
 func testAccInstanceSnapshot_project(project, instance, snapshot string) string {
 	return fmt.Sprintf(`
@@ -190,4 +207,13 @@ resource "lxd_snapshot" "snapshot1" {
   project  = lxd_project.project1.name
 }
 	`, project, instance, acctest.TestImage, snapshot)
+}
+
+func testAccInstanceSnapshot_missingInstance(instanceName, snapshotName string) string {
+	return fmt.Sprintf(`
+resource "lxd_snapshot" "snapshot1" {
+  instance = "%s"
+  name     = "%s"
+}
+	`, instanceName, snapshotName)
 }

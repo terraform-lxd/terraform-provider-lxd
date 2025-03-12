@@ -143,10 +143,10 @@ func (r InstanceSnapshotResource) Create(ctx context.Context, req resource.Creat
 	}
 
 	var serr error
-	for i := 0; i < 5; i++ {
+	for i := range 5 {
 		op, err := server.CreateInstanceSnapshot(instanceName, snapshotReq)
 		if err != nil {
-			resp.Diagnostics.AddError(fmt.Sprintf("Failed to create snapshot %q for instance %q", snapshotName, instanceName), serr.Error())
+			resp.Diagnostics.AddError(fmt.Sprintf("Failed to create snapshot %q for instance %q", snapshotName, instanceName), err.Error())
 			return
 		}
 
