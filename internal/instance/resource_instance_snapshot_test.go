@@ -2,6 +2,7 @@ package instance_test
 
 import (
 	"fmt"
+	"regexp"
 	"testing"
 
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
@@ -116,6 +117,22 @@ func TestAccInstanceSnapshot_project(t *testing.T) {
 	})
 }
 
+func TestAccInstanceSnapshot_missingInstance(t *testing.T) {
+	instanceName := acctest.GenerateName(2, "-")
+	snapshotName := acctest.GenerateName(2, "-")
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { acctest.PreCheck(t) },
+		ProtoV6ProviderFactories: acctest.ProtoV6ProviderFactories,
+		Steps: []resource.TestStep{
+			{
+				Config:      testAccInstanceSnapshot_missingInstance(instanceName, snapshotName),
+				ExpectError: regexp.MustCompile("Instance not\nfound"),
+			},
+		},
+	})
+}
+
 func testAccInstanceSnapshot_basic(cName, sName string, stateful bool) string {
 	return fmt.Sprintf(`
 resource "lxd_instance" "instance1" {
@@ -190,4 +207,13 @@ resource "lxd_snapshot" "snapshot1" {
   project  = lxd_project.project1.name
 }
 	`, project, instance, acctest.TestImage, snapshot)
+}
+
+func testAccInstanceSnapshot_missingInstance(cName, sName string) string {
+	return fmt.Sprintf(`
+resource "lxd_snapshot" "snapshot1" {
+  instance = "%s"
+  name     = "%s"
+}
+	`, cName, sName)
 }
