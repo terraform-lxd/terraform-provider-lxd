@@ -21,3 +21,5 @@ This data source exports the following attributes in addition to the arguments a
 * `api_extensions` - List of API extensions supported by the LXD server.
 
 * `cluster_members` - Map of cluster members, which is empty if LXD is not clustered. The map key represents a cluster member name.
+
+* `instance_types` - List of supported instance types (e.g. `virtual-machine`, `container`).
