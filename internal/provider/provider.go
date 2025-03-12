@@ -21,6 +21,7 @@ import (
 	"github.com/terraform-lxd/terraform-provider-lxd/internal/profile"
 	"github.com/terraform-lxd/terraform-provider-lxd/internal/project"
 	provider_config "github.com/terraform-lxd/terraform-provider-lxd/internal/provider-config"
+	"github.com/terraform-lxd/terraform-provider-lxd/internal/server"
 	"github.com/terraform-lxd/terraform-provider-lxd/internal/storage"
 	"github.com/terraform-lxd/terraform-provider-lxd/internal/truststore"
 )
@@ -283,6 +284,7 @@ func (p *LxdProvider) DataSources(_ context.Context) []func() datasource.DataSou
 		network.NewNetworkDataSource,
 		profile.NewProfileDataSource,
 		project.NewProjectDataSource,
+		server.NewInfoDataSource,
 		storage.NewStoragePoolDataSource,
 	}
 }
