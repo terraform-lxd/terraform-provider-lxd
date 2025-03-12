@@ -218,6 +218,14 @@ func (r ProfileResource) Create(ctx context.Context, req resource.CreateRequest,
 			resp.Diagnostics.AddError(fmt.Sprintf("Failed to create profile %q", profile.Name), err.Error())
 			return
 		}
+
+		// Partially update state to make Terraform aware of the created resource.
+		resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("name"), profile.Name)...)
+		resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("project"), project)...)
+		resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("remote"), remote)...)
+		if resp.Diagnostics.HasError() {
+			return
+		}
 	}
 
 	// Update Terraform state.
