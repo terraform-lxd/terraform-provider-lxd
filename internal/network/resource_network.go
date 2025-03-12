@@ -177,6 +177,14 @@ func (r NetworkResource) Create(ctx context.Context, req resource.CreateRequest,
 		return
 	}
 
+	// Partially update state to make Terraform aware of the created resource.
+	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("name"), network.Name)...)
+	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("project"), project)...)
+	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("remote"), remote)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
 	diags = r.SyncState(ctx, &resp.State, server, plan)
 	resp.Diagnostics.Append(diags...)
 }
