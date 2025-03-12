@@ -106,7 +106,7 @@ func (r InstanceResource) Schema(ctx context.Context, _ resource.SchemaRequest, 
 			},
 
 			"image": schema.StringAttribute{
-				Required: true,
+				Optional: true,
 				PlanModifiers: []planmodifier.String{
 					stringplanmodifier.RequiresReplace(),
 				},
@@ -526,6 +526,15 @@ func (r InstanceResource) ValidateConfig(ctx context.Context, req resource.Valid
 			fmt.Sprintf("Ephemeral instances are removed when stopped, therefore attribute %q must be set to %q.", "running", "true"),
 		)
 	}
+
+	// Ensure image is set for container instances
+	if config.Image.IsNull() && config.Type.ValueString() == "container" {
+		resp.Diagnostics.AddAttributeError(
+			path.Root("image"),
+			fmt.Sprintf("Instance %q is a container and requires image", config.Name.ValueString()),
+			fmt.Sprintf("Container instances require a rootfs (image), therefore attribute %q must be set.", "image"),
+		)
+	}
 }
 
 func (r InstanceResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
@@ -617,7 +626,10 @@ func (r InstanceResource) Create(ctx context.Context, req resource.CreateRequest
 
 	// Gather info about source image.
 	conn, _ := imageServer.GetConnectionInfo()
-	if conn.Protocol == "simplestreams" {
+
+	if image == "" {
+		instance.Source.Type = api.SourceTypeNone
+	} else if conn.Protocol == "simplestreams" {
 		// Optimisation for simplestreams.
 		imageInfo = &api.Image{}
 		imageInfo.Public = true
@@ -639,11 +651,19 @@ func (r InstanceResource) Create(ctx context.Context, req resource.CreateRequest
 		}
 	}
 
-	// Initialize the instance. Instance will no be running after this call.
-	opCreate, err := server.CreateInstanceFromImage(imageServer, *imageInfo, instance)
-	if err == nil {
-		// Wait for the instance to be created.
-		err = opCreate.Wait()
+	// In case the image is set, create the instance from it, otherwise create it without rootfs. Similar to the --empty CLI flag on lxc.
+	if image != "" {
+		var opCreateFromImage lxd.RemoteOperation
+		opCreateFromImage, err = server.CreateInstanceFromImage(imageServer, *imageInfo, instance)
+		if err == nil {
+			err = opCreateFromImage.Wait()
+		}
+	} else {
+		var opCreate lxd.Operation
+		opCreate, err = server.CreateInstance(instance)
+		if err == nil {
+			err = opCreate.Wait()
+		}
 	}
 
 	if err != nil {
