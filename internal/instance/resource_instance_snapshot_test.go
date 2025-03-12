@@ -127,7 +127,7 @@ func TestAccInstanceSnapshot_missingInstance(t *testing.T) {
 		Steps: []resource.TestStep{
 			{
 				Config:      testAccInstanceSnapshot_missingInstance(instanceName, snapshotName),
-				ExpectError: regexp.MustCompile("Instance not\nfound"),
+				ExpectError: regexp.MustCompile("Instance not[ \n]found"),
 			},
 		},
 	})
