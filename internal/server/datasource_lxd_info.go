@@ -3,6 +3,7 @@ package server
 import (
 	"context"
 	"fmt"
+	"slices"
 
 	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
@@ -17,6 +18,7 @@ type InfoModel struct {
 	Remote        types.String `tfsdk:"remote"`
 	APIExtensions types.List   `tfsdk:"api_extensions"`
 	Members       types.Map    `tfsdk:"cluster_members"`
+	InstanceTypes types.List   `tfsdk:"instance_types"`
 }
 
 type ClusterMemberModel struct {
@@ -65,6 +67,12 @@ func (d *InfoDataSource) Schema(_ context.Context, req datasource.SchemaRequest,
 						},
 					},
 				},
+			},
+
+			"instance_types": schema.ListAttribute{
+				Description: "List of supported instance types",
+				Computed:    true,
+				ElementType: types.StringType,
 			},
 		},
 	}
@@ -131,6 +139,13 @@ func (d *InfoDataSource) Read(ctx context.Context, req datasource.ReadRequest, r
 	resp.Diagnostics.Append(diags...)
 
 	config.Members, diags = ToClusterMemberMapType(ctx, clusterMembers)
+	resp.Diagnostics.Append(diags...)
+
+	// Sort instance types to ensure they are always in the same order.
+	instanceTypes := apiServer.Environment.InstanceTypes
+	slices.Sort(instanceTypes)
+
+	config.InstanceTypes, diags = types.ListValueFrom(ctx, types.StringType, instanceTypes)
 	resp.Diagnostics.Append(diags...)
 
 	if resp.Diagnostics.HasError() {
