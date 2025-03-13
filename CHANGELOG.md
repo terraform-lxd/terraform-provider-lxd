@@ -1,3 +1,42 @@
+## 2.5.0 (March 13, 2025)
+
+## What's Changed
+
+### New Features 🎉
+* Allow cluster member group as target and handle in-cluster migration by @MusicDin in https://github.com/terraform-lxd/terraform-provider-lxd/pull/559
+* Profile, project, and image datasources (from Incus) by @MusicDin in https://github.com/terraform-lxd/terraform-provider-lxd/pull/560
+* Add network, storage pool and instance datasources by @MusicDin in https://github.com/terraform-lxd/terraform-provider-lxd/pull/562
+* feat: allow creation of empty VMs by @xvzf in https://github.com/terraform-lxd/terraform-provider-lxd/pull/563
+* datasource: LXD info by @MusicDin in https://github.com/terraform-lxd/terraform-provider-lxd/pull/573
+* server/info: Report instance types by @MusicDin in https://github.com/terraform-lxd/terraform-provider-lxd/pull/574
+
+### Bug Fixes 🐝
+* provider-config: Append port to hostname instead of the URL by @MusicDin in https://github.com/terraform-lxd/terraform-provider-lxd/pull/545
+* instance_file: Fix file removal and panic when file is not found by @MusicDin in https://github.com/terraform-lxd/terraform-provider-lxd/pull/568
+* Fix segfault when taking instance snapshot for an instance doesn't exist by @stew3254 in https://github.com/terraform-lxd/terraform-provider-lxd/pull/572
+* Fix leftover resources on error by @MusicDin in https://github.com/terraform-lxd/terraform-provider-lxd/pull/570
+
+### Maintenance and Chores 🛠
+* build(deps): bump github.com/hashicorp/terraform-plugin-framework-validators from 0.13.0 to 0.14.0 in the hashicorp group by @dependabot in https://github.com/terraform-lxd/terraform-provider-lxd/pull/537
+* build(deps): bump the hashicorp group with 4 updates by @dependabot in https://github.com/terraform-lxd/terraform-provider-lxd/pull/538
+* build(deps): bump github.com/stretchr/testify from 1.9.0 to 1.10.0 by @dependabot in https://github.com/terraform-lxd/terraform-provider-lxd/pull/541
+* build(deps): bump github.com/hashicorp/terraform-plugin-testing from 1.10.0 to 1.11.0 in the hashicorp group by @dependabot in https://github.com/terraform-lxd/terraform-provider-lxd/pull/540
+* docs: Include content_type in volume example by @MusicDin in https://github.com/terraform-lxd/terraform-provider-lxd/pull/544
+* Gomod updates by @simondeziel in https://github.com/terraform-lxd/terraform-provider-lxd/pull/548
+* Improve golangci-lint coverage by @simondeziel in https://github.com/terraform-lxd/terraform-provider-lxd/pull/549
+* build(deps): bump golang.org/x/crypto from 0.30.0 to 0.31.0 by @dependabot in https://github.com/terraform-lxd/terraform-provider-lxd/pull/550
+* build(deps): bump github.com/hashicorp/terraform-plugin-framework-validators from 0.15.0 to 0.16.0 in the hashicorp group by @dependabot in https://github.com/terraform-lxd/terraform-provider-lxd/pull/551
+* gomod: Updates. by @simondeziel in https://github.com/terraform-lxd/terraform-provider-lxd/pull/552
+* github: Fix MinIO install step condition by @MusicDin in https://github.com/terraform-lxd/terraform-provider-lxd/pull/553
+* build(deps): bump github.com/hashicorp/terraform-plugin-framework-timeouts from 0.4.1 to 0.5.0 in the hashicorp group by @dependabot in https://github.com/terraform-lxd/terraform-provider-lxd/pull/555
+* build(deps): bump github.com/hashicorp/terraform-plugin-go from 0.25.0 to 0.26.0 in the hashicorp group by @dependabot in https://github.com/terraform-lxd/terraform-provider-lxd/pull/556
+* tests: Add cluster tests by @MusicDin in https://github.com/terraform-lxd/terraform-provider-lxd/pull/554
+* Misc cleanup by @simondeziel in https://github.com/terraform-lxd/terraform-provider-lxd/pull/557
+* Misc fix by @simondeziel in https://github.com/terraform-lxd/terraform-provider-lxd/pull/558
+* build(deps): bump the hashicorp group with 3 updates by @dependabot in https://github.com/terraform-lxd/terraform-provider-lxd/pull/564
+* build(deps): bump github.com/go-jose/go-jose/v4 from 4.0.4 to 4.0.5 by @dependabot in https://github.com/terraform-lxd/terraform-provider-lxd/pull/567
+* build(deps): bump golang.org/x/net from 0.34.0 to 0.36.0 by @dependabot in https://github.com/terraform-lxd/terraform-provider-lxd/pull/575
+
 ## 2.4.0 (October 11, 2024)
 
 ## What's Changed
