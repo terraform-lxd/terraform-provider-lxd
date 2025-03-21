@@ -1,21 +1,22 @@
 changelog:
   categories:
-    - title: Breaking Changes ⚠️
+    - title: ⚠️ Breaking Changes ⚠️
       labels:
         - breaking-change
-    - title: New Features 🎉
+    - title: New Features
       labels:
-        - enhancement
-    - title: Bug Fixes 🐝
+        - feature
+    - title: Bug Fixes
       labels:
         - bug
-    - title: Maintenance and Chores 🛠
+    - title: Maintenance
       labels:
         - chore
         - documentation
-        - dependencies
-        - go
         - testing
-    - title: Other Changes ❓
+    - title: Dependency Updates
+      labels:
+        - dependencies
+    - title: Other Changes
       labels:
         - "*"
