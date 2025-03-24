@@ -433,7 +433,7 @@ func ToLBBackendList(ctx context.Context, backendsSet types.Set) ([]api.NetworkL
 	return backends, nil
 }
 
-// ToLBBackendList converts list of API network LB backends into types.Set.
+// ToLBBackendSetType converts list of API network LB backends into types.Set.
 func ToLBBackendSetType(ctx context.Context, backends []api.NetworkLoadBalancerBackend) (types.Set, diag.Diagnostics) {
 	backendList := make([]LxdNetworkLBBackendModel, 0, len(backends))
 	for _, b := range backends {
@@ -502,7 +502,7 @@ func ToLBPortList(ctx context.Context, portSet types.Set) ([]api.NetworkLoadBala
 	return ports, nil
 }
 
-// ToLBPortList converts list of API network LB ports into types.Set.
+// ToLBPortSetType converts list of API network LB ports into types.Set.
 func ToLBPortSetType(ctx context.Context, ports []api.NetworkLoadBalancerPort) (types.Set, diag.Diagnostics) {
 	portType := map[string]attr.Type{
 		"description":    types.StringType,

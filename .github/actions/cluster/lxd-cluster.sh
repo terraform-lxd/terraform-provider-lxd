@@ -147,6 +147,7 @@ deploy() {
                 echo "Preparing instance ${instance} ..."
 
                 # Install snap daemon.
+                lxc exec "${instance}" --env=DEBIAN_FRONTEND=noninteractive -- apt-get update
                 lxc exec "${instance}" --env=DEBIAN_FRONTEND=noninteractive -- apt-get -qq -y install snapd
 
                 # Install LXD snap.

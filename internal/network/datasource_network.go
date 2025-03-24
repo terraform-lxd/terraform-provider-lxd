@@ -12,7 +12,7 @@ import (
 	provider_config "github.com/terraform-lxd/terraform-provider-lxd/internal/provider-config"
 )
 
-// NetworkModel resource data model that matches the schema.
+// NetworkDataSourceModel resource data model that matches the schema.
 type NetworkDataSourceModel struct {
 	Name    types.String `tfsdk:"name"`
 	Project types.String `tfsdk:"project"`

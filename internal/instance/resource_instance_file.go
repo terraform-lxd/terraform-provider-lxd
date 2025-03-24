@@ -22,7 +22,7 @@ import (
 	provider_config "github.com/terraform-lxd/terraform-provider-lxd/internal/provider-config"
 )
 
-// InstanceFileModel
+// InstanceFileModel represents a file uploaded to an LXD instance.
 //
 // This model should embed common.LxdFileMode, but terraform-framework does
 // not yet support unmarshaling of embedded structs.

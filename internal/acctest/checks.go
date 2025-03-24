@@ -147,7 +147,7 @@ func PreCheckRoot(t *testing.T) {
 	}
 }
 
-// PreCheckServerExposed skips the test if the server is not exposed on the localhost
+// PreCheckLocalServerHTTPS skips the test if the server is not exposed on the localhost
 // over port 8443. This is required for remote provider tests.
 func PreCheckLocalServerHTTPS(t *testing.T) {
 	conn, err := net.DialTimeout("tcp", "127.0.0.1:8443", 1*time.Second)
