@@ -364,8 +364,8 @@ type NetworkZoneRecordEntryModel struct {
 	TTL   types.Int64  `tfsdk:"ttl"`
 }
 
-// ToZoneRecordMap converts network zone record of type types.Map
-// into []LxdNetworkZoneEntryModel.
+// ToZoneRecordEntryList converts network zone record of type types.Set
+// into []LxdNetworkZoneRecordEntry.
 func ToZoneRecordEntryList(ctx context.Context, entrySet types.Set) ([]api.NetworkZoneRecordEntry, diag.Diagnostics) {
 	if entrySet.IsNull() || entrySet.IsUnknown() {
 		return []api.NetworkZoneRecordEntry{}, nil
