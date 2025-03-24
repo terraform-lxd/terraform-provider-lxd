@@ -51,7 +51,7 @@ type LxdProvider struct {
 	version string
 }
 
-// New returns LXD provider with the given version set.
+// NewLxdProvider returns LXD provider with the given version set.
 func NewLxdProvider(version string) func() provider.Provider {
 	return func() provider.Provider {
 		return &LxdProvider{
