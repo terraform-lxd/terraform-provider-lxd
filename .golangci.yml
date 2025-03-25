@@ -43,12 +43,6 @@ linters:
         - -ST1000 # Package comment should be of the form "Package provider...".
         - -ST1003 # Should not use underscores in Go names.
         - -ST1005 # Error strings should not be capitalized or end with a new line.
-  exclusions:
-    generated: lax
-    paths:
-      - third_party$
-      - builtin$
-      - examples$
 formatters:
   enable:
     - gci
@@ -58,9 +52,3 @@ formatters:
       sections:
         - standard
         - default
-  exclusions:
-    generated: lax
-    paths:
-      - third_party$
-      - builtin$
-      - examples$
