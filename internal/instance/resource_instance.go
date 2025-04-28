@@ -1213,6 +1213,22 @@ func (r InstanceResource) SyncState(ctx context.Context, tfState *tfsdk.State, s
 		}
 	}
 
+	// Get devices configured using this instance resource (not device resource).
+	configuredDevices, diags := common.ToDeviceMap(ctx, m.Devices)
+	respDiags.Append(diags...)
+	if respDiags.HasError() {
+		return respDiags
+	}
+
+	managedDevices := make(map[string]map[string]string, len(configuredDevices))
+	for deviceName := range configuredDevices {
+		if device, ok := instance.Devices[deviceName]; ok {
+			// Only keep devices that were both configured for this resource
+			// and exist in actual LXD state.
+			managedDevices[deviceName] = device
+		}
+	}
+
 	// Convert config, limits, profiles, and devices into schema type.
 	config, diags := common.ToConfigMapType(ctx, stateConfig, m.Config)
 	respDiags.Append(diags...)
@@ -1223,7 +1239,7 @@ func (r InstanceResource) SyncState(ctx context.Context, tfState *tfsdk.State, s
 	profiles, diags := ToProfileListType(ctx, instance.Profiles)
 	respDiags.Append(diags...)
 
-	devices, diags := common.ToDeviceSetType(ctx, instance.Devices)
+	devices, diags := common.ToDeviceSetType(ctx, managedDevices)
 	respDiags.Append(diags...)
 
 	interfaces, diags := common.ToInterfaceMapType(ctx, instanceState.Network, instance.Config)
