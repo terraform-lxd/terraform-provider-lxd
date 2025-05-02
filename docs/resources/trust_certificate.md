@@ -45,4 +45,4 @@ The following attributes are exported:
 
 ## Notes
 
-* See the LXD [documentation](https://documentation.ubuntu.com/lxd/en/latest/authentication/#tls-client-certificates) for more information on client certificates.
+* See the LXD [documentation](https://documentation.ubuntu.com/lxd/latest/authentication/#tls-client-certificates) for more information on client certificates.

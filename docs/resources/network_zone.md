@@ -5,7 +5,7 @@ Manages an LXD network zone.
 You must be using LXD 4.20 or later. See
 [this](https://discuss.linuxcontainers.org/t/lxd-built-in-dns-server/12033)
 forum post for details about LXD network zones and the
-[configuration reference](https://documentation.ubuntu.com/lxd/en/latest/howto/network_zones/)
+[configuration reference](https://documentation.ubuntu.com/lxd/latest/howto/network_zones/)
 for all network zone details.
 
 ## Example Usage
@@ -46,7 +46,7 @@ See the `lxd_network_zone_record` resource for information on how to configure n
 * `description` - *Optional* - Description of the network zone.
 
 * `config` - *Optional* - Map of key/value pairs of
-	[network zone_config settings](https://documentation.ubuntu.com/lxd/en/latest/howto/network_zones/#configuration-options).
+	[network zone_config settings](https://documentation.ubuntu.com/lxd/latest/howto/network_zones/#configuration-options).
 
 * `project` - *Optional* - Name of the project where the network zone will be created.
 

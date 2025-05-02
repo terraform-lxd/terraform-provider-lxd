@@ -67,7 +67,7 @@ resource "lxd_profile" "default" {
 * `device` - *Optional* - Device definition. See reference below.
 
 * `config` - *Optional* - Map of key/value pairs of
-	[instance config settings](https://documentation.ubuntu.com/lxd/en/latest/reference/instance_options/).
+	[instance config settings](https://documentation.ubuntu.com/lxd/latest/reference/instance_options/).
 
 * `project` - *Optional* - Name of the project where the profile will be stored.
 
@@ -82,7 +82,7 @@ The `device` block supports:
 	unix-char, unix-block, usb, gpu, infiniband, proxy, unix-hotplug, tpm, pci.
 
 * `properties`- **Required** - Map of key/value pairs of
-	[device properties](https://documentation.ubuntu.com/lxd/en/latest/reference/devices/).
+	[device properties](https://documentation.ubuntu.com/lxd/latest/reference/devices/).
 
 ## Attribute Reference
 

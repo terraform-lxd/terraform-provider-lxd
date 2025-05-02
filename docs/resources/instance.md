@@ -2,7 +2,7 @@
 
 Manages an LXD instance that can be either a container or virtual machine.
 
-An instance can take a number of configuration and device options. A full reference can be found [here](https://documentation.ubuntu.com/lxd/en/latest/reference/instance_options/).
+An instance can take a number of configuration and device options. A full reference can be found [here](https://documentation.ubuntu.com/lxd/latest/reference/instance_options/).
 
 ## Basic Example
 
@@ -48,7 +48,7 @@ resource "lxd_instance" "instance2" {
 * `name` - **Required** - Name of the instance.
 
 * `image` - **Optional** - Base image from which the instance will be created. **For containers** it must
-  specify [an image accessible from the provider remote](https://documentation.ubuntu.com/lxd/en/latest/reference/remote_image_servers/). If omitted, it is equivalent to the `--empty` CLI flag and creates an empty virtual machine.
+  specify [an image accessible from the provider remote](https://documentation.ubuntu.com/lxd/latest/reference/remote_image_servers/). If omitted, it is equivalent to the `--empty` CLI flag and creates an empty virtual machine.
 
 * `description` - *Optional* - Description of the instance.
 
@@ -74,10 +74,10 @@ resource "lxd_instance" "instance2" {
 * `execs` - *Optional* - Map of exec commands to run within the instance. See reference below.
 
 * `limits` - *Optional* - Map of key/value pairs that define the
-	[instance resources limits](https://documentation.ubuntu.com/lxd/en/latest/reference/instance_options/#resource-limits).
+	[instance resources limits](https://documentation.ubuntu.com/lxd/latest/reference/instance_options/#resource-limits).
 
 * `config` - *Optional* - Map of key/value pairs of
-	[instance config settings](https://documentation.ubuntu.com/lxd/en/latest/reference/instance_options/).
+	[instance config settings](https://documentation.ubuntu.com/lxd/latest/reference/instance_options/).
 
 * `project` - *Optional* - Name of the project where the instance will be spawned.
 
@@ -94,7 +94,7 @@ The `device` block supports:
 	unix-char, unix-block, usb, gpu, infiniband, proxy, unix-hotplug, tpm, pci.
 
 * `properties`- **Required** - Map of key/value pairs of
-	[device properties](https://documentation.ubuntu.com/lxd/en/latest/reference/devices/).
+	[device properties](https://documentation.ubuntu.com/lxd/latest/reference/devices/).
 
 The `file` block supports:
 

@@ -2,7 +2,7 @@
 
 Manages an LXD network forward.
 
-See LXD network forward [configuration reference](https://documentation.ubuntu.com/lxd/en/latest/howto/network_forwards/) for how to configure network forwards.
+See LXD network forward [configuration reference](https://documentation.ubuntu.com/lxd/latest/howto/network_forwards/) for how to configure network forwards.
 
 ## Example Usage
 
@@ -56,7 +56,7 @@ resource "lxd_network_forward" "my_forward" {
 * `ports` - *Optional* - List of port specifications. See reference below.
 
 * `config` - *Optional* - Map of key/value pairs of
-  [network forward config settings](https://documentation.ubuntu.com/lxd/en/latest/howto/network_forwards/).
+  [network forward config settings](https://documentation.ubuntu.com/lxd/latest/howto/network_forwards/).
 
 * `project` - *Optional* - Name of the project where the network forward will be created.
 

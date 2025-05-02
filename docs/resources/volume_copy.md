@@ -49,4 +49,4 @@ No attributes are exported.
 
 ## Notes
 
-* [LXD move/copy documentation](https://documentation.ubuntu.com/lxd/en/latest/howto/storage_move_volume/).
+* [LXD move/copy documentation](https://documentation.ubuntu.com/lxd/latest/howto/storage_move_volume/).

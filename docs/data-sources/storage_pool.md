@@ -28,7 +28,7 @@ This data source exports the following attributes in addition to the arguments a
 * `description` - Description of the storage pool.
 
 * `config` - Map of key/value pairs of
-	[storage pool config settings](https://documentation.ubuntu.com/lxd/en/latest/reference/storage_drivers/).
+	[storage pool config settings](https://documentation.ubuntu.com/lxd/latest/reference/storage_drivers/).
 	Config settings vary from driver to driver.
 
 * `locations` - List of cluster members where storage pool is located.

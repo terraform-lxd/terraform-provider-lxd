@@ -76,7 +76,7 @@ resource "lxd_instance" "instance" {
 * `content_type` - *Optional* - Volume content type (`filesystem` or `block`)
 
 * `config` - *Optional* - Map of key/value pairs of
-	[volume config settings](https://documentation.ubuntu.com/lxd/en/latest/reference/storage_drivers/).
+	[volume config settings](https://documentation.ubuntu.com/lxd/latest/reference/storage_drivers/).
 	Config settings vary depending on the Storage Pool used.
 
 * `project` - *Optional* - Name of the project where the volume will be stored.

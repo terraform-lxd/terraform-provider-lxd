@@ -57,4 +57,4 @@ By setting the trigger to `always` ensures that the token is always present, and
 
 * Token's unique identifier is the operation ID and not the token name. Therefore, multiple tokens can exist with the same name.
 
-* See the LXD [documentation](https://documentation.ubuntu.com/lxd/en/latest/authentication/#authentication-token) for more information on trust tokens.
+* See the LXD [documentation](https://documentation.ubuntu.com/lxd/latest/authentication/#authentication-token) for more information on trust tokens.

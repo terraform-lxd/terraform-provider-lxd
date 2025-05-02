@@ -53,4 +53,4 @@ The following attributes are exported:
 
 ## Notes
 
-* See the LXD [documentation](https://documentation.ubuntu.com/lxd/en/latest/howto/images_remote) for more info on default image remotes.
+* See the LXD [documentation](https://documentation.ubuntu.com/lxd/latest/howto/images_remote) for more info on default image remotes.
