@@ -35,4 +35,4 @@ This data source exports the following attributes in addition to the arguments a
 * `managed` - Whether or not the network is managed.
 
 * `config` - Map of key/value pairs of
-	[network config settings](https://documentation.ubuntu.com/lxd/en/latest/networks/).
+	[network config settings](https://documentation.ubuntu.com/lxd/latest/networks/).

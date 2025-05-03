@@ -36,7 +36,7 @@ resource "lxd_storage_bucket_key" "key" {
 * `description` - *Optional* - Description of the storage bucket key.
 
 * `role` - *Optional* - Name of the role that controls the access rights for the key.
-   If not specified, the default role is used, as described in the [official documentation](https://documentation.ubuntu.com/lxd/en/latest/howto/storage_buckets/#manage-storage-bucket-keys).
+   If not specified, the default role is used, as described in the [official documentation](https://documentation.ubuntu.com/lxd/latest/howto/storage_buckets/#manage-storage-bucket-keys).
 
 * `project` - *Optional* - Name of the project where the storage bucket key will be stored.
 

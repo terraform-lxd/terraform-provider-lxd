@@ -27,5 +27,5 @@ resource "lxd_instance" "inst" {
 
 * `description` - Description of the project.
 
-* `config` - Map of key/value pairs of [project config settings](https://documentation.ubuntu.com/lxd/en/latest/reference/projects/).
+* `config` - Map of key/value pairs of [project config settings](https://documentation.ubuntu.com/lxd/latest/reference/projects/).
 

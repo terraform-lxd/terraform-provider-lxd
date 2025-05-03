@@ -5,7 +5,7 @@ Manages an LXD network.
 You must be using LXD 2.3 or later. See
 [this](https://www.stgraber.org/2016/10/27/network-management-with-lxd-2-3/)
 blog post for details about LXD networking and the
-[configuration reference](https://documentation.ubuntu.com/lxd/en/latest/explanation/networks/)
+[configuration reference](https://documentation.ubuntu.com/lxd/latest/explanation/networks/)
 for all network details.
 
 ## Example Usage
@@ -177,7 +177,7 @@ resource "lxd_network" "my_network" {
 }
 ```
 
-Please see the [LXD Clustering documentation](https://documentation.ubuntu.com/lxd/en/latest/howto/cluster_config_networks/)
+Please see the [LXD Clustering documentation](https://documentation.ubuntu.com/lxd/latest/howto/cluster_config_networks/)
 for more details on how to create a network in clustered mode.
 
 
@@ -193,7 +193,7 @@ for more details on how to create a network in clustered mode.
   is created.
 
 * `config` - *Optional* - Map of key/value pairs of
-	[network config settings](https://documentation.ubuntu.com/lxd/en/latest/networks/).
+	[network config settings](https://documentation.ubuntu.com/lxd/latest/networks/).
 
 * `project` - *Optional* - Name of the project where the network will be created.
 

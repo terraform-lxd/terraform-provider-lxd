@@ -2,7 +2,7 @@
 
 Manages an LXD network ACL.
 
-See LXD network ACL [configuration reference](https://documentation.ubuntu.com/lxd/en/latest/howto/network_acls/) for how to configure network ACLs.
+See LXD network ACL [configuration reference](https://documentation.ubuntu.com/lxd/latest/howto/network_acls/) for how to configure network ACLs.
 
 ## Example Usage
 
@@ -53,7 +53,7 @@ resource "lxd_network_acl" "acl1" {
 * `egress` - *Optional* - List of network ACL rules for egress traffic. See reference below.
 
 * `config` - *Optional* - Map of key/value pairs of
-  [network ACL config settings](https://documentation.ubuntu.com/lxd/en/latest/howto/network_acls/).
+  [network ACL config settings](https://documentation.ubuntu.com/lxd/latest/howto/network_acls/).
 
 * `project` - *Optional* - Name of the project where the network ACL will be created.
 

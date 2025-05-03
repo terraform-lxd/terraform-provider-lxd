@@ -23,7 +23,7 @@ resource "lxd_instance" "inst" {
 
 * `type` - *Optional* - Type of image. Must be one of `container` or `virtual-machine`.
 
-* `architecture` - *Optional* - The image architecture (e.g. `x86_64`, `aarch64`). See [Architectures](https://documentation.ubuntu.com/lxd/en/latest/architectures/) for all possible values.
+* `architecture` - *Optional* - The image architecture (e.g. `x86_64`, `aarch64`). See [Architectures](https://documentation.ubuntu.com/lxd/latest/architectures/) for all possible values.
 
 * `project` - *Optional* - Name of the project where the image is stored.
 

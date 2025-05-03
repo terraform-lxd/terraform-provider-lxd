@@ -34,7 +34,7 @@ resource "lxd_network_peer" "peer-2-1" {
 
 * `description` - *Optional* - Description of the network peer.
 
-* `config` - *Optional* - Map of key/value pairs of [network peer config settings](https://documentation.ubuntu.com/lxd/en/latest/howto/network_ovn_peers/#peering-properties).
+* `config` - *Optional* - Map of key/value pairs of [network peer config settings](https://documentation.ubuntu.com/lxd/latest/howto/network_ovn_peers/#peering-properties).
 
 * `remote` - *Optional* - The remote in which the resource will be created. If not provided, the provider's default remote will be used.
 
@@ -82,4 +82,4 @@ import {
 
 ## Notes
 
-* See the LXD [documentation](https://documentation.ubuntu.com/lxd/en/latest/howto/network_ovn_peers/) for more information on network peer routing.
+* See the LXD [documentation](https://documentation.ubuntu.com/lxd/latest/howto/network_ovn_peers/) for more information on network peer routing.

@@ -25,7 +25,7 @@ resource "lxd_storage_bucket" "bucket" {
 * `description` - *Optional* - Description of the storage bucket.
 
 * `config` - *Optional* - Map of key/value pairs of
-  [storage bucket config settings](https://documentation.ubuntu.com/lxd/en/latest/howto/storage_buckets/#configure-storage-bucket-settings).
+  [storage bucket config settings](https://documentation.ubuntu.com/lxd/latest/howto/storage_buckets/#configure-storage-bucket-settings).
   Note that config settings vary depending on the used storage pool.
 
 * `project` - *Optional* - Name of the project where the storage bucket will be stored.

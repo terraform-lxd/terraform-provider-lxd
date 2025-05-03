@@ -5,7 +5,7 @@ distributing traffic among multiple backends.
 
 -> The load balancer resource is exclusively compatible with OVN (Open Virtual Network).
 
-For more information, please refer to [How to configuration network load balancers](https://documentation.ubuntu.com/lxd/en/latest/howto/network_load_balancers/)
+For more information, please refer to [How to configuration network load balancers](https://documentation.ubuntu.com/lxd/latest/howto/network_load_balancers/)
 in the official LXD documentation.
 
 ## Example Usage
@@ -60,7 +60,7 @@ resource "lxd_network_lb" "load_balancer" {
 
 * `network` - **Required** - Name of the uplink network.
 
-* `listen_address` - **Required** - IP address to listen on. Also, see the [Requirements for listen address](https://documentation.ubuntu.com/lxd/en/latest/howto/network_load_balancers/#requirements-for-listen-addresses) in the official LXD documentation.
+* `listen_address` - **Required** - IP address to listen on. Also, see the [Requirements for listen address](https://documentation.ubuntu.com/lxd/latest/howto/network_load_balancers/#requirements-for-listen-addresses) in the official LXD documentation.
 
 * `description` - *Optional* - Description of the network load balancer.
 

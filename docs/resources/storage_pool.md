@@ -43,7 +43,7 @@ resource "lxd_storage_pool" "mypool" {
 }
 ```
 
-Please see the [LXD Clustering documentation](https://documentation.ubuntu.com/lxd/en/latest/howto/cluster_config_storage/)
+Please see the [LXD Clustering documentation](https://documentation.ubuntu.com/lxd/latest/howto/cluster_config_storage/)
 for more details on how to create a storage pool in clustered mode.
 
 ## Argument Reference
@@ -60,7 +60,7 @@ for more details on how to create a storage pool in clustered mode.
 * `description` - *Optional* - Description of the storage pool.
 
 * `config` - *Optional* - Map of key/value pairs of
-	[storage pool config settings](https://documentation.ubuntu.com/lxd/en/latest/reference/storage_drivers/).
+	[storage pool config settings](https://documentation.ubuntu.com/lxd/latest/reference/storage_drivers/).
 	Config settings vary from driver to driver.
 
 * `project` - *Optional* - Name of the project where the storage pool will be stored.

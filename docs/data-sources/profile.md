@@ -30,7 +30,7 @@ resource "lxd_instance" "inst" {
 * `device` - Device definition. See reference below.
 
 * `config` - Map of key/value pairs of
-	[instance config settings](https://documentation.ubuntu.com/lxd/en/latest/reference/instance_options/).
+	[instance config settings](https://documentation.ubuntu.com/lxd/latest/reference/instance_options/).
 
 The `device` block supports:
 
@@ -39,4 +39,4 @@ The `device` block supports:
 * `type` - Type of the device.
 
 * `properties`- Map of key/value pairs of
-	[device properties](https://documentation.ubuntu.com/lxd/en/latest/reference/devices/).
+	[device properties](https://documentation.ubuntu.com/lxd/latest/reference/devices/).
