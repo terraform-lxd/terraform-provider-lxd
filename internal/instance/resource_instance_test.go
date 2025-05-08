@@ -1452,6 +1452,53 @@ func TestAccInstance_importProject(t *testing.T) {
 	})
 }
 
+func TestAccInstance_containerWaitForOperational(t *testing.T) {
+	instanceName := acctest.GenerateName(2, "-")
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { acctest.PreCheck(t) },
+		ProtoV6ProviderFactories: acctest.ProtoV6ProviderFactories,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccInstance_containerWaitForOperational(instanceName),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr("lxd_instance.instance1", "image", acctest.TestImage),
+					resource.TestCheckResourceAttr("lxd_instance.instance1", "name", instanceName),
+					resource.TestCheckResourceAttr("lxd_instance.instance1", "running", "true"),
+					resource.TestCheckResourceAttr("lxd_instance.instance1", "status", "Running"),
+					resource.TestCheckResourceAttr("lxd_instance.instance1", "type", "container"),
+					resource.TestCheckResourceAttr("lxd_instance.instance1", "wait_for_operational", "false"),
+				),
+			},
+		},
+	})
+}
+
+func TestAccInstance_virtualMachineWaitForOperational(t *testing.T) {
+	instanceName := acctest.GenerateName(2, "-")
+
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			acctest.PreCheck(t)
+			acctest.PreCheckVirtualization(t)
+		},
+		ProtoV6ProviderFactories: acctest.ProtoV6ProviderFactories,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccInstance_virtualMachineWaitForOperational(instanceName),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr("lxd_instance.instance1", "image", acctest.TestImage),
+					resource.TestCheckResourceAttr("lxd_instance.instance1", "name", instanceName),
+					resource.TestCheckResourceAttr("lxd_instance.instance1", "running", "true"),
+					resource.TestCheckResourceAttr("lxd_instance.instance1", "status", "Running"),
+					resource.TestCheckResourceAttr("lxd_instance.instance1", "type", "virtual-machine"),
+					resource.TestCheckResourceAttr("lxd_instance.instance1", "wait_for_operational", "false"),
+				),
+			},
+		},
+	})
+}
+
 func testAccInstance_basic(name string) string {
 	return fmt.Sprintf(`
 resource "lxd_instance" "instance1" {
@@ -2370,4 +2417,30 @@ resource "lxd_instance" "instance1" {
   image         = %q
 }
 	`, instanceName, target, running, allowRestart, acctest.TestImage)
+}
+
+func testAccInstance_virtualMachineWaitForOperational(name string) string {
+	return fmt.Sprintf(`
+resource "lxd_instance" "instance1" {
+  name                 = "%s"
+  image                = "%s"
+  type                 = "virtual-machine"
+  wait_for_operational = false
+
+  config = {
+    "security.secureboot" = false
+  }
+}
+	`, name, acctest.TestImage)
+}
+
+func testAccInstance_containerWaitForOperational(name string) string {
+	return fmt.Sprintf(`
+resource "lxd_instance" "instance1" {
+  name                 = "%s"
+  image                = "%s"
+  type                 = "container"
+  wait_for_operational = false
+}
+	`, name, acctest.TestImage)
 }
