@@ -15,8 +15,14 @@ on:
     tags:
       - "v*"
 
+permissions:
+  contents: read
+
 jobs:
   goreleaser:
+    permissions:
+      contents: read
+      pull-requests: write
     runs-on: ubuntu-24.04
     steps:
       - name: Checkout
