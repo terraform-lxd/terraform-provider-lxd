@@ -15,8 +15,14 @@ on:
     tags:
       - "v*"
 
+permissions:
+  contents: read
+
 jobs:
   goreleaser:
+    permissions:
+      contents: read
+      pull-requests: write
     runs-on: ubuntu-24.04
     steps:
       - name: Checkout
@@ -24,10 +30,12 @@ jobs:
         with:
           # A non-shallow clone is needed for GoReleaser
           fetch-depth: 0
+          persist-credentials: false
 
       - name: Install Go
         uses: actions/setup-go@d35c59abb061a4a6fb18e82ac0862c26744d6ab5 # v5.5.0
         with:
+          cache: false
           go-version-file: 'go.mod'
 
       - name: Import GPG key
