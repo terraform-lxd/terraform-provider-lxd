@@ -177,6 +177,10 @@ func (r DeviceResource) Create(ctx context.Context, req resource.CreateRequest, 
 	deviceType := plan.Type.ValueString()
 	props["type"] = deviceType
 
+	// Mark the device as managed by terraform to differentiate between
+	// devices added by terraform and devices added manually.
+	props[common.UserManagedBy] = common.DeviceManagedByTerraform
+
 	if instance.Devices == nil {
 		instance.Devices = make(map[string]map[string]string)
 	}
@@ -264,15 +268,25 @@ func (r DeviceResource) Update(ctx context.Context, req resource.UpdateRequest, 
 	deviceType := plan.Type.ValueString()
 	props["type"] = deviceType
 
+	// Mark the device as managed by terraform to differentiate between
+	// devices added by terraform and devices added manually.
+	props[common.UserManagedBy] = common.DeviceManagedByTerraform
+
 	if instance.Devices == nil {
 		msg := fmt.Sprintf("Instance %q has no devices", instance.Name)
 		resp.Diagnostics.AddError(msg, msg)
 		return
 	}
 
-	_, deviceExists := instance.Devices[deviceName]
+	oldDevice, deviceExists := instance.Devices[deviceName]
 	if !deviceExists {
 		msg := fmt.Sprintf("Device %q on instance %q not found", deviceName, instance.Name)
+		resp.Diagnostics.AddError(msg, msg)
+		return
+	}
+
+	if oldDevice[common.UserManagedBy] != common.DeviceManagedByTerraform {
+		msg := fmt.Sprintf("Device %q on instance %q is not managed by Terraform", deviceName, instance.Name)
 		resp.Diagnostics.AddError(msg, msg)
 		return
 	}
@@ -325,8 +339,14 @@ func (r DeviceResource) Delete(ctx context.Context, req resource.DeleteRequest, 
 	}
 
 	// Skip the update if the device not found.
-	_, deviceExists := instance.Devices[deviceName]
+	oldDevice, deviceExists := instance.Devices[deviceName]
 	if !deviceExists {
+		return
+	}
+
+	if oldDevice[common.UserManagedBy] != common.DeviceManagedByTerraform {
+		msg := fmt.Sprintf("Device %q on instance %q is not managed by Terraform", deviceName, instance.Name)
+		resp.Diagnostics.AddError(msg, msg)
 		return
 	}
 
@@ -385,6 +405,9 @@ func (r DeviceResource) SyncState(ctx context.Context, tfState *tfsdk.State, ser
 
 	// Delete to avoid duplication, "type" value is stored separately in DeviceModel.
 	delete(deviceProps, "type")
+
+	// Delete "user.managed-by" key from internal state to avoid config mismatch.
+	delete(deviceProps, common.UserManagedBy)
 
 	properties, diags := common.ToConfigMapType(ctx, common.ToNullableConfig(deviceProps), m.Properties)
 	respDiags.Append(diags...)
