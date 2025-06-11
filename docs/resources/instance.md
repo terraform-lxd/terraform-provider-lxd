@@ -61,6 +61,9 @@ resource "lxd_instance" "instance2" {
 * `wait_for_network` - *Optional* - Boolean indicating if the provider should wait for the instance to get an IPv4 address before considering the instance as started.
   If `running` is set to false or instance is already running (on update), this value has no effect. Defaults to `true`.
 
+* `wait_for_operational` - *Optional* - Boolean indicating if the provider should wait for the instance to become fully operational.
+  If `running` is set to false, this value has no effect. Defaults to `true`.
+
 * `allow_restart` - *Optional* - Allow instance to be stopped and restarted if required by the provider for operations like migration or renaming.
 
 * `profiles` - *Optional* - List of LXD config profiles to apply to the new
