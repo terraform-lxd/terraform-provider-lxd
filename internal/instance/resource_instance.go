@@ -593,6 +593,12 @@ func (r InstanceResource) Create(ctx context.Context, req resource.CreateRequest
 	devices, diags := common.ToDeviceMap(ctx, plan.Devices)
 	resp.Diagnostics.Append(diags...)
 
+	for _, device := range devices {
+		// Mark the device as managed by terraform to differentiate between
+		// devices added by terraform and devices added manually.
+		device[common.UserManagedBy] = common.DeviceManagedByTerraform
+	}
+
 	config, diags := common.ToConfigMap(ctx, plan.Config)
 	resp.Diagnostics.Append(diags...)
 
@@ -1220,11 +1226,16 @@ func (r InstanceResource) SyncState(ctx context.Context, tfState *tfsdk.State, s
 		return respDiags
 	}
 
+	// TODO: delete instance devices which have no "user.managed-by" key set.
+
 	managedDevices := make(map[string]map[string]string, len(configuredDevices))
 	for deviceName := range configuredDevices {
+		// Only keep devices that were both configured for this resource
+		// and exist in actual LXD state.
 		if device, ok := instance.Devices[deviceName]; ok {
-			// Only keep devices that were both configured for this resource
-			// and exist in actual LXD state.
+			// Delete "user.managed-by" key from internal state to avoid config mismatch.
+			delete(device, common.UserManagedBy)
+
 			managedDevices[deviceName] = device
 		}
 	}
