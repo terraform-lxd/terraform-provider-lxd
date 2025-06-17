@@ -593,6 +593,12 @@ func (r InstanceResource) Create(ctx context.Context, req resource.CreateRequest
 	devices, diags := common.ToDeviceMap(ctx, plan.Devices)
 	resp.Diagnostics.Append(diags...)
 
+	for _, device := range devices {
+		// Mark the device as managed by terraform to differentiate between
+		// devices added by terraform and devices added manually.
+		device[common.UserManagedBy] = common.DeviceManagedByTerraform
+	}
+
 	config, diags := common.ToConfigMap(ctx, plan.Config)
 	resp.Diagnostics.Append(diags...)
 
@@ -1213,6 +1219,27 @@ func (r InstanceResource) SyncState(ctx context.Context, tfState *tfsdk.State, s
 		}
 	}
 
+	// Get devices configured using this instance resource (not device resource).
+	configuredDevices, diags := common.ToDeviceMap(ctx, m.Devices)
+	respDiags.Append(diags...)
+	if respDiags.HasError() {
+		return respDiags
+	}
+
+	// TODO: delete instance devices which have no "user.managed-by" key set.
+
+	managedDevices := make(map[string]map[string]string, len(configuredDevices))
+	for deviceName := range configuredDevices {
+		// Only keep devices that were both configured for this resource
+		// and exist in actual LXD state.
+		if device, ok := instance.Devices[deviceName]; ok {
+			// Delete "user.managed-by" key from internal state to avoid config mismatch.
+			delete(device, common.UserManagedBy)
+
+			managedDevices[deviceName] = device
+		}
+	}
+
 	// Convert config, limits, profiles, and devices into schema type.
 	config, diags := common.ToConfigMapType(ctx, stateConfig, m.Config)
 	respDiags.Append(diags...)
@@ -1223,7 +1250,7 @@ func (r InstanceResource) SyncState(ctx context.Context, tfState *tfsdk.State, s
 	profiles, diags := ToProfileListType(ctx, instance.Profiles)
 	respDiags.Append(diags...)
 
-	devices, diags := common.ToDeviceSetType(ctx, instance.Devices)
+	devices, diags := common.ToDeviceSetType(ctx, managedDevices)
 	respDiags.Append(diags...)
 
 	interfaces, diags := common.ToInterfaceMapType(ctx, instanceState.Network, instance.Config)
