@@ -8,6 +8,10 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/types"
 )
 
+// DeviceManagedByTerraform is used as a value for "user.managed-by" config key to signify that
+// resource is managed by the LXD provider.
+const DeviceManagedByTerraform = "terraform-lxd-provider"
+
 type DeviceModel struct {
 	Name       types.String `tfsdk:"name"`
 	Type       types.String `tfsdk:"type"`
