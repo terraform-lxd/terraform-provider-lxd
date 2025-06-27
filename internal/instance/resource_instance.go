@@ -603,6 +603,12 @@ func (r InstanceResource) Create(ctx context.Context, req resource.CreateRequest
 		return
 	}
 
+	for _, device := range devices {
+		// Mark the device as managed by terraform to differentiate between
+		// devices added by terraform and devices added manually.
+		device[common.UserManagedBy] = common.DeviceManagedByTerraform
+	}
+
 	// Merge limits into instance config.
 	for k, v := range limits {
 		key := "limits." + k
@@ -948,6 +954,25 @@ func (r InstanceResource) Update(ctx context.Context, req resource.UpdateRequest
 		return
 	}
 
+	for _, device := range devices {
+		// Mark the device as managed by terraform to differentiate between
+		// devices added by terraform and devices added manually.
+		device[common.UserManagedBy] = common.DeviceManagedByTerraform
+	}
+
+	// Ensure that devices managed by the InstanceDeviceResource are not removed.
+	for deviceName, device := range instance.Devices {
+		managedBy := device[common.UserManagedBy]
+		if managedBy != common.DeviceManagedByTerraform {
+			continue
+		}
+
+		_, alreadyAdded := devices[deviceName]
+		if !alreadyAdded {
+			devices[deviceName] = device
+		}
+	}
+
 	// Merge limits into instance config.
 	for k, v := range limits {
 		key := "limits." + k
@@ -1213,6 +1238,36 @@ func (r InstanceResource) SyncState(ctx context.Context, tfState *tfsdk.State, s
 		}
 	}
 
+	// Get devices configured using this instance resource (not device resource).
+	configuredDevices, diags := common.ToDeviceMap(ctx, m.Devices)
+	respDiags.Append(diags...)
+	if respDiags.HasError() {
+		return respDiags
+	}
+
+	// Devices to save as part of Instance Resource state.
+	var syncDevices = make(map[string]map[string]string)
+
+	for deviceName, device := range instance.Devices {
+		managedBy := device[common.UserManagedBy]
+
+		// Add non-managed devices for deletion by terraform plan.
+		if managedBy != common.DeviceManagedByTerraform {
+			syncDevices[deviceName] = device
+		}
+	}
+
+	for deviceName := range configuredDevices {
+		// Keep the devices that were both configured for this resource
+		// and exist in actual LXD state.
+		if device, ok := instance.Devices[deviceName]; ok {
+			// Delete "user.managed-by" key from internal state to avoid config mismatch.
+			delete(device, common.UserManagedBy)
+
+			syncDevices[deviceName] = device
+		}
+	}
+
 	// Convert config, limits, profiles, and devices into schema type.
 	config, diags := common.ToConfigMapType(ctx, stateConfig, m.Config)
 	respDiags.Append(diags...)
@@ -1223,7 +1278,7 @@ func (r InstanceResource) SyncState(ctx context.Context, tfState *tfsdk.State, s
 	profiles, diags := ToProfileListType(ctx, instance.Profiles)
 	respDiags.Append(diags...)
 
-	devices, diags := common.ToDeviceSetType(ctx, instance.Devices)
+	devices, diags := common.ToDeviceSetType(ctx, syncDevices)
 	respDiags.Append(diags...)
 
 	interfaces, diags := common.ToInterfaceMapType(ctx, instanceState.Network, instance.Config)
