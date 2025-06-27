@@ -251,6 +251,7 @@ func (p *LxdProvider) Resources(_ context.Context) []func() resource.Resource {
 		instance.NewInstanceResource,
 		instance.NewInstanceFileResource,
 		instance.NewInstanceSnapshotResource,
+		instance.NewInstanceDeviceResource,
 		network.NewNetworkResource,
 		network.NewNetworkAclResource,
 		network.NewNetworkForwardResource,
