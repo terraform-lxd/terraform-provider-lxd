@@ -143,6 +143,13 @@ func (r *InstanceDeviceResource) Configure(_ context.Context, req resource.Confi
 	r.provider = provider
 }
 
+func (r *InstanceDeviceResource) ModifyPlan(_ context.Context, _ resource.ModifyPlanRequest, resp *resource.ModifyPlanResponse) {
+	resp.Diagnostics.AddWarning(
+		"lxd_instance_device is experimental",
+		"lxd_instance_device resource is an experimental feature of Terraform LXD Provider and it may change in the future.",
+	)
+}
+
 func (r InstanceDeviceResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
 	var plan InstanceDeviceModel
 
