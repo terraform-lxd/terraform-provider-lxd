@@ -7,7 +7,7 @@ import (
 	"strings"
 	"testing"
 
-	lxd_shared "github.com/canonical/lxd/shared"
+	lxdShared "github.com/canonical/lxd/shared"
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
 	"github.com/terraform-lxd/terraform-provider-lxd/internal/acctest"
 	"github.com/terraform-lxd/terraform-provider-lxd/internal/truststore"
@@ -241,7 +241,7 @@ resource "lxd_trust_certificate" "cert" {
 }
 
 func generateCert(t *testing.T) (certificate string, fingerprint string) {
-	certBytes, _, err := lxd_shared.GenerateMemCert(true, lxd_shared.CertOptions{AddHosts: false})
+	certBytes, _, err := lxdShared.GenerateMemCert(true, lxdShared.CertOptions{AddHosts: false})
 	if err != nil {
 		t.Fatalf("Failed to generate certificate: %v", err)
 	}
@@ -251,5 +251,5 @@ func generateCert(t *testing.T) (certificate string, fingerprint string) {
 		t.Fatalf("Failed to parse generated certificate: %v", err)
 	}
 
-	return string(certBytes), lxd_shared.CertFingerprint(certX509)
+	return string(certBytes), lxdShared.CertFingerprint(certX509)
 }
