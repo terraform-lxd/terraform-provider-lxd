@@ -1,6 +1,7 @@
 package config
 
 import (
+	"context"
 	"encoding/pem"
 	"errors"
 	"fmt"
@@ -448,7 +449,7 @@ func (p *LxdProviderConfig) acceptRemoteCertificate(remoteName string, token str
 	}
 
 	// Try to retrieve server's certificate.
-	cert, err := shared.GetRemoteCertificate(url, "terraform-provider-lxd/"+p.version)
+	cert, err := shared.GetRemoteCertificate(context.TODO(), url, "terraform-provider-lxd/"+p.version)
 	if err != nil {
 		return err
 	}
