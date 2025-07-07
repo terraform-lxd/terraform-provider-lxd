@@ -10,6 +10,7 @@ import (
 	"strings"
 
 	lxd "github.com/canonical/lxd/client"
+	lxdShared "github.com/canonical/lxd/shared"
 	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/mitchellh/go-homedir"
@@ -113,7 +114,7 @@ func InstanceFileUpload(server lxd.InstanceServer, instanceName string, file Ins
 
 	// If content was specified, read the string.
 	if content != "" {
-		args.Content = strings.NewReader(content)
+		args.Content = lxdShared.NewReadSeeker(strings.NewReader(content), args.Content)
 	}
 
 	// If a source was specified, read the contents of the source file.
