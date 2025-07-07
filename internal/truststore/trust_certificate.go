@@ -9,7 +9,7 @@ import (
 	"os"
 
 	lxd "github.com/canonical/lxd/client"
-	lxd_shared "github.com/canonical/lxd/shared"
+	lxdShared "github.com/canonical/lxd/shared"
 	"github.com/canonical/lxd/shared/api"
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/attr"
@@ -175,7 +175,7 @@ func (r *TrustCertificateResource) ModifyPlan(ctx context.Context, req resource.
 	}
 
 	// Calculate certificate fingerprint.
-	resp.Plan.SetAttribute(ctx, path.Root("fingerprint"), lxd_shared.CertFingerprint(x509Cert))
+	resp.Plan.SetAttribute(ctx, path.Root("fingerprint"), lxdShared.CertFingerprint(x509Cert))
 }
 
 func (r TrustCertificateResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
@@ -226,7 +226,7 @@ func (r TrustCertificateResource) Create(ctx context.Context, req resource.Creat
 	}
 
 	// Calculate certificate fingerprint.
-	plan.Fingerprint = types.StringValue(lxd_shared.CertFingerprint(x509Cert))
+	plan.Fingerprint = types.StringValue(lxdShared.CertFingerprint(x509Cert))
 
 	// Create new certificate.
 	cert := api.CertificatesPost{
