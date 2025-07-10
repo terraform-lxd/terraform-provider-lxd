@@ -36,23 +36,24 @@ import (
 )
 
 type InstanceModel struct {
-	Name           types.String `tfsdk:"name"`
-	Description    types.String `tfsdk:"description"`
-	Type           types.String `tfsdk:"type"`
-	Image          types.String `tfsdk:"image"`
-	Ephemeral      types.Bool   `tfsdk:"ephemeral"`
-	Running        types.Bool   `tfsdk:"running"`
-	AllowRestart   types.Bool   `tfsdk:"allow_restart"`
-	WaitForNetwork types.Bool   `tfsdk:"wait_for_network"`
-	Profiles       types.List   `tfsdk:"profiles"`
-	Devices        types.Set    `tfsdk:"device"`
-	Files          types.Set    `tfsdk:"file"`
-	Execs          types.Map    `tfsdk:"execs"`
-	Limits         types.Map    `tfsdk:"limits"`
-	Config         types.Map    `tfsdk:"config"`
-	Project        types.String `tfsdk:"project"`
-	Remote         types.String `tfsdk:"remote"`
-	Target         types.String `tfsdk:"target"`
+	Name               types.String `tfsdk:"name"`
+	Description        types.String `tfsdk:"description"`
+	Type               types.String `tfsdk:"type"`
+	Image              types.String `tfsdk:"image"`
+	Ephemeral          types.Bool   `tfsdk:"ephemeral"`
+	Running            types.Bool   `tfsdk:"running"`
+	AllowRestart       types.Bool   `tfsdk:"allow_restart"`
+	WaitForNetwork     types.Bool   `tfsdk:"wait_for_network"`
+	WaitForOperational types.Bool   `tfsdk:"wait_for_operational"`
+	Profiles           types.List   `tfsdk:"profiles"`
+	Devices            types.Set    `tfsdk:"device"`
+	Files              types.Set    `tfsdk:"file"`
+	Execs              types.Map    `tfsdk:"execs"`
+	Limits             types.Map    `tfsdk:"limits"`
+	Config             types.Map    `tfsdk:"config"`
+	Project            types.String `tfsdk:"project"`
+	Remote             types.String `tfsdk:"remote"`
+	Target             types.String `tfsdk:"target"`
 
 	// Computed.
 	IPv4       types.String `tfsdk:"ipv4_address"`
@@ -135,6 +136,12 @@ func (r InstanceResource) Schema(ctx context.Context, _ resource.SchemaRequest, 
 			},
 
 			"wait_for_network": schema.BoolAttribute{
+				Optional: true,
+				Computed: true,
+				Default:  booldefault.StaticBool(true),
+			},
+
+			"wait_for_operational": schema.BoolAttribute{
 				Optional: true,
 				Computed: true,
 				Default:  booldefault.StaticBool(true),
@@ -687,7 +694,7 @@ func (r InstanceResource) Create(ctx context.Context, req resource.CreateRequest
 
 	if plan.Running.ValueBool() {
 		// Start the instance.
-		diag := startInstance(ctx, server, instance.Name)
+		diag := startInstance(ctx, server, instance.Name, plan.WaitForOperational.ValueBool())
 		if diag != nil {
 			resp.Diagnostics.Append(diag)
 			return
@@ -901,7 +908,7 @@ func (r InstanceResource) Update(ctx context.Context, req resource.UpdateRequest
 		instanceStarted = true
 		instanceRunning = true
 
-		diag := startInstance(ctx, server, instanceName)
+		diag := startInstance(ctx, server, instanceName, plan.WaitForOperational.ValueBool())
 		if diag != nil {
 			resp.Diagnostics.Append(diag)
 			return
@@ -1329,6 +1336,10 @@ func (r InstanceResource) SyncState(ctx context.Context, tfState *tfsdk.State, s
 		m.WaitForNetwork = types.BoolValue(true)
 	}
 
+	if m.WaitForOperational.IsNull() {
+		m.WaitForOperational = types.BoolValue(true)
+	}
+
 	if m.AllowRestart.IsNull() {
 		m.AllowRestart = types.BoolValue(false)
 	}
@@ -1366,14 +1377,14 @@ func ToProfileListType(ctx context.Context, profiles []string) (types.List, diag
 
 // startInstance starts an instance with the given name. It also waits
 // for it to become fully operational.
-func startInstance(ctx context.Context, server lxd.InstanceServer, instanceName string) diag.Diagnostic {
+func startInstance(ctx context.Context, server lxd.InstanceServer, instanceName string, checkOperational bool) diag.Diagnostic {
 	st, etag, err := server.GetInstanceState(instanceName)
 	if err != nil {
 		return diag.NewErrorDiagnostic(fmt.Sprintf("Failed to retrieve state of instance %q", instanceName), err.Error())
 	}
 
 	// Return if the instance is already fully operational.
-	if isInstanceOperational(*st) {
+	if checkOperational && isInstanceOperational(*st) {
 		return nil
 	}
 
@@ -1401,7 +1412,7 @@ func startInstance(ctx context.Context, server lxd.InstanceServer, instanceName 
 
 		// If instance is running, but not yet fully operationl, it
 		// means that the instance is still initializing.
-		if isInstanceRunning(*st) && !isInstanceOperational(*st) {
+		if isInstanceRunning(*st) && checkOperational && !isInstanceOperational(*st) {
 			return st, "Running (initializing)", nil
 		}
 
