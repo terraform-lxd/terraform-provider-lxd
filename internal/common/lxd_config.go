@@ -8,6 +8,10 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/types"
 )
 
+// UserManagedBy is used as a config key "user.managed-by" to add additional information about
+// resource owner.
+const UserManagedBy = "user.managed-by"
+
 // ToConfigMap converts config of type types.Map into map[string]string.
 func ToConfigMap(ctx context.Context, configMap types.Map) (map[string]string, diag.Diagnostics) {
 	if configMap.IsNull() || configMap.IsUnknown() {

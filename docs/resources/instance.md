@@ -364,3 +364,7 @@ import {
   state and treated as computed values.
     - `image.*`
     - `volatile.*`
+
+* Terraform LXD provider sets user.managed-by key to all managed instance devices.
+  Removing that key from a device manually, would result in Terraform removing it on next apply.
+
