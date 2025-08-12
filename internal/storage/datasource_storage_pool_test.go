@@ -52,7 +52,6 @@ func TestAccStoragePool_DS_config(t *testing.T) {
 					{
 						Config: testAccStoragePool_DS_config(poolName, poolDriver),
 						Check: resource.ComposeTestCheckFunc(
-							acctest.PrintResourceState(t, "data.lxd_storage_pool.pool"),
 							resource.TestCheckResourceAttr("data.lxd_storage_pool.pool", "name", poolName),
 							resource.TestCheckResourceAttr("data.lxd_storage_pool.pool", "driver", poolDriver),
 							resource.TestCheckResourceAttr("data.lxd_storage_pool.pool", "status", "Created"),
