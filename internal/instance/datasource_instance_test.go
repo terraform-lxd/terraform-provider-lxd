@@ -119,7 +119,7 @@ func TestAccInstance_DS_accessInterface(t *testing.T) {
 					resource.TestCheckResourceAttr("data.lxd_instance.inst", "devices.eth0.properties.nictype", "bridged"),
 					resource.TestCheckResourceAttr("data.lxd_instance.inst", "devices.eth0.properties.parent", networkName),
 					resource.TestCheckResourceAttr("data.lxd_instance.inst", "devices.eth0.properties.hwaddr", "00:16:3e:39:7f:36"),
-					resource.TestCheckResourceAttr("data.lxd_instance.inst", "devices.eth0.properties.ipv4.address", "10.150.19.200"),
+					resource.TestCheckResourceAttr("data.lxd_instance.inst", "devices.eth0.properties.ipv4.address", "10.151.19.200"),
 					resource.TestCheckNoResourceAttr("data.lxd_instance.inst", "mac_address"),
 					resource.TestCheckNoResourceAttr("data.lxd_instance.inst", "ipv4_address"),
 					resource.TestCheckNoResourceAttr("data.lxd_instance.inst", "ipv6_address"),
@@ -132,7 +132,7 @@ func TestAccInstance_DS_accessInterface(t *testing.T) {
 					resource.TestCheckResourceAttr("data.lxd_instance.inst", "name", instanceName),
 					resource.TestCheckResourceAttr("data.lxd_instance.inst", "status", "Running"),
 					resource.TestCheckResourceAttr("data.lxd_instance.inst", "mac_address", "00:16:3e:39:7f:36"),
-					resource.TestCheckResourceAttr("data.lxd_instance.inst", "ipv4_address", "10.150.19.200"),
+					resource.TestCheckResourceAttr("data.lxd_instance.inst", "ipv4_address", "10.151.19.200"),
 					resource.TestCheckResourceAttrSet("data.lxd_instance.inst", "ipv6_address"),
 				),
 			},
@@ -241,7 +241,7 @@ resource "lxd_network" "net" {
   name = %q
 
   config = {
-    "ipv4.address" = "10.150.19.1/24"
+    "ipv4.address" = "10.151.19.1/24"
   }
 }
 
@@ -262,7 +262,7 @@ resource "lxd_instance" "inst" {
       nictype        = "bridged"
       parent         = "${lxd_network.net.name}"
       hwaddr         = "00:16:3e:39:7f:36"
-      "ipv4.address" = "10.150.19.200"
+      "ipv4.address" = "10.151.19.200"
     }
   }
 }
