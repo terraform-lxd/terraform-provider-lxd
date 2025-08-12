@@ -1143,7 +1143,7 @@ func TestAccInstance_accessInterface(t *testing.T) {
 				Config: testAccInstance_accessInterface(networkName, instanceName),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("lxd_network.network1", "name", networkName),
-					resource.TestCheckResourceAttr("lxd_network.network1", "config.ipv4.address", "10.150.19.1/24"),
+					resource.TestCheckResourceAttr("lxd_network.network1", "config.ipv4.address", "10.151.19.1/24"),
 					resource.TestCheckResourceAttr("lxd_instance.instance1", "name", instanceName),
 					resource.TestCheckResourceAttr("lxd_instance.instance1", "status", "Running"),
 					resource.TestCheckResourceAttr("lxd_instance.instance1", "config.%", "1"),
@@ -1154,9 +1154,9 @@ func TestAccInstance_accessInterface(t *testing.T) {
 					resource.TestCheckResourceAttr("lxd_instance.instance1", "device.0.properties.nictype", "bridged"),
 					resource.TestCheckResourceAttr("lxd_instance.instance1", "device.0.properties.parent", networkName),
 					resource.TestCheckResourceAttr("lxd_instance.instance1", "device.0.properties.hwaddr", "00:16:3e:39:7f:36"),
-					resource.TestCheckResourceAttr("lxd_instance.instance1", "device.0.properties.ipv4.address", "10.150.19.200"),
+					resource.TestCheckResourceAttr("lxd_instance.instance1", "device.0.properties.ipv4.address", "10.151.19.200"),
 					resource.TestCheckResourceAttr("lxd_instance.instance1", "mac_address", "00:16:3e:39:7f:36"),
-					resource.TestCheckResourceAttr("lxd_instance.instance1", "ipv4_address", "10.150.19.200"),
+					resource.TestCheckResourceAttr("lxd_instance.instance1", "ipv4_address", "10.151.19.200"),
 					resource.TestCheckResourceAttrSet("lxd_instance.instance1", "ipv6_address"),
 				),
 			},
@@ -2162,7 +2162,7 @@ resource "lxd_network" "network1" {
   name = "%s"
 
   config = {
-    "ipv4.address" = "10.150.19.1/24"
+    "ipv4.address" = "10.151.19.1/24"
   }
 }
 
@@ -2182,7 +2182,7 @@ resource "lxd_instance" "instance1" {
       nictype        = "bridged"
       parent         = "${lxd_network.network1.name}"
       hwaddr         = "00:16:3e:39:7f:36"
-      "ipv4.address" = "10.150.19.200"
+      "ipv4.address" = "10.151.19.200"
     }
   }
 }
