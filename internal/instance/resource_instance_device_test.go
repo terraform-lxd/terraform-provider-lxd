@@ -2,6 +2,8 @@ package instance_test
 
 import (
 	"fmt"
+	"strconv"
+	"strings"
 	"testing"
 
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
@@ -156,6 +158,44 @@ func TestAccInstanceDevice_coexistingDevices(t *testing.T) {
 	})
 }
 
+func TestAccInstanceDevice_volumeAttachCluster(t *testing.T) {
+	targets := acctest.PreCheckClustering(t, 2)
+	instanceName := acctest.GenerateName(2, "-")
+	poolName := acctest.GenerateName(2, "-")
+	driverName := "dir"
+	volumeName := acctest.GenerateName(2, "-")
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { acctest.PreCheck(t) },
+		ProtoV6ProviderFactories: acctest.ProtoV6ProviderFactories,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccInstanceDevice_volumeAttachCluster(instanceName, poolName, driverName, volumeName, targets),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr("lxd_storage_pool.storage_pool_node1", "name", poolName),
+					resource.TestCheckResourceAttr("lxd_storage_pool.storage_pool_node1", "driver", driverName),
+					resource.TestCheckResourceAttr("lxd_storage_pool.storage_pool_node1", "target", targets[0]),
+					resource.TestCheckResourceAttr("lxd_storage_pool.storage_pool_node2", "name", poolName),
+					resource.TestCheckResourceAttr("lxd_storage_pool.storage_pool_node2", "driver", driverName),
+					resource.TestCheckResourceAttr("lxd_storage_pool.storage_pool_node2", "target", targets[1]),
+					resource.TestCheckResourceAttr("lxd_storage_pool.storage_pool", "name", poolName),
+					resource.TestCheckResourceAttr("lxd_storage_pool.storage_pool", "driver", driverName),
+
+					resource.TestCheckResourceAttr("lxd_instance.inst", "name", instanceName),
+					resource.TestCheckResourceAttr("lxd_instance.inst", "status", "Stopped"),
+
+					resource.TestCheckResourceAttr("lxd_instance_device.vol_attach", "name", volumeName),
+					resource.TestCheckResourceAttr("lxd_instance_device.vol_attach", "instance_name", instanceName),
+					resource.TestCheckResourceAttr("lxd_instance_device.vol_attach", "type", "disk"),
+					resource.TestCheckResourceAttr("lxd_instance_device.vol_attach", "properties.path", "/data"),
+					resource.TestCheckResourceAttr("lxd_instance_device.vol_attach", "properties.source", volumeName),
+					resource.TestCheckResourceAttr("lxd_instance_device.vol_attach", "properties.pool", poolName),
+				),
+			},
+		},
+	})
+}
+
 func testAccInstanceDevice_basic(instanceName string, deviceName string) string {
 	return fmt.Sprintf(`
 resource "lxd_instance" "inst" {
@@ -295,4 +335,55 @@ data "lxd_instance" "inst" {
    ]
 }
    `, poolName, volumeName, instanceName, acctest.TestImage, sharedDiskName)
+}
+
+func testAccInstanceDevice_volumeAttachCluster(instanceName string, poolName string, driver string, volumeName string, targets []string) string {
+	var config string
+	var deps []string
+
+	for i, target := range targets {
+		deps = append(deps, "lxd_storage_pool.storage_pool_node"+strconv.Itoa(i+1))
+		config += fmt.Sprintf(`
+resource "lxd_storage_pool" "storage_pool_node%d" {
+  name   = "%s"
+  driver = "%s"
+  target = "%s"
+}`, i+1, poolName, driver, target)
+	}
+
+	config += fmt.Sprintf(`
+resource "lxd_storage_pool" "storage_pool" {
+  depends_on = [ %[3]s ]
+  name       = "%[1]s"
+  driver     = "%[2]s"
+}`, poolName, driver, strings.Join(deps, ", "))
+
+	config += fmt.Sprintf(`
+resource "lxd_instance" "inst" {
+   name    = %q
+   image   = %q
+   running = false
+}
+
+resource "lxd_instance_device" "vol_attach" {
+   name          = lxd_volume.volume1.name
+   instance_name = lxd_instance.inst.name
+   target        = lxd_instance.inst.location
+   type          = "disk"
+
+   properties = {
+      path   = "/data"
+      source = lxd_volume.volume1.name
+      pool   = lxd_storage_pool.storage_pool.name
+   }
+}
+
+resource "lxd_volume" "volume1" {
+  name   = %q
+  pool   = lxd_storage_pool.storage_pool.name
+  target = lxd_instance.inst.location
+}
+   `, instanceName, acctest.TestImage, volumeName)
+
+	return config
 }
