@@ -1,0 +1,73 @@
+name: Bug report
+description: A bug report to help us improve the LXD Terraform provider
+type: "Bug"
+
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Please fill out the fields below to the best of your ability. Doing so will help us track down and reproduce your bug.
+
+        If a field does not apply to your bug, you can answer "n/a". Feel free to add more information where it makes sense.
+
+  - type: checkboxes
+    id: ack_searched
+    attributes:
+      label: Please confirm
+      options:
+        - label: I have searched existing issues to check if an issue already exists for the bug I encountered.
+          required: true
+
+  - type: textarea
+    id: issue_description
+    attributes:
+      label: Issue description
+      description: What were you doing, what happened, and what did you expect?
+    validations:
+      required: true
+
+  - type: input
+    id: lxd_version
+    attributes:
+      label: LXD version
+    validations:
+      required: true
+
+  - type: input
+    id: terraform_provider_version
+    attributes:
+      label: LXD Terraform provider version
+    validations:
+      required: true
+
+  - type: input
+    id: terraform_version
+    attributes:
+      label: Terraform/Tofu version
+    validations:
+      required: true
+
+  - type: input
+    id: distribution
+    attributes:
+      label: Operating system / distribution
+      description: e.g. Ubuntu 24.04, Debian 12, ...
+    validations:
+      required: false
+
+  - type: textarea
+    id: terraform_config
+    attributes:
+      label: Relevant Terraform configuration
+      description: Provide the minimal Terraform configuration needed to reproduce the bug.
+      render: hcl
+    validations:
+      required: false
+
+  - type: textarea
+    id: terraform_output
+    attributes:
+      label: Terraform output
+      description: Paste the relevant output or error messages.
+    validations:
+      required: false
