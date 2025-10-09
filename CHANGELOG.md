@@ -1,3 +1,48 @@
+## 2.6.0 (October 14, 2025)
+
+## What's Changed
+
+### New Features 🎉
+* Add instance device resource by @nmezhenskyi in https://github.com/terraform-lxd/terraform-provider-lxd/pull/584
+
+### Maintenance and Chores 🛠
+* .github/release: Improve generated release notes by @MusicDin in https://github.com/terraform-lxd/terraform-provider-lxd/pull/577
+* github: require all GH actions to be pinned to their SHA commit ID by @simondeziel in https://github.com/terraform-lxd/terraform-provider-lxd/pull/581
+* docs: update links to LXD docs by @simondeziel in https://github.com/terraform-lxd/terraform-provider-lxd/pull/585
+* build(deps): bump github.com/hashicorp/terraform-plugin-testing from 1.11.0 to 1.12.0 in the hashicorp group by @dependabot[bot] in https://github.com/terraform-lxd/terraform-provider-lxd/pull/578
+* build(deps): bump golang.org/x/net from 0.37.0 to 0.38.0 by @dependabot[bot] in https://github.com/terraform-lxd/terraform-provider-lxd/pull/582
+* build(deps): bump actions/setup-go from 5.4.0 to 5.5.0 by @dependabot[bot] in https://github.com/terraform-lxd/terraform-provider-lxd/pull/589
+* build(deps): bump the hashicorp group with 5 updates by @dependabot[bot] in https://github.com/terraform-lxd/terraform-provider-lxd/pull/592
+* build(deps): bump the hashicorp group with 2 updates by @dependabot[bot] in https://github.com/terraform-lxd/terraform-provider-lxd/pull/594
+* build(deps): bump github.com/cloudflare/circl from 1.6.0 to 1.6.1 by @dependabot[bot] in https://github.com/terraform-lxd/terraform-provider-lxd/pull/597
+* build(deps): bump github.com/hashicorp/terraform-plugin-testing from 1.13.1 to 1.13.2 in the hashicorp group by @dependabot[bot] in https://github.com/terraform-lxd/terraform-provider-lxd/pull/598
+* Bump min go version and update deps by @MusicDin in https://github.com/terraform-lxd/terraform-provider-lxd/pull/601
+* build(deps): bump github.com/hashicorp/terraform-plugin-framework from 1.15.0 to 1.15.1 in the hashicorp group by @dependabot[bot] in https://github.com/terraform-lxd/terraform-provider-lxd/pull/605
+* build(deps): bump actions/checkout from 4.2.2 to 4.3.0 by @dependabot[bot] in https://github.com/terraform-lxd/terraform-provider-lxd/pull/606
+* build(deps): bump github.com/stretchr/testify from 1.10.0 to 1.11.0 by @dependabot[bot] in https://github.com/terraform-lxd/terraform-provider-lxd/pull/610
+* build(deps): bump github.com/hashicorp/terraform-plugin-testing from 1.13.2 to 1.13.3 in the hashicorp group by @dependabot[bot] in https://github.com/terraform-lxd/terraform-provider-lxd/pull/609
+* build(deps): bump goreleaser/goreleaser-action from 6.3.0 to 6.4.0 by @dependabot[bot] in https://github.com/terraform-lxd/terraform-provider-lxd/pull/611
+* build(deps): bump github.com/stretchr/testify from 1.11.0 to 1.11.1 by @dependabot[bot] in https://github.com/terraform-lxd/terraform-provider-lxd/pull/614
+* build(deps): bump actions/setup-go from 5.5.0 to 6.0.0 by @dependabot[bot] in https://github.com/terraform-lxd/terraform-provider-lxd/pull/615
+* build(deps): bump the hashicorp group with 4 updates by @dependabot[bot] in https://github.com/terraform-lxd/terraform-provider-lxd/pull/617
+* build(deps): bump github.com/hashicorp/terraform-plugin-sdk/v2 from 2.38.0 to 2.38.1 in the hashicorp group by @dependabot[bot] in https://github.com/terraform-lxd/terraform-provider-lxd/pull/618
+* build(deps): bump github.com/hashicorp/terraform-plugin-framework from 1.16.0 to 1.16.1 in the hashicorp group by @dependabot[bot] in https://github.com/terraform-lxd/terraform-provider-lxd/pull/619
+* build(deps): bump github.com/hashicorp/terraform-plugin-framework-validators from 0.18.0 to 0.19.0 in the hashicorp group by @dependabot[bot] in https://github.com/terraform-lxd/terraform-provider-lxd/pull/621
+
+### Other Changes ❓
+* Fix cluster tests and linter by @MusicDin in https://github.com/terraform-lxd/terraform-provider-lxd/pull/579
+* glangci-lint: Remove unnecessary exclusions by @MusicDin in https://github.com/terraform-lxd/terraform-provider-lxd/pull/580
+* Tweak GitHub workflows by @simondeziel in https://github.com/terraform-lxd/terraform-provider-lxd/pull/593
+* Fix unsupported content-type during file upload by @MusicDin in https://github.com/terraform-lxd/terraform-provider-lxd/pull/602
+* Rename `lxd_shared` to `lxdShared` by @MusicDin in https://github.com/terraform-lxd/terraform-provider-lxd/pull/603
+* tests/instance: Use different network address to prevent race condition by @MusicDin in https://github.com/terraform-lxd/terraform-provider-lxd/pull/607
+* test/storage: Remove resource state output by @MusicDin in https://github.com/terraform-lxd/terraform-provider-lxd/pull/608
+* Instance device resource: follow-up tests by @nmezhenskyi in https://github.com/terraform-lxd/terraform-provider-lxd/pull/604
+* Add issue templates by @MusicDin in https://github.com/terraform-lxd/terraform-provider-lxd/pull/612
+* go: Update deps and bump Go version by @simondeziel in https://github.com/terraform-lxd/terraform-provider-lxd/pull/613
+* github: reclaim disk space in `actions/cluster` by @simondeziel in https://github.com/terraform-lxd/terraform-provider-lxd/pull/622
+* github: silence `lxc file push` of `minio` binaries to instances by @simondeziel in https://github.com/terraform-lxd/terraform-provider-lxd/pull/623
+
 ## 2.5.0 (March 13, 2025)
 
 ## What's Changed
