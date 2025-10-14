@@ -216,8 +216,8 @@ EOF
                                 lxc exec "${instance}" -- mkdir -p "${MINIO_INSTALL_DIR}"
 
                                 # Upload MinIO sever and client binaries.
-                                lxc file push /tmp/minio "${instance}/${MINIO_INSTALL_DIR}/minio"
-                                lxc file push /tmp/mc "${instance}${MINIO_INSTALL_DIR}/mc"
+                                lxc file push --quiet /tmp/minio "${instance}/${MINIO_INSTALL_DIR}/minio"
+                                lxc file push --quiet /tmp/mc "${instance}${MINIO_INSTALL_DIR}/mc"
 
                                 # Configure MinIO.
                                 lxc exec "${instance}" -- snap set lxd minio.path="${MINIO_INSTALL_DIR}"
