@@ -23,6 +23,9 @@ inputs:
 runs:
   using: composite
   steps:
+    - name: Reclaim disk space
+      uses: canonical/lxd/.github/actions/reclaim-disk-space@main
+
       # Remove Docker to avoid conflicts with LXD networks.
     - name: Remove Docker
       uses: canonical/lxd/.github/actions/disable-docker@main
