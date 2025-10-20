@@ -21,7 +21,7 @@ permissions:
 jobs:
   goreleaser:
     permissions:
-      contents: read
+      contents: write
       pull-requests: write
     runs-on: ubuntu-24.04
     steps:
