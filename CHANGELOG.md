@@ -42,6 +42,8 @@
 * go: Update deps and bump Go version by @simondeziel in https://github.com/terraform-lxd/terraform-provider-lxd/pull/613
 * github: reclaim disk space in `actions/cluster` by @simondeziel in https://github.com/terraform-lxd/terraform-provider-lxd/pull/622
 * github: silence `lxc file push` of `minio` binaries to instances by @simondeziel in https://github.com/terraform-lxd/terraform-provider-lxd/pull/623
+* goreleaser: replace deprecated `archives.format` by @simondeziel in https://github.com/terraform-lxd/terraform-provider-lxd/pull/625
+* workflows/release: Add write content perm for token by @MusicDin in https://github.com/terraform-lxd/terraform-provider-lxd/pull/624
 
 ## 2.5.0 (March 13, 2025)
 
