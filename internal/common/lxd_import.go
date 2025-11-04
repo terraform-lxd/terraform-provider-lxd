@@ -71,19 +71,20 @@ func (m ImportMetadata) ParseImportID(importID string) (map[string]string, diag.
 func processFields(id string, requiredFields []string) (map[string]string, error) {
 	result := make(map[string]string)
 
-	// Split id into [remote:]<id>
-	parts := strings.SplitN(id, ":", 2)
-	if len(parts) > 1 {
-		remote := parts[0]
+	// Check for remote if import ID contains colon.
+	// If colon appears after first slash, it is not a remote (most likely part of the IPv6).
+	before, _, _ := strings.Cut(id, "/")
+	remote, _, found := strings.Cut(before, ":")
+	if found {
 		if remote != "" {
 			result["remote"] = remote
 		}
 
-		id = parts[1]
+		id = strings.TrimPrefix(id, remote+":")
 	}
 
 	// Split the remaining id into project and required fields.
-	parts = strings.Split(id, "/")
+	parts := strings.Split(id, "/")
 	if len(parts) > 1 {
 		project := parts[0]
 		if project != "" {
