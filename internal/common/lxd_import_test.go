@@ -86,6 +86,14 @@ func TestSplitImportID_basic(t *testing.T) {
 			Result:   map[string]string{"name": "vm", "project": "proj", "remote": "rem"},
 		},
 		{
+			ImportID: "/1000:aaaa::200",
+			Result:   map[string]string{"name": "1000:aaaa::200"},
+		},
+		{
+			ImportID: "rem:/1000:aaaa::200",
+			Result:   map[string]string{"remote": "rem", "name": "1000:aaaa::200"},
+		},
+		{
 			ImportID:    "",
 			ErrorString: "Import ID cannot be empty.",
 		},
