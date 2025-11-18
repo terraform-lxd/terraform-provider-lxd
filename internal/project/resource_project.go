@@ -232,7 +232,7 @@ func (r ProjectResource) Delete(ctx context.Context, req resource.DeleteRequest,
 		return
 	}
 
-	err = server.DeleteProject(projectName)
+	err = server.DeleteProject(projectName, false)
 	if err != nil {
 		resp.Diagnostics.AddError(fmt.Sprintf("Failed to remove project %q", projectName), err.Error())
 	}
