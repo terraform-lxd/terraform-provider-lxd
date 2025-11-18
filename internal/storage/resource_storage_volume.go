@@ -327,7 +327,7 @@ func (r StorageVolumeResource) Delete(ctx context.Context, req resource.DeleteRe
 	}
 
 	if err != nil {
-		resp.Diagnostics.AddError(fmt.Sprintf("Failed to remove storage pool %q", poolName), err.Error())
+		resp.Diagnostics.AddError(fmt.Sprintf("Failed to remove storage volume %q in pool %q", volName, poolName), err.Error())
 	}
 }
 
