@@ -77,7 +77,7 @@ The network forward port supports:
 
 ## Importing
 
-Import ID syntax: `[<remote>:][<project>/]<network>/<listen-address>`
+Import ID syntax: `[<remote>:][<project>]/<network>/<listen-address>`
 
 * `<remote>` - *Optional* - Remote name.
 * `<project>` - *Optional* - Project name.
