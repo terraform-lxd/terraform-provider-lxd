@@ -207,7 +207,11 @@ func (r ProfileResource) Create(ctx context.Context, req resource.CreateRequest,
 			return
 		}
 
-		err = server.UpdateProfile(profileName, profile.ProfilePut, etag)
+		op, err := server.UpdateProfile(profileName, profile.ProfilePut, etag)
+		if err == nil {
+			err = op.WaitContext(ctx)
+		}
+
 		if err != nil {
 			resp.Diagnostics.AddError(fmt.Sprintf("Failed to update profile %q", profile.Name), err.Error())
 			return
@@ -313,7 +317,11 @@ func (r ProfileResource) Update(ctx context.Context, req resource.UpdateRequest,
 		}
 	}
 
-	err = server.UpdateProfile(profileName, profile, etag)
+	op, err := server.UpdateProfile(profileName, profile, etag)
+	if err == nil {
+		err = op.WaitContext(ctx)
+	}
+
 	if err != nil {
 		resp.Diagnostics.AddError(fmt.Sprintf("Failed to update profile %q", profileName), err.Error())
 		return
@@ -361,7 +369,11 @@ func (r ProfileResource) Delete(ctx context.Context, req resource.DeleteRequest,
 
 		// Also ignore the not found error, which may occur if a project where
 		// the profile is located is already removed.
-		err = server.UpdateProfile(profileName, profile, "")
+		op, err := server.UpdateProfile(profileName, profile, "")
+		if err == nil {
+			err = op.WaitContext(ctx)
+		}
+
 		if err != nil && !errors.IsNotFoundError(err) {
 			resp.Diagnostics.AddError(fmt.Sprintf("Failed to empty configuration of the profile %q", profileName), err.Error())
 		}

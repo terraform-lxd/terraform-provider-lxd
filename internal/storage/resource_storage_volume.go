@@ -195,7 +195,11 @@ func (r StorageVolumeResource) Create(ctx context.Context, req resource.CreateRe
 		},
 	}
 
-	err = server.CreateStoragePoolVolume(poolName, vol)
+	op, err := server.CreateStoragePoolVolume(poolName, vol)
+	if err == nil {
+		err = op.WaitContext(ctx)
+	}
+
 	if err != nil {
 		resp.Diagnostics.AddError(fmt.Sprintf("Failed to create storage volume %q", volName), err.Error())
 		return
@@ -280,7 +284,11 @@ func (r StorageVolumeResource) Update(ctx context.Context, req resource.UpdateRe
 	}
 
 	// Update volume.
-	err = server.UpdateStoragePoolVolume(poolName, volType, volName, volReq, etag)
+	op, err := server.UpdateStoragePoolVolume(poolName, volType, volName, volReq, etag)
+	if err == nil {
+		err = op.WaitContext(ctx)
+	}
+
 	if err != nil {
 		resp.Diagnostics.AddError(fmt.Sprintf("Failed to update storage volume %q", volName), err.Error())
 		return
@@ -312,9 +320,14 @@ func (r StorageVolumeResource) Delete(ctx context.Context, req resource.DeleteRe
 	poolName := state.Pool.ValueString()
 	volName := state.Name.ValueString()
 	volType := state.Type.ValueString()
-	err = server.DeleteStoragePoolVolume(poolName, volType, volName)
+
+	op, err := server.DeleteStoragePoolVolume(poolName, volType, volName)
+	if err == nil {
+		err = op.WaitContext(ctx)
+	}
+
 	if err != nil {
-		resp.Diagnostics.AddError(fmt.Sprintf("Failed to remove storage pool %q", poolName), err.Error())
+		resp.Diagnostics.AddError(fmt.Sprintf("Failed to remove storage volume %q in pool %q", volName, poolName), err.Error())
 	}
 }
 
