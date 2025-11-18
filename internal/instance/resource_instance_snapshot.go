@@ -233,15 +233,14 @@ func (r InstanceSnapshotResource) Delete(ctx context.Context, req resource.Delet
 
 	instanceName := state.Instance.ValueString()
 	snapshotName := state.Name.ValueString()
-	op, err := server.DeleteInstanceSnapshot(instanceName, snapshotName)
+	op, err := server.DeleteInstanceSnapshot(instanceName, snapshotName, "")
+	if err == nil {
+		err = op.WaitContext(ctx)
+	}
+
 	if err != nil {
 		resp.Diagnostics.AddError(fmt.Sprintf("Failed to remove snapshot %q for instance %q", snapshotName, instanceName), err.Error())
 		return
-	}
-
-	err = op.Wait()
-	if err != nil {
-		resp.Diagnostics.AddError(fmt.Sprintf("Failed to remove snapshot %q for instance %q", snapshotName, instanceName), err.Error())
 	}
 }
 
