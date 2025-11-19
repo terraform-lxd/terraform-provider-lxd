@@ -1,3 +1,17 @@
+## 2.6.1 (November 19, 2025)
+
+## What's Changed
+
+### Bug Fixes
+* import: Ensure colon is interpreted for remote only before first slash by @MusicDin in https://github.com/terraform-lxd/terraform-provider-lxd/pull/629
+* docs: Fix network forward import ID syntax by @MusicDin in https://github.com/terraform-lxd/terraform-provider-lxd/pull/631
+
+### Maintenance
+* Handle new async endpoint by @MusicDin in https://github.com/terraform-lxd/terraform-provider-lxd/pull/630
+
+### Dependency Updates
+* build(deps): bump github.com/hashicorp/terraform-plugin-framework-timeouts from 0.6.0 to 0.7.0 in the hashicorp group by @dependabot[bot] in https://github.com/terraform-lxd/terraform-provider-lxd/pull/627
+
 ## 2.6.0 (October 14, 2025)
 
 ## What's Changed
