@@ -1012,12 +1012,7 @@ func (r InstanceResource) Update(ctx context.Context, req resource.UpdateRequest
 	}
 
 	// Remove files that are no longer present in newFiles.
-	for k, f := range oldFiles {
-		_, ok := newFiles[k]
-		if ok {
-			continue
-		}
-
+	for _, f := range oldFiles {
 		targetPath := f.TargetPath.ValueString()
 		err := common.InstanceFileDelete(server, instanceName, targetPath)
 		if err != nil {
@@ -1027,12 +1022,7 @@ func (r InstanceResource) Update(ctx context.Context, req resource.UpdateRequest
 	}
 
 	// Upload new files.
-	for k, f := range newFiles {
-		_, ok := oldFiles[k]
-		if ok {
-			continue
-		}
-
+	for _, f := range newFiles {
 		err := common.InstanceFileUpload(server, instanceName, f)
 		if err != nil {
 			resp.Diagnostics.AddError(fmt.Sprintf("Failed to upload file to instance %q", instanceName), err.Error())
