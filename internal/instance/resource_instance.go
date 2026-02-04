@@ -10,6 +10,7 @@ import (
 
 	lxd "github.com/canonical/lxd/client"
 	"github.com/canonical/lxd/shared/api"
+	"github.com/canonical/lxd/shared/units"
 	"github.com/hashicorp/terraform-plugin-framework-timeouts/resource/timeouts"
 	"github.com/hashicorp/terraform-plugin-framework-validators/listvalidator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/mapvalidator"
@@ -873,6 +874,29 @@ func (r InstanceResource) Update(ctx context.Context, req resource.UpdateRequest
 	// Ensure instance is stopped if required.
 	if !instanceStopped {
 		requireInstanceRestart := requireInstanceMigration || requireInstanceRename
+
+		// Currently memory for virtual machines cannot be live updated.
+		// Restart the virtual machine if provider is allowed to stop the instance
+		// and the limit was increased.
+		//
+		// XXX: Remove once https://github.com/canonical/lxd/issues/15010 is resolved.
+		if instance.Type == string(api.InstanceTypeVM) && plan.AllowRestart.ValueBool() {
+			oldMemory, err := units.ParseByteSizeString(instance.Config["limits.memory"])
+			if err != nil {
+				resp.Diagnostics.AddError("Failed to parse existing memory limit", err.Error())
+				return
+			}
+
+			newMemory, err := units.ParseByteSizeString(limits["memory"])
+			if err != nil {
+				resp.Diagnostics.AddError("Failed to parse new memory limit", err.Error())
+				return
+			}
+
+			if newMemory > oldMemory {
+				requireInstanceRestart = true
+			}
+		}
 
 		// Stop the instance if it's planned to be stopped or if the restart is required.
 		if !plan.Running.ValueBool() || requireInstanceRestart {
