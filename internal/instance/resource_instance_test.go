@@ -1128,6 +1128,66 @@ func TestAccInstance_configLimits(t *testing.T) {
 	})
 }
 
+// Ensure VM limits can be increased when provider is allowed to restart the instance.
+func TestAccInstance_vm_configLimits(t *testing.T) {
+	instanceName := acctest.GenerateName(2, "-")
+
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			acctest.PreCheck(t)
+			acctest.PreCheckVirtualization(t)
+		},
+		ProtoV6ProviderFactories: acctest.ProtoV6ProviderFactories,
+		Steps: []resource.TestStep{
+			{
+				// VM with 1 cpu and 512MiB memory limit.
+				Config: testAccInstance_vm_limits(instanceName, 1, "512MiB", false),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr("lxd_instance.instance1", "name", instanceName),
+					resource.TestCheckResourceAttr("lxd_instance.instance1", "status", "Running"),
+					resource.TestCheckResourceAttr("lxd_instance.instance1", "limits.cpu", "1"),
+					resource.TestCheckResourceAttr("lxd_instance.instance1", "limits.memory", "512MiB"),
+				),
+			},
+			{
+				// Increase CPU limit to 2.
+				Config: testAccInstance_vm_limits(instanceName, 2, "512MiB", false),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr("lxd_instance.instance1", "name", instanceName),
+					resource.TestCheckResourceAttr("lxd_instance.instance1", "status", "Running"),
+					resource.TestCheckResourceAttr("lxd_instance.instance1", "limits.cpu", "2"),
+					resource.TestCheckResourceAttr("lxd_instance.instance1", "limits.memory", "512MiB"),
+				),
+			},
+			{
+				// Increase memory to 768MiB.
+				//
+				// XXX: This should fail until https://github.com/canonical/lxd/issues/15010
+				//      is resolved. Afterwards, remove this step and ensure memory can be
+				//      increased without provider restart.
+				Config: testAccInstance_vm_limits(instanceName, 2, "768MiB", false),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr("lxd_instance.instance1", "name", instanceName),
+					resource.TestCheckResourceAttr("lxd_instance.instance1", "status", "Running"),
+					resource.TestCheckResourceAttr("lxd_instance.instance1", "limits.cpu", "2"),
+					resource.TestCheckResourceAttr("lxd_instance.instance1", "limits.memory", "512MiB"),
+				),
+				ExpectError: regexp.MustCompile("Cannot increase memory"),
+			},
+			{
+				// Increase memory to 768MiB and allow provider to restart the instance.
+				Config: testAccInstance_vm_limits(instanceName, 2, "768MiB", true),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr("lxd_instance.instance1", "name", instanceName),
+					resource.TestCheckResourceAttr("lxd_instance.instance1", "status", "Running"),
+					resource.TestCheckResourceAttr("lxd_instance.instance1", "limits.cpu", "2"),
+					resource.TestCheckResourceAttr("lxd_instance.instance1", "limits.memory", "768MiB"),
+				),
+			},
+		},
+	})
+}
+
 func TestAccInstance_accessInterface(t *testing.T) {
 	networkName := acctest.GenerateName(2, "-")
 	instanceName := acctest.GenerateName(2, "-")
@@ -2154,6 +2214,28 @@ resource "lxd_instance" "instance1" {
   }
 }
 	`, name, acctest.TestImage)
+}
+
+func testAccInstance_vm_limits(name string, cpu int, memory string, allowRestart bool) string {
+	return fmt.Sprintf(`
+resource "lxd_instance" "instance1" {
+  name    = "%s"
+  type    = "virtual-machine"
+  image   = "%s"
+  running = true
+
+  allow_restart = %v
+
+  limits = {
+    "cpu"    = %d
+    "memory" = %q
+  }
+
+  config = {
+    "security.secureboot" = false
+  }
+}
+	`, name, acctest.TestImage, allowRestart, cpu, memory)
 }
 
 func testAccInstance_accessInterface(networkName string, instanceName string) string {

@@ -10,6 +10,7 @@ import (
 
 	lxd "github.com/canonical/lxd/client"
 	"github.com/canonical/lxd/shared/api"
+	"github.com/canonical/lxd/shared/units"
 	"github.com/hashicorp/terraform-plugin-framework-timeouts/resource/timeouts"
 	"github.com/hashicorp/terraform-plugin-framework-validators/listvalidator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/mapvalidator"
@@ -826,15 +827,33 @@ func (r InstanceResource) Update(ctx context.Context, req resource.UpdateRequest
 	}
 
 	// Get instance.
-	instance, _, err := server.GetInstance(instanceName)
+	instance, etag, err := server.GetInstance(instanceName)
 	if err != nil {
 		resp.Diagnostics.AddError(fmt.Sprintf("Failed to retrieve existing instance %q", instanceName), err.Error())
 		return
 	}
 
+	profiles, diags := ToProfileList(ctx, plan.Profiles)
+	resp.Diagnostics.Append(diags...)
+
+	devices, diags := common.ToDeviceMap(ctx, plan.Devices)
+	resp.Diagnostics.Append(diags...)
+
+	limits, diag := common.ToConfigMap(ctx, plan.Limits)
+	resp.Diagnostics.Append(diag...)
+
+	userConfig, diags := common.ToConfigMap(ctx, plan.Config)
+	resp.Diagnostics.Append(diags...)
+
+	config := common.MergeConfig(instance.Config, userConfig, plan.ComputedKeys())
+
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
 	// Indicates if the instance has been just started.
 	instanceStarted := false
-	instanceRunning := isInstanceOperational(*instanceState)
+	instanceStopped := isInstanceStopped(*instanceState)
 	newInstanceName := plan.Name.ValueString()
 
 	requireInstanceMigration := false
@@ -852,106 +871,62 @@ func (r InstanceResource) Update(ctx context.Context, req resource.UpdateRequest
 		requireInstanceMigration = !onExpectedLocation
 	}
 
-	// If migration or instance rename is required, ensure the instance is stopped.
-	if instanceRunning && (requireInstanceRename || requireInstanceMigration) {
-		// If the instance is currently running and is not planned to be stopped,
-		// we need to reject the update in case the provider is not allowed to
-		// temporarily stop the instance. Otherwise, we could render the instance
-		// unavailable without user's permission.
-		if plan.Running.ValueBool() && !plan.AllowRestart.ValueBool() {
-			resp.Diagnostics.AddError(
-				"Instance stop not allowed",
-				fmt.Sprintf(`The provider must temporarily stop the instance %q for migration or renaming, but stopping is not allowed. Either stop the instance manually or set the "allow_restart" attribute to "true".`, instanceName),
-			)
-			return
+	// Ensure instance is stopped if required.
+	if !instanceStopped {
+		requireInstanceRestart := requireInstanceMigration || requireInstanceRename
+
+		// Currently memory for virtual machines cannot be live updated.
+		// Restart the virtual machine if provider is allowed to stop the instance
+		// and the limit was increased.
+		//
+		// XXX: Remove once https://github.com/canonical/lxd/issues/15010 is resolved.
+		if instance.Type == string(api.InstanceTypeVM) && plan.AllowRestart.ValueBool() {
+			oldMemory, err := units.ParseByteSizeString(instance.Config["limits.memory"])
+			if err != nil {
+				resp.Diagnostics.AddError("Failed to parse existing memory limit", err.Error())
+				return
+			}
+
+			newMemory, err := units.ParseByteSizeString(limits["memory"])
+			if err != nil {
+				resp.Diagnostics.AddError("Failed to parse new memory limit", err.Error())
+				return
+			}
+
+			if newMemory > oldMemory {
+				requireInstanceRestart = true
+			}
 		}
 
-		_, diag := stopInstance(ctx, server, instanceName, false)
-		if diag != nil {
-			resp.Diagnostics.Append(diag)
-			return
-		}
+		// Stop the instance if it's planned to be stopped or if the restart is required.
+		if !plan.Running.ValueBool() || requireInstanceRestart {
+			// If the instance is currently running and is not planned to be stopped,
+			// we need to reject the update in case the provider is not allowed to
+			// temporarily stop the instance. Otherwise, we could render the instance
+			// unavailable without user's permission.
+			if plan.Running.ValueBool() && !plan.AllowRestart.ValueBool() {
+				resp.Diagnostics.AddError(
+					"Instance stop not allowed",
+					fmt.Sprintf(`The provider must temporarily stop the instance %q for migration or renaming, but stopping is not allowed. Either stop the instance manually or set the "allow_restart" attribute to "true".`, instanceName),
+				)
+				return
+			}
 
-		instanceRunning = false
-	}
-
-	// Handle instance rename.
-	if requireInstanceRename {
-		err := renameInstance(ctx, server, instanceName, newInstanceName)
-		if err != nil {
-			resp.Diagnostics.AddError(fmt.Sprintf("Failed to rename instance %q", instanceName), err.Error())
-			return
-		}
-
-		// Use new instance name for further operations.
-		instanceName = newInstanceName
-	}
-
-	// Handle instance migration.
-	if requireInstanceMigration {
-		err := migrateInstance(ctx, server, instanceName, target)
-		if err != nil {
-			resp.Diagnostics.AddError(fmt.Sprintf("Failed to migrate instance %q to %q", instanceName, target), err.Error())
-			return
-		}
-	}
-
-	// Ensure the instance is in desired state (stopped/running).
-	if plan.Running.ValueBool() && !instanceRunning {
-		instanceStarted = true
-		instanceRunning = true
-
-		diag := startInstance(ctx, server, instanceName)
-		if diag != nil {
-			resp.Diagnostics.Append(diag)
-			return
-		}
-
-		// If instance is freshly started, we should also wait for
-		// network (if user requested that).
-		if plan.WaitForNetwork.ValueBool() {
-			diag := waitInstanceNetwork(ctx, server, instanceName)
+			_, diag := stopInstance(ctx, server, instanceName, false)
 			if diag != nil {
 				resp.Diagnostics.Append(diag)
 				return
 			}
+
+			// Refresh instance data and etag after stop.
+			instance, etag, err = server.GetInstance(instanceName)
+			if err != nil {
+				resp.Diagnostics.AddError(fmt.Sprintf("Failed to retrieve existing instance %q", instanceName), err.Error())
+				return
+			}
+
+			instanceStopped = true
 		}
-	} else if !plan.Running.ValueBool() && !isInstanceStopped(*instanceState) {
-		instanceRunning = false
-
-		// Stop the instance gracefully.
-		_, diag := stopInstance(ctx, server, instanceName, false)
-		if diag != nil {
-			resp.Diagnostics.Append(diag)
-			return
-		}
-	}
-
-	// Get instance and its etag.
-	instance, etag, err := server.GetInstance(instanceName)
-	if err != nil {
-		resp.Diagnostics.AddError(fmt.Sprintf("Failed to retrieve existing instance %q", instanceName), err.Error())
-		return
-	}
-
-	// First extract profiles, devices, limits, config and config state.
-	// Then merge user defined config with instance config (state).
-	profiles, diags := ToProfileList(ctx, plan.Profiles)
-	resp.Diagnostics.Append(diags...)
-
-	devices, diags := common.ToDeviceMap(ctx, plan.Devices)
-	resp.Diagnostics.Append(diags...)
-
-	limits, diag := common.ToConfigMap(ctx, plan.Limits)
-	resp.Diagnostics.Append(diag...)
-
-	userConfig, diags := common.ToConfigMap(ctx, plan.Config)
-	resp.Diagnostics.Append(diags...)
-
-	config := common.MergeConfig(instance.Config, userConfig, plan.ComputedKeys())
-
-	if resp.Diagnostics.HasError() {
-		return
 	}
 
 	for _, device := range devices {
@@ -999,6 +974,49 @@ func (r InstanceResource) Update(ctx context.Context, req resource.UpdateRequest
 	if err != nil {
 		resp.Diagnostics.AddError(fmt.Sprintf("Failed to update instance %q", instance.Name), err.Error())
 		return
+	}
+
+	// Handle instance rename.
+	if requireInstanceRename {
+		err := renameInstance(ctx, server, instanceName, newInstanceName)
+		if err != nil {
+			resp.Diagnostics.AddError(fmt.Sprintf("Failed to rename instance %q", instanceName), err.Error())
+			return
+		}
+
+		// Use new instance name for further operations.
+		instanceName = newInstanceName
+	}
+
+	// Handle instance migration.
+	if requireInstanceMigration {
+		err := migrateInstance(ctx, server, instanceName, target)
+		if err != nil {
+			resp.Diagnostics.AddError(fmt.Sprintf("Failed to migrate instance %q to %q", instanceName, target), err.Error())
+			return
+		}
+	}
+
+	// Ensure the instance is started if needed.
+	if plan.Running.ValueBool() && instanceStopped {
+		instanceStarted = true
+		instanceStopped = false
+
+		diag := startInstance(ctx, server, instanceName)
+		if diag != nil {
+			resp.Diagnostics.Append(diag)
+			return
+		}
+
+		// If instance is freshly started, we should also wait for
+		// network (if user requested that).
+		if plan.WaitForNetwork.ValueBool() {
+			diag := waitInstanceNetwork(ctx, server, instanceName)
+			if diag != nil {
+				resp.Diagnostics.Append(diag)
+				return
+			}
+		}
 	}
 
 	oldFiles, diags := common.ToFileMap(ctx, state.Files)
@@ -1051,7 +1069,7 @@ func (r InstanceResource) Update(ctx context.Context, req resource.UpdateRequest
 			newExec.RunCount = oldExec.RunCount
 		}
 
-		if instanceRunning && newExec.IsTriggered(instanceStarted) {
+		if !instanceStopped && newExec.IsTriggered(instanceStarted) {
 			diags := newExec.Execute(ctx, server, instance.Name)
 			if diags.HasError() {
 				resp.Diagnostics.Append(diags...)
