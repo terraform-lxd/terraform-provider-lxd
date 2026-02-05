@@ -23,6 +23,8 @@ type NetworkDataSourceModel struct {
 	Type        types.String `tfsdk:"type"`
 	Managed     types.Bool   `tfsdk:"managed"`
 	Config      types.Map    `tfsdk:"config"`
+	IPv4        types.String `tfsdk:"ipv4_address"`
+	IPv6        types.String `tfsdk:"ipv6_address"`
 }
 
 func NewNetworkDataSource() datasource.DataSource {
@@ -68,6 +70,14 @@ func (d *NetworkDataSource) Schema(_ context.Context, req datasource.SchemaReque
 				Computed:    true,
 				ElementType: types.StringType,
 			},
+
+			"ipv4_address": schema.StringAttribute{
+				Computed: true,
+			},
+
+			"ipv6_address": schema.StringAttribute{
+				Computed: true,
+			},
 		},
 	}
 }
@@ -111,6 +121,17 @@ func (d *NetworkDataSource) Read(ctx context.Context, req datasource.ReadRequest
 		return
 	}
 
+	networkState, err := server.GetNetworkState(networkName)
+	if err != nil && !errors.IsNotFoundError(err) {
+		resp.Diagnostics.AddError(fmt.Sprintf("Failed to retrieve state of network %q", networkName), err.Error())
+		return
+	}
+
+	var ipv4, ipv6 string
+	if networkState != nil {
+		ipv4, ipv6 = findGlobalCIDRs(networkState.Addresses)
+	}
+
 	config, diags := common.ToConfigMapType(ctx, common.ToNullableConfig(network.Config), state.Config)
 	resp.Diagnostics.Append(diags...)
 
@@ -119,6 +140,9 @@ func (d *NetworkDataSource) Read(ctx context.Context, req datasource.ReadRequest
 	state.Type = types.StringValue(network.Type)
 	state.Managed = types.BoolValue(network.Managed)
 	state.Config = config
+
+	state.IPv4 = types.StringValue(ipv4)
+	state.IPv6 = types.StringValue(ipv6)
 
 	diags = resp.State.Set(ctx, &state)
 	resp.Diagnostics.Append(diags...)
