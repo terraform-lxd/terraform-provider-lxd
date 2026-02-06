@@ -3,6 +3,7 @@ package project
 import (
 	"context"
 	"fmt"
+	"strings"
 
 	lxd "github.com/canonical/lxd/client"
 	"github.com/canonical/lxd/shared/api"
@@ -11,6 +12,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/booldefault"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/mapdefault"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringdefault"
@@ -28,6 +30,12 @@ type ProjectModel struct {
 	Description types.String `tfsdk:"description"`
 	Remote      types.String `tfsdk:"remote"`
 	Config      types.Map    `tfsdk:"config"`
+
+	// Used to remove unused images from a project on delete.
+	// This is because Terraform does not track images cached by LXD, but if they
+	// are not removed, the project cannot be deleted. Setting this to false will
+	// throw an error if images are still present in the project on delete.
+	CleanupImagesOnDestroy types.Bool `tfsdk:"cleanup_images_on_destroy"`
 }
 
 // ProjectResource represent LXD project resource.
@@ -60,6 +68,12 @@ func (r ProjectResource) Schema(_ context.Context, _ resource.SchemaRequest, res
 				Optional: true,
 				Computed: true,
 				Default:  stringdefault.StaticString(""),
+			},
+
+			"cleanup_images_on_destroy": schema.BoolAttribute{
+				Optional: true,
+				Computed: true,
+				Default:  booldefault.StaticBool(false),
 			},
 
 			"config": schema.MapAttribute{
@@ -230,6 +244,56 @@ func (r ProjectResource) Delete(ctx context.Context, req resource.DeleteRequest,
 	if err != nil {
 		resp.Diagnostics.Append(errors.NewInstanceServerError(err))
 		return
+	}
+
+	// If the provider is allowed to cleanup images on destroy, ensure they are removed
+	// before deleting the project. Images are removed only if they are the only resources
+	// left in the project.
+	if state.CleanupImagesOnDestroy.ValueBool() {
+		project, _, err := server.GetProject(projectName)
+		if err != nil {
+			resp.Diagnostics.AddError(fmt.Sprintf("Failed to retrieve project %q", projectName), err.Error())
+			return
+		}
+
+		// Determine if images need to be removed based on project's UsedBy field.
+		// This ensures images are not removed if project has "features.images" disabled
+		// and prevents image deletion if images are not the only resources left.
+		onlyImagesLeft := true
+		hasImages := false
+		for _, usedBy := range project.UsedBy {
+			if usedBy == "/1.0/profiles/default?project="+projectName {
+				// Ignore default profile which cannot be removed.
+				continue
+			}
+
+			if !strings.HasPrefix(usedBy, "/1.0/images/") {
+				onlyImagesLeft = false
+				break
+			}
+
+			hasImages = true
+		}
+
+		if hasImages && onlyImagesLeft {
+			images, err := server.GetImages()
+			if err != nil {
+				resp.Diagnostics.AddError(fmt.Sprintf("Failed to retrieve images from project %q", projectName), err.Error())
+				return
+			}
+
+			for _, img := range images {
+				op, err := server.DeleteImage(img.Fingerprint)
+				if err == nil {
+					err = op.WaitContext(ctx)
+				}
+
+				if err != nil {
+					resp.Diagnostics.AddError(fmt.Sprintf("Failed to remove unused image %q from project %q", img.Fingerprint, projectName), err.Error())
+					return
+				}
+			}
+		}
 	}
 
 	err = server.DeleteProject(projectName, false)
