@@ -29,6 +29,8 @@ resource "lxd_instance" "instance" {
 
 * `description` - *Optional* - Description of the project.
 
+* `cleanup_images_on_destroy` - *Optional* - Remove project images when deleting project.
+
 * `config` - *Optional* - Map of key/value pairs of [project config settings](https://documentation.ubuntu.com/lxd/latest/reference/projects/).
 
 * `remote` - *Optional* - The remote in which the resource will be created. If
