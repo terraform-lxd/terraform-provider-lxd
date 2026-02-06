@@ -25,6 +25,8 @@ func TestAccNetwork_DS_basic(t *testing.T) {
 					resource.TestCheckResourceAttr("data.lxd_network.network", "type", "bridge"),
 					resource.TestCheckResourceAttr("data.lxd_network.network", "description", "Terraform provider test network"),
 					resource.TestCheckResourceAttr("data.lxd_network.network", "managed", "true"),
+					resource.TestCheckResourceAttrWith("data.lxd_network.network", "ipv4_address", isCIDR),
+					resource.TestCheckResourceAttrWith("data.lxd_network.network", "ipv6_address", isCIDR),
 				),
 			},
 		},

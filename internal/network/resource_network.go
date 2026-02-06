@@ -31,8 +31,12 @@ type NetworkModel struct {
 	Project     types.String `tfsdk:"project"`
 	Remote      types.String `tfsdk:"remote"`
 	Target      types.String `tfsdk:"target"`
-	Managed     types.Bool   `tfsdk:"managed"`
 	Config      types.Map    `tfsdk:"config"`
+
+	// Computed.
+	Managed types.Bool   `tfsdk:"managed"`
+	IPv4    types.String `tfsdk:"ipv4_address"`
+	IPv6    types.String `tfsdk:"ipv6_address"`
 }
 
 // NetworkResource represent LXD network resource.
@@ -106,6 +110,12 @@ func (r NetworkResource) Schema(_ context.Context, _ resource.SchemaRequest, res
 				},
 			},
 
+			"config": schema.MapAttribute{
+				Optional:    true,
+				Computed:    true,
+				ElementType: types.StringType,
+			},
+
 			"managed": schema.BoolAttribute{
 				Computed: true,
 				PlanModifiers: []planmodifier.Bool{
@@ -113,10 +123,12 @@ func (r NetworkResource) Schema(_ context.Context, _ resource.SchemaRequest, res
 				},
 			},
 
-			"config": schema.MapAttribute{
-				Optional:    true,
-				Computed:    true,
-				ElementType: types.StringType,
+			"ipv4_address": schema.StringAttribute{
+				Computed: true,
+			},
+
+			"ipv6_address": schema.StringAttribute{
+				Computed: true,
 			},
 		},
 	}
@@ -325,9 +337,19 @@ func (r NetworkResource) SyncState(ctx context.Context, tfState *tfsdk.State, se
 			return nil
 		}
 
-		return diag.Diagnostics{
-			diag.NewErrorDiagnostic(fmt.Sprintf("Failed to retrieve network %q", networkName), err.Error()),
-		}
+		respDiags.AddError(fmt.Sprintf("Failed to retrieve network %q", networkName), err.Error())
+		return respDiags
+	}
+
+	networkState, err := server.GetNetworkState(networkName)
+	if err != nil && !errors.IsNotFoundError(err) {
+		respDiags.AddError(fmt.Sprintf("Failed to retrieve state of network %q", networkName), err.Error())
+		return respDiags
+	}
+
+	var ipv4, ipv6 string
+	if networkState != nil {
+		ipv4, ipv6 = findGlobalCIDRs(networkState.Addresses)
 	}
 
 	// Extract user defined config and merge it with current config state.
@@ -342,6 +364,9 @@ func (r NetworkResource) SyncState(ctx context.Context, tfState *tfsdk.State, se
 	m.Managed = types.BoolValue(network.Managed)
 	m.Type = types.StringValue(network.Type)
 	m.Config = config
+
+	m.IPv4 = types.StringValue(ipv4)
+	m.IPv6 = types.StringValue(ipv6)
 
 	if respDiags.HasError() {
 		return respDiags
@@ -360,4 +385,27 @@ func (m NetworkModel) ComputedKeys() []string {
 		"ipv6.nat",
 		"volatile.",
 	}
+}
+
+// findGlobalCIDRs returns first global IPv4 and IPv6 network addresses (CIDRs)
+// of the provided network interface. If an IP address is not found, an empty
+// string is returned.
+func findGlobalCIDRs(addrs []api.NetworkStateAddress) (ipv4 string, ipv6 string) {
+	for _, addr := range addrs {
+		if addr.Scope != "global" {
+			continue
+		}
+
+		ip := addr.Address + "/" + addr.Netmask
+
+		if ipv4 == "" && addr.Family == "inet" {
+			ipv4 = ip
+		}
+
+		if ipv6 == "" && addr.Family == "inet6" {
+			ipv6 = ip
+		}
+	}
+
+	return ipv4, ipv6
 }

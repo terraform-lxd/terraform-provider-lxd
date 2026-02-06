@@ -2,6 +2,7 @@ package network_test
 
 import (
 	"fmt"
+	"net"
 	"strconv"
 	"strings"
 	"testing"
@@ -9,6 +10,17 @@ import (
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
 	"github.com/terraform-lxd/terraform-provider-lxd/internal/acctest"
 )
+
+// isCIDR is a custom check that verifies the given value represents a valid
+// CIDR notation IP address.
+func isCIDR(value string) error {
+	_, _, err := net.ParseCIDR(value)
+	if err != nil {
+		return fmt.Errorf("Value %q is not a valid CIDR: %s", value, err)
+	}
+
+	return nil
+}
 
 func TestAccNetwork_basic(t *testing.T) {
 	networkName := acctest.GenerateName(2, "-")
@@ -25,9 +37,11 @@ func TestAccNetwork_basic(t *testing.T) {
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("lxd_network.network", "name", networkName),
 					resource.TestCheckResourceAttr("lxd_network.network", "type", "bridge"),
-					resource.TestCheckResourceAttr("lxd_network.network", "managed", "true"),
 					resource.TestCheckResourceAttr("lxd_network.network", "description", ""),
 					resource.TestCheckResourceAttr("lxd_network.network", "config.%", "0"),
+					resource.TestCheckResourceAttr("lxd_network.network", "managed", "true"),
+					resource.TestCheckResourceAttrWith("lxd_network.network", "ipv4_address", isCIDR),
+					resource.TestCheckResourceAttrWith("lxd_network.network", "ipv6_address", isCIDR),
 				),
 			},
 		},
@@ -175,6 +189,8 @@ func TestAccNetwork_typeMacvlan(t *testing.T) {
 					resource.TestCheckResourceAttr("lxd_network.network", "name", networkName),
 					resource.TestCheckResourceAttr("lxd_network.network", "type", "macvlan"),
 					resource.TestCheckResourceAttr("lxd_network.network", "config.parent", "lxdbr0"),
+					resource.TestCheckResourceAttr("lxd_network.network", "ipv4_address", ""),
+					resource.TestCheckResourceAttr("lxd_network.network", "ipv6_address", ""),
 				),
 			},
 		},
