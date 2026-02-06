@@ -215,6 +215,19 @@ func ConfigureTrustToken(t *testing.T) string {
 	return token.String()
 }
 
+// TestCheckNoResource returns a test check function that verifies a resource with the
+// given name does not exist in the state. Useful for verifying resource destruction.
+func TestCheckNoResource(name string) resource.TestCheckFunc {
+	return func(s *terraform.State) error {
+		_, ok := s.RootModule().Resources[name]
+		if ok {
+			return fmt.Errorf("Resource %q still exists in state", name)
+		}
+
+		return nil
+	}
+}
+
 // PrintResourceState is a test check function that prints the entire state
 // of a resource with the given name. This check should be used only for
 // debuging purposes.
