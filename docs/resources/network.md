@@ -211,6 +211,10 @@ The following attributes are exported:
 
 * `managed` - Whether or not the network is managed.
 
+* `ipv4_address` - The network's global IPv4 address in CIDR notation. For example `10.0.190.1/24`. When no such address exists, an empty string is set.
+
+* `ipv6_address` - The network's global IPv6 address in CIDR notation. For example `fd42:b40e:534a:b208::1/64`. When no such address exists, an empty string is set.
+
 ## Importing
 
 Import ID syntax: `[<remote>:][<project>/]<name>`
