@@ -2,9 +2,12 @@ package project_test
 
 import (
 	"fmt"
+	"os/exec"
+	"regexp"
 	"testing"
 
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
+	"github.com/hashicorp/terraform-plugin-testing/terraform"
 	"github.com/terraform-lxd/terraform-provider-lxd/internal/acctest"
 )
 
@@ -88,6 +91,67 @@ func TestAccProject_updateConfig(t *testing.T) {
 					// Ensure state of computed keys is not tracked.
 					resource.TestCheckNoResourceAttr("lxd_project.project1", "config.features.storage.volumes"),
 					resource.TestCheckNoResourceAttr("lxd_project.project1", "config.features.storage.buckets"),
+				),
+			},
+		},
+	})
+}
+
+func TestAccProject_cleanupImages(t *testing.T) {
+	projectName := acctest.GenerateName(2, "-")
+
+	// Cache image without it being tracked in Terraform state.
+	cacheImage := func(project string) resource.TestCheckFunc {
+		return func(*terraform.State) error {
+			out, err := exec.Command("lxc", "image", "copy", "images:busybox/1.36.1/default", "local:", "--project", project).CombinedOutput()
+			if err != nil {
+				return fmt.Errorf("Failed to copy image: %s, output: %s", err, string(out))
+			}
+
+			return nil
+		}
+	}
+
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			acctest.PreCheck(t)
+			acctest.PreCheckStandalone(t)
+		},
+		ProtoV6ProviderFactories: acctest.ProtoV6ProviderFactories,
+		Steps: []resource.TestStep{
+			{
+				// Create project with 1 manually cached image.
+				Config: testAccProject_imageCleanup(projectName, false),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr("lxd_project.project", "name", projectName),
+					resource.TestCheckResourceAttr("lxd_project.project", "cleanup_images_on_destroy", "false"),
+					cacheImage(projectName),
+				),
+			},
+			{
+				// Destroy project. Project destruction should fail because it
+				// has an untracked cached image left.
+				Config: "{}",
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr("lxd_project.project", "name", projectName),
+					resource.TestCheckResourceAttr("lxd_project.project", "cleanup_images_on_destroy", "false"),
+				),
+				ExpectError: regexp.MustCompile("Only empty projects can be removed"),
+			},
+			{
+				// Enable image cleanup on destroy.
+				Config: testAccProject_imageCleanup(projectName, true),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr("lxd_project.project", "name", projectName),
+					resource.TestCheckResourceAttr("lxd_project.project", "cleanup_images_on_destroy", "true"),
+				),
+			},
+			{
+				// Destroy project image cleanup enabled.
+				// Project destruction should succeed.
+				Config: "{}",
+				Check: resource.ComposeTestCheckFunc(
+					acctest.TestCheckNoResource("lxd_project.project"),
 				),
 			},
 		},
@@ -178,4 +242,17 @@ resource "lxd_project" "project1" {
 	"features.profiles" = true
   }
 }`, name)
+}
+
+func testAccProject_imageCleanup(name string, cleanupImagesOnDestroy bool) string {
+	return fmt.Sprintf(`
+resource "lxd_project" "project" {
+  name                      = %q
+  cleanup_images_on_destroy = %v
+
+  config = {
+	"features.images"   = true
+	"features.profiles" = true
+  }
+}`, name, cleanupImagesOnDestroy)
 }
