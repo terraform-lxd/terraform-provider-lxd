@@ -1,3 +1,25 @@
+## 2.6.2 (February 6, 2026)
+
+## What's Changed
+
+### New Features
+* network: Report network's global ipv4 and ipv6 addresses in CIDR notation by @MusicDin in https://github.com/terraform-lxd/terraform-provider-lxd/pull/649
+
+### Bug Fixes
+* instance: Fix file upload when target path does not change by @MusicDin in https://github.com/terraform-lxd/terraform-provider-lxd/pull/641
+* instance: Prefer stopping instance before update and starting after by @MusicDin in https://github.com/terraform-lxd/terraform-provider-lxd/pull/648
+
+### Dependency Updates
+* build(deps): bump golang.org/x/crypto from 0.43.0 to 0.45.0 by @dependabot[bot] in https://github.com/terraform-lxd/terraform-provider-lxd/pull/633
+* build(deps): bump actions/setup-go from 6.0.0 to 6.1.0 by @dependabot[bot] in https://github.com/terraform-lxd/terraform-provider-lxd/pull/634
+* build(deps): bump actions/checkout from 5.0.0 to 6.0.0 by @dependabot[bot] in https://github.com/terraform-lxd/terraform-provider-lxd/pull/635
+* build(deps): bump github.com/hashicorp/terraform-plugin-log from 0.9.0 to 0.10.0 in the hashicorp group by @dependabot[bot] in https://github.com/terraform-lxd/terraform-provider-lxd/pull/636
+* build(deps): bump github.com/hashicorp/go-version from 1.7.0 to 1.8.0 in the hashicorp group by @dependabot[bot] in https://github.com/terraform-lxd/terraform-provider-lxd/pull/638
+* build(deps): bump actions/checkout from 6.0.0 to 6.0.1 by @dependabot[bot] in https://github.com/terraform-lxd/terraform-provider-lxd/pull/640
+* build(deps): bump the hashicorp group with 2 updates by @dependabot[bot] in https://github.com/terraform-lxd/terraform-provider-lxd/pull/639
+* build(deps): bump actions/setup-go from 6.1.0 to 6.2.0 by @dependabot[bot] in https://github.com/terraform-lxd/terraform-provider-lxd/pull/646
+* build(deps): bump actions/checkout from 6.0.1 to 6.0.2 by @dependabot[bot] in https://github.com/terraform-lxd/terraform-provider-lxd/pull/647
+
 ## 2.6.1 (November 19, 2025)
 
 ## What's Changed
