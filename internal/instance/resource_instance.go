@@ -1131,7 +1131,7 @@ func (r InstanceResource) Delete(ctx context.Context, req resource.DeleteRequest
 	}
 
 	// Delete the instance.
-	opDelete, err := server.DeleteInstance(instanceName)
+	opDelete, err := server.DeleteInstance(instanceName, false)
 	if err == nil {
 		// Wait for the instance to be deleted.
 		err = opDelete.WaitContext(ctx)
