@@ -284,6 +284,7 @@ func (p *LxdProvider) Resources(_ context.Context) []func() resource.Resource {
 func (p *LxdProvider) DataSources(_ context.Context) []func() datasource.DataSource {
 	return []func() datasource.DataSource{
 		auth.NewAuthGroupDataSource,
+		auth.NewAuthIdentityDataSource,
 		image.NewImageDataSource,
 		instance.NewInstanceDataSource,
 		network.NewNetworkDataSource,
