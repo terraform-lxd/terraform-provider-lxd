@@ -1,3 +1,30 @@
+## 2.7.0 (February 27, 2026)
+
+## What's Changed
+
+### New Features
+* Add auth_group resource by @MusicDin in https://github.com/terraform-lxd/terraform-provider-lxd/pull/659
+* Add auth group datasource by @MusicDin in https://github.com/terraform-lxd/terraform-provider-lxd/pull/665
+* Add auth identity resource by @MusicDin in https://github.com/terraform-lxd/terraform-provider-lxd/pull/664
+* Add auth identity datasource by @MusicDin in https://github.com/terraform-lxd/terraform-provider-lxd/pull/666
+
+### Bug Fixes
+* instance: Fix error check in instance DS by @MusicDin in https://github.com/terraform-lxd/terraform-provider-lxd/pull/658
+* image: Use ETag when modifying published image by @MusicDin in https://github.com/terraform-lxd/terraform-provider-lxd/pull/661
+
+### Dependency Updates
+* build(deps): bump github.com/hashicorp/terraform-plugin-sdk/v2 from 2.38.1 to 2.38.2 in the hashicorp group by @dependabot[bot] in https://github.com/terraform-lxd/terraform-provider-lxd/pull/652
+* Update Go deps and LXD client by @MusicDin in https://github.com/terraform-lxd/terraform-provider-lxd/pull/654
+* deps: Update go deps and LXD client by @MusicDin in https://github.com/terraform-lxd/terraform-provider-lxd/pull/655
+* build(deps): bump goreleaser/goreleaser-action from 6.4.0 to 7.0.0 by @dependabot[bot] in https://github.com/terraform-lxd/terraform-provider-lxd/pull/657
+* Minor CI tweaks and switch to 24.04 for most tests by @simondeziel in https://github.com/terraform-lxd/terraform-provider-lxd/pull/656
+* Go refresh by @simondeziel in https://github.com/terraform-lxd/terraform-provider-lxd/pull/660
+
+### Other Changes
+* docs/resources: stop mentionning long EOL Terraform 1.5.0 by @simondeziel in https://github.com/terraform-lxd/terraform-provider-lxd/pull/662
+* docs/auth_group: Remove mention of EOL Terraform 1.5.0 by @MusicDin in https://github.com/terraform-lxd/terraform-provider-lxd/pull/663
+* image: Re-enable publish image in project test  by @MusicDin in https://github.com/terraform-lxd/terraform-provider-lxd/pull/667
+
 ## 2.6.2 (February 6, 2026)
 
 ## What's Changed
