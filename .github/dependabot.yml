@@ -4,6 +4,10 @@ updates:
     directory: "/"
     schedule:
       interval: "weekly"
+    groups:
+      github-actions:
+        patterns:
+          - "*"
     cooldown:
       default-days: 7
 
@@ -12,8 +16,8 @@ updates:
     schedule:
       interval: "weekly"
     groups:
-      hashicorp:
+      gomod:
         patterns:
-          - github.com/hashicorp/*
+          - "*"
     cooldown:
       default-days: 7
