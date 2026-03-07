@@ -16,8 +16,8 @@ updates:
     schedule:
       interval: "weekly"
     groups:
-      hashicorp:
+      gomod:
         patterns:
-          - github.com/hashicorp/*
+          - "*"
     cooldown:
       default-days: 7
