@@ -30,7 +30,6 @@ type StorageBucketModel struct {
 	Pool        types.String `tfsdk:"pool"`
 	Project     types.String `tfsdk:"project"`
 	Target      types.String `tfsdk:"target"`
-	Remote      types.String `tfsdk:"remote"`
 	Config      types.Map    `tfsdk:"config"`
 
 	// Computed.
@@ -81,13 +80,6 @@ func (r StorageBucketResource) Schema(ctx context.Context, req resource.SchemaRe
 				},
 				Validators: []validator.String{
 					stringvalidator.LengthAtLeast(1),
-				},
-			},
-
-			"remote": schema.StringAttribute{
-				Optional: true,
-				PlanModifiers: []planmodifier.String{
-					stringplanmodifier.RequiresReplace(),
 				},
 			},
 
@@ -142,10 +134,9 @@ func (r StorageBucketResource) Create(ctx context.Context, req resource.CreateRe
 		return
 	}
 
-	remote := plan.Remote.ValueString()
 	project := plan.Project.ValueString()
 	target := plan.Target.ValueString()
-	server, err := r.provider.InstanceServer(remote, project, target)
+	server, err := r.provider.InstanceServer(project, target)
 	if err != nil {
 		resp.Diagnostics.Append(errors.NewInstanceServerError(err))
 		return
@@ -188,10 +179,9 @@ func (r StorageBucketResource) Read(ctx context.Context, req resource.ReadReques
 		return
 	}
 
-	remote := state.Remote.ValueString()
 	project := state.Project.ValueString()
 	target := state.Target.ValueString()
-	server, err := r.provider.InstanceServer(remote, project, target)
+	server, err := r.provider.InstanceServer(project, target)
 	if err != nil {
 		resp.Diagnostics.Append(errors.NewInstanceServerError(err))
 		return
@@ -210,10 +200,9 @@ func (r StorageBucketResource) Update(ctx context.Context, req resource.UpdateRe
 		return
 	}
 
-	remote := plan.Remote.ValueString()
 	project := plan.Project.ValueString()
 	target := plan.Target.ValueString()
-	server, err := r.provider.InstanceServer(remote, project, target)
+	server, err := r.provider.InstanceServer(project, target)
 	if err != nil {
 		resp.Diagnostics.Append(errors.NewInstanceServerError(err))
 		return
@@ -257,9 +246,8 @@ func (r StorageBucketResource) Delete(ctx context.Context, req resource.DeleteRe
 		return
 	}
 
-	remote := state.Remote.ValueString()
 	project := state.Project.ValueString()
-	server, err := r.provider.InstanceServer(remote, project, "")
+	server, err := r.provider.InstanceServer(project, "")
 	if err != nil {
 		resp.Diagnostics.Append(errors.NewInstanceServerError(err))
 		return

@@ -30,7 +30,6 @@ type StorageBucketKeyModel struct {
 	Bucket      types.String `tfsdk:"bucket"`
 	Role        types.String `tfsdk:"role"`
 	Project     types.String `tfsdk:"project"`
-	Remote      types.String `tfsdk:"remote"`
 
 	// Computed.
 	AccessKey types.String `tfsdk:"access_key"`
@@ -103,13 +102,6 @@ func (r StorageBucketKeyResource) Schema(ctx context.Context, req resource.Schem
 				},
 			},
 
-			"remote": schema.StringAttribute{
-				Optional: true,
-				PlanModifiers: []planmodifier.String{
-					stringplanmodifier.RequiresReplace(),
-				},
-			},
-
 			// Computed.
 
 			"access_key": schema.StringAttribute{
@@ -149,9 +141,8 @@ func (r StorageBucketKeyResource) Create(ctx context.Context, req resource.Creat
 		return
 	}
 
-	remote := plan.Remote.ValueString()
 	project := plan.Project.ValueString()
-	server, err := r.provider.InstanceServer(remote, project, "")
+	server, err := r.provider.InstanceServer(project, "")
 	if err != nil {
 		resp.Diagnostics.Append(errors.NewInstanceServerError(err))
 		return
@@ -197,9 +188,8 @@ func (r StorageBucketKeyResource) Read(ctx context.Context, req resource.ReadReq
 		return
 	}
 
-	remote := state.Remote.ValueString()
 	project := state.Project.ValueString()
-	server, err := r.provider.InstanceServer(remote, project, "")
+	server, err := r.provider.InstanceServer(project, "")
 	if err != nil {
 		resp.Diagnostics.Append(errors.NewInstanceServerError(err))
 		return
@@ -218,9 +208,8 @@ func (r StorageBucketKeyResource) Update(ctx context.Context, req resource.Updat
 		return
 	}
 
-	remote := plan.Remote.ValueString()
 	project := plan.Project.ValueString()
-	server, err := r.provider.InstanceServer(remote, project, "")
+	server, err := r.provider.InstanceServer(project, "")
 	if err != nil {
 		resp.Diagnostics.Append(errors.NewInstanceServerError(err))
 		return
@@ -270,9 +259,8 @@ func (r StorageBucketKeyResource) Delete(ctx context.Context, req resource.Delet
 		return
 	}
 
-	remote := state.Remote.ValueString()
 	project := state.Project.ValueString()
-	server, err := r.provider.InstanceServer(remote, project, "")
+	server, err := r.provider.InstanceServer(project, "")
 	if err != nil {
 		resp.Diagnostics.Append(errors.NewInstanceServerError(err))
 		return
