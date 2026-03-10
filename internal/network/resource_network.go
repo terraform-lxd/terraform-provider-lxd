@@ -29,7 +29,6 @@ type NetworkModel struct {
 	Description types.String `tfsdk:"description"`
 	Type        types.String `tfsdk:"type"`
 	Project     types.String `tfsdk:"project"`
-	Remote      types.String `tfsdk:"remote"`
 	Target      types.String `tfsdk:"target"`
 	Config      types.Map    `tfsdk:"config"`
 
@@ -93,13 +92,6 @@ func (r NetworkResource) Schema(_ context.Context, _ resource.SchemaRequest, res
 				},
 			},
 
-			"remote": schema.StringAttribute{
-				Optional: true,
-				PlanModifiers: []planmodifier.String{
-					stringplanmodifier.RequiresReplace(),
-				},
-			},
-
 			"target": schema.StringAttribute{
 				Optional: true,
 				PlanModifiers: []planmodifier.String{
@@ -158,10 +150,9 @@ func (r NetworkResource) Create(ctx context.Context, req resource.CreateRequest,
 		return
 	}
 
-	remote := plan.Remote.ValueString()
 	project := plan.Project.ValueString()
 	target := plan.Target.ValueString()
-	server, err := r.provider.InstanceServer(remote, project, target)
+	server, err := r.provider.InstanceServer(project, target)
 	if err != nil {
 		resp.Diagnostics.Append(errors.NewInstanceServerError(err))
 		return
@@ -192,7 +183,6 @@ func (r NetworkResource) Create(ctx context.Context, req resource.CreateRequest,
 	// Partially update state to make Terraform aware of the created resource.
 	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("name"), network.Name)...)
 	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("project"), project)...)
-	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("remote"), remote)...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
@@ -211,10 +201,9 @@ func (r NetworkResource) Read(ctx context.Context, req resource.ReadRequest, res
 		return
 	}
 
-	remote := state.Remote.ValueString()
 	project := state.Project.ValueString()
 	target := state.Target.ValueString()
-	server, err := r.provider.InstanceServer(remote, project, target)
+	server, err := r.provider.InstanceServer(project, target)
 	if err != nil {
 		resp.Diagnostics.Append(errors.NewInstanceServerError(err))
 		return
@@ -233,10 +222,9 @@ func (r NetworkResource) Update(ctx context.Context, req resource.UpdateRequest,
 		return
 	}
 
-	remote := plan.Remote.ValueString()
 	project := plan.Project.ValueString()
 	target := plan.Target.ValueString()
-	server, err := r.provider.InstanceServer(remote, project, target)
+	server, err := r.provider.InstanceServer(project, target)
 	if err != nil {
 		resp.Diagnostics.Append(errors.NewInstanceServerError(err))
 		return
@@ -284,10 +272,9 @@ func (r NetworkResource) Delete(ctx context.Context, req resource.DeleteRequest,
 		return
 	}
 
-	remote := state.Remote.ValueString()
 	project := state.Project.ValueString()
 	target := state.Target.ValueString()
-	server, err := r.provider.InstanceServer(remote, project, target)
+	server, err := r.provider.InstanceServer(project, target)
 	if err != nil {
 		resp.Diagnostics.Append(errors.NewInstanceServerError(err))
 		return

@@ -36,7 +36,6 @@ type NetworkPeerModel struct {
 	TargetNetwork types.String `tfsdk:"target_network"`
 	TargetProject types.String `tfsdk:"target_project"`
 
-	Remote types.String `tfsdk:"remote"`
 	Config types.Map    `tfsdk:"config"`
 	Status types.String `tfsdk:"status"`
 }
@@ -120,13 +119,6 @@ func (r NetworkPeerResource) Schema(_ context.Context, _ resource.SchemaRequest,
 				},
 			},
 
-			"remote": schema.StringAttribute{
-				Optional: true,
-				PlanModifiers: []planmodifier.String{
-					stringplanmodifier.RequiresReplace(),
-				},
-			},
-
 			"config": schema.MapAttribute{
 				Optional:    true,
 				Computed:    true,
@@ -166,7 +158,6 @@ func (r NetworkPeerResource) Create(ctx context.Context, req resource.CreateRequ
 	}
 
 	peerName := plan.Name.ValueString()
-	remote := plan.Remote.ValueString()
 	srcNetwork := plan.SourceNetwork.ValueString()
 	srcProject := plan.SourceProject.ValueString()
 	dstNetwork := plan.TargetNetwork.ValueString()
@@ -184,7 +175,7 @@ func (r NetworkPeerResource) Create(ctx context.Context, req resource.CreateRequ
 	}
 
 	// Create network source peer.
-	server, err := r.provider.InstanceServer(remote, srcProject, "")
+	server, err := r.provider.InstanceServer(srcProject, "")
 	if err != nil {
 		resp.Diagnostics.Append(errors.NewInstanceServerError(err))
 		return
@@ -220,9 +211,8 @@ func (r NetworkPeerResource) Read(ctx context.Context, req resource.ReadRequest,
 		return
 	}
 
-	remote := state.Remote.ValueString()
 	project := state.SourceProject.ValueString()
-	server, err := r.provider.InstanceServer(remote, project, "")
+	server, err := r.provider.InstanceServer(project, "")
 	if err != nil {
 		resp.Diagnostics.Append(errors.NewInstanceServerError(err))
 		return
@@ -245,7 +235,6 @@ func (r NetworkPeerResource) Update(ctx context.Context, req resource.UpdateRequ
 	description := plan.Description.ValueString()
 	srcProject := plan.SourceProject.ValueString()
 	srcNetwork := plan.SourceNetwork.ValueString()
-	remote := plan.Remote.ValueString()
 
 	config, diags := common.ToConfigMap(ctx, plan.Config)
 	resp.Diagnostics.Append(diags...)
@@ -253,7 +242,7 @@ func (r NetworkPeerResource) Update(ctx context.Context, req resource.UpdateRequ
 		return
 	}
 
-	server, err := r.provider.InstanceServer(remote, srcProject, "")
+	server, err := r.provider.InstanceServer(srcProject, "")
 	if err != nil {
 		resp.Diagnostics.Append(errors.NewInstanceServerError(err))
 		return
@@ -295,9 +284,8 @@ func (r NetworkPeerResource) Delete(ctx context.Context, req resource.DeleteRequ
 	peerName := state.Name.ValueString()
 	srcProject := state.SourceProject.ValueString()
 	srcNetwork := state.SourceNetwork.ValueString()
-	remote := state.Remote.ValueString()
 
-	server, err := r.provider.InstanceServer(remote, srcProject, "")
+	server, err := r.provider.InstanceServer(srcProject, "")
 	if err != nil {
 		resp.Diagnostics.Append(errors.NewInstanceServerError(err))
 		return
