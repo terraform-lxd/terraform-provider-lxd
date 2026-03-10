@@ -33,7 +33,6 @@ type StorageVolumeModel struct {
 	ContentType types.String `tfsdk:"content_type"`
 	Project     types.String `tfsdk:"project"`
 	Target      types.String `tfsdk:"target"`
-	Remote      types.String `tfsdk:"remote"`
 	Config      types.Map    `tfsdk:"config"`
 
 	// Computed.
@@ -108,13 +107,6 @@ func (r StorageVolumeResource) Schema(_ context.Context, _ resource.SchemaReques
 				},
 			},
 
-			"remote": schema.StringAttribute{
-				Optional: true,
-				PlanModifiers: []planmodifier.String{
-					stringplanmodifier.RequiresReplace(),
-				},
-			},
-
 			"target": schema.StringAttribute{
 				Optional: true,
 				Computed: true,
@@ -166,10 +158,9 @@ func (r StorageVolumeResource) Create(ctx context.Context, req resource.CreateRe
 		return
 	}
 
-	remote := plan.Remote.ValueString()
 	project := plan.Project.ValueString()
 	target := plan.Target.ValueString()
-	server, err := r.provider.InstanceServer(remote, project, target)
+	server, err := r.provider.InstanceServer(project, target)
 	if err != nil {
 		resp.Diagnostics.Append(errors.NewInstanceServerError(err))
 		return
@@ -209,7 +200,6 @@ func (r StorageVolumeResource) Create(ctx context.Context, req resource.CreateRe
 	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("name"), volName)...)
 	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("pool"), poolName)...)
 	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("project"), project)...)
-	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("remote"), remote)...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
@@ -228,10 +218,9 @@ func (r StorageVolumeResource) Read(ctx context.Context, req resource.ReadReques
 		return
 	}
 
-	remote := state.Remote.ValueString()
 	project := state.Project.ValueString()
 	target := state.Target.ValueString()
-	server, err := r.provider.InstanceServer(remote, project, target)
+	server, err := r.provider.InstanceServer(project, target)
 	if err != nil {
 		resp.Diagnostics.Append(errors.NewInstanceServerError(err))
 		return
@@ -251,10 +240,9 @@ func (r StorageVolumeResource) Update(ctx context.Context, req resource.UpdateRe
 		return
 	}
 
-	remote := plan.Remote.ValueString()
 	project := plan.Project.ValueString()
 	target := plan.Target.ValueString()
-	server, err := r.provider.InstanceServer(remote, project, target)
+	server, err := r.provider.InstanceServer(project, target)
 	if err != nil {
 		resp.Diagnostics.Append(errors.NewInstanceServerError(err))
 		return
@@ -308,10 +296,9 @@ func (r StorageVolumeResource) Delete(ctx context.Context, req resource.DeleteRe
 		return
 	}
 
-	remote := state.Remote.ValueString()
 	project := state.Project.ValueString()
 	target := state.Target.ValueString()
-	server, err := r.provider.InstanceServer(remote, project, target)
+	server, err := r.provider.InstanceServer(project, target)
 	if err != nil {
 		resp.Diagnostics.Append(errors.NewInstanceServerError(err))
 		return

@@ -33,7 +33,6 @@ type StoragePoolModel struct {
 	Source      types.String `tfsdk:"source"`
 	Project     types.String `tfsdk:"project"`
 	Target      types.String `tfsdk:"target"`
-	Remote      types.String `tfsdk:"remote"`
 	Config      types.Map    `tfsdk:"config"`
 }
 
@@ -92,13 +91,6 @@ func (r StoragePoolResource) Schema(_ context.Context, _ resource.SchemaRequest,
 				},
 			},
 
-			"remote": schema.StringAttribute{
-				Optional: true,
-				PlanModifiers: []planmodifier.String{
-					stringplanmodifier.RequiresReplace(),
-				},
-			},
-
 			"target": schema.StringAttribute{
 				Optional: true,
 				PlanModifiers: []planmodifier.String{
@@ -146,10 +138,9 @@ func (r StoragePoolResource) Create(ctx context.Context, req resource.CreateRequ
 		return
 	}
 
-	remote := plan.Remote.ValueString()
 	project := plan.Project.ValueString()
 	target := plan.Target.ValueString()
-	server, err := r.provider.InstanceServer(remote, project, target)
+	server, err := r.provider.InstanceServer(project, target)
 	if err != nil {
 		resp.Diagnostics.Append(errors.NewInstanceServerError(err))
 		return
@@ -186,7 +177,6 @@ func (r StoragePoolResource) Create(ctx context.Context, req resource.CreateRequ
 	// Partially update state to make Terraform aware of the created resource.
 	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("name"), pool.Name)...)
 	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("project"), project)...)
-	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("remote"), remote)...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
@@ -205,10 +195,9 @@ func (r StoragePoolResource) Read(ctx context.Context, req resource.ReadRequest,
 		return
 	}
 
-	remote := state.Remote.ValueString()
 	project := state.Project.ValueString()
 	target := state.Target.ValueString()
-	server, err := r.provider.InstanceServer(remote, project, target)
+	server, err := r.provider.InstanceServer(project, target)
 	if err != nil {
 		resp.Diagnostics.Append(errors.NewInstanceServerError(err))
 		return
@@ -228,10 +217,9 @@ func (r StoragePoolResource) Update(ctx context.Context, req resource.UpdateRequ
 		return
 	}
 
-	remote := plan.Remote.ValueString()
 	project := plan.Project.ValueString()
 	target := plan.Target.ValueString()
-	server, err := r.provider.InstanceServer(remote, project, target)
+	server, err := r.provider.InstanceServer(project, target)
 	if err != nil {
 		resp.Diagnostics.Append(errors.NewInstanceServerError(err))
 		return
@@ -279,10 +267,9 @@ func (r StoragePoolResource) Delete(ctx context.Context, req resource.DeleteRequ
 		return
 	}
 
-	remote := state.Remote.ValueString()
 	project := state.Project.ValueString()
 	target := state.Target.ValueString()
-	server, err := r.provider.InstanceServer(remote, project, target)
+	server, err := r.provider.InstanceServer(project, target)
 	if err != nil {
 		resp.Diagnostics.Append(errors.NewInstanceServerError(err))
 		return
