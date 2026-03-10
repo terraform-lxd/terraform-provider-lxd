@@ -26,7 +26,6 @@ import (
 type ProjectModel struct {
 	Name        types.String `tfsdk:"name"`
 	Description types.String `tfsdk:"description"`
-	Remote      types.String `tfsdk:"remote"`
 	Config      types.Map    `tfsdk:"config"`
 }
 
@@ -68,13 +67,6 @@ func (r ProjectResource) Schema(_ context.Context, _ resource.SchemaRequest, res
 				ElementType: types.StringType,
 				Default:     mapdefault.StaticValue(types.MapValueMust(types.StringType, map[string]attr.Value{})),
 			},
-
-			"remote": schema.StringAttribute{
-				Optional: true,
-				PlanModifiers: []planmodifier.String{
-					stringplanmodifier.RequiresReplace(),
-				},
-			},
 		},
 	}
 }
@@ -110,9 +102,8 @@ func (r ProjectResource) Create(ctx context.Context, req resource.CreateRequest,
 		return
 	}
 
-	remote := plan.Remote.ValueString()
 	projectName := plan.Name.ValueString()
-	server, err := r.provider.InstanceServer(remote, projectName, "")
+	server, err := r.provider.InstanceServer(projectName, "")
 	if err != nil {
 		resp.Diagnostics.Append(errors.NewInstanceServerError(err))
 		return
@@ -134,7 +125,6 @@ func (r ProjectResource) Create(ctx context.Context, req resource.CreateRequest,
 
 	// Partially update state to make Terraform aware of the created resource.
 	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("name"), projectName)...)
-	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("remote"), remote)...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
@@ -153,9 +143,8 @@ func (r ProjectResource) Read(ctx context.Context, req resource.ReadRequest, res
 		return
 	}
 
-	remote := state.Remote.ValueString()
 	projectName := state.Name.ValueString()
-	server, err := r.provider.InstanceServer(remote, projectName, "")
+	server, err := r.provider.InstanceServer(projectName, "")
 	if err != nil {
 		resp.Diagnostics.Append(errors.NewInstanceServerError(err))
 		return
@@ -175,9 +164,8 @@ func (r ProjectResource) Update(ctx context.Context, req resource.UpdateRequest,
 		return
 	}
 
-	remote := plan.Remote.ValueString()
 	projectName := plan.Name.ValueString()
-	server, err := r.provider.InstanceServer(remote, projectName, "")
+	server, err := r.provider.InstanceServer(projectName, "")
 	if err != nil {
 		resp.Diagnostics.Append(errors.NewInstanceServerError(err))
 		return
@@ -224,9 +212,8 @@ func (r ProjectResource) Delete(ctx context.Context, req resource.DeleteRequest,
 		return
 	}
 
-	remote := state.Remote.ValueString()
 	projectName := state.Name.ValueString()
-	server, err := r.provider.InstanceServer(remote, projectName, "")
+	server, err := r.provider.InstanceServer(projectName, "")
 	if err != nil {
 		resp.Diagnostics.Append(errors.NewInstanceServerError(err))
 		return
