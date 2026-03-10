@@ -35,10 +35,6 @@ func (d *ProfileDataSource) Schema(_ context.Context, req datasource.SchemaReque
 				Optional: true,
 			},
 
-			"remote": schema.StringAttribute{
-				Optional: true,
-			},
-
 			"description": schema.StringAttribute{
 				Computed: true,
 			},
@@ -95,9 +91,8 @@ func (d *ProfileDataSource) Read(ctx context.Context, req datasource.ReadRequest
 		return
 	}
 
-	remote := state.Remote.ValueString()
 	project := state.Project.ValueString()
-	server, err := d.provider.InstanceServer(remote, project, "")
+	server, err := d.provider.InstanceServer(project, "")
 	if err != nil {
 		resp.Diagnostics.Append(errors.NewInstanceServerError(err))
 		return
