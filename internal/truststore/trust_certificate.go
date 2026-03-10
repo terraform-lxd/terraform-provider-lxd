@@ -34,7 +34,6 @@ type TrustCertificateModel struct {
 	Path     types.String `tfsdk:"path"`
 	Content  types.String `tfsdk:"content"`
 	Projects types.List   `tfsdk:"projects"`
-	Remote   types.String `tfsdk:"remote"`
 
 	// Computed.
 	Fingerprint types.String `tfsdk:"fingerprint"`
@@ -95,14 +94,6 @@ func (r TrustCertificateResource) Schema(_ context.Context, _ resource.SchemaReq
 				Description: "List of projects to restrict the certificate to. By default, no restriction applies.",
 				Default:     listdefault.StaticValue(types.ListValueMust(types.StringType, []attr.Value{})),
 				ElementType: types.StringType,
-			},
-
-			"remote": schema.StringAttribute{
-				Optional:    true,
-				Description: "The remote in which the certificate is created. If not provided, the provider's default remote is used.",
-				PlanModifiers: []planmodifier.String{
-					stringplanmodifier.RequiresReplace(),
-				},
 			},
 
 			// Computed.
@@ -187,8 +178,7 @@ func (r TrustCertificateResource) Create(ctx context.Context, req resource.Creat
 		return
 	}
 
-	remote := plan.Remote.ValueString()
-	server, err := r.provider.InstanceServer(remote, "", "")
+	server, err := r.provider.InstanceServer("", "")
 	if err != nil {
 		resp.Diagnostics.Append(errors.NewInstanceServerError(err))
 		return
@@ -257,8 +247,7 @@ func (r TrustCertificateResource) Read(ctx context.Context, req resource.ReadReq
 		return
 	}
 
-	remote := state.Remote.ValueString()
-	server, err := r.provider.InstanceServer(remote, "", "")
+	server, err := r.provider.InstanceServer("", "")
 	if err != nil {
 		resp.Diagnostics.Append(errors.NewInstanceServerError(err))
 		return
@@ -281,8 +270,7 @@ func (r TrustCertificateResource) Update(ctx context.Context, req resource.Updat
 
 	certFingerprint := state.Fingerprint.ValueString()
 
-	remote := plan.Remote.ValueString()
-	server, err := r.provider.InstanceServer(remote, "", "")
+	server, err := r.provider.InstanceServer("", "")
 	if err != nil {
 		resp.Diagnostics.Append(errors.NewInstanceServerError(err))
 		return
@@ -332,8 +320,7 @@ func (r TrustCertificateResource) Delete(ctx context.Context, req resource.Delet
 		return
 	}
 
-	remote := state.Remote.ValueString()
-	server, err := r.provider.InstanceServer(remote, "", "")
+	server, err := r.provider.InstanceServer("", "")
 	if err != nil {
 		resp.Diagnostics.Append(errors.NewInstanceServerError(err))
 		return
