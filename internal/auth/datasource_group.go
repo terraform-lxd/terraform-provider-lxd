@@ -12,8 +12,7 @@ import (
 )
 
 type AuthGroupDataSourceModel struct {
-	Name   types.String `tfsdk:"name"`
-	Remote types.String `tfsdk:"remote"`
+	Name types.String `tfsdk:"name"`
 
 	// Computed.
 	Description types.String      `tfsdk:"description"`
@@ -39,10 +38,6 @@ func (r AuthGroupDataSource) Schema(_ context.Context, _ datasource.SchemaReques
 		Attributes: map[string]schema.Attribute{
 			"name": schema.StringAttribute{
 				Required: true,
-			},
-
-			"remote": schema.StringAttribute{
-				Optional: true,
 			},
 
 			// Computed.
@@ -94,8 +89,7 @@ func (r *AuthGroupDataSource) Read(ctx context.Context, req datasource.ReadReque
 		return
 	}
 
-	remote := config.Remote.ValueString()
-	server, err := r.provider.InstanceServer(remote, "", "")
+	server, err := r.provider.InstanceServer("", "")
 	if err != nil {
 		resp.Diagnostics.Append(errors.NewInstanceServerError(err))
 		return

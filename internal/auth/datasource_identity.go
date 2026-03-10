@@ -17,7 +17,6 @@ import (
 type AuthIdentityDataSourceModel struct {
 	Name       types.String `tfsdk:"name"`
 	AuthMethod types.String `tfsdk:"auth_method"`
-	Remote     types.String `tfsdk:"remote"`
 
 	// Computed.
 	Identifier  types.String `tfsdk:"identifier"`
@@ -51,10 +50,6 @@ func (r AuthIdentityDataSource) Schema(_ context.Context, _ datasource.SchemaReq
 				Validators: []validator.String{
 					stringvalidator.OneOf("tls", "bearer", "oidc"),
 				},
-			},
-
-			"remote": schema.StringAttribute{
-				Optional: true,
 			},
 
 			// Computed.
@@ -98,8 +93,7 @@ func (r *AuthIdentityDataSource) Read(ctx context.Context, req datasource.ReadRe
 		return
 	}
 
-	remote := config.Remote.ValueString()
-	server, err := r.provider.InstanceServer(remote, "", "")
+	server, err := r.provider.InstanceServer("", "")
 	if err != nil {
 		resp.Diagnostics.Append(errors.NewInstanceServerError(err))
 		return

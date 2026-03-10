@@ -26,7 +26,6 @@ type AuthGroupModel struct {
 	Name        types.String      `tfsdk:"name"`
 	Description types.String      `tfsdk:"description"`
 	Permissions []PermissionModel `tfsdk:"permissions"`
-	Remote      types.String      `tfsdk:"remote"`
 }
 
 // AuthGroupResource manages LXD auth groups.
@@ -78,10 +77,6 @@ func (r AuthGroupResource) Schema(_ context.Context, _ resource.SchemaRequest, r
 					},
 				},
 			},
-
-			"remote": schema.StringAttribute{
-				Optional: true,
-			},
 		},
 	}
 }
@@ -108,8 +103,7 @@ func (r AuthGroupResource) Create(ctx context.Context, req resource.CreateReques
 		return
 	}
 
-	remote := plan.Remote.ValueString()
-	server, err := r.provider.InstanceServer(remote, "", "")
+	server, err := r.provider.InstanceServer("", "")
 	if err != nil {
 		resp.Diagnostics.Append(errors.NewInstanceServerError(err))
 		return
@@ -148,8 +142,7 @@ func (r AuthGroupResource) Read(ctx context.Context, req resource.ReadRequest, r
 		return
 	}
 
-	remote := state.Remote.ValueString()
-	server, err := r.provider.InstanceServer(remote, "", "")
+	server, err := r.provider.InstanceServer("", "")
 	if err != nil {
 		resp.Diagnostics.Append(errors.NewInstanceServerError(err))
 		return
@@ -169,8 +162,7 @@ func (r AuthGroupResource) Update(ctx context.Context, req resource.UpdateReques
 		return
 	}
 
-	remote := plan.Remote.ValueString()
-	server, err := r.provider.InstanceServer(remote, "", "")
+	server, err := r.provider.InstanceServer("", "")
 	if err != nil {
 		resp.Diagnostics.Append(errors.NewInstanceServerError(err))
 		return
@@ -211,8 +203,7 @@ func (r AuthGroupResource) Delete(ctx context.Context, req resource.DeleteReques
 		return
 	}
 
-	remote := state.Remote.ValueString()
-	server, err := r.provider.InstanceServer(remote, "", "")
+	server, err := r.provider.InstanceServer("", "")
 	if err != nil {
 		resp.Diagnostics.Append(errors.NewInstanceServerError(err))
 		return

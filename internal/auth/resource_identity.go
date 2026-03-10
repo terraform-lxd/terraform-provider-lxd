@@ -28,7 +28,6 @@ type AuthIdentityModel struct {
 	Groups      types.Set    `tfsdk:"groups"`
 	AuthMethod  types.String `tfsdk:"auth_method"`
 	Certificate types.String `tfsdk:"tls_certificate"`
-	Remote      types.String `tfsdk:"remote"`
 }
 
 // AuthIdentityResource manages LXD identity entries.
@@ -76,10 +75,6 @@ func (r AuthIdentityResource) Schema(_ context.Context, _ resource.SchemaRequest
 				Optional:  true,
 				Sensitive: true,
 			},
-
-			"remote": schema.StringAttribute{
-				Optional: true,
-			},
 		},
 	}
 }
@@ -106,8 +101,7 @@ func (r AuthIdentityResource) Create(ctx context.Context, req resource.CreateReq
 		return
 	}
 
-	remote := plan.Remote.ValueString()
-	server, err := r.provider.InstanceServer(remote, "", "")
+	server, err := r.provider.InstanceServer("", "")
 	if err != nil {
 		resp.Diagnostics.Append(errors.NewInstanceServerError(err))
 		return
@@ -172,8 +166,7 @@ func (r AuthIdentityResource) Read(ctx context.Context, req resource.ReadRequest
 		return
 	}
 
-	remote := state.Remote.ValueString()
-	server, err := r.provider.InstanceServer(remote, "", "")
+	server, err := r.provider.InstanceServer("", "")
 	if err != nil {
 		resp.Diagnostics.Append(errors.NewInstanceServerError(err))
 		return
@@ -193,8 +186,7 @@ func (r AuthIdentityResource) Update(ctx context.Context, req resource.UpdateReq
 		return
 	}
 
-	remote := plan.Remote.ValueString()
-	server, err := r.provider.InstanceServer(remote, "", "")
+	server, err := r.provider.InstanceServer("", "")
 	if err != nil {
 		resp.Diagnostics.Append(errors.NewInstanceServerError(err))
 		return
@@ -238,8 +230,7 @@ func (r AuthIdentityResource) Delete(ctx context.Context, req resource.DeleteReq
 		return
 	}
 
-	remote := state.Remote.ValueString()
-	server, err := r.provider.InstanceServer(remote, "", "")
+	server, err := r.provider.InstanceServer("", "")
 	if err != nil {
 		resp.Diagnostics.Append(errors.NewInstanceServerError(err))
 		return
