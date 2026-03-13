@@ -17,7 +17,7 @@ func TestAccImage_DS_basic(t *testing.T) {
 			{
 				Config: testAccImage_DS_basic(),
 				Check: resource.ComposeTestCheckFunc(
-					resource.TestCheckResourceAttr("data.lxd_image.img", "name", acctest.TestCachedImageSourceImage),
+					resource.TestCheckResourceAttr("data.lxd_image.img", "image", image),
 					resource.TestCheckResourceAttr("data.lxd_image.img", "type", "container"),
 					resource.TestCheckResourceAttr("data.lxd_image.img", "aliases.#", "2"),
 					resource.TestCheckResourceAttrSet("data.lxd_image.img", "architecture"),
@@ -36,7 +36,7 @@ func TestAccImage_DS_basicVM(t *testing.T) {
 			{
 				Config: testAccImage_DS_basicVM(),
 				Check: resource.ComposeTestCheckFunc(
-					resource.TestCheckResourceAttr("data.lxd_image.img", "name", acctest.TestCachedImageSourceImage),
+					resource.TestCheckResourceAttr("data.lxd_image.img", "image", image),
 					resource.TestCheckResourceAttr("data.lxd_image.img", "type", "virtual-machine"),
 					resource.TestCheckResourceAttr("data.lxd_image.img", "aliases.#", "2"),
 					resource.TestCheckResourceAttrSet("data.lxd_image.img", "architecture"),
@@ -91,29 +91,26 @@ func TestAccImage_DS_project(t *testing.T) {
 func testAccImage_DS_basic() string {
 	return fmt.Sprintf(`
 data "lxd_image" "img" {
-  name   = %q
-  remote = %q
+  image  = "%s:%s"
 }
-	`, acctest.TestCachedImageSourceImage, acctest.TestCachedImageSourceRemote)
+	`, acctest.TestCachedImageSourceRemote, acctest.TestCachedImageSourceImage)
 }
 
 func testAccImage_DS_basicVM() string {
 	return fmt.Sprintf(`
 data "lxd_image" "img" {
-  name   = %q
+  image  = "%s:%s"
   type   = "virtual-machine"
-  remote = %q
 }
-	`, acctest.TestCachedImageSourceImage, acctest.TestCachedImageSourceRemote)
+	`, acctest.TestCachedImageSourceRemote, acctest.TestCachedImageSourceImage)
 }
 
 func testAccImage_DS_cached(aliases ...string) string {
 	return fmt.Sprintf(`
 resource "lxd_cached_image" "img" {
-  source_remote = %q
-  source_image  = %q
-  copy_aliases  = false
-  aliases       = ["%s"]
+  image        = "%s:%s"
+  copy_aliases = false
+  aliases      = ["%s"]
 }
 
 data "lxd_image" "img" {
@@ -129,9 +126,8 @@ resource "lxd_project" "proj" {
 }
 
 resource "lxd_cached_image" "img" {
-  source_remote = %q
-  source_image  = %q
-  project       = lxd_project.proj.name
+  image   = "%s:%s"
+  project = lxd_project.proj.name
 }
 
 data "lxd_image" "img" {

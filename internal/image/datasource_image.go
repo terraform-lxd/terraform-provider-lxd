@@ -17,13 +17,12 @@ import (
 )
 
 type ImageDataSourceModel struct {
+	Image        types.String `tfsdk:"image"`
 	Aliases      types.Set    `tfsdk:"aliases"`
 	Architecture types.String `tfsdk:"architecture"`
 	CreatedAt    types.Int64  `tfsdk:"created_at"`
 	Fingerprint  types.String `tfsdk:"fingerprint"`
-	Name         types.String `tfsdk:"name"`
 	Project      types.String `tfsdk:"project"`
-	Remote       types.String `tfsdk:"remote"`
 	Type         types.String `tfsdk:"type"`
 }
 
@@ -42,7 +41,7 @@ func (d *ImageDataSource) Metadata(_ context.Context, req datasource.MetadataReq
 func (d *ImageDataSource) Schema(_ context.Context, req datasource.SchemaRequest, resp *datasource.SchemaResponse) {
 	resp.Schema = schema.Schema{
 		Attributes: map[string]schema.Attribute{
-			"name": schema.StringAttribute{
+			"image": schema.StringAttribute{
 				Optional: true,
 			},
 
@@ -68,10 +67,6 @@ func (d *ImageDataSource) Schema(_ context.Context, req datasource.SchemaRequest
 			},
 
 			"project": schema.StringAttribute{
-				Optional: true,
-			},
-
-			"remote": schema.StringAttribute{
 				Optional: true,
 			},
 
@@ -102,31 +97,6 @@ func (d *ImageDataSource) Configure(_ context.Context, req datasource.ConfigureR
 	d.provider = provider
 }
 
-func (d *ImageDataSource) ValidateConfig(ctx context.Context, req datasource.ValidateConfigRequest, resp *datasource.ValidateConfigResponse) {
-	var state ImageDataSourceModel
-
-	resp.Diagnostics.Append(req.Config.Get(ctx, &state)...)
-	if resp.Diagnostics.HasError() {
-		return
-	}
-
-	if state.Name.IsNull() && state.Fingerprint.IsNull() {
-		resp.Diagnostics.AddError(
-			"Invalid Configuration",
-			"Either name or fingerprint must be set.",
-		)
-		return
-	}
-
-	if !state.Name.IsNull() && !state.Fingerprint.IsNull() {
-		resp.Diagnostics.AddError(
-			"Invalid Configuration",
-			"Only name or fingerprint can be set.",
-		)
-		return
-	}
-}
-
 func (d *ImageDataSource) Read(ctx context.Context, req datasource.ReadRequest, resp *datasource.ReadResponse) {
 	var state ImageDataSourceModel
 
@@ -136,27 +106,35 @@ func (d *ImageDataSource) Read(ctx context.Context, req datasource.ReadRequest, 
 		return
 	}
 
-	remote := state.Remote.ValueString()
-	server, err := d.provider.ImageServer(remote)
+	var imageRemote string
+	imageName := state.Image.ValueString()
+
+	// Evaluate image remote.
+	imageParts := strings.SplitN(imageName, ":", 2)
+	if len(imageParts) == 2 {
+		imageRemote = imageParts[0]
+		imageName = imageParts[1]
+	}
+
+	imageServer, err := d.provider.ImageServer(imageRemote)
 	if err != nil {
 		resp.Diagnostics.Append(errors.NewImageServerError(err))
 		return
 	}
 
 	// Set project if we are dealing with instance server.
-	instServer, ok := server.(lxd.InstanceServer)
+	instServer, ok := imageServer.(lxd.InstanceServer)
 	if ok {
-		server = instServer.UseProject(state.Project.ValueString())
+		imageServer = instServer.UseProject(state.Project.ValueString())
 	}
 
 	var fingerprint string
 	if state.Fingerprint.IsNull() {
-		imageName := state.Name.ValueString()
 		architecture := state.Architecture.ValueString()
 
 		if architecture != "" {
 			imageType := state.Type.ValueString()
-			availableArchitectures, err := server.GetImageAliasArchitectures(imageType, imageName)
+			availableArchitectures, err := imageServer.GetImageAliasArchitectures(imageType, imageName)
 			if err != nil {
 				resp.Diagnostics.AddError("Failed to get image alias architectures", err.Error())
 				return
@@ -183,14 +161,14 @@ func (d *ImageDataSource) Read(ctx context.Context, req datasource.ReadRequest, 
 		} else {
 			var imageAlias *api.ImageAliasesEntry
 			if state.Type.IsNull() {
-				imageAlias, _, err = server.GetImageAlias(imageName)
+				imageAlias, _, err = imageServer.GetImageAlias(imageName)
 				if err != nil {
 					resp.Diagnostics.AddError(fmt.Sprintf("Failed to retrieve image by alias %q", imageName), err.Error())
 					return
 				}
 			} else {
 				imageType := state.Type.ValueString()
-				imageAlias, _, err = server.GetImageAliasType(imageType, imageName)
+				imageAlias, _, err = imageServer.GetImageAliasType(imageType, imageName)
 				if err != nil {
 					resp.Diagnostics.AddError(fmt.Sprintf("Failed to retrieve image by alias %q and type %q", imageName, imageType), err.Error())
 					return
@@ -203,7 +181,7 @@ func (d *ImageDataSource) Read(ctx context.Context, req datasource.ReadRequest, 
 		fingerprint = state.Fingerprint.ValueString()
 	}
 
-	image, _, err := server.GetImage(fingerprint)
+	image, _, err := imageServer.GetImage(fingerprint)
 	if err != nil {
 		resp.Diagnostics.AddError(fmt.Sprintf("Failed to retrieve image by fingerprint %q", fingerprint), err.Error())
 		return
