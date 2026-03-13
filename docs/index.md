@@ -4,118 +4,114 @@ Use Terraform to manage LXD resources.
 
 ## Description
 
-This provider connects to the LXD daemon over local Unix socket or HTTPS.
+This provider connects to the LXD daemon over a local Unix socket or HTTPS.
+Each provider block represents one LXD remote.
 
-It makes use of the [LXD client library](https://github.com/canonical/lxd), which
-currently looks in `~/snap/lxd/common/config` (and `~/.config/lxc`) for `client.crt`
-and `client.key` files to authenticate against the LXD daemon.
-
-To generate these files and store them in the LXD client config, follow these
-[steps](https://documentation.ubuntu.com/lxd/latest/howto/server_expose/#server-authenticate).
-Alternatively, the LXD Terraform provider can generate them on demand if
-`generate_client_certificates` is set to true.
+The provider can also be used to connect to the SimpleStream server to be able to consume images.
 
 Minimum required LXD version is **`4.0`**.
 
-## Basic Example
+## Authentication
 
-This is all that is needed if the LXD remotes have been defined out of band via
-the `lxc` client.
+Each LXD server remote supports exactly one of the following authentication methods:
+
+- **Unix socket** — Used when address starts with `unix://`.
+
+- **Bearer token** — Used for HTTPS addresses when bearer token is provided.
+
+- **mTLS** — Used for HTTPS addresses when the client certificate and key are provided.
+
+## Examples
+
+### Local Unix socket
 
 ```hcl
 provider "lxd" {
+  alias   = "local"
+  address = "unix://"
 }
 ```
 
-## Specifying Multiple Remotes
-
-If you're running `terraform` from a system where lxc is not installed then you
-can define all the remotes in the Provider config:
+### mTLS authentication
 
 ```hcl
 provider "lxd" {
-  generate_client_certificates = true
-  accept_remote_certificate    = true
+  address                        = "https://10.1.1.8:8443"
+  server_certificate_fingerprint = "75329c73266fc8f36581ae5508ef4347e4eaa696eed09089c4dc7be68198bf7a"
+  client_certificate_file        = "~/.config/lxc/client.crt"
+  client_key_file                = "~/.config/lxc/client.key"
+}
+```
 
-  remote {
-    name     = "lxd-server-1"
-    address  = "https://10.1.1.8:8443"
-    password = "password"
-    default  = true
-  }
+### Bearer token authentication
 
-  remote {
-    name    = "lxd-server-2"
-    address = "https://10.1.2.8"
-    token   = "token"
-  }
+```hcl
+provider "lxd" {
+  address      = "https://10.1.1.8:8443"
+  bearer_token = "<bearer_token>"
+}
+```
+
+### Multiple remotes
+
+```hcl
+provider "lxd" {
+  alias        = "server"
+  address      = "https://example.com:8443"
+  bearer_token = "<bearer_token>"
+}
+
+provider "lxd" {
+  alias    = "images"
+  protocol = "simplestreams"
+  address  = "https://images.lxd.canonical.com:443"
+}
+```
+
+### Handling sensitive values
+
+To prevent credentials from being stored in Terraform state, either use **ephemeral Terraform variables** or provide paths to local files containing sensitive information (use fields with `_file` suffix).
+
+Example using ephemeral variable:
+```hcl
+variable "bearer_token" {
+  type      = string
+  sensitive = true
+  ephemeral = true  # Prevents the value from getting stored in Terraform state.
+}
+
+provider "lxd" {
+  address      = "https://10.0.0.1:8443"
+  bearer_token = var.bearer_token
+}
+```
+
+Example using local file:
+```hcl
+provider "lxd" {
+  address           = "https://10.0.0.1:8443"
+  bearer_token_file = "/path/to/bearer_token_file"
 }
 ```
 
 ## Configuration Reference
 
-The following arguments are supported:
+### Provider arguments
 
-* `remote` - *Optional* - Specifies an LXD remote (LXD server) to connect
-	to. See the `remote` reference below for details.
+* `address` - *Optional* - Address of the LXD server. Accepts `https://<host>[:<port>]` and `unix://[<path>]`. For `lxd` protocol the port defaults to `8443`. For `simplestreams` it defaults to `443`.
 
-* `config_dir` - *Optional* - The directory to look for existing LXD
-	configuration. Defaults to `$HOME/snap/lxd/common/config` (and fallbacks to `$HOME/.config/lxc`).
+* `protocol` - *Optional* - Remote protocol. One of `lxd` (default) or `simplestreams`.
 
-* `generate_client_certificates` - *Optional* - Automatically generate the LXD
-	client certificate if it does not exist. Defaults to `false`.
+* `bearer_token` - *Optional* - Bearer token for authentication.
 
-* `accept_remote_certificate` - *Optional* - Automatically accept the LXD
-	remote's certificate during initial authentication. If this is not set
-	to `true`, you must accept the certificate out of band of Terraform or
-  use a trust token instead (recommended, see `token` in `remote`).
-  Defaults to `false`.
+* `bearer_token_file` - *Optional* - Path to a file containing the bearer token for authentication.
 
-The `remote` block supports:
+* `client_certificate` - *Optional* - PEM-encoded client certificate for mTLS authentication. Requires `client_key` or `client_key_file`.
 
-* `name` - *Optional* - The name of the remote.
+* `client_certificate_file` - *Optional* - Path to PEM-encoded client certificate for mTLS authentication. Requires `client_key` or `client_key_file`.
 
-* `protocol` - *Optional* - The protocol of remote server (`lxd` or `simplestreams`).
+* `client_key` - *Optional* - PEM-encoded private key for mTLS authentication.
 
-* `address` - *Optional* - The remote address in format `[<scheme>://]<host>[:<port>]`.
-  Scheme can be set to either `unix` or `https`. If scheme is not set, it will default to `unix` if first character is `/`, otherwise to `https`.
-  Port can be set only for remote HTTPS servers. Port value defaults to `8443` for `lxd` protocol, and to `443` for `simplestreams` protocol.
+* `client_key_file` - *Optional* - Path to PEM-encoded private key for mTLS authentication.
 
-* `default` - *Optional* - Whether this should be the default remote.
-	This remote will then be used when one is not specified in a resource.
-	If you choose to _not_ set default=true on a `remote` and do not specify
-	a remote in a resource, this provider will attempt to connect to an LXD
-	server running on the same host through the UNIX socket. See `Undefined Remote`
-	for more information.
-	The default can also be set with the `LXD_REMOTE` Environment variable.
-
-* `password` - *Optional* - The [trust password](https://documentation.ubuntu.com/lxd/latest/authentication/#adding-client-certificates-using-a-trust-password)
-  used for initial authentication with the LXD remote. This method is **not recommended** and has
-  been removed in LXD 6.1. Please, use `token` instead.
-
-* `token` - *Optional* - The one-time trust [token](https://documentation.ubuntu.com/lxd/latest/authentication/#adding-client-certificates-using-tokens)
-  used for initial authentication with the LXD remote.
-
-## Undefined Remote
-
-If you choose to _not_ define a `remote`, this provider will attempt
-to connect to an LXD server running on the same host through the UNIX
-socket.
-
-## Environment Variable Remote
-
-It is possible to define a single `remote` through environment variables.
-The supported variables are:
-* `LXD_REMOTE` - The name of the remote.
-* `LXD_ADDR` - The address of the LXD remote.
-* `LXD_PASSWORD` - The password of the LXD remote.
-* `LXD_TOKEN` - The trust token of the LXD remote.
-* `LXD_GENERATE_CLIENT_CERTS` - Automatically generate the LXD client certificate if missing.
-* `LXD_ACCEPT_SERVER_CERTIFICATE` - Automatically accept the LXD remote's certificate during initial authentication.
-
-## PKI Support
-
-LXD is capable of authenticating via PKI. In order to do this, you must
-generate appropriate certificates on _both_ the remote/server side and client
-side. Details on how to generate these certificates is out of scope of this
-document.
+* `server_certificate_fingerprint` - *Optional* - SHA-256 fingerprint of the remote server's TLS certificate. It is not required when authenticating using `bearer_token`.
