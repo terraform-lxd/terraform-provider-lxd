@@ -53,9 +53,6 @@ See the `lxd_network_zone` resource for information on how to configure network 
 
 * `project` - *Optional* - Name of the project where the network zone record will be created.
 
-* `remote` - *Optional* - The remote in which the resource will be created. If
-	not provided, the provider's default remote will be used.
-
 The `entry` block supports:
 
 * `type` - **Required** - Entry type. Valid values are DNS record type, e.g. `A`, `AAAA`, `CNAME`, `TXT`, etc.

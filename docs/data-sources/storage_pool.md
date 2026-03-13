@@ -16,9 +16,6 @@ data "lxd_storage_pool" "pool" {
 
 * `project` - *Optional* - Name of the project where storage pool is located.
 
-* `remote` - *Optional* - The remote in which the resource was created. If
-  not provided, the provider's default remote is used.
-
 ## Attribute Reference
 
 This data source exports the following attributes in addition to the arguments above:

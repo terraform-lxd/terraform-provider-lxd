@@ -30,9 +30,6 @@ resource "lxd_storage_bucket" "bucket" {
 
 * `project` - *Optional* - Name of the project where the storage bucket will be stored.
 
-* `remote` - *Optional* - The remote in which the resource will be created. If
-  not provided, the provider's default remote will be used.
-
 * `target` - *Optional* - Specify a target node in a cluster.
 
 

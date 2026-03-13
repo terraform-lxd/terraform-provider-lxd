@@ -6,8 +6,7 @@ Create a LXD image from an instance.
 
 ```hcl
 resource "lxd_cached_image" "xenial" {
-  source_remote = "ubuntu"
-  source_image  = "xenial/amd64"
+  image = "images:ubuntu/xenial/amd64"
 }
 
 resource "lxd_instance" "test1" {
@@ -41,9 +40,6 @@ resource "lxd_publish_image" "test1" {
 * `triggers` - *Optional* - A list of arbitrary strings that, when changed, will force the resource to be replaced.
 
 * `project` - *Optional* - Name of the project where the published image will be stored.
-
-* `remote` - *Optional* - The remote in which the resource will be created. If
-	not provided, the provider's default remote will be used.
 
 ## Attribute Reference
 

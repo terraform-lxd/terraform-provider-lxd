@@ -31,9 +31,6 @@ resource "lxd_auth_identity" "tls-identity" {
 
 * `tls_certificate` - *Optional* - PEM encoded x509 certificate. Must be set when authentication method is `tls`.
 
-* `remote` - *Optional* - The remote in which the resource will be created. If
-	not provided, the provider's default remote will be used.
-
 ## Importing
 
 Import ID syntax: `[<remote>:]/<auth_method>/<name>`

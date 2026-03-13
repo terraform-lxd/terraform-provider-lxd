@@ -24,9 +24,6 @@ output "token" {
 
 * `projects` - *Optional* - List of projects to restrict the token to.
 
-* `remote` - *Optional* - The remote in which the resource will be created. If not provided,
-  the provider's default remote will be used.
-
 * `trigger` - *Optional* - When to trigger the token generation. Possible values are `once` and `always` (if missing). Defaults to `once`.
 
 ## Attribute Reference

@@ -51,9 +51,6 @@ resource "lxd_instance_file" "file1" {
 
 * `project` - *Optional* - Name of the project where the instance to which this file will be appended exist.
 
-* `remote` - *Optional* - The remote in which the resource will be created. If
-	not provided, the provider's default remote will be used.
-
 
 ## Attribute Reference
 
