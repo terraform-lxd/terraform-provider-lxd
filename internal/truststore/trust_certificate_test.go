@@ -22,7 +22,7 @@ func TestAccTrustCertificate_content(t *testing.T) {
 		ProtoV6ProviderFactories: acctest.ProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccTrustCertificate_content(certName, cert),
+				Config: acctest.Provider() + testAccTrustCertificate_content(certName, cert),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("lxd_trust_certificate.cert", "name", certName),
 					resource.TestCheckResourceAttr("lxd_trust_certificate.cert", "type", "client"),
@@ -52,7 +52,7 @@ func TestAccTrustCertificate_path(t *testing.T) {
 		ProtoV6ProviderFactories: acctest.ProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccTrustCertificate_path(certName, certPath),
+				Config: acctest.Provider() + testAccTrustCertificate_path(certName, certPath),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("lxd_trust_certificate.cert", "name", certName),
 					resource.TestCheckResourceAttr("lxd_trust_certificate.cert", "path", certPath),
@@ -75,7 +75,7 @@ func TestAccTrustCertificate_type(t *testing.T) {
 		ProtoV6ProviderFactories: acctest.ProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccTrustCertificate_type(certName, "client", cert),
+				Config: acctest.Provider() + testAccTrustCertificate_type(certName, "client", cert),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("lxd_trust_certificate.cert", "name", certName),
 					resource.TestCheckResourceAttr("lxd_trust_certificate.cert", "type", "client"),
@@ -85,7 +85,7 @@ func TestAccTrustCertificate_type(t *testing.T) {
 				),
 			},
 			{
-				Config: testAccTrustCertificate_type(certName, "metrics", cert),
+				Config: acctest.Provider() + testAccTrustCertificate_type(certName, "metrics", cert),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("lxd_trust_certificate.cert", "name", certName),
 					resource.TestCheckResourceAttr("lxd_trust_certificate.cert", "type", "metrics"),
@@ -107,7 +107,7 @@ func TestAccTrustCertificate_rename(t *testing.T) {
 		ProtoV6ProviderFactories: acctest.ProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccTrustCertificate_content(certName1, cert),
+				Config: acctest.Provider() + testAccTrustCertificate_content(certName1, cert),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("lxd_trust_certificate.cert", "name", certName1),
 					resource.TestCheckResourceAttr("lxd_trust_certificate.cert", "content", cert),
@@ -115,7 +115,7 @@ func TestAccTrustCertificate_rename(t *testing.T) {
 				),
 			},
 			{
-				Config: testAccTrustCertificate_content(certName2, cert),
+				Config: acctest.Provider() + testAccTrustCertificate_content(certName2, cert),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("lxd_trust_certificate.cert", "name", certName2),
 					resource.TestCheckResourceAttr("lxd_trust_certificate.cert", "content", cert),
@@ -135,7 +135,7 @@ func TestAccTrustCertificate_restricted(t *testing.T) {
 		ProtoV6ProviderFactories: acctest.ProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccTrustCertificate_content(certName, cert),
+				Config: acctest.Provider() + testAccTrustCertificate_content(certName, cert),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("lxd_trust_certificate.cert", "name", certName),
 					resource.TestCheckResourceAttr("lxd_trust_certificate.cert", "content", cert),
@@ -144,7 +144,7 @@ func TestAccTrustCertificate_restricted(t *testing.T) {
 				),
 			},
 			{
-				Config: testAccTrustCertificate_content(certName, cert, "default"),
+				Config: acctest.Provider() + testAccTrustCertificate_content(certName, cert, "default"),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("lxd_trust_certificate.cert", "name", certName),
 					resource.TestCheckResourceAttr("lxd_trust_certificate.cert", "content", cert),
@@ -172,7 +172,7 @@ func TestAccTrustCertificate_generatedCertificate(t *testing.T) {
 			{
 				// Ensure the certificate generated within the same Terraform
 				// configuration as the trust_certificate can be used.
-				Config: testAccTrustCertificate_generatedCertificate(certName),
+				Config: acctest.Provider() + testAccTrustCertificate_generatedCertificate(certName),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("lxd_trust_certificate.cert", "name", certName),
 					resource.TestCheckResourceAttrSet("lxd_trust_certificate.cert", "content"),

@@ -17,7 +17,7 @@ func TestAccNetworkZoneRecord_basic(t *testing.T) {
 		ProtoV6ProviderFactories: acctest.ProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccNetworkZoneRecord(zoneName, recordName),
+				Config: acctest.Provider() + testAccNetworkZoneRecord(zoneName, recordName),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("lxd_network_zone.zone", "name", zoneName),
 					resource.TestCheckResourceAttr("lxd_network_zone.zone", "config.dns.nameservers", fmt.Sprintf("ns.%s", zoneName)),
@@ -51,7 +51,7 @@ func TestAccNetworkZoneRecord_entries(t *testing.T) {
 		ProtoV6ProviderFactories: acctest.ProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccNetworkZoneRecord_entries_1(zoneName, recordName),
+				Config: acctest.Provider() + testAccNetworkZoneRecord_entries_1(zoneName, recordName),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("lxd_network_zone.zone", "name", zoneName),
 					resource.TestCheckResourceAttr("lxd_network_zone_record.record", "name", recordName),
@@ -60,7 +60,7 @@ func TestAccNetworkZoneRecord_entries(t *testing.T) {
 				),
 			},
 			{
-				Config: testAccNetworkZoneRecord_entries_2(zoneName, recordName),
+				Config: acctest.Provider() + testAccNetworkZoneRecord_entries_2(zoneName, recordName),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("lxd_network_zone.zone", "name", zoneName),
 					resource.TestCheckResourceAttr("lxd_network_zone_record.record", "name", recordName),
@@ -82,7 +82,7 @@ func TestAccNetworkZoneRecord_importBasic(t *testing.T) {
 		ProtoV6ProviderFactories: acctest.ProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccNetworkZoneRecord(zoneName, recordName),
+				Config: acctest.Provider() + testAccNetworkZoneRecord(zoneName, recordName),
 			},
 			{
 				ResourceName:                         resourceName,

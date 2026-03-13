@@ -19,7 +19,7 @@ func TestAccNetworkForward_basic(t *testing.T) {
 		ProtoV6ProviderFactories: acctest.ProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccNetworkForward(networkName),
+				Config: acctest.Provider() + testAccNetworkForward(networkName),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("lxd_network_forward.forward", "listen_address", "10.150.19.10"),
 					resource.TestCheckResourceAttr("lxd_network_forward.forward", "description", "Network Forward"),
@@ -57,7 +57,7 @@ func TestAccNetworkForward_Ports(t *testing.T) {
 		ProtoV6ProviderFactories: acctest.ProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccNetworkForward_withPorts(networkName),
+				Config: acctest.Provider() + testAccNetworkForward_withPorts(networkName),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("lxd_network_forward.forward", "listen_address", "10.150.19.10"),
 					resource.TestCheckResourceAttr("lxd_network_forward.forward", "description", "Network Forward"),

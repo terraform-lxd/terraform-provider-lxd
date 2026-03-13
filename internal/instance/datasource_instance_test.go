@@ -16,7 +16,7 @@ func TestAccInstance_DS_basic(t *testing.T) {
 		ProtoV6ProviderFactories: acctest.ProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccInstance_DS_basic(instanceName),
+				Config: acctest.Provider() + testAccInstance_DS_basic(instanceName),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("data.lxd_instance.inst", "name", instanceName),
 					resource.TestCheckResourceAttr("data.lxd_instance.inst", "status", "Stopped"),
@@ -38,7 +38,7 @@ func TestAccInstance_DS_ephemeral(t *testing.T) {
 		ProtoV6ProviderFactories: acctest.ProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccInstance_DS_ephemeral(instanceName),
+				Config: acctest.Provider() + testAccInstance_DS_ephemeral(instanceName),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("data.lxd_instance.inst", "name", instanceName),
 					resource.TestCheckResourceAttr("data.lxd_instance.inst", "status", "Running"),
@@ -60,7 +60,7 @@ func TestAccInstance_DS_config(t *testing.T) {
 		ProtoV6ProviderFactories: acctest.ProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccInstance_DS_config(instanceName),
+				Config: acctest.Provider() + testAccInstance_DS_config(instanceName),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("data.lxd_instance.inst", "name", instanceName),
 					resource.TestCheckResourceAttr("data.lxd_instance.inst", "status", "Stopped"),
@@ -82,7 +82,7 @@ func TestAccInstance_DS_device(t *testing.T) {
 		ProtoV6ProviderFactories: acctest.ProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccInstance_DS_device(instanceName),
+				Config: acctest.Provider() + testAccInstance_DS_device(instanceName),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("data.lxd_instance.inst", "name", instanceName),
 					resource.TestCheckResourceAttr("data.lxd_instance.inst", "status", "Stopped"),
@@ -109,7 +109,7 @@ func TestAccInstance_DS_accessInterface(t *testing.T) {
 		Steps: []resource.TestStep{
 			{
 				// Create stopped instance. No address should be available.
-				Config: testAccInstance_DS_accessInterface(networkName, instanceName, false),
+				Config: acctest.Provider() + testAccInstance_DS_accessInterface(networkName, instanceName, false),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("data.lxd_instance.inst", "name", instanceName),
 					resource.TestCheckResourceAttr("data.lxd_instance.inst", "status", "Stopped"),
@@ -127,7 +127,7 @@ func TestAccInstance_DS_accessInterface(t *testing.T) {
 			},
 			{
 				// Start the instance to ensure the addresses get populated.
-				Config: testAccInstance_DS_accessInterface(networkName, instanceName, true),
+				Config: acctest.Provider() + testAccInstance_DS_accessInterface(networkName, instanceName, true),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("data.lxd_instance.inst", "name", instanceName),
 					resource.TestCheckResourceAttr("data.lxd_instance.inst", "status", "Running"),
@@ -149,7 +149,7 @@ func TestAccInstance_DS_project(t *testing.T) {
 		ProtoV6ProviderFactories: acctest.ProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccInstance_DS_project(projectName, instanceName),
+				Config: acctest.Provider() + testAccInstance_DS_project(projectName, instanceName),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("data.lxd_instance.inst", "name", instanceName),
 					resource.TestCheckResourceAttr("data.lxd_instance.inst", "status", "Stopped"),

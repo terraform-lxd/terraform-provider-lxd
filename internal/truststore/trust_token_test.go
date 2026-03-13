@@ -16,7 +16,7 @@ func TestAccTrustToken_content(t *testing.T) {
 		ProtoV6ProviderFactories: acctest.ProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccTrustToken(tokenName, "default"),
+				Config: acctest.Provider() + testAccTrustToken(tokenName, "default"),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("lxd_trust_token.token", "name", tokenName),
 					resource.TestCheckResourceAttr("lxd_trust_token.token", "projects.#", "1"),
@@ -26,7 +26,7 @@ func TestAccTrustToken_content(t *testing.T) {
 				),
 			},
 			{
-				Config: testAccTrustToken(tokenName),
+				Config: acctest.Provider() + testAccTrustToken(tokenName),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("lxd_trust_token.token", "name", tokenName),
 					resource.TestCheckResourceAttr("lxd_trust_token.token", "projects.#", "0"),

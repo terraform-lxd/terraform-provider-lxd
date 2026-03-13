@@ -19,7 +19,7 @@ func TestAccNetwork_DS_basic(t *testing.T) {
 		ProtoV6ProviderFactories: acctest.ProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccNetwork_DS_basic(networkName),
+				Config: acctest.Provider() + testAccNetwork_DS_basic(networkName),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("data.lxd_network.network", "name", networkName),
 					resource.TestCheckResourceAttr("data.lxd_network.network", "type", "bridge"),
@@ -44,7 +44,7 @@ func TestAccNetwork_DS_config(t *testing.T) {
 		ProtoV6ProviderFactories: acctest.ProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccNetwork_DS_config(networkName),
+				Config: acctest.Provider() + testAccNetwork_DS_config(networkName),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("data.lxd_network.network", "name", networkName),
 					resource.TestCheckResourceAttr("data.lxd_network.network", "type", "bridge"),

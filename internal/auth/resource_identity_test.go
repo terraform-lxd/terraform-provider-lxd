@@ -20,7 +20,7 @@ func TestAccIdentity_bearer(t *testing.T) {
 		Steps: []resource.TestStep{
 			{
 				// Create identity.
-				Config: testAccIdentity_bearer(identity, []string{}),
+				Config: acctest.Provider() + testAccIdentity_bearer(identity, []string{}),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("lxd_auth_identity.identity", "name", identity),
 					resource.TestCheckResourceAttr("lxd_auth_identity.identity", "auth_method", "bearer"),
@@ -29,7 +29,7 @@ func TestAccIdentity_bearer(t *testing.T) {
 			},
 			{
 				// Update groups.
-				Config: testAccIdentity_bearer(identity, []string{"admins"}),
+				Config: acctest.Provider() + testAccIdentity_bearer(identity, []string{"admins"}),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("lxd_auth_identity.identity", "name", identity),
 					resource.TestCheckResourceAttr("lxd_auth_identity.identity", "auth_method", "bearer"),
@@ -59,7 +59,7 @@ func TestAccIdentity_tls(t *testing.T) {
 		Steps: []resource.TestStep{
 			{
 				// Create identity.
-				Config: testAccIdentity_tls(identity, []string{}),
+				Config: acctest.Provider() + testAccIdentity_tls(identity, []string{}),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("lxd_auth_identity.identity", "name", identity),
 					resource.TestCheckResourceAttr("lxd_auth_identity.identity", "auth_method", "tls"),
@@ -69,7 +69,7 @@ func TestAccIdentity_tls(t *testing.T) {
 			},
 			{
 				// Update groups.
-				Config: testAccIdentity_tls(identity, []string{"admins"}),
+				Config: acctest.Provider() + testAccIdentity_tls(identity, []string{"admins"}),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("lxd_auth_identity.identity", "name", identity),
 					resource.TestCheckResourceAttr("lxd_auth_identity.identity", "auth_method", "tls"),
@@ -93,7 +93,7 @@ func TestAccIdentity_importEmpty(t *testing.T) {
 		ProtoV6ProviderFactories: acctest.ProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccIdentity_bearer("tf-auth-identity", []string{}),
+				Config: acctest.Provider() + testAccIdentity_bearer("tf-auth-identity", []string{}),
 			},
 			{
 				ResourceName:                         resourceName,
@@ -123,7 +123,7 @@ func TestAccIdentity_importWithGroups(t *testing.T) {
 		},
 		Steps: []resource.TestStep{
 			{
-				Config: testAccIdentity_tls("tf-auth-identity", []string{"admins"}),
+				Config: acctest.Provider() + testAccIdentity_tls("tf-auth-identity", []string{"admins"}),
 			},
 			{
 				ResourceName:                         resourceName,

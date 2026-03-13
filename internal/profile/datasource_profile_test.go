@@ -16,7 +16,7 @@ func TestAccProfile_DS_basic(t *testing.T) {
 		ProtoV6ProviderFactories: acctest.ProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccProfile_DS_basic(profileName),
+				Config: acctest.Provider() + testAccProfile_DS_basic(profileName),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("data.lxd_profile.profile", "name", profileName),
 					resource.TestCheckResourceAttr("data.lxd_profile.profile", "description", "Terraform provider test profile"),
@@ -34,7 +34,7 @@ func TestAccProfile_DS_config(t *testing.T) {
 		ProtoV6ProviderFactories: acctest.ProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccProfile_DS_config(profileName),
+				Config: acctest.Provider() + testAccProfile_DS_config(profileName),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("data.lxd_profile.profile", "name", profileName),
 					resource.TestCheckResourceAttr("data.lxd_profile.profile", "config.limits.cpu", "2"),
@@ -52,7 +52,7 @@ func TestAccProfile_DS_device(t *testing.T) {
 		ProtoV6ProviderFactories: acctest.ProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccProfile_DS_device(profileName),
+				Config: acctest.Provider() + testAccProfile_DS_device(profileName),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("data.lxd_profile.profile", "name", profileName),
 					resource.TestCheckResourceAttr("data.lxd_profile.profile", "device.0.name", "shared"),
@@ -74,7 +74,7 @@ func TestAccProfile_DS_project(t *testing.T) {
 		ProtoV6ProviderFactories: acctest.ProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccProfile_DS_project(profileName, projectName),
+				Config: acctest.Provider() + testAccProfile_DS_project(profileName, projectName),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("data.lxd_profile.profile", "name", profileName),
 					resource.TestCheckResourceAttr("data.lxd_profile.profile", "project", projectName),

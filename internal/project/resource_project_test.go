@@ -22,7 +22,7 @@ func TestAccProject_basic(t *testing.T) {
 		ProtoV6ProviderFactories: acctest.ProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccProject_basic(projectName),
+				Config: acctest.Provider() + testAccProject_basic(projectName),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("lxd_project.project0", "name", projectName),
 					resource.TestCheckResourceAttr("lxd_project.project0", "description", "Terraform provider test project"),
@@ -45,7 +45,7 @@ func TestAccProject_config(t *testing.T) {
 		ProtoV6ProviderFactories: acctest.ProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccProject_config(projectName),
+				Config: acctest.Provider() + testAccProject_config(projectName),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("lxd_project.project1", "name", projectName),
 					resource.TestCheckResourceAttr("lxd_project.project1", "config.features.images", "true"),
@@ -67,7 +67,7 @@ func TestAccProject_updateConfig(t *testing.T) {
 		ProtoV6ProviderFactories: acctest.ProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccProject_updateConfig_1(projectName),
+				Config: acctest.Provider() + testAccProject_updateConfig_1(projectName),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("lxd_project.project1", "name", projectName),
 					resource.TestCheckResourceAttr("lxd_project.project1", "description", "Old description"),
@@ -79,7 +79,7 @@ func TestAccProject_updateConfig(t *testing.T) {
 				),
 			},
 			{
-				Config: testAccProject_updateConfig_2(projectName),
+				Config: acctest.Provider() + testAccProject_updateConfig_2(projectName),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("lxd_project.project1", "name", projectName),
 					resource.TestCheckResourceAttr("lxd_project.project1", "description", "New description"),
@@ -102,7 +102,7 @@ func TestAccProject_importBasic(t *testing.T) {
 		ProtoV6ProviderFactories: acctest.ProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccProject_basic("project0"),
+				Config: acctest.Provider() + testAccProject_basic("project0"),
 			},
 			{
 				ResourceName:                         resourceName,
@@ -123,7 +123,7 @@ func TestAccProject_importConfig(t *testing.T) {
 		ProtoV6ProviderFactories: acctest.ProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccProject_config("project1"),
+				Config: acctest.Provider() + testAccProject_config("project1"),
 			},
 			{
 				ResourceName:                         resourceName,
