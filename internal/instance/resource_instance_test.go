@@ -17,7 +17,7 @@ func TestAccInstance_basic(t *testing.T) {
 		ProtoV6ProviderFactories: acctest.ProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccInstance_basic(instanceName),
+				Config: acctest.Provider() + testAccInstance_basic(instanceName),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("lxd_instance.instance1", "name", instanceName),
 					resource.TestCheckResourceAttr("lxd_instance.instance1", "status", "Running"),
@@ -39,7 +39,7 @@ func TestAccInstance_ephemeral(t *testing.T) {
 		ProtoV6ProviderFactories: acctest.ProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccInstance_ephemeral(instanceName),
+				Config: acctest.Provider() + testAccInstance_ephemeral(instanceName),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("lxd_instance.instance1", "name", instanceName),
 					resource.TestCheckResourceAttr("lxd_instance.instance1", "status", "Running"),
@@ -60,7 +60,7 @@ func TestAccInstance_ephemeralStopped(t *testing.T) {
 		ProtoV6ProviderFactories: acctest.ProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
-				Config:      testAccInstance_ephemeralStopped(instanceName),
+				Config:      acctest.Provider() + testAccInstance_ephemeralStopped(instanceName),
 				ExpectError: regexp.MustCompile(fmt.Sprintf("Instance %q is ephemeral and cannot be stopped", instanceName)),
 			},
 		},
@@ -76,7 +76,7 @@ func TestAccInstance_empty_vm(t *testing.T) {
 		ProtoV6ProviderFactories: acctest.ProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccInstance_empty(instanceName, "virtual-machine"),
+				Config: acctest.Provider() + testAccInstance_empty(instanceName, "virtual-machine"),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("lxd_instance.instance1", "name", instanceName),
 					resource.TestCheckResourceAttr("lxd_instance.instance1", "image", ""),
@@ -94,7 +94,7 @@ func TestAccInstance_empty_container(t *testing.T) {
 		ProtoV6ProviderFactories: acctest.ProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
-				Config:      testAccInstance_empty(instanceName, "container"),
+				Config:      acctest.Provider() + testAccInstance_empty(instanceName, "container"),
 				ExpectError: regexp.MustCompile(fmt.Sprintf("Instance %q is a container and requires image", instanceName)),
 			},
 		},
@@ -109,7 +109,7 @@ func TestAccInstance_container(t *testing.T) {
 		ProtoV6ProviderFactories: acctest.ProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccInstance_container(instanceName),
+				Config: acctest.Provider() + testAccInstance_container(instanceName),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("lxd_instance.instance1", "name", instanceName),
 					resource.TestCheckResourceAttr("lxd_instance.instance1", "type", "container"),
@@ -132,7 +132,7 @@ func TestAccInstance_virtualMachine(t *testing.T) {
 		ProtoV6ProviderFactories: acctest.ProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccInstance_virtualMachine(instanceName),
+				Config: acctest.Provider() + testAccInstance_virtualMachine(instanceName),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("lxd_instance.instance1", "name", instanceName),
 					resource.TestCheckResourceAttr("lxd_instance.instance1", "type", "virtual-machine"),
@@ -154,7 +154,7 @@ func TestAccInstance_virtualMachineNoDevLxd(t *testing.T) {
 		ProtoV6ProviderFactories: acctest.ProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccInstance_virtualMachineNoDevLxd(instanceName),
+				Config: acctest.Provider() + testAccInstance_virtualMachineNoDevLxd(instanceName),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("lxd_instance.instance1", "name", instanceName),
 					resource.TestCheckResourceAttr("lxd_instance.instance1", "type", "virtual-machine"),
@@ -175,7 +175,7 @@ func TestAccInstance_restartContainer(t *testing.T) {
 		ProtoV6ProviderFactories: acctest.ProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccInstance_started(instanceName, instanceType),
+				Config: acctest.Provider() + testAccInstance_started(instanceName, instanceType),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("lxd_instance.instance1", "name", instanceName),
 					resource.TestCheckResourceAttr("lxd_instance.instance1", "type", instanceType),
@@ -187,7 +187,7 @@ func TestAccInstance_restartContainer(t *testing.T) {
 				),
 			},
 			{
-				Config: testAccInstance_stopped(instanceName, instanceType),
+				Config: acctest.Provider() + testAccInstance_stopped(instanceName, instanceType),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("lxd_instance.instance1", "name", instanceName),
 					resource.TestCheckResourceAttr("lxd_instance.instance1", "status", "Stopped"),
@@ -196,7 +196,7 @@ func TestAccInstance_restartContainer(t *testing.T) {
 			},
 			{
 				// Verifies that instance is started with network.
-				Config: testAccInstance_started(instanceName, instanceType),
+				Config: acctest.Provider() + testAccInstance_started(instanceName, instanceType),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("lxd_instance.instance1", "name", instanceName),
 					resource.TestCheckResourceAttr("lxd_instance.instance1", "status", "Running"),
@@ -219,7 +219,7 @@ func TestAccInstance_restartVirtualMachine(t *testing.T) {
 		ProtoV6ProviderFactories: acctest.ProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccInstance_started(instanceName, instanceType),
+				Config: acctest.Provider() + testAccInstance_started(instanceName, instanceType),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("lxd_instance.instance1", "name", instanceName),
 					resource.TestCheckResourceAttr("lxd_instance.instance1", "type", instanceType),
@@ -231,7 +231,7 @@ func TestAccInstance_restartVirtualMachine(t *testing.T) {
 				),
 			},
 			{
-				Config: testAccInstance_stopped(instanceName, instanceType),
+				Config: acctest.Provider() + testAccInstance_stopped(instanceName, instanceType),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("lxd_instance.instance1", "name", instanceName),
 					resource.TestCheckResourceAttr("lxd_instance.instance1", "status", "Stopped"),
@@ -239,7 +239,7 @@ func TestAccInstance_restartVirtualMachine(t *testing.T) {
 				),
 			},
 			{
-				Config: testAccInstance_started(instanceName, instanceType),
+				Config: acctest.Provider() + testAccInstance_started(instanceName, instanceType),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("lxd_instance.instance1", "name", instanceName),
 					resource.TestCheckResourceAttr("lxd_instance.instance1", "status", "Running"),
@@ -263,7 +263,7 @@ func TestAccInstance_renameInstance(t *testing.T) {
 		Steps: []resource.TestStep{
 			{
 				// Launch a new instance.
-				Config: testAccInstance_rename(instanceNameA, true, false),
+				Config: acctest.Provider() + testAccInstance_rename(instanceNameA, true, false),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("lxd_instance.instance1", "name", instanceNameA),
 					resource.TestCheckResourceAttr("lxd_instance.instance1", "status", "Running"),
@@ -271,7 +271,7 @@ func TestAccInstance_renameInstance(t *testing.T) {
 			},
 			{
 				// Stop and rename the instance.
-				Config: testAccInstance_rename(instanceNameB, false, false),
+				Config: acctest.Provider() + testAccInstance_rename(instanceNameB, false, false),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("lxd_instance.instance1", "name", instanceNameB),
 					resource.TestCheckResourceAttr("lxd_instance.instance1", "status", "Stopped"),
@@ -279,7 +279,7 @@ func TestAccInstance_renameInstance(t *testing.T) {
 			},
 			{
 				// Rename the instance while stopped.
-				Config: testAccInstance_rename(instanceNameC, false, false),
+				Config: acctest.Provider() + testAccInstance_rename(instanceNameC, false, false),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("lxd_instance.instance1", "name", instanceNameC),
 					resource.TestCheckResourceAttr("lxd_instance.instance1", "status", "Stopped"),
@@ -287,7 +287,7 @@ func TestAccInstance_renameInstance(t *testing.T) {
 			},
 			{
 				// Rename and start the instance.
-				Config: testAccInstance_rename(instanceNameD, true, false),
+				Config: acctest.Provider() + testAccInstance_rename(instanceNameD, true, false),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("lxd_instance.instance1", "name", instanceNameD),
 					resource.TestCheckResourceAttr("lxd_instance.instance1", "status", "Running"),
@@ -295,7 +295,7 @@ func TestAccInstance_renameInstance(t *testing.T) {
 			},
 			{
 				// Ensure instance rename fails when instance is running.
-				Config: testAccInstance_rename(instanceNameE, true, false),
+				Config: acctest.Provider() + testAccInstance_rename(instanceNameE, true, false),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("lxd_instance.instance1", "name", instanceNameD), // Ensure name is unchanged.
 					resource.TestCheckResourceAttr("lxd_instance.instance1", "status", "Running"),
@@ -305,7 +305,7 @@ func TestAccInstance_renameInstance(t *testing.T) {
 			{
 				// Ensure instance rename succeeds when instance is running
 				// and restart is allowed.
-				Config: testAccInstance_rename(instanceNameE, true, true),
+				Config: acctest.Provider() + testAccInstance_rename(instanceNameE, true, true),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("lxd_instance.instance1", "name", instanceNameE), // Ensure name is unchanged.
 					resource.TestCheckResourceAttr("lxd_instance.instance1", "status", "Running"),
@@ -323,7 +323,7 @@ func TestAccInstance_remoteImage(t *testing.T) {
 		ProtoV6ProviderFactories: acctest.ProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccInstance_remoteImage(instanceName),
+				Config: acctest.Provider() + testAccInstance_remoteImage(instanceName),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("lxd_instance.instance1", "name", instanceName),
 					resource.TestCheckResourceAttr("lxd_instance.instance1", "status", "Running"),
@@ -342,7 +342,7 @@ func TestAccInstance_config(t *testing.T) {
 		ProtoV6ProviderFactories: acctest.ProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccInstance_config(instanceName),
+				Config: acctest.Provider() + testAccInstance_config(instanceName),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("lxd_instance.instance1", "name", instanceName),
 					resource.TestCheckResourceAttr("lxd_instance.instance1", "status", "Running"),
@@ -361,7 +361,7 @@ func TestAccInstance_updateConfig(t *testing.T) {
 		ProtoV6ProviderFactories: acctest.ProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccInstance_updateConfig1(instanceName),
+				Config: acctest.Provider() + testAccInstance_updateConfig1(instanceName),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("lxd_instance.instance1", "name", instanceName),
 					resource.TestCheckResourceAttr("lxd_instance.instance1", "status", "Running"),
@@ -370,7 +370,7 @@ func TestAccInstance_updateConfig(t *testing.T) {
 				),
 			},
 			{
-				Config: testAccInstance_updateConfig2(instanceName),
+				Config: acctest.Provider() + testAccInstance_updateConfig2(instanceName),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("lxd_instance.instance1", "name", instanceName),
 					resource.TestCheckResourceAttr("lxd_instance.instance1", "status", "Running"),
@@ -380,7 +380,7 @@ func TestAccInstance_updateConfig(t *testing.T) {
 				),
 			},
 			{
-				Config: testAccInstance_updateConfig3(instanceName),
+				Config: acctest.Provider() + testAccInstance_updateConfig3(instanceName),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("lxd_instance.instance1", "name", instanceName),
 					resource.TestCheckResourceAttr("lxd_instance.instance1", "status", "Running"),
@@ -402,7 +402,7 @@ func TestAccInstance_addProfile(t *testing.T) {
 		ProtoV6ProviderFactories: acctest.ProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccInstance_addProfile_1(instanceName),
+				Config: acctest.Provider() + testAccInstance_addProfile_1(instanceName),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("lxd_instance.instance1", "name", instanceName),
 					resource.TestCheckResourceAttr("lxd_instance.instance1", "status", "Running"),
@@ -411,7 +411,7 @@ func TestAccInstance_addProfile(t *testing.T) {
 				),
 			},
 			{
-				Config: testAccInstance_addProfile_2(profileName, instanceName),
+				Config: acctest.Provider() + testAccInstance_addProfile_2(profileName, instanceName),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("lxd_profile.profile1", "name", profileName),
 					resource.TestCheckResourceAttr("lxd_instance.instance1", "name", instanceName),
@@ -434,7 +434,7 @@ func TestAccInstance_removeProfile(t *testing.T) {
 		ProtoV6ProviderFactories: acctest.ProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccInstance_removeProfile_1(profileName, instanceName),
+				Config: acctest.Provider() + testAccInstance_removeProfile_1(profileName, instanceName),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("lxd_profile.profile1", "name", profileName),
 					resource.TestCheckResourceAttr("lxd_instance.instance1", "name", instanceName),
@@ -445,7 +445,7 @@ func TestAccInstance_removeProfile(t *testing.T) {
 				),
 			},
 			{
-				Config: testAccInstance_removeProfile_2(profileName, instanceName),
+				Config: acctest.Provider() + testAccInstance_removeProfile_2(profileName, instanceName),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("lxd_profile.profile1", "name", profileName),
 					resource.TestCheckResourceAttr("lxd_instance.instance1", "name", instanceName),
@@ -469,7 +469,7 @@ func TestAccInstance_noProfile(t *testing.T) {
 		ProtoV6ProviderFactories: acctest.ProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccInstance_noProfile(name),
+				Config: acctest.Provider() + testAccInstance_noProfile(name),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("lxd_storage_pool.pool1", "name", name),
 					resource.TestCheckResourceAttr("lxd_storage_pool.pool1", "driver", "zfs"),
@@ -494,7 +494,7 @@ func TestAccInstance_device(t *testing.T) {
 		ProtoV6ProviderFactories: acctest.ProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccInstance_device_1(instanceName),
+				Config: acctest.Provider() + testAccInstance_device_1(instanceName),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("lxd_instance.instance1", "name", instanceName),
 					resource.TestCheckResourceAttr("lxd_instance.instance1", "status", "Running"),
@@ -506,7 +506,7 @@ func TestAccInstance_device(t *testing.T) {
 				),
 			},
 			{
-				Config: testAccInstance_device_2(instanceName),
+				Config: acctest.Provider() + testAccInstance_device_2(instanceName),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("lxd_instance.instance1", "name", instanceName),
 					resource.TestCheckResourceAttr("lxd_instance.instance1", "status", "Running"),
@@ -529,7 +529,7 @@ func TestAccInstance_addDevice(t *testing.T) {
 		ProtoV6ProviderFactories: acctest.ProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccInstance_addDevice_1(instanceName),
+				Config: acctest.Provider() + testAccInstance_addDevice_1(instanceName),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("lxd_instance.instance1", "name", instanceName),
 					resource.TestCheckResourceAttr("lxd_instance.instance1", "status", "Running"),
@@ -537,7 +537,7 @@ func TestAccInstance_addDevice(t *testing.T) {
 				),
 			},
 			{
-				Config: testAccInstance_addDevice_2(instanceName),
+				Config: acctest.Provider() + testAccInstance_addDevice_2(instanceName),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("lxd_instance.instance1", "name", instanceName),
 					resource.TestCheckResourceAttr("lxd_instance.instance1", "status", "Running"),
@@ -560,7 +560,7 @@ func TestAccInstance_removeDevice(t *testing.T) {
 		ProtoV6ProviderFactories: acctest.ProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccInstance_removeDevice_1(instanceName),
+				Config: acctest.Provider() + testAccInstance_removeDevice_1(instanceName),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("lxd_instance.instance1", "name", instanceName),
 					resource.TestCheckResourceAttr("lxd_instance.instance1", "status", "Running"),
@@ -572,7 +572,7 @@ func TestAccInstance_removeDevice(t *testing.T) {
 				),
 			},
 			{
-				Config: testAccInstance_removeDevice_2(instanceName),
+				Config: acctest.Provider() + testAccInstance_removeDevice_2(instanceName),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("lxd_instance.instance1", "name", instanceName),
 					resource.TestCheckResourceAttr("lxd_instance.instance1", "status", "Running"),
@@ -591,7 +591,7 @@ func TestAccInstance_fileUploadContainer(t *testing.T) {
 		ProtoV6ProviderFactories: acctest.ProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccInstance_fileUploadSource(instanceName, "container"),
+				Config: acctest.Provider() + testAccInstance_fileUploadSource(instanceName, "container"),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("lxd_instance.instance1", "name", instanceName),
 					resource.TestCheckResourceAttr("lxd_instance.instance1", "status", "Running"),
@@ -618,7 +618,7 @@ func TestAccInstance_fileUploadVirtualMachine(t *testing.T) {
 		ProtoV6ProviderFactories: acctest.ProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccInstance_fileUploadSource(instanceName, "virtual-machine"),
+				Config: acctest.Provider() + testAccInstance_fileUploadSource(instanceName, "virtual-machine"),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("lxd_instance.instance1", "name", instanceName),
 					resource.TestCheckResourceAttr("lxd_instance.instance1", "status", "Running"),
@@ -642,7 +642,7 @@ func TestAccInstance_fileUploadContent(t *testing.T) {
 		ProtoV6ProviderFactories: acctest.ProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccInstance_fileUploadContent_1(instanceName),
+				Config: acctest.Provider() + testAccInstance_fileUploadContent_1(instanceName),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("lxd_instance.instance1", "name", instanceName),
 					resource.TestCheckResourceAttr("lxd_instance.instance1", "status", "Running"),
@@ -654,7 +654,7 @@ func TestAccInstance_fileUploadContent(t *testing.T) {
 				),
 			},
 			{
-				Config: testAccInstance_fileUploadContent_2(instanceName),
+				Config: acctest.Provider() + testAccInstance_fileUploadContent_2(instanceName),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("lxd_instance.instance1", "name", instanceName),
 					resource.TestCheckResourceAttr("lxd_instance.instance1", "status", "Running"),
@@ -666,7 +666,7 @@ func TestAccInstance_fileUploadContent(t *testing.T) {
 				),
 			},
 			{
-				Config: testAccInstance_fileUploadContent_3(instanceName),
+				Config: acctest.Provider() + testAccInstance_fileUploadContent_3(instanceName),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("lxd_instance.instance1", "name", instanceName),
 					resource.TestCheckResourceAttr("lxd_instance.instance1", "status", "Running"),
@@ -689,7 +689,7 @@ func TestAccInstance_execOutput(t *testing.T) {
 		ProtoV6ProviderFactories: acctest.ProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccInstance_exec(instanceName),
+				Config: acctest.Provider() + testAccInstance_exec(instanceName),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("lxd_instance.instance1", "name", instanceName),
 					resource.TestCheckResourceAttr("lxd_instance.instance1", "status", "Running"),
@@ -702,7 +702,7 @@ func TestAccInstance_execOutput(t *testing.T) {
 			},
 			{
 				// Record exec output.
-				Config: testAccInstance_execOutput(instanceName),
+				Config: acctest.Provider() + testAccInstance_execOutput(instanceName),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("lxd_instance.instance1", "name", instanceName),
 					resource.TestCheckResourceAttr("lxd_instance.instance1", "status", "Running"),
@@ -713,7 +713,7 @@ func TestAccInstance_execOutput(t *testing.T) {
 				),
 			},
 			{
-				Config: testAccInstance_exec(instanceName),
+				Config: acctest.Provider() + testAccInstance_exec(instanceName),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("lxd_instance.instance1", "name", instanceName),
 					resource.TestCheckResourceAttr("lxd_instance.instance1", "status", "Running"),
@@ -736,7 +736,7 @@ func TestAccInstance_execOutputDate(t *testing.T) {
 		Steps: []resource.TestStep{
 			{
 				// Record exec output.
-				Config: testAccInstance_execOutputDate(instanceName),
+				Config: acctest.Provider() + testAccInstance_execOutputDate(instanceName),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("lxd_instance.instance1", "name", instanceName),
 					resource.TestCheckResourceAttr("lxd_instance.instance1", "status", "Running"),
@@ -748,7 +748,7 @@ func TestAccInstance_execOutputDate(t *testing.T) {
 			{
 				// Ensure that exec output change does not produce an
 				// inconsistent plan.
-				Config: testAccInstance_execOutputDate(instanceName),
+				Config: acctest.Provider() + testAccInstance_execOutputDate(instanceName),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("lxd_instance.instance1", "name", instanceName),
 					resource.TestCheckResourceAttr("lxd_instance.instance1", "status", "Running"),
@@ -770,7 +770,7 @@ func TestAccInstance_execTriggerOnce(t *testing.T) {
 		Steps: []resource.TestStep{
 			{
 				// Start the instance.
-				Config: testAccInstance_execTriggerOnce(instanceName, "uname"),
+				Config: acctest.Provider() + testAccInstance_execTriggerOnce(instanceName, "uname"),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("lxd_instance.instance1", "name", instanceName),
 					resource.TestCheckResourceAttr("lxd_instance.instance1", "status", "Running"),
@@ -784,7 +784,7 @@ func TestAccInstance_execTriggerOnce(t *testing.T) {
 			},
 			{
 				// Stop the instance. Ensure computed fields are cleared.
-				Config: testAccInstance_execTriggerOnce(instanceName, "hostname"),
+				Config: acctest.Provider() + testAccInstance_execTriggerOnce(instanceName, "hostname"),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("lxd_instance.instance1", "name", instanceName),
 					resource.TestCheckResourceAttr("lxd_instance.instance1", "status", "Running"),
@@ -808,7 +808,7 @@ func TestAccInstance_execTriggerOnStart(t *testing.T) {
 		Steps: []resource.TestStep{
 			{
 				// Create stopped instance.
-				Config: testAccInstance_execTriggerOnStart(instanceName, "uname", false /* running */),
+				Config: acctest.Provider() + testAccInstance_execTriggerOnStart(instanceName, "uname", false /* running */),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("lxd_instance.instance1", "name", instanceName),
 					resource.TestCheckResourceAttr("lxd_instance.instance1", "status", "Stopped"),
@@ -822,7 +822,7 @@ func TestAccInstance_execTriggerOnStart(t *testing.T) {
 			},
 			{
 				// Start the instance.
-				Config: testAccInstance_execTriggerOnStart(instanceName, "uname", true /* running */),
+				Config: acctest.Provider() + testAccInstance_execTriggerOnStart(instanceName, "uname", true /* running */),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("lxd_instance.instance1", "name", instanceName),
 					resource.TestCheckResourceAttr("lxd_instance.instance1", "status", "Running"),
@@ -835,7 +835,7 @@ func TestAccInstance_execTriggerOnStart(t *testing.T) {
 			},
 			{
 				// Change command. Ensure it is not executed.
-				Config: testAccInstance_execTriggerOnStart(instanceName, "hostname", true /* running */),
+				Config: acctest.Provider() + testAccInstance_execTriggerOnStart(instanceName, "hostname", true /* running */),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("lxd_instance.instance1", "name", instanceName),
 					resource.TestCheckResourceAttr("lxd_instance.instance1", "status", "Running"),
@@ -848,7 +848,7 @@ func TestAccInstance_execTriggerOnStart(t *testing.T) {
 			},
 			{
 				// Stop the instance. Ensure computed fields are cleared.
-				Config: testAccInstance_execTriggerOnStart(instanceName, "hostname", false /* running */),
+				Config: acctest.Provider() + testAccInstance_execTriggerOnStart(instanceName, "hostname", false /* running */),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("lxd_instance.instance1", "name", instanceName),
 					resource.TestCheckResourceAttr("lxd_instance.instance1", "status", "Stopped"),
@@ -861,7 +861,7 @@ func TestAccInstance_execTriggerOnStart(t *testing.T) {
 			},
 			{
 				// Start instance again.
-				Config: testAccInstance_execTriggerOnStart(instanceName, "hostname", true /* running */),
+				Config: acctest.Provider() + testAccInstance_execTriggerOnStart(instanceName, "hostname", true /* running */),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("lxd_instance.instance1", "name", instanceName),
 					resource.TestCheckResourceAttr("lxd_instance.instance1", "status", "Running"),
@@ -884,7 +884,7 @@ func TestAccInstance_execTriggerOnChange(t *testing.T) {
 		ProtoV6ProviderFactories: acctest.ProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccInstance_execTriggerOnChange(instanceName, "uname"),
+				Config: acctest.Provider() + testAccInstance_execTriggerOnChange(instanceName, "uname"),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("lxd_instance.instance1", "name", instanceName),
 					resource.TestCheckResourceAttr("lxd_instance.instance1", "status", "Running"),
@@ -895,7 +895,7 @@ func TestAccInstance_execTriggerOnChange(t *testing.T) {
 				),
 			},
 			{
-				Config: testAccInstance_execTriggerOnChange(instanceName, "hostname"),
+				Config: acctest.Provider() + testAccInstance_execTriggerOnChange(instanceName, "hostname"),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("lxd_instance.instance1", "name", instanceName),
 					resource.TestCheckResourceAttr("lxd_instance.instance1", "status", "Running"),
@@ -918,7 +918,7 @@ func TestAccInstance_execEnabled(t *testing.T) {
 		Steps: []resource.TestStep{
 			{
 				// Start instance with exec disabled.
-				Config: testAccInstance_execEnabled(instanceName, false),
+				Config: acctest.Provider() + testAccInstance_execEnabled(instanceName, false),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("lxd_instance.instance1", "name", instanceName),
 					resource.TestCheckResourceAttr("lxd_instance.instance1", "status", "Running"),
@@ -932,7 +932,7 @@ func TestAccInstance_execEnabled(t *testing.T) {
 			},
 			{
 				// Enable exec.
-				Config: testAccInstance_execEnabled(instanceName, true),
+				Config: acctest.Provider() + testAccInstance_execEnabled(instanceName, true),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("lxd_instance.instance1", "name", instanceName),
 					resource.TestCheckResourceAttr("lxd_instance.instance1", "status", "Running"),
@@ -945,7 +945,7 @@ func TestAccInstance_execEnabled(t *testing.T) {
 			},
 			{
 				// Disable exec. Ensure computed fields are cleared.
-				Config: testAccInstance_execEnabled(instanceName, false),
+				Config: acctest.Provider() + testAccInstance_execEnabled(instanceName, false),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("lxd_instance.instance1", "name", instanceName),
 					resource.TestCheckResourceAttr("lxd_instance.instance1", "status", "Running"),
@@ -968,7 +968,7 @@ func TestAccInstance_execWorkingDir(t *testing.T) {
 		ProtoV6ProviderFactories: acctest.ProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccInstance_execWorkingDir(instanceName),
+				Config: acctest.Provider() + testAccInstance_execWorkingDir(instanceName),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("lxd_instance.instance1", "name", instanceName),
 					resource.TestCheckResourceAttr("lxd_instance.instance1", "status", "Running"),
@@ -990,7 +990,7 @@ func TestAccInstance_execEnvironment(t *testing.T) {
 		ProtoV6ProviderFactories: acctest.ProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccInstance_execEnvironment(instanceName),
+				Config: acctest.Provider() + testAccInstance_execEnvironment(instanceName),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("lxd_instance.instance1", "name", instanceName),
 					resource.TestCheckResourceAttr("lxd_instance.instance1", "status", "Running"),
@@ -1012,7 +1012,7 @@ func TestAccInstance_execScript(t *testing.T) {
 		ProtoV6ProviderFactories: acctest.ProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccInstance_execScript(instanceName),
+				Config: acctest.Provider() + testAccInstance_execScript(instanceName),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("lxd_instance.instance1", "name", instanceName),
 					resource.TestCheckResourceAttr("lxd_instance.instance1", "status", "Running"),
@@ -1035,7 +1035,7 @@ func TestAccInstance_execOrder(t *testing.T) {
 		ProtoV6ProviderFactories: acctest.ProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccInstance_execOrder(instanceName),
+				Config: acctest.Provider() + testAccInstance_execOrder(instanceName),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("lxd_instance.instance1", "name", instanceName),
 					resource.TestCheckResourceAttr("lxd_instance.instance1", "status", "Running"),
@@ -1066,7 +1066,7 @@ func TestAccInstance_execError(t *testing.T) {
 			{
 				// Ensure command error is recorded and terraform apply is
 				// not disturbed if fail_on_error is unset (or set to false).
-				Config: testAccInstance_execError_1(instanceName, false /* fail on error */),
+				Config: acctest.Provider() + testAccInstance_execError_1(instanceName, false /* fail on error */),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("lxd_instance.instance1", "name", instanceName),
 					resource.TestCheckResourceAttr("lxd_instance.instance1", "status", "Running"),
@@ -1079,12 +1079,12 @@ func TestAccInstance_execError(t *testing.T) {
 			{
 				// Ensure terraform apply fails on command error
 				// if fail_on_error is set to true.
-				Config:      testAccInstance_execError_1(instanceName, true /* fail on error */),
+				Config:      acctest.Provider() + testAccInstance_execError_1(instanceName, true /* fail on error */),
 				ExpectError: regexp.MustCompile("Error: Failed to execute command"),
 			},
 			{
 				// Ensures exit_code is set even if output is not recorded.
-				Config: testAccInstance_execError_2(instanceName),
+				Config: acctest.Provider() + testAccInstance_execError_2(instanceName),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("lxd_instance.instance1", "name", instanceName),
 					resource.TestCheckResourceAttr("lxd_instance.instance1", "status", "Running"),
@@ -1106,7 +1106,7 @@ func TestAccInstance_configLimits(t *testing.T) {
 		ProtoV6ProviderFactories: acctest.ProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccInstance_configLimits_1(instanceName),
+				Config: acctest.Provider() + testAccInstance_configLimits_1(instanceName),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("lxd_instance.instance1", "name", instanceName),
 					resource.TestCheckResourceAttr("lxd_instance.instance1", "status", "Running"),
@@ -1115,7 +1115,7 @@ func TestAccInstance_configLimits(t *testing.T) {
 				),
 			},
 			{
-				Config: testAccInstance_configLimits_2(instanceName),
+				Config: acctest.Provider() + testAccInstance_configLimits_2(instanceName),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("lxd_instance.instance1", "name", instanceName),
 					resource.TestCheckResourceAttr("lxd_instance.instance1", "status", "Running"),
@@ -1141,7 +1141,7 @@ func TestAccInstance_vm_configLimits(t *testing.T) {
 		Steps: []resource.TestStep{
 			{
 				// VM with 1 cpu and 512MiB memory limit.
-				Config: testAccInstance_vm_limits(instanceName, 1, "512MiB", false),
+				Config: acctest.Provider() + testAccInstance_vm_limits(instanceName, 1, "512MiB", false),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("lxd_instance.instance1", "name", instanceName),
 					resource.TestCheckResourceAttr("lxd_instance.instance1", "status", "Running"),
@@ -1151,7 +1151,7 @@ func TestAccInstance_vm_configLimits(t *testing.T) {
 			},
 			{
 				// Increase CPU limit to 2.
-				Config: testAccInstance_vm_limits(instanceName, 2, "512MiB", false),
+				Config: acctest.Provider() + testAccInstance_vm_limits(instanceName, 2, "512MiB", false),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("lxd_instance.instance1", "name", instanceName),
 					resource.TestCheckResourceAttr("lxd_instance.instance1", "status", "Running"),
@@ -1165,7 +1165,7 @@ func TestAccInstance_vm_configLimits(t *testing.T) {
 				// XXX: This should fail until https://github.com/canonical/lxd/issues/15010
 				//      is resolved. Afterwards, remove this step and ensure memory can be
 				//      increased without provider restart.
-				Config: testAccInstance_vm_limits(instanceName, 2, "768MiB", false),
+				Config: acctest.Provider() + testAccInstance_vm_limits(instanceName, 2, "768MiB", false),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("lxd_instance.instance1", "name", instanceName),
 					resource.TestCheckResourceAttr("lxd_instance.instance1", "status", "Running"),
@@ -1176,7 +1176,7 @@ func TestAccInstance_vm_configLimits(t *testing.T) {
 			},
 			{
 				// Increase memory to 768MiB and allow provider to restart the instance.
-				Config: testAccInstance_vm_limits(instanceName, 2, "768MiB", true),
+				Config: acctest.Provider() + testAccInstance_vm_limits(instanceName, 2, "768MiB", true),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("lxd_instance.instance1", "name", instanceName),
 					resource.TestCheckResourceAttr("lxd_instance.instance1", "status", "Running"),
@@ -1200,7 +1200,7 @@ func TestAccInstance_accessInterface(t *testing.T) {
 		ProtoV6ProviderFactories: acctest.ProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccInstance_accessInterface(networkName, instanceName),
+				Config: acctest.Provider() + testAccInstance_accessInterface(networkName, instanceName),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("lxd_network.network1", "name", networkName),
 					resource.TestCheckResourceAttr("lxd_network.network1", "config.ipv4.address", "10.151.19.1/24"),
@@ -1238,7 +1238,7 @@ func TestAccInstance_accessInterfaceFromProfile(t *testing.T) {
 		Steps: []resource.TestStep{
 			{
 				// Start the instance and ensure address from eht0 is reported.
-				Config: testAccInstance_accessInterfaceFromProfile(networkName, profileName, instanceName, "eth0"),
+				Config: acctest.Provider() + testAccInstance_accessInterfaceFromProfile(networkName, profileName, instanceName, "eth0"),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("lxd_profile.profile", "name", profileName),
 					resource.TestCheckResourceAttr("lxd_profile.profile", "config.user.access_interface", "eth0"),
@@ -1270,7 +1270,7 @@ func TestAccInstance_target(t *testing.T) {
 		ProtoV6ProviderFactories: acctest.ProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccInstance_target(instanceName, targets[0]),
+				Config: acctest.Provider() + testAccInstance_target(instanceName, targets[0]),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("lxd_instance.instance1", "name", fmt.Sprintf("%s-1", instanceName)),
 					resource.TestCheckResourceAttr("lxd_instance.instance1", "status", "Running"),
@@ -1295,7 +1295,7 @@ func TestAccInstance_createProject(t *testing.T) {
 		ProtoV6ProviderFactories: acctest.ProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccInstance_project(projectName, instanceName),
+				Config: acctest.Provider() + testAccInstance_project(projectName, instanceName),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("lxd_project.project1", "name", projectName),
 					resource.TestCheckResourceAttr("lxd_instance.instance1", "name", instanceName),
@@ -1316,7 +1316,7 @@ func TestAccInstance_removeProject(t *testing.T) {
 		ProtoV6ProviderFactories: acctest.ProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccInstance_removeProject_1(projectName, instanceName),
+				Config: acctest.Provider() + testAccInstance_removeProject_1(projectName, instanceName),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("lxd_project.project1", "name", projectName),
 					resource.TestCheckResourceAttr("lxd_instance.instance1", "name", instanceName),
@@ -1325,7 +1325,7 @@ func TestAccInstance_removeProject(t *testing.T) {
 				),
 			},
 			{
-				Config: testAccInstance_removeProject_2(projectName, instanceName),
+				Config: acctest.Provider() + testAccInstance_removeProject_2(projectName, instanceName),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("lxd_project.project1", "name", projectName),
 					resource.TestCheckResourceAttr("lxd_instance.instance1", "name", instanceName),
@@ -1345,7 +1345,7 @@ func TestAccInstance_customImageServer(t *testing.T) {
 		ProtoV6ProviderFactories: acctest.ProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccInstance_customImageServer(instanceName),
+				Config: acctest.Provider() + testAccInstance_customImageServer(instanceName),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("lxd_instance.instance1", "name", instanceName),
 					resource.TestCheckResourceAttr("lxd_instance.instance1", "status", "Running"),
@@ -1363,7 +1363,7 @@ func TestAccInstance_timeout(t *testing.T) {
 		ProtoV6ProviderFactories: acctest.ProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
-				Config:      testAccInstance_timeout(instanceName),
+				Config:      acctest.Provider() + testAccInstance_timeout(instanceName),
 				ExpectError: regexp.MustCompile("context deadline exceeded"),
 			},
 		},
@@ -1384,7 +1384,7 @@ func TestAccInstance_migration(t *testing.T) {
 		Steps: []resource.TestStep{
 			{
 				// Create instance on 1st cluster member.
-				Config: testAccInstance_migration(instanceName, targets[0], true, false),
+				Config: acctest.Provider() + testAccInstance_migration(instanceName, targets[0], true, false),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("lxd_instance.instance1", "name", instanceName),
 					resource.TestCheckResourceAttr("lxd_instance.instance1", "status", "Running"),
@@ -1395,7 +1395,7 @@ func TestAccInstance_migration(t *testing.T) {
 			{
 				// Set instance target to cluster group "@default" (noop).
 				// All cluster members are part of default group.
-				Config: testAccInstance_migration(instanceName, "@default", true, false),
+				Config: acctest.Provider() + testAccInstance_migration(instanceName, "@default", true, false),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("lxd_instance.instance1", "name", instanceName),
 					resource.TestCheckResourceAttr("lxd_instance.instance1", "status", "Running"),
@@ -1407,7 +1407,7 @@ func TestAccInstance_migration(t *testing.T) {
 				// Unset instance target (noop).
 				// Empty target means that we do not care where the instance is
 				// running.
-				Config: testAccInstance_migration(instanceName, "", true, false),
+				Config: acctest.Provider() + testAccInstance_migration(instanceName, "", true, false),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("lxd_instance.instance1", "name", instanceName),
 					resource.TestCheckResourceAttr("lxd_instance.instance1", "status", "Running"),
@@ -1419,7 +1419,7 @@ func TestAccInstance_migration(t *testing.T) {
 				// Move the instance to 2nd cluster member.
 				// Instance is running and is planned to remain running.
 				// Restart is not allowed, therefore expect an error.
-				Config: testAccInstance_migration(instanceName, targets[1], true, false),
+				Config: acctest.Provider() + testAccInstance_migration(instanceName, targets[1], true, false),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("lxd_instance.instance1", "name", instanceName),
 					resource.TestCheckResourceAttr("lxd_instance.instance1", "status", "Running"),
@@ -1431,7 +1431,7 @@ func TestAccInstance_migration(t *testing.T) {
 			{
 				// Move the instance to 2nd cluster member target (again).
 				// This time restart is allowed and the instance should be moved.
-				Config: testAccInstance_migration(instanceName, targets[1], true, true),
+				Config: acctest.Provider() + testAccInstance_migration(instanceName, targets[1], true, true),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("lxd_instance.instance1", "name", instanceName),
 					resource.TestCheckResourceAttr("lxd_instance.instance1", "status", "Running"),
@@ -1443,7 +1443,7 @@ func TestAccInstance_migration(t *testing.T) {
 				// Move the instance back to 1st cluster member.
 				// The instance is planned to be stopped, therefore the move
 				// should succeed despite the restart not being allowed.
-				Config: testAccInstance_migration(instanceName, targets[0], false, false),
+				Config: acctest.Provider() + testAccInstance_migration(instanceName, targets[0], false, false),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("lxd_instance.instance1", "name", instanceName),
 					resource.TestCheckResourceAttr("lxd_instance.instance1", "status", "Stopped"),
@@ -1455,7 +1455,7 @@ func TestAccInstance_migration(t *testing.T) {
 				// Move the instance back to 2nd cluster member.
 				// Similar to the previous case, the instance is already stopped,
 				// therefore the move will be done before the instance is started.
-				Config: testAccInstance_migration(instanceName, targets[1], true, false),
+				Config: acctest.Provider() + testAccInstance_migration(instanceName, targets[1], true, false),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("lxd_instance.instance1", "name", instanceName),
 					resource.TestCheckResourceAttr("lxd_instance.instance1", "status", "Running"),
@@ -1476,7 +1476,7 @@ func TestAccInstance_importBasic(t *testing.T) {
 		ProtoV6ProviderFactories: acctest.ProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccInstance_basic(instanceName),
+				Config: acctest.Provider() + testAccInstance_basic(instanceName),
 			},
 			{
 				ResourceName:                         resourceName,
@@ -1499,7 +1499,7 @@ func TestAccInstance_importProject(t *testing.T) {
 		ProtoV6ProviderFactories: acctest.ProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccInstance_project(projectName, instanceName),
+				Config: acctest.Provider() + testAccInstance_project(projectName, instanceName),
 			},
 			{
 				ResourceName:                         resourceName,

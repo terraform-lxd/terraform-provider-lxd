@@ -24,7 +24,6 @@ import (
 type TrustTokenModel struct {
 	Name     types.String `tfsdk:"name"`
 	Projects types.List   `tfsdk:"projects"`
-	Remote   types.String `tfsdk:"remote"`
 	Trigger  types.String `tfsdk:"trigger"`
 
 	// Computed.
@@ -66,14 +65,6 @@ func (r TrustTokenResource) Schema(_ context.Context, _ resource.SchemaRequest, 
 				ElementType: types.StringType,
 				PlanModifiers: []planmodifier.List{
 					listplanmodifier.RequiresReplace(),
-				},
-			},
-
-			"remote": schema.StringAttribute{
-				Optional:    true,
-				Description: "The remote in which the trust token is created. If not provided, the provider's default remote is used.",
-				PlanModifiers: []planmodifier.String{
-					stringplanmodifier.RequiresReplace(),
 				},
 			},
 
@@ -136,8 +127,7 @@ func (r TrustTokenResource) Create(ctx context.Context, req resource.CreateReque
 		return
 	}
 
-	remote := plan.Remote.ValueString()
-	server, err := r.provider.InstanceServer(remote, "default", "")
+	server, err := r.provider.InstanceServer("default", "")
 	if err != nil {
 		resp.Diagnostics.Append(errors.NewInstanceServerError(err))
 		return
@@ -195,8 +185,7 @@ func (r TrustTokenResource) Read(ctx context.Context, req resource.ReadRequest, 
 		return
 	}
 
-	remote := state.Remote.ValueString()
-	server, err := r.provider.InstanceServer(remote, "default", "")
+	server, err := r.provider.InstanceServer("default", "")
 	if err != nil {
 		resp.Diagnostics.Append(errors.NewInstanceServerError(err))
 		return
@@ -238,8 +227,7 @@ func (r TrustTokenResource) Delete(ctx context.Context, req resource.DeleteReque
 		return
 	}
 
-	remote := state.Remote.ValueString()
-	server, err := r.provider.InstanceServer(remote, "default", "")
+	server, err := r.provider.InstanceServer("default", "")
 	if err != nil {
 		resp.Diagnostics.Append(errors.NewInstanceServerError(err))
 		return

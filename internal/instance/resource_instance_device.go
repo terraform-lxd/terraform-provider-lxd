@@ -25,7 +25,6 @@ type InstanceDeviceModel struct {
 	Name         types.String `tfsdk:"name"`
 	InstanceName types.String `tfsdk:"instance_name"`
 	Project      types.String `tfsdk:"project"`
-	Remote       types.String `tfsdk:"remote"`
 	Target       types.String `tfsdk:"target"`
 	Type         types.String `tfsdk:"type"`
 	Properties   types.Map    `tfsdk:"properties"`
@@ -75,17 +74,6 @@ func (r InstanceDeviceResource) Schema(ctx context.Context, _ resource.SchemaReq
 			"project": schema.StringAttribute{
 				Optional:    true,
 				Description: "Project",
-				PlanModifiers: []planmodifier.String{
-					stringplanmodifier.RequiresReplace(),
-				},
-				Validators: []validator.String{
-					stringvalidator.LengthAtLeast(1),
-				},
-			},
-
-			"remote": schema.StringAttribute{
-				Optional:    true,
-				Description: "Remote",
 				PlanModifiers: []planmodifier.String{
 					stringplanmodifier.RequiresReplace(),
 				},
@@ -159,10 +147,9 @@ func (r InstanceDeviceResource) Create(ctx context.Context, req resource.CreateR
 		return
 	}
 
-	remote := plan.Remote.ValueString()
 	project := plan.Project.ValueString()
 	target := plan.Target.ValueString()
-	server, err := r.provider.InstanceServer(remote, project, target)
+	server, err := r.provider.InstanceServer(project, target)
 	if err != nil {
 		resp.Diagnostics.Append(errors.NewInstanceServerError(err))
 		return
@@ -228,10 +215,9 @@ func (r InstanceDeviceResource) Read(ctx context.Context, req resource.ReadReque
 		return
 	}
 
-	remote := state.Remote.ValueString()
 	project := state.Project.ValueString()
 	target := state.Target.ValueString()
-	server, err := r.provider.InstanceServer(remote, project, target)
+	server, err := r.provider.InstanceServer(project, target)
 	if err != nil {
 		resp.Diagnostics.Append(errors.NewInstanceServerError(err))
 		return
@@ -250,10 +236,9 @@ func (r InstanceDeviceResource) Update(ctx context.Context, req resource.UpdateR
 		return
 	}
 
-	remote := plan.Remote.ValueString()
 	project := plan.Project.ValueString()
 	target := plan.Target.ValueString()
-	server, err := r.provider.InstanceServer(remote, project, target)
+	server, err := r.provider.InstanceServer(project, target)
 	if err != nil {
 		resp.Diagnostics.Append(errors.NewInstanceServerError(err))
 		return
@@ -327,10 +312,9 @@ func (r InstanceDeviceResource) Delete(ctx context.Context, req resource.DeleteR
 		return
 	}
 
-	remote := state.Remote.ValueString()
 	project := state.Project.ValueString()
 	target := state.Target.ValueString()
-	server, err := r.provider.InstanceServer(remote, project, target)
+	server, err := r.provider.InstanceServer(project, target)
 	if err != nil {
 		resp.Diagnostics.Append(errors.NewInstanceServerError(err))
 		return

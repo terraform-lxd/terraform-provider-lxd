@@ -22,9 +22,6 @@ resource "lxd_instance" "inst" {
 
 * `project` - *Optional* - Name of the project where the profile is create.
 
-* `remote` - *Optional* - The remote in which the resource was created. If
-  not provided, the provider's default remote is used.
-
 ## Attribute Reference
 
 * `device` - Device definition. See reference below.

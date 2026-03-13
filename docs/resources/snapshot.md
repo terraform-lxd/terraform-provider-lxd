@@ -29,9 +29,6 @@ resource "lxd_snapshot" "snap1" {
 
 * `project` - *Optional* - Name of the project where the snapshot will be stored.
 
-* `remote` - *Optional* - The remote in which the resource will be created. If
-	not provided, the provider's default remote will be used.
-
 ## Attribute Reference
 
 The following attributes are exported:

@@ -20,7 +20,7 @@ func TestAccNetworkPeer_basic(t *testing.T) {
 		ProtoV6ProviderFactories: acctest.ProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccNetworkPeer_basic(srcNetwork, dstNetwork),
+				Config: acctest.Provider() + testAccNetworkPeer_basic(srcNetwork, dstNetwork),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("lxd_network.network_1", "name", srcNetwork),
 					resource.TestCheckResourceAttr("lxd_network.network_2", "name", dstNetwork),
@@ -55,7 +55,7 @@ func TestAccNetworkPeer_import(t *testing.T) {
 		ProtoV6ProviderFactories: acctest.ProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccNetworkPeer_basic(srcNetwork, dstNetwork),
+				Config: acctest.Provider() + testAccNetworkPeer_basic(srcNetwork, dstNetwork),
 			},
 			{
 				ResourceName:  resourceName,

@@ -60,9 +60,6 @@ resource "lxd_network_forward" "my_forward" {
 
 * `project` - *Optional* - Name of the project where the network forward will be created.
 
-* `remote` - *Optional* - The remote in which the resource will be created. If
-  not provided, the provider's default remote will be used.
-
 The network forward port supports:
 
 * `protocol` - **Required** - Protocol for the port(s). Possible values are `tcp` and `udp`.

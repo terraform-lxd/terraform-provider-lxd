@@ -17,7 +17,7 @@ func TestAccNetworkZone_basic(t *testing.T) {
 		ProtoV6ProviderFactories: acctest.ProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccNetworkZone_basic(),
+				Config: acctest.Provider() + testAccNetworkZone_basic(),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("lxd_network_zone.zone", "name", "custom.example.org"),
 					resource.TestCheckResourceAttr("lxd_network_zone.zone", "config.%", "2"),
@@ -35,7 +35,7 @@ func TestAccNetworkZone_description(t *testing.T) {
 		ProtoV6ProviderFactories: acctest.ProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccNetworkZone_desc(),
+				Config: acctest.Provider() + testAccNetworkZone_desc(),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("lxd_network_zone.zone", "name", "custom.example.org"),
 					resource.TestCheckResourceAttr("lxd_network_zone.zone", "description", "descriptive"),
@@ -46,7 +46,7 @@ func TestAccNetworkZone_description(t *testing.T) {
 			},
 			{
 				// Ensure no changes on reapply.
-				Config: testAccNetworkZone_desc(),
+				Config: acctest.Provider() + testAccNetworkZone_desc(),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("lxd_network_zone.zone", "name", "custom.example.org"),
 					resource.TestCheckResourceAttr("lxd_network_zone.zone", "description", "descriptive"),
@@ -67,7 +67,7 @@ func TestAccNetworkZone_project(t *testing.T) {
 		ProtoV6ProviderFactories: acctest.ProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccNetworkZone_project(projectName),
+				Config: acctest.Provider() + testAccNetworkZone_project(projectName),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("lxd_project.project1", "name", projectName),
 					resource.TestCheckResourceAttr("lxd_network_zone.zone", "name", "custom.example.org"),
@@ -86,7 +86,7 @@ func TestAccNetworkZone_importBasic(t *testing.T) {
 		ProtoV6ProviderFactories: acctest.ProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccNetworkZone_basic(),
+				Config: acctest.Provider() + testAccNetworkZone_basic(),
 			},
 			{
 				ResourceName:                         resourceName,
@@ -111,7 +111,7 @@ func TestAccNetworkZone_importProject(t *testing.T) {
 		ProtoV6ProviderFactories: acctest.ProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccNetworkZone_project(projectName),
+				Config: acctest.Provider() + testAccNetworkZone_project(projectName),
 			},
 			{
 				ResourceName:                         resourceName,

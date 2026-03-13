@@ -39,7 +39,6 @@ type PublishImageModel struct {
 	CompressionAlg types.String `tfsdk:"compression_algorithm"`
 	Triggers       types.List   `tfsdk:"triggers"`
 	Project        types.String `tfsdk:"project"`
-	Remote         types.String `tfsdk:"remote"`
 
 	// Computed.
 	Architecture types.String `tfsdk:"architecture"`
@@ -134,13 +133,6 @@ func (r PublishImageResource) Schema(_ context.Context, _ resource.SchemaRequest
 				},
 			},
 
-			"remote": schema.StringAttribute{
-				Optional: true,
-				PlanModifiers: []planmodifier.String{
-					stringplanmodifier.RequiresReplace(),
-				},
-			},
-
 			// Computed.
 
 			"architecture": schema.StringAttribute{
@@ -191,9 +183,8 @@ func (r PublishImageResource) Create(ctx context.Context, req resource.CreateReq
 		return
 	}
 
-	remote := plan.Remote.ValueString()
 	project := plan.Project.ValueString()
-	server, err := r.provider.InstanceServer(remote, project, "")
+	server, err := r.provider.InstanceServer(project, "")
 	if err != nil {
 		resp.Diagnostics.Append(errors.NewInstanceServerError(err))
 		return
@@ -289,9 +280,8 @@ func (r PublishImageResource) Read(ctx context.Context, req resource.ReadRequest
 		return
 	}
 
-	remote := state.Remote.ValueString()
 	project := state.Project.ValueString()
-	server, err := r.provider.InstanceServer(remote, project, "")
+	server, err := r.provider.InstanceServer(project, "")
 	if err != nil {
 		resp.Diagnostics.Append(errors.NewInstanceServerError(err))
 		return
@@ -312,9 +302,8 @@ func (r PublishImageResource) Update(ctx context.Context, req resource.UpdateReq
 		return
 	}
 
-	remote := plan.Remote.ValueString()
 	project := plan.Project.ValueString()
-	server, err := r.provider.InstanceServer(remote, project, "")
+	server, err := r.provider.InstanceServer(project, "")
 	if err != nil {
 		resp.Diagnostics.Append(errors.NewInstanceServerError(err))
 		return
@@ -398,9 +387,8 @@ func (r PublishImageResource) Delete(ctx context.Context, req resource.DeleteReq
 		return
 	}
 
-	remote := state.Remote.ValueString()
 	project := state.Project.ValueString()
-	server, err := r.provider.InstanceServer(remote, project, "")
+	server, err := r.provider.InstanceServer(project, "")
 	if err != nil {
 		resp.Diagnostics.Append(errors.NewInstanceServerError(err))
 		return

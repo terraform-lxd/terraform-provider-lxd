@@ -15,10 +15,9 @@ import (
 )
 
 type InfoModel struct {
-	Remote        types.String `tfsdk:"remote"`
-	APIExtensions types.List   `tfsdk:"api_extensions"`
-	Members       types.Map    `tfsdk:"cluster_members"`
-	InstanceTypes types.List   `tfsdk:"instance_types"`
+	APIExtensions types.List `tfsdk:"api_extensions"`
+	Members       types.Map  `tfsdk:"cluster_members"`
+	InstanceTypes types.List `tfsdk:"instance_types"`
 }
 
 type ClusterMemberModel struct {
@@ -41,9 +40,6 @@ func (d *InfoDataSource) Metadata(_ context.Context, req datasource.MetadataRequ
 func (d *InfoDataSource) Schema(_ context.Context, req datasource.SchemaRequest, resp *datasource.SchemaResponse) {
 	resp.Schema = schema.Schema{
 		Attributes: map[string]schema.Attribute{
-			"remote": schema.StringAttribute{
-				Optional: true,
-			},
 
 			"api_extensions": schema.ListAttribute{
 				Description: "List of API extensions supported by the LXD server",
@@ -102,8 +98,7 @@ func (d *InfoDataSource) Read(ctx context.Context, req datasource.ReadRequest, r
 		return
 	}
 
-	remote := d.provider.SelectRemote(config.Remote.ValueString())
-	server, err := d.provider.InstanceServer(remote, "", "")
+	server, err := d.provider.InstanceServer("", "")
 	if err != nil {
 		resp.Diagnostics.Append(errors.NewInstanceServerError(err))
 		return
@@ -111,7 +106,7 @@ func (d *InfoDataSource) Read(ctx context.Context, req datasource.ReadRequest, r
 
 	apiServer, _, err := server.GetServer()
 	if err != nil {
-		resp.Diagnostics.AddError(fmt.Sprintf("Failed to retrieve the API server from remote %q", remote), err.Error())
+		resp.Diagnostics.AddError("Failed to retrieve the API server", err.Error())
 		return
 	}
 
@@ -120,7 +115,7 @@ func (d *InfoDataSource) Read(ctx context.Context, req datasource.ReadRequest, r
 	if server.IsClustered() {
 		members, err := server.GetClusterMembers()
 		if err != nil {
-			resp.Diagnostics.AddError(fmt.Sprintf("Failed to retrieve cluster members from remote %q", remote), err.Error())
+			resp.Diagnostics.AddError("Failed to retrieve cluster members", err.Error())
 			return
 		}
 
@@ -132,8 +127,6 @@ func (d *InfoDataSource) Read(ctx context.Context, req datasource.ReadRequest, r
 			}
 		}
 	}
-
-	config.Remote = types.StringValue(remote)
 
 	config.APIExtensions, diags = types.ListValueFrom(ctx, types.StringType, apiServer.APIExtensions)
 	resp.Diagnostics.Append(diags...)

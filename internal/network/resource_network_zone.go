@@ -27,7 +27,6 @@ type NetworkZoneModel struct {
 	Name        types.String `tfsdk:"name"`
 	Description types.String `tfsdk:"description"`
 	Project     types.String `tfsdk:"project"`
-	Remote      types.String `tfsdk:"remote"`
 	Config      types.Map    `tfsdk:"config"`
 }
 
@@ -71,13 +70,6 @@ func (r NetworkZoneResource) Schema(_ context.Context, _ resource.SchemaRequest,
 				},
 			},
 
-			"remote": schema.StringAttribute{
-				Optional: true,
-				PlanModifiers: []planmodifier.String{
-					stringplanmodifier.RequiresReplace(),
-				},
-			},
-
 			"config": schema.MapAttribute{
 				Optional:    true,
 				Computed:    true,
@@ -111,9 +103,8 @@ func (r NetworkZoneResource) Create(ctx context.Context, req resource.CreateRequ
 		return
 	}
 
-	remote := plan.Remote.ValueString()
 	project := plan.Project.ValueString()
-	server, err := r.provider.InstanceServer(remote, project, "")
+	server, err := r.provider.InstanceServer(project, "")
 	if err != nil {
 		resp.Diagnostics.Append(errors.NewInstanceServerError(err))
 		return
@@ -144,7 +135,6 @@ func (r NetworkZoneResource) Create(ctx context.Context, req resource.CreateRequ
 	// Partially update state to make Terraform aware of the created resource.
 	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("name"), zoneName)...)
 	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("project"), project)...)
-	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("remote"), remote)...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
@@ -163,9 +153,8 @@ func (r NetworkZoneResource) Read(ctx context.Context, req resource.ReadRequest,
 		return
 	}
 
-	remote := state.Remote.ValueString()
 	project := state.Project.ValueString()
-	server, err := r.provider.InstanceServer(remote, project, "")
+	server, err := r.provider.InstanceServer(project, "")
 	if err != nil {
 		resp.Diagnostics.Append(errors.NewInstanceServerError(err))
 		return
@@ -186,9 +175,8 @@ func (r NetworkZoneResource) Update(ctx context.Context, req resource.UpdateRequ
 		return
 	}
 
-	remote := plan.Remote.ValueString()
 	project := plan.Project.ValueString()
-	server, err := r.provider.InstanceServer(remote, project, "")
+	server, err := r.provider.InstanceServer(project, "")
 	if err != nil {
 		resp.Diagnostics.Append(errors.NewInstanceServerError(err))
 		return
@@ -233,9 +221,8 @@ func (r NetworkZoneResource) Delete(ctx context.Context, req resource.DeleteRequ
 		return
 	}
 
-	remote := state.Remote.ValueString()
 	project := state.Project.ValueString()
-	server, err := r.provider.InstanceServer(remote, project, "")
+	server, err := r.provider.InstanceServer(project, "")
 	if err != nil {
 		resp.Diagnostics.Append(errors.NewInstanceServerError(err))
 		return

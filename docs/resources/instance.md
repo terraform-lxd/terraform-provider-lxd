@@ -81,9 +81,6 @@ resource "lxd_instance" "instance2" {
 
 * `project` - *Optional* - Name of the project where the instance will be spawned.
 
-* `remote` - *Optional* - The remote in which the resource will be created. If
-	not provided, the provider's default remote will be used.
-
 * `target` - *Optional* - Specify a target cluster member or cluster member group.
 
 The `device` block supports:

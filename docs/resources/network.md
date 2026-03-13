@@ -197,9 +197,6 @@ for more details on how to create a network in clustered mode.
 
 * `project` - *Optional* - Name of the project where the network will be created.
 
-* `remote` - *Optional* - The remote in which the resource will be created. If
-	not provided, the provider's default remote will be used.
-
 * `target` - *Optional* - Specify a target node in a cluster.
 
 ## Attribute Reference

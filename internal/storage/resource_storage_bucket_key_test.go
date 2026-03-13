@@ -24,7 +24,7 @@ func TestAccStorageBucketKey_basic(t *testing.T) {
 		ProtoV6ProviderFactories: acctest.ProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccStorageBucketKey_basic(poolName, bucketName, keyName),
+				Config: acctest.Provider() + testAccStorageBucketKey_basic(poolName, bucketName, keyName),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("lxd_storage_pool.pool1", "name", poolName),
 					resource.TestCheckResourceAttr("lxd_storage_pool.pool1", "driver", "dir"),
@@ -55,7 +55,7 @@ func TestAccStorageBucketKey_role(t *testing.T) {
 		ProtoV6ProviderFactories: acctest.ProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccStorageBucketKey_role(bucketName, keyName, role),
+				Config: acctest.Provider() + testAccStorageBucketKey_role(bucketName, keyName, role),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("lxd_storage_bucket.bucket1", "name", bucketName),
 					resource.TestCheckResourceAttr("lxd_storage_bucket.bucket1", "pool", "default"),
@@ -84,7 +84,7 @@ func TestAccStorageBucketKey_project(t *testing.T) {
 		ProtoV6ProviderFactories: acctest.ProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccStorageBucketKey_project(projectName, bucketName, keyName),
+				Config: acctest.Provider() + testAccStorageBucketKey_project(projectName, bucketName, keyName),
 				Check: resource.ComposeTestCheckFunc(
 
 					resource.TestCheckResourceAttr("lxd_project.project1", "name", projectName),
@@ -118,7 +118,7 @@ func TestAccStorageBucketKey_importBasic(t *testing.T) {
 		ProtoV6ProviderFactories: acctest.ProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccStorageBucketKey_basic(poolName, bucketName, keyName),
+				Config: acctest.Provider() + testAccStorageBucketKey_basic(poolName, bucketName, keyName),
 			},
 			{
 				ResourceName:                         resourceName,
@@ -160,7 +160,7 @@ func TestAccStorageBucketKey_importProject(t *testing.T) {
 		ProtoV6ProviderFactories: acctest.ProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccStorageBucketKey_project(projectName, bucketName, keyName),
+				Config: acctest.Provider() + testAccStorageBucketKey_project(projectName, bucketName, keyName),
 			},
 			{
 				ResourceName:                         resourceName,

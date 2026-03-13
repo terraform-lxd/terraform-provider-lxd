@@ -18,7 +18,7 @@ func TestAccAuthGroup_DS_description(t *testing.T) {
 		ProtoV6ProviderFactories: acctest.ProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccAuthGroup_DS_description(authGroup, "Initial auth group description"),
+				Config: acctest.Provider() + testAccAuthGroup_DS_description(authGroup, "Initial auth group description"),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("data.lxd_auth_group.group", "name", authGroup),
 					resource.TestCheckResourceAttr("data.lxd_auth_group.group", "description", "Initial auth group description"),
@@ -40,7 +40,7 @@ func TestAccAuthGroup_DS_withPermissions(t *testing.T) {
 		ProtoV6ProviderFactories: acctest.ProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccAuthGroup_DS_permissions(authGroup, []permission{
+				Config: acctest.Provider() + testAccAuthGroup_DS_permissions(authGroup, []permission{
 					{
 						Entitlement: "admin",
 						EntityType:  "server",

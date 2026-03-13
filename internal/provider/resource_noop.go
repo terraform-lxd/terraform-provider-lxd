@@ -9,7 +9,6 @@ package provider
 
 import (
 	"context"
-	"fmt"
 
 	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
@@ -25,7 +24,6 @@ import (
 
 type noopModel struct {
 	Project       types.String `tfsdk:"project"`
-	Remote        types.String `tfsdk:"remote"`
 	ServerVersion types.String `tfsdk:"server_version"`
 }
 
@@ -52,14 +50,6 @@ func (r noopResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *
 				Optional: true,
 				Computed: true,
 				Default:  stringdefault.StaticString("default"),
-				PlanModifiers: []planmodifier.String{
-					stringplanmodifier.RequiresReplace(),
-				},
-			},
-
-			"remote": schema.StringAttribute{
-				Optional: true,
-				Computed: true,
 				PlanModifiers: []planmodifier.String{
 					stringplanmodifier.RequiresReplace(),
 				},
@@ -119,20 +109,16 @@ func (r noopResource) Delete(ctx context.Context, req resource.DeleteRequest, re
 }
 
 func (r noopResource) SyncState(ctx context.Context, tfState *tfsdk.State, m noopModel) diag.Diagnostics {
-	remote := r.provider.SelectRemote(m.Remote.ValueString())
-	project := m.Project.ValueString()
-
-	server, err := r.provider.InstanceServer(remote, project, "")
+	server, err := r.provider.InstanceServer(m.Project.ValueString(), "")
 	if err != nil {
 		return diag.Diagnostics{errors.NewInstanceServerError(err)}
 	}
 
 	apiServer, _, err := server.GetServer()
 	if err != nil {
-		return diag.Diagnostics{diag.NewErrorDiagnostic(fmt.Sprintf("Failed to retrieve the API server for remote %q", remote), err.Error())}
+		return diag.Diagnostics{diag.NewErrorDiagnostic("Failed to retrieve the API server", err.Error())}
 	}
 
-	m.Remote = types.StringValue(remote)
 	m.ServerVersion = types.StringValue(apiServer.Environment.Project)
 
 	return tfState.Set(ctx, &m)

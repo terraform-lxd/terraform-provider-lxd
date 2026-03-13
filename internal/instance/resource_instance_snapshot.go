@@ -30,7 +30,6 @@ type InstanceSnapshotModel struct {
 	Instance types.String `tfsdk:"instance"`
 	Stateful types.Bool   `tfsdk:"stateful"`
 	Project  types.String `tfsdk:"project"`
-	Remote   types.String `tfsdk:"remote"`
 
 	// Computed.
 	CreatedAt types.Int64 `tfsdk:"created_at"`
@@ -86,13 +85,6 @@ func (r InstanceSnapshotResource) Schema(_ context.Context, _ resource.SchemaReq
 				},
 			},
 
-			"remote": schema.StringAttribute{
-				Optional: true,
-				PlanModifiers: []planmodifier.String{
-					stringplanmodifier.RequiresReplace(),
-				},
-			},
-
 			// Computed.
 
 			"created_at": schema.Int64Attribute{
@@ -127,9 +119,8 @@ func (r InstanceSnapshotResource) Create(ctx context.Context, req resource.Creat
 		return
 	}
 
-	remote := plan.Remote.ValueString()
 	project := plan.Project.ValueString()
-	server, err := r.provider.InstanceServer(remote, project, "")
+	server, err := r.provider.InstanceServer(project, "")
 	if err != nil {
 		resp.Diagnostics.Append(errors.NewInstanceServerError(err))
 		return
@@ -177,7 +168,6 @@ func (r InstanceSnapshotResource) Create(ctx context.Context, req resource.Creat
 	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("name"), snapshotName)...)
 	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("instance"), instanceName)...)
 	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("project"), project)...)
-	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("remote"), remote)...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
@@ -197,9 +187,8 @@ func (r InstanceSnapshotResource) Read(ctx context.Context, req resource.ReadReq
 		return
 	}
 
-	remote := state.Remote.ValueString()
 	project := state.Project.ValueString()
-	server, err := r.provider.InstanceServer(remote, project, "")
+	server, err := r.provider.InstanceServer(project, "")
 	if err != nil {
 		resp.Diagnostics.Append(errors.NewInstanceServerError(err))
 		return
@@ -223,9 +212,8 @@ func (r InstanceSnapshotResource) Delete(ctx context.Context, req resource.Delet
 		return
 	}
 
-	remote := state.Remote.ValueString()
 	project := state.Project.ValueString()
-	server, err := r.provider.InstanceServer(remote, project, "")
+	server, err := r.provider.InstanceServer(project, "")
 	if err != nil {
 		resp.Diagnostics.Append(errors.NewInstanceServerError(err))
 		return

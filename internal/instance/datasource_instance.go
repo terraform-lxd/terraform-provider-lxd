@@ -18,7 +18,6 @@ import (
 type InstanceDataSourceModel struct {
 	Name    types.String `tfsdk:"name"`
 	Project types.String `tfsdk:"project"`
-	Remote  types.String `tfsdk:"remote"`
 
 	// Computed
 	Description types.String `tfsdk:"description"`
@@ -57,10 +56,6 @@ func (d *InstanceDataSource) Schema(_ context.Context, req datasource.SchemaRequ
 			},
 
 			"project": schema.StringAttribute{
-				Optional: true,
-			},
-
-			"remote": schema.StringAttribute{
 				Optional: true,
 			},
 
@@ -199,9 +194,8 @@ func (d *InstanceDataSource) Read(ctx context.Context, req datasource.ReadReques
 		return
 	}
 
-	remote := state.Remote.ValueString()
 	project := state.Project.ValueString()
-	server, err := d.provider.InstanceServer(remote, project, "")
+	server, err := d.provider.InstanceServer(project, "")
 	if err != nil {
 		resp.Diagnostics.Append(errors.NewInstanceServerError(err))
 		return

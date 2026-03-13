@@ -40,9 +40,6 @@ resource "lxd_storage_bucket_key" "key" {
 
 * `project` - *Optional* - Name of the project where the storage bucket key will be stored.
 
-* `remote` - *Optional* - The remote in which the resource will be created. If not provided,
-  the provider's default remote will be used.
-
 
 ## Attribute Reference
 

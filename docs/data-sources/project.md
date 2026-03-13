@@ -20,9 +20,6 @@ resource "lxd_instance" "inst" {
 
 * `name` - **Required** - Name of the project.
 
-* `remote` - *Optional* - The remote in which the resource was created. If
-  not provided, the provider's default remote is used.
-
 ## Attribute Reference
 
 * `description` - Description of the project.

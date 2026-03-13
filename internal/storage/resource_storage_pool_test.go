@@ -26,7 +26,7 @@ func TestAccStoragePool_dir(t *testing.T) {
 		ProtoV6ProviderFactories: acctest.ProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccStoragePool(poolName, driverName),
+				Config: acctest.Provider() + testAccStoragePool(poolName, driverName),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("lxd_storage_pool.storage_pool1", "name", poolName),
 					resource.TestCheckResourceAttr("lxd_storage_pool.storage_pool1", "driver", driverName),
@@ -37,7 +37,7 @@ func TestAccStoragePool_dir(t *testing.T) {
 			},
 			{
 				// Ensure no error is thrown on update.
-				Config: testAccStoragePool(poolName, driverName),
+				Config: acctest.Provider() + testAccStoragePool(poolName, driverName),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("lxd_storage_pool.storage_pool1", "name", poolName),
 					resource.TestCheckResourceAttr("lxd_storage_pool.storage_pool1", "driver", driverName),
@@ -60,7 +60,7 @@ func TestAccStoragePool_zfs(t *testing.T) {
 		ProtoV6ProviderFactories: acctest.ProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccStoragePool(poolName, driverName),
+				Config: acctest.Provider() + testAccStoragePool(poolName, driverName),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("lxd_storage_pool.storage_pool1", "name", poolName),
 					resource.TestCheckResourceAttr("lxd_storage_pool.storage_pool1", "driver", driverName),
@@ -73,7 +73,7 @@ func TestAccStoragePool_zfs(t *testing.T) {
 			},
 			{
 				// Ensure no error is thrown on update.
-				Config: testAccStoragePool(poolName, driverName),
+				Config: acctest.Provider() + testAccStoragePool(poolName, driverName),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("lxd_storage_pool.storage_pool1", "name", poolName),
 					resource.TestCheckResourceAttr("lxd_storage_pool.storage_pool1", "driver", driverName),
@@ -96,7 +96,7 @@ func TestAccStoragePool_lvm(t *testing.T) {
 		ProtoV6ProviderFactories: acctest.ProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccStoragePool(poolName, driverName),
+				Config: acctest.Provider() + testAccStoragePool(poolName, driverName),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("lxd_storage_pool.storage_pool1", "name", poolName),
 					resource.TestCheckResourceAttr("lxd_storage_pool.storage_pool1", "driver", driverName),
@@ -110,7 +110,7 @@ func TestAccStoragePool_lvm(t *testing.T) {
 			},
 			{
 				// Ensure no error is thrown on update.
-				Config: testAccStoragePool(poolName, driverName),
+				Config: acctest.Provider() + testAccStoragePool(poolName, driverName),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("lxd_storage_pool.storage_pool1", "name", poolName),
 					resource.TestCheckResourceAttr("lxd_storage_pool.storage_pool1", "driver", driverName),
@@ -133,7 +133,7 @@ func TestAccStoragePool_btrfs(t *testing.T) {
 		ProtoV6ProviderFactories: acctest.ProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccStoragePool(poolName, driverName),
+				Config: acctest.Provider() + testAccStoragePool(poolName, driverName),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("lxd_storage_pool.storage_pool1", "name", poolName),
 					resource.TestCheckResourceAttr("lxd_storage_pool.storage_pool1", "driver", driverName),
@@ -145,7 +145,7 @@ func TestAccStoragePool_btrfs(t *testing.T) {
 			},
 			{
 				// Ensure no error is thrown on update.
-				Config: testAccStoragePool(poolName, driverName),
+				Config: acctest.Provider() + testAccStoragePool(poolName, driverName),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("lxd_storage_pool.storage_pool1", "name", poolName),
 					resource.TestCheckResourceAttr("lxd_storage_pool.storage_pool1", "driver", driverName),
@@ -167,7 +167,7 @@ func TestAccStoragePool_config(t *testing.T) {
 		ProtoV6ProviderFactories: acctest.ProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccStoragePool_config(poolName, "zfs"),
+				Config: acctest.Provider() + testAccStoragePool_config(poolName, "zfs"),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("lxd_storage_pool.storage_pool1", "name", poolName),
 					resource.TestCheckResourceAttr("lxd_storage_pool.storage_pool1", "driver", "zfs"),
@@ -176,7 +176,7 @@ func TestAccStoragePool_config(t *testing.T) {
 				),
 			},
 			{
-				Config: testAccStoragePool_config(poolName, "lvm"),
+				Config: acctest.Provider() + testAccStoragePool_config(poolName, "lvm"),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("lxd_storage_pool.storage_pool1", "name", poolName),
 					resource.TestCheckResourceAttr("lxd_storage_pool.storage_pool1", "driver", "lvm"),
@@ -185,7 +185,7 @@ func TestAccStoragePool_config(t *testing.T) {
 				),
 			},
 			{
-				Config: testAccStoragePool_config(poolName, "btrfs"),
+				Config: acctest.Provider() + testAccStoragePool_config(poolName, "btrfs"),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("lxd_storage_pool.storage_pool1", "name", poolName),
 					resource.TestCheckResourceAttr("lxd_storage_pool.storage_pool1", "driver", "btrfs"),
@@ -218,7 +218,7 @@ func TestAccStoragePool_configSource(t *testing.T) {
 				ProtoV6ProviderFactories: acctest.ProtoV6ProviderFactories,
 				Steps: []resource.TestStep{
 					{
-						Config: testAccStoragePool_configSource(poolName, poolDriver, poolSource),
+						Config: acctest.Provider() + testAccStoragePool_configSource(poolName, poolDriver, poolSource),
 						Check: resource.ComposeTestCheckFunc(
 							resource.TestCheckResourceAttr("lxd_storage_pool.storage_pool1", "name", poolName),
 							resource.TestCheckResourceAttr("lxd_storage_pool.storage_pool1", "driver", poolDriver),
@@ -228,7 +228,7 @@ func TestAccStoragePool_configSource(t *testing.T) {
 					},
 					{
 						// Reapply the same config to ensure there is no drift in terraform state.
-						Config: testAccStoragePool_configSource(poolName, poolDriver, poolSource),
+						Config: acctest.Provider() + testAccStoragePool_configSource(poolName, poolDriver, poolSource),
 					},
 				},
 			})
@@ -249,7 +249,7 @@ func TestAccStoragePool_project(t *testing.T) {
 		ProtoV6ProviderFactories: acctest.ProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccStoragePool_project(poolName, driverName, projectName),
+				Config: acctest.Provider() + testAccStoragePool_project(poolName, driverName, projectName),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("lxd_project.project1", "name", projectName),
 					resource.TestCheckResourceAttr("lxd_project.project1", "config.%", "1"),
@@ -273,7 +273,7 @@ func TestAccStoragePool_target(t *testing.T) {
 		ProtoV6ProviderFactories: acctest.ProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccStoragePool_target(poolName, driverName, targets),
+				Config: acctest.Provider() + testAccStoragePool_target(poolName, driverName, targets),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("lxd_storage_pool.storage_pool_node1", "name", poolName),
 					resource.TestCheckResourceAttr("lxd_storage_pool.storage_pool_node1", "driver", driverName),
@@ -302,7 +302,7 @@ func TestAccStoragePool_importBasic(t *testing.T) {
 		ProtoV6ProviderFactories: acctest.ProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccStoragePool(poolName, driverName),
+				Config: acctest.Provider() + testAccStoragePool(poolName, driverName),
 			},
 			{
 				ResourceName:                         resourceName,
@@ -328,7 +328,7 @@ func TestAccStoragePool_importConfig(t *testing.T) {
 		ProtoV6ProviderFactories: acctest.ProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccStoragePool_config(poolName, driverName),
+				Config: acctest.Provider() + testAccStoragePool_config(poolName, driverName),
 			},
 			{
 				ResourceName:                         resourceName,
@@ -355,7 +355,7 @@ func TestAccStoragePool_importProject(t *testing.T) {
 		ProtoV6ProviderFactories: acctest.ProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccStoragePool_project(poolName, driverName, projectName),
+				Config: acctest.Provider() + testAccStoragePool_project(poolName, driverName, projectName),
 			},
 			{
 				ResourceName:                         resourceName,

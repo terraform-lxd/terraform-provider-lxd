@@ -36,8 +36,6 @@ resource "lxd_network_peer" "peer-2-1" {
 
 * `config` - *Optional* - Map of key/value pairs of [network peer config settings](https://documentation.ubuntu.com/lxd/latest/howto/network_ovn_peers/#peering-properties).
 
-* `remote` - *Optional* - The remote in which the resource will be created. If not provided, the provider's default remote will be used.
-
 ## Attribute Reference
 
 No attributes are exported.

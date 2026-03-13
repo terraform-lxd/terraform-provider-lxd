@@ -31,7 +31,6 @@ type ProfileModel struct {
 	Name        types.String `tfsdk:"name"`
 	Description types.String `tfsdk:"description"`
 	Project     types.String `tfsdk:"project"`
-	Remote      types.String `tfsdk:"remote"`
 	Devices     types.Set    `tfsdk:"device"`
 	Config      types.Map    `tfsdk:"config"`
 }
@@ -75,13 +74,6 @@ func (r ProfileResource) Schema(_ context.Context, _ resource.SchemaRequest, res
 				},
 				Validators: []validator.String{
 					stringvalidator.LengthAtLeast(1),
-				},
-			},
-
-			"remote": schema.StringAttribute{
-				Optional: true,
-				PlanModifiers: []planmodifier.String{
-					stringplanmodifier.RequiresReplace(),
 				},
 			},
 
@@ -155,9 +147,8 @@ func (r ProfileResource) Create(ctx context.Context, req resource.CreateRequest,
 		return
 	}
 
-	remote := plan.Remote.ValueString()
 	project := plan.Project.ValueString()
-	server, err := r.provider.InstanceServer(remote, project, "")
+	server, err := r.provider.InstanceServer(project, "")
 	if err != nil {
 		resp.Diagnostics.Append(errors.NewInstanceServerError(err))
 		return
@@ -226,7 +217,6 @@ func (r ProfileResource) Create(ctx context.Context, req resource.CreateRequest,
 		// Partially update state to make Terraform aware of the created resource.
 		resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("name"), profile.Name)...)
 		resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("project"), project)...)
-		resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("remote"), remote)...)
 		if resp.Diagnostics.HasError() {
 			return
 		}
@@ -246,9 +236,8 @@ func (r ProfileResource) Read(ctx context.Context, req resource.ReadRequest, res
 		return
 	}
 
-	remote := state.Remote.ValueString()
 	project := state.Project.ValueString()
-	server, err := r.provider.InstanceServer(remote, project, "")
+	server, err := r.provider.InstanceServer(project, "")
 	if err != nil {
 		resp.Diagnostics.Append(errors.NewInstanceServerError(err))
 		return
@@ -268,9 +257,8 @@ func (r ProfileResource) Update(ctx context.Context, req resource.UpdateRequest,
 		return
 	}
 
-	remote := plan.Remote.ValueString()
 	project := plan.Project.ValueString()
-	server, err := r.provider.InstanceServer(remote, project, "")
+	server, err := r.provider.InstanceServer(project, "")
 	if err != nil {
 		resp.Diagnostics.Append(errors.NewInstanceServerError(err))
 		return
@@ -341,9 +329,8 @@ func (r ProfileResource) Delete(ctx context.Context, req resource.DeleteRequest,
 		return
 	}
 
-	remote := state.Remote.ValueString()
 	project := state.Project.ValueString()
-	server, err := r.provider.InstanceServer(remote, project, "")
+	server, err := r.provider.InstanceServer(project, "")
 	if err != nil {
 		resp.Diagnostics.Append(errors.NewInstanceServerError(err))
 		return

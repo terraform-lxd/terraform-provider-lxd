@@ -16,9 +16,6 @@ data "lxd_instance" "inst" {
 
 * `project` - *Optional* - Name of the project where instance is located.
 
-* `remote` - *Optional* - The remote in which the resource was created. If
-  not provided, the provider's default remote is used.
-
 ## Attribute Reference
 
 This data source exports the following attributes in addition to the arguments above:

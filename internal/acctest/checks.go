@@ -27,7 +27,7 @@ func PreCheck(t *testing.T) {
 // https://pkg.go.dev/github.com/hashicorp/go-version#readme-version-constraints
 func PreCheckLxdVersion(t *testing.T, versionConstraint string) {
 	p := testProvider()
-	server, err := p.InstanceServer("", "", "")
+	server, err := p.InstanceServer("", "")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -52,7 +52,7 @@ func PreCheckLxdVersion(t *testing.T, versionConstraint string) {
 // the required extensions.
 func PreCheckAPIExtensions(t *testing.T, extensions ...string) {
 	p := testProvider()
-	server, err := p.InstanceServer("", "", "")
+	server, err := p.InstanceServer("", "")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -73,7 +73,7 @@ func PreCheckAPIExtensions(t *testing.T, extensions ...string) {
 // support virtualization.
 func PreCheckVirtualization(t *testing.T) {
 	p := testProvider()
-	server, err := p.InstanceServer("", "", "")
+	server, err := p.InstanceServer("", "")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -94,7 +94,7 @@ func PreCheckVirtualization(t *testing.T) {
 // names.
 func PreCheckClustering(t *testing.T, minMembers int) []string {
 	p := testProvider()
-	server, err := p.InstanceServer("", "", "")
+	server, err := p.InstanceServer("", "")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -127,7 +127,7 @@ func PreCheckClustering(t *testing.T, minMembers int) []string {
 // in standalone mode (or in other words if LXD is clustered).
 func PreCheckStandalone(t *testing.T) {
 	p := testProvider()
-	server, err := p.InstanceServer("", "", "")
+	server, err := p.InstanceServer("", "")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -166,7 +166,7 @@ func ConfigureTrustPassword(t *testing.T) string {
 	// Only servers with LXD version < 6.0.0 support trust password.
 	PreCheckLxdVersion(t, "< 6.0.0")
 
-	server, err := testProvider().InstanceServer("", "", "")
+	server, err := testProvider().InstanceServer("", "")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -189,7 +189,7 @@ func ConfigureTrustPassword(t *testing.T) string {
 // ConfigureTrustToken ensures the trust token is set to "test-pass". If the server
 // does not support trust password, the test is skipped.
 func ConfigureTrustToken(t *testing.T) string {
-	server, err := testProvider().InstanceServer("", "", "")
+	server, err := testProvider().InstanceServer("", "")
 	if err != nil {
 		t.Fatal(err)
 	}

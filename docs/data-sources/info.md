@@ -1,18 +1,16 @@
 # lxd_info
 
-Provides general information about LXD remote.
+Provides general information about the LXD server.
 
 ## Example Usage
 
 ```hcl
-data "lxd_info" "local" {
-  remote = "local"
-}
+data "lxd_info" "self" {}
 ```
 
 ## Argument Reference
 
-* `remote` - *Optional* - The remote to inspect. If not provided, the provider's default remote is used.
+No arguments are supported.
 
 ## Attribute Reference
 

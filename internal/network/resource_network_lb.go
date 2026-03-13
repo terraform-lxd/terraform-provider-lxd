@@ -32,7 +32,6 @@ type NetworkLBModel struct {
 	Backends      types.Set    `tfsdk:"backend"`
 	Description   types.String `tfsdk:"description"`
 	Project       types.String `tfsdk:"project"`
-	Remote        types.String `tfsdk:"remote"`
 	Config        types.Map    `tfsdk:"config"`
 }
 
@@ -80,13 +79,6 @@ func (r LxdNetworkLBResource) Schema(_ context.Context, _ resource.SchemaRequest
 				},
 				Validators: []validator.String{
 					stringvalidator.LengthAtLeast(1),
-				},
-			},
-
-			"remote": schema.StringAttribute{
-				Optional: true,
-				PlanModifiers: []planmodifier.String{
-					stringplanmodifier.RequiresReplace(),
 				},
 			},
 
@@ -192,9 +184,8 @@ func (r LxdNetworkLBResource) Create(ctx context.Context, req resource.CreateReq
 		return
 	}
 
-	remote := plan.Remote.ValueString()
 	project := plan.Project.ValueString()
-	server, err := r.provider.InstanceServer(remote, project, "")
+	server, err := r.provider.InstanceServer(project, "")
 	if err != nil {
 		resp.Diagnostics.Append(errors.NewInstanceServerError(err))
 		return
@@ -238,7 +229,6 @@ func (r LxdNetworkLBResource) Create(ctx context.Context, req resource.CreateReq
 	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("network"), networkName)...)
 	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("listen_address"), listenAddr)...)
 	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("project"), project)...)
-	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("remote"), remote)...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
@@ -257,9 +247,8 @@ func (r LxdNetworkLBResource) Read(ctx context.Context, req resource.ReadRequest
 		return
 	}
 
-	remote := state.Remote.ValueString()
 	project := state.Project.ValueString()
-	server, err := r.provider.InstanceServer(remote, project, "")
+	server, err := r.provider.InstanceServer(project, "")
 	if err != nil {
 		resp.Diagnostics.Append(errors.NewInstanceServerError(err))
 		return
@@ -279,9 +268,8 @@ func (r LxdNetworkLBResource) Update(ctx context.Context, req resource.UpdateReq
 		return
 	}
 
-	remote := plan.Remote.ValueString()
 	project := plan.Project.ValueString()
-	server, err := r.provider.InstanceServer(remote, project, "")
+	server, err := r.provider.InstanceServer(project, "")
 	if err != nil {
 		resp.Diagnostics.Append(errors.NewInstanceServerError(err))
 		return
@@ -338,9 +326,8 @@ func (r LxdNetworkLBResource) Delete(ctx context.Context, req resource.DeleteReq
 		return
 	}
 
-	remote := state.Remote.ValueString()
 	project := state.Project.ValueString()
-	server, err := r.provider.InstanceServer(remote, project, "")
+	server, err := r.provider.InstanceServer(project, "")
 	if err != nil {
 		resp.Diagnostics.Append(errors.NewInstanceServerError(err))
 		return

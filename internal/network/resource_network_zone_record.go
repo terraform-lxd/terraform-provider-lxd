@@ -32,7 +32,6 @@ type NetworkZoneRecordModel struct {
 	Description types.String `tfsdk:"description"`
 	Entries     types.Set    `tfsdk:"entry"`
 	Project     types.String `tfsdk:"project"`
-	Remote      types.String `tfsdk:"remote"`
 	Config      types.Map    `tfsdk:"config"`
 }
 
@@ -80,13 +79,6 @@ func (r NetworkZoneRecordResource) Schema(_ context.Context, _ resource.SchemaRe
 				},
 				Validators: []validator.String{
 					stringvalidator.LengthAtLeast(1),
-				},
-			},
-
-			"remote": schema.StringAttribute{
-				Optional: true,
-				PlanModifiers: []planmodifier.String{
-					stringplanmodifier.RequiresReplace(),
 				},
 			},
 
@@ -157,9 +149,8 @@ func (r NetworkZoneRecordResource) Create(ctx context.Context, req resource.Crea
 		return
 	}
 
-	remote := plan.Remote.ValueString()
 	project := plan.Project.ValueString()
-	server, err := r.provider.InstanceServer(remote, project, "")
+	server, err := r.provider.InstanceServer(project, "")
 	if err != nil {
 		resp.Diagnostics.Append(errors.NewInstanceServerError(err))
 		return
@@ -209,9 +200,8 @@ func (r NetworkZoneRecordResource) Read(ctx context.Context, req resource.ReadRe
 		return
 	}
 
-	remote := state.Remote.ValueString()
 	project := state.Project.ValueString()
-	server, err := r.provider.InstanceServer(remote, project, "")
+	server, err := r.provider.InstanceServer(project, "")
 	if err != nil {
 		resp.Diagnostics.Append(errors.NewInstanceServerError(err))
 		return
@@ -231,9 +221,8 @@ func (r NetworkZoneRecordResource) Update(ctx context.Context, req resource.Upda
 		return
 	}
 
-	remote := plan.Remote.ValueString()
 	project := plan.Project.ValueString()
-	server, err := r.provider.InstanceServer(remote, project, "")
+	server, err := r.provider.InstanceServer(project, "")
 	if err != nil {
 		resp.Diagnostics.Append(errors.NewInstanceServerError(err))
 		return
@@ -287,9 +276,8 @@ func (r NetworkZoneRecordResource) Delete(ctx context.Context, req resource.Dele
 		return
 	}
 
-	remote := state.Remote.ValueString()
 	project := state.Project.ValueString()
-	server, err := r.provider.InstanceServer(remote, project, "")
+	server, err := r.provider.InstanceServer(project, "")
 	if err != nil {
 		resp.Diagnostics.Append(errors.NewInstanceServerError(err))
 		return

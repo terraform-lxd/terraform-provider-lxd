@@ -26,7 +26,6 @@ type StorageVolumeCopyModel struct {
 	SourceRemote types.String `tfsdk:"source_remote"`
 	Project      types.String `tfsdk:"project"`
 	Target       types.String `tfsdk:"target"`
-	Remote       types.String `tfsdk:"remote"`
 }
 
 // StorageVolumeCopyResource represent LXD storage volume copy resource.
@@ -94,13 +93,6 @@ func (r StorageVolumeCopyResource) Schema(_ context.Context, _ resource.SchemaRe
 				},
 			},
 
-			"remote": schema.StringAttribute{
-				Optional: true,
-				PlanModifiers: []planmodifier.String{
-					stringplanmodifier.RequiresReplace(),
-				},
-			},
-
 			"target": schema.StringAttribute{
 				Optional: true,
 				PlanModifiers: []planmodifier.String{
@@ -140,13 +132,13 @@ func (r StorageVolumeCopyResource) Create(ctx context.Context, req resource.Crea
 
 	dstProject := plan.Project.ValueString()
 	dstTarget := plan.Target.ValueString()
-	dstServer, err := r.provider.InstanceServer(plan.Remote.ValueString(), dstProject, dstTarget)
+	dstServer, err := r.provider.InstanceServer(dstProject, dstTarget)
 	if err != nil {
 		resp.Diagnostics.Append(errors.NewInstanceServerError(err))
 		return
 	}
 
-	srcServer, err := r.provider.InstanceServer(plan.SourceRemote.ValueString(), "", "")
+	srcServer, err := r.provider.InstanceServer("", "")
 	if err != nil {
 		resp.Diagnostics.Append(errors.NewInstanceServerError(err))
 		return

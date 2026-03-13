@@ -69,9 +69,6 @@ resource "lxd_device" "vol1" {
 
 * `project` - *Optional* - Name of the project where the instance to which this device will be attached exists
 
-* `remote` - *Optional* - The remote in which the resource will be created. If
-	not provided, the provider's default remote will be used.
-
 * `target` - *Optional* - Specify a target cluster member or cluster member group of the instance.
 
 * `type` - **Required** - Type of the device Must be one of none, disk, nic,
