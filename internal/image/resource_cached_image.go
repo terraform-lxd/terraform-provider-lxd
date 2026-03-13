@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"slices"
+	"strings"
 
 	lxd "github.com/canonical/lxd/client"
 	"github.com/canonical/lxd/shared/api"
@@ -32,13 +33,11 @@ import (
 
 // CachedImageModel resource data model that matches the schema.
 type CachedImageModel struct {
-	SourceImage  types.String `tfsdk:"source_image"`
-	SourceRemote types.String `tfsdk:"source_remote"`
-	Aliases      types.Set    `tfsdk:"aliases"`
-	CopyAliases  types.Bool   `tfsdk:"copy_aliases"`
-	Type         types.String `tfsdk:"type"`
-	Project      types.String `tfsdk:"project"`
-	Remote       types.String `tfsdk:"remote"`
+	Image       types.String `tfsdk:"image"`
+	Aliases     types.Set    `tfsdk:"aliases"`
+	CopyAliases types.Bool   `tfsdk:"copy_aliases"`
+	Type        types.String `tfsdk:"type"`
+	Project     types.String `tfsdk:"project"`
 
 	// Computed.
 	Architecture  types.String `tfsdk:"architecture"`
@@ -64,14 +63,7 @@ func (r CachedImageResource) Metadata(_ context.Context, req resource.MetadataRe
 func (r CachedImageResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *resource.SchemaResponse) {
 	resp.Schema = schema.Schema{
 		Attributes: map[string]schema.Attribute{
-			"source_image": schema.StringAttribute{
-				Required: true,
-				PlanModifiers: []planmodifier.String{
-					stringplanmodifier.RequiresReplace(),
-				},
-			},
-
-			"source_remote": schema.StringAttribute{
+			"image": schema.StringAttribute{
 				Required: true,
 				PlanModifiers: []planmodifier.String{
 					stringplanmodifier.RequiresReplace(),
@@ -117,13 +109,6 @@ func (r CachedImageResource) Schema(_ context.Context, _ resource.SchemaRequest,
 				},
 				Validators: []validator.String{
 					stringvalidator.LengthAtLeast(1),
-				},
-			},
-
-			"remote": schema.StringAttribute{
-				Optional: true,
-				PlanModifiers: []planmodifier.String{
-					stringplanmodifier.RequiresReplace(),
 				},
 			},
 
@@ -186,21 +171,35 @@ func (r CachedImageResource) Create(ctx context.Context, req resource.CreateRequ
 		return
 	}
 
-	remote := plan.Remote.ValueString()
 	project := plan.Project.ValueString()
-	server, err := r.provider.InstanceServer(remote, project, "")
+	server, err := r.provider.InstanceServer(project, "")
 	if err != nil {
 		resp.Diagnostics.Append(errors.NewInstanceServerError(err))
 		return
 	}
 
-	imageName := plan.SourceImage.ValueString()
+	var imageRemote string
+	var imageServer lxd.ImageServer
+
+	imageName := plan.Image.ValueString()
 	imageType := plan.Type.ValueString()
-	imageRemote := plan.SourceRemote.ValueString()
-	imageServer, err := r.provider.ImageServer(imageRemote)
-	if err != nil {
-		resp.Diagnostics.Append(errors.NewImageServerError(err))
-		return
+
+	// Evaluate image remote.
+	imageParts := strings.SplitN(imageName, ":", 2)
+	if len(imageParts) == 2 {
+		imageRemote = imageParts[0]
+		imageName = imageParts[1]
+	}
+
+	if imageRemote == "" {
+		// Use the instance server as an image server if image remote is empty.
+		imageServer = server
+	} else {
+		imageServer, err = r.provider.ImageServer(imageRemote)
+		if err != nil {
+			resp.Diagnostics.Append(errors.NewImageServerError(err))
+			return
+		}
 	}
 
 	// Determine whether the user has provided an fingerprint or an alias.
@@ -292,9 +291,8 @@ func (r CachedImageResource) Read(ctx context.Context, req resource.ReadRequest,
 		return
 	}
 
-	remote := state.Remote.ValueString()
 	project := state.Project.ValueString()
-	server, err := r.provider.InstanceServer(remote, project, "")
+	server, err := r.provider.InstanceServer(project, "")
 	if err != nil {
 		resp.Diagnostics.Append(errors.NewInstanceServerError(err))
 		return
@@ -315,16 +313,15 @@ func (r CachedImageResource) Update(ctx context.Context, req resource.UpdateRequ
 		return
 	}
 
-	remote := plan.Remote.ValueString()
 	project := plan.Project.ValueString()
-	server, err := r.provider.InstanceServer(remote, project, "")
+	server, err := r.provider.InstanceServer(project, "")
 	if err != nil {
 		resp.Diagnostics.Append(errors.NewInstanceServerError(err))
 		return
 	}
 
 	// Extract imageName metadata (fingerprint is retained from previous state).
-	imageName := plan.SourceImage.ValueString()
+	imageName := plan.Image.ValueString()
 	imageFingerprint := state.Fingerprint.ValueString()
 
 	// Get info about cached image.
@@ -395,9 +392,8 @@ func (r CachedImageResource) Delete(ctx context.Context, req resource.DeleteRequ
 		return
 	}
 
-	remote := state.Remote.ValueString()
 	project := state.Project.ValueString()
-	server, err := r.provider.InstanceServer(remote, project, "")
+	server, err := r.provider.InstanceServer(project, "")
 	if err != nil {
 		resp.Diagnostics.Append(errors.NewInstanceServerError(err))
 		return
@@ -406,13 +402,13 @@ func (r CachedImageResource) Delete(ctx context.Context, req resource.DeleteRequ
 	imageFingerprint := state.Fingerprint.ValueString()
 	opDelete, err := server.DeleteImage(imageFingerprint)
 	if err != nil {
-		resp.Diagnostics.AddError(fmt.Sprintf("Failed to remove cached image %q", state.SourceImage.ValueString()), err.Error())
+		resp.Diagnostics.AddError(fmt.Sprintf("Failed to remove cached image %q", state.Image.ValueString()), err.Error())
 		return
 	}
 
 	err = opDelete.Wait()
 	if err != nil {
-		resp.Diagnostics.AddError(fmt.Sprintf("Failed to remove cached image %q", state.SourceImage.ValueString()), err.Error())
+		resp.Diagnostics.AddError(fmt.Sprintf("Failed to remove cached image %q", state.Image.ValueString()), err.Error())
 		return
 	}
 }
@@ -424,7 +420,7 @@ func (r CachedImageResource) SyncState(ctx context.Context, tfState *tfsdk.State
 	var respDiags diag.Diagnostics
 
 	imageFingerprint := m.Fingerprint.ValueString()
-	imageName := m.SourceImage.ValueString()
+	imageName := m.Image.ValueString()
 	image, _, err := server.GetImage(imageFingerprint)
 	if err != nil {
 		if errors.IsNotFoundError(err) {
