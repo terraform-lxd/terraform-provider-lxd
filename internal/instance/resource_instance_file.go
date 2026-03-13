@@ -31,7 +31,6 @@ type InstanceFileModel struct {
 	ResourceID types.String `tfsdk:"resource_id"` // Computed.
 	Instance   types.String `tfsdk:"instance"`
 	Project    types.String `tfsdk:"project"`
-	Remote     types.String `tfsdk:"remote"`
 
 	// common.InstanceFileModel
 	Content    types.String `tfsdk:"content"`
@@ -82,13 +81,6 @@ func (r InstanceFileResource) Schema(_ context.Context, _ resource.SchemaRequest
 				},
 				Validators: []validator.String{
 					stringvalidator.LengthAtLeast(1),
-				},
-			},
-
-			"remote": schema.StringAttribute{
-				Optional: true,
-				PlanModifiers: []planmodifier.String{
-					stringplanmodifier.RequiresReplace(),
 				},
 			},
 
@@ -190,9 +182,8 @@ func (r InstanceFileResource) Create(ctx context.Context, req resource.CreateReq
 		return
 	}
 
-	remote := plan.Remote.ValueString()
 	project := plan.Project.ValueString()
-	server, err := r.provider.InstanceServer(remote, project, "")
+	server, err := r.provider.InstanceServer(project, "")
 	if err != nil {
 		resp.Diagnostics.Append(errors.NewInstanceServerError(err))
 		return
@@ -225,7 +216,7 @@ func (r InstanceFileResource) Create(ctx context.Context, req resource.CreateReq
 		return
 	}
 
-	fileID := createFileResourceID(remote, instanceName, targetPath)
+	fileID := createFileResourceID(instanceName, targetPath)
 	plan.ResourceID = types.StringValue(fileID)
 
 	// Update Terraform state.
@@ -243,10 +234,10 @@ func (r InstanceFileResource) Read(ctx context.Context, req resource.ReadRequest
 		return
 	}
 
-	remote, instanceName, targetPath := splitFileResourceID(state.ResourceID.ValueString())
+	instanceName, targetPath := splitFileResourceID(state.ResourceID.ValueString())
 
 	project := state.Project.ValueString()
-	server, err := r.provider.InstanceServer(remote, project, "")
+	server, err := r.provider.InstanceServer(project, "")
 	if err != nil {
 		resp.Diagnostics.Append(errors.NewInstanceServerError(err))
 		return
@@ -304,10 +295,10 @@ func (r InstanceFileResource) Delete(ctx context.Context, req resource.DeleteReq
 		return
 	}
 
-	remote, instanceName, targetFile := splitFileResourceID(state.ResourceID.ValueString())
+	instanceName, targetFile := splitFileResourceID(state.ResourceID.ValueString())
 
 	project := state.Project.ValueString()
-	server, err := r.provider.InstanceServer(remote, project, "")
+	server, err := r.provider.InstanceServer(project, "")
 	if err != nil {
 		resp.Diagnostics.Append(errors.NewInstanceServerError(err))
 		return
@@ -332,19 +323,18 @@ func (r InstanceFileResource) Delete(ctx context.Context, req resource.DeleteReq
 	}
 }
 
-// createFileResourceID creates new file ID by concatenating remote,
-// instnaceName, and targetPath using colon.
-func createFileResourceID(remote string, instanceName string, targetPath string) string {
-	return remote + ":" + instanceName + ":" + targetPath
+// createFileResourceID creates new file ID by concatenating instanceName
+// and targetPath using colon.
+func createFileResourceID(instanceName string, targetPath string) string {
+	return instanceName + ":" + targetPath
 }
 
-// splitFileResourceID splits file ID into remote, intanceName, and
-// targetPath strings.
-func splitFileResourceID(id string) (remote string, instanceName string, targetPath string) {
-	pieces := strings.SplitN(id, ":", 3)
-	if len(pieces) != 3 {
-		return "", "", ""
+// splitFileResourceID splits file ID into instanceName and targetPath strings.
+func splitFileResourceID(id string) (instanceName string, targetPath string) {
+	pieces := strings.SplitN(id, ":", 2)
+	if len(pieces) != 2 {
+		return "", ""
 	}
 
-	return pieces[0], pieces[1], pieces[2]
+	return pieces[0], pieces[1]
 }
