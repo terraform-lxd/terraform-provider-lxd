@@ -52,7 +52,6 @@ type InstanceModel struct {
 	Limits         types.Map    `tfsdk:"limits"`
 	Config         types.Map    `tfsdk:"config"`
 	Project        types.String `tfsdk:"project"`
-	Remote         types.String `tfsdk:"remote"`
 	Target         types.String `tfsdk:"target"`
 
 	// Computed.
@@ -172,13 +171,6 @@ func (r InstanceResource) Schema(ctx context.Context, _ resource.SchemaRequest, 
 				},
 				Validators: []validator.String{
 					stringvalidator.LengthAtLeast(1),
-				},
-			},
-
-			"remote": schema.StringAttribute{
-				Optional: true,
-				PlanModifiers: []planmodifier.String{
-					stringplanmodifier.RequiresReplace(),
 				},
 			},
 
@@ -556,10 +548,9 @@ func (r InstanceResource) Create(ctx context.Context, req resource.CreateRequest
 	ctx, cancel := context.WithTimeout(ctx, timeout)
 	defer cancel()
 
-	remote := plan.Remote.ValueString()
 	project := plan.Project.ValueString()
 	target := plan.Target.ValueString()
-	server, err := r.provider.InstanceServer(remote, project, target)
+	server, err := r.provider.InstanceServer(project, target)
 	if err != nil {
 		resp.Diagnostics.Append(errors.NewInstanceServerError(err))
 		return
@@ -568,12 +559,12 @@ func (r InstanceResource) Create(ctx context.Context, req resource.CreateRequest
 	var imageRemote string
 	var imageServer lxd.ImageServer
 
-	// Evaluate image remote.
-	image := plan.Image.ValueString()
-	imageParts := strings.SplitN(image, ":", 2)
+	// Evaluate imageName remote.
+	imageName := plan.Image.ValueString()
+	imageParts := strings.SplitN(imageName, ":", 2)
 	if len(imageParts) == 2 {
 		imageRemote = imageParts[0]
-		image = imageParts[1]
+		imageName = imageParts[1]
 	}
 
 	if imageRemote == "" {
@@ -634,32 +625,32 @@ func (r InstanceResource) Create(ctx context.Context, req resource.CreateRequest
 	// Gather info about source image.
 	conn, _ := imageServer.GetConnectionInfo()
 
-	if image == "" {
+	if imageName == "" {
 		instance.Source.Type = api.SourceTypeNone
 	} else if conn.Protocol == "simplestreams" {
 		// Optimisation for simplestreams.
 		imageInfo = &api.Image{}
 		imageInfo.Public = true
-		imageInfo.Fingerprint = image
-		instance.Source.Alias = image
+		imageInfo.Fingerprint = imageName
+		instance.Source.Alias = imageName
 	} else {
 		// Attempt to resolve an image alias.
-		alias, _, err := imageServer.GetImageAlias(image)
+		alias, _, err := imageServer.GetImageAlias(imageName)
 		if err == nil {
-			image = alias.Target
-			instance.Source.Alias = image
+			imageName = alias.Target
+			instance.Source.Alias = imageName
 		}
 
 		// Get the image info.
-		imageInfo, _, err = imageServer.GetImage(image)
+		imageInfo, _, err = imageServer.GetImage(imageName)
 		if err != nil {
-			resp.Diagnostics.AddError(fmt.Sprintf("Failed to retrieve image info for instance %q", instance.Name), err.Error())
+			resp.Diagnostics.AddError(fmt.Sprintf("Failed to retrieve image %q info for instance %q", imageName, instance.Name), err.Error())
 			return
 		}
 	}
 
 	// In case the image is set, create the instance from it, otherwise create it without rootfs. Similar to the --empty CLI flag on lxc.
-	if image != "" {
+	if imageName != "" {
 		var opCreateFromImage lxd.RemoteOperation
 		opCreateFromImage, err = server.CreateInstanceFromImage(imageServer, *imageInfo, instance)
 		if err == nil {
@@ -681,7 +672,6 @@ func (r InstanceResource) Create(ctx context.Context, req resource.CreateRequest
 	// Partially update state to make Terraform aware of the created resource.
 	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("name"), instance.Name)...)
 	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("project"), project)...)
-	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("remote"), remote)...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
@@ -772,9 +762,8 @@ func (r InstanceResource) Read(ctx context.Context, req resource.ReadRequest, re
 	ctx, cancel := context.WithTimeout(ctx, timeout)
 	defer cancel()
 
-	remote := state.Remote.ValueString()
 	project := state.Project.ValueString()
-	server, err := r.provider.InstanceServer(remote, project, "")
+	server, err := r.provider.InstanceServer(project, "")
 	if err != nil {
 		resp.Diagnostics.Append(errors.NewInstanceServerError(err))
 		return
@@ -810,10 +799,9 @@ func (r InstanceResource) Update(ctx context.Context, req resource.UpdateRequest
 	ctx, cancel := context.WithTimeout(ctx, timeout)
 	defer cancel()
 
-	remote := plan.Remote.ValueString()
 	project := plan.Project.ValueString()
 	target := plan.Target.ValueString()
-	server, err := r.provider.InstanceServer(remote, project, target)
+	server, err := r.provider.InstanceServer(project, target)
 	if err != nil {
 		resp.Diagnostics.Append(errors.NewInstanceServerError(err))
 		return
@@ -1108,9 +1096,8 @@ func (r InstanceResource) Delete(ctx context.Context, req resource.DeleteRequest
 	ctx, cancel := context.WithTimeout(ctx, timeout)
 	defer cancel()
 
-	remote := state.Remote.ValueString()
 	project := state.Project.ValueString()
-	server, err := r.provider.InstanceServer(remote, project, "")
+	server, err := r.provider.InstanceServer(project, "")
 	if err != nil {
 		resp.Diagnostics.Append(errors.NewInstanceServerError(err))
 		return
