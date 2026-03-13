@@ -1,10 +1,17 @@
 package acctest
 
 import (
+	"errors"
 	"fmt"
+	"io/fs"
+	"maps"
+	"os"
+	"path/filepath"
 	"strings"
 	"sync"
 
+	lxdConfig "github.com/canonical/lxd/lxc/config"
+	"github.com/canonical/lxd/shared"
 	"github.com/hashicorp/terraform-plugin-framework/providerserver"
 	"github.com/hashicorp/terraform-plugin-go/tfprotov6"
 	"github.com/terraform-lxd/terraform-provider-lxd/internal/provider"
@@ -35,27 +42,50 @@ var DisableSecureBootConfigEntry = sync.OnceValue(func() string {
 	return `"security.secureboot" = false`
 })
 
+// ProtoV6ProviderFactories are used to instantiate a provider during
+// acceptance testing. The factory function will be invoked for every Terraform
+// CLI command executed to create a provider server to which the CLI can
+// reattach.
+var ProtoV6ProviderFactories = map[string]func() (tfprotov6.ProviderServer, error){
+	"lxd": providerserver.NewProtocol6WithError(provider.NewLxdProvider("test")()),
+}
+
+const testProviderRemoteName = "tf-test"
+
+var testProviderRemote *provider_config.LxdRemote
 var testProviderConfig *provider_config.LxdProviderConfig
 var testProviderMutex sync.Mutex
 
+func testRemotes() map[string]provider_config.LxdRemote {
+	testProviderMutex.Lock()
+	defer testProviderMutex.Unlock()
+
+	if testProviderRemote == nil {
+		remote, err := parseDefaultLocalConfigRemote()
+		if err != nil {
+			panic(fmt.Sprintf("Failed to parse default local config remote: %v", err))
+		}
+
+		testProviderRemote = remote
+	}
+
+	return map[string]provider_config.LxdRemote{
+		testProviderRemoteName: *testProviderRemote,
+	}
+}
+
 // testProvider returns a LxdProviderConfig that is initialized with default
-// LXD config.
-//
-// NOTE: This means this provider can differ from the actual provider used
-// within the test. Therefore, it should be used exclusively for test prechecks
-// because we assume all tests are run locally.
+// LXD config remote.
 func testProvider() *provider_config.LxdProviderConfig {
+	remotes := testRemotes()
+
 	testProviderMutex.Lock()
 	defer testProviderMutex.Unlock()
 
 	if testProviderConfig == nil {
 		var err error
 
-		options := provider_config.Options{
-			AcceptServerCertificate: true,
-		}
-
-		testProviderConfig, err = provider_config.NewLxdProviderConfig("test", nil, options)
+		testProviderConfig, err = provider_config.NewLxdProviderConfig("test", remotes, testProviderRemoteName)
 		if err != nil {
 			panic(fmt.Sprintf("Failed to initialize provider: %v", err))
 		}
@@ -64,10 +94,117 @@ func testProvider() *provider_config.LxdProviderConfig {
 	return testProviderConfig
 }
 
-// ProtoV6ProviderFactories are used to instantiate a provider during
-// acceptance testing. The factory function will be invoked for every Terraform
-// CLI command executed to create a provider server to which the CLI can
-// reattach.
-var ProtoV6ProviderFactories = map[string]func() (tfprotov6.ProviderServer, error){
-	"lxd": providerserver.NewProtocol6WithError(provider.NewLxdProvider("test")()),
+// Provider returns a Terraform HCL provider block configured from
+// the default LXD remote.
+func Provider() string {
+	return ProviderWithRemotes(nil)
+}
+
+// ProviderWithRemotes returns a Terraform HCL provider block configured
+// from the default LXD remote and the provided extra remotes.
+func ProviderWithRemotes(extraRemotes map[string]provider_config.LxdRemote) string {
+	var remotes map[string]provider_config.LxdRemote
+
+	if extraRemotes == nil {
+		remotes = testRemotes()
+	} else {
+		remotes = make(map[string]provider_config.LxdRemote)
+		maps.Copy(remotes, extraRemotes)
+		maps.Copy(remotes, testRemotes())
+	}
+
+	provider, err := provider_config.NewLxdProviderConfig("test", remotes, testProviderRemoteName)
+	if err != nil {
+		panic(fmt.Sprintf("Failed to initialize provider: %v", err))
+	}
+
+	return provider.ToHCL()
+}
+
+func parseDefaultLocalConfigRemote() (*provider_config.LxdRemote, error) {
+	config, configDir, err := loadLocalConfig("")
+	if err != nil {
+		return nil, err
+	}
+
+	remoteName := config.DefaultRemote
+	remote, ok := config.Remotes[remoteName]
+	if !ok {
+		return nil, fmt.Errorf("Default remote %q not found in config", remoteName)
+	}
+
+	if remote.Protocol == "" {
+		remote.Protocol = "lxd"
+	}
+
+	if remote.Protocol != "lxd" {
+		return nil, fmt.Errorf("Default remote %q is using unsupported protocol %q: Only the lxd protocol is supported", remoteName, remote.Protocol)
+	}
+
+	r := &provider_config.LxdRemote{
+		Address:  remote.Addr,
+		Protocol: remote.Protocol,
+	}
+
+	if remote.AuthType == "tls" {
+		// Load client certificate and key from config directory.
+		clientCertPath := filepath.Join(configDir, "client.crt")
+		clientCert, err := os.ReadFile(clientCertPath)
+		if err != nil {
+			return nil, fmt.Errorf("Failed to read client certificate %q: %v", clientCertPath, err)
+		}
+
+		clientKeyPath := filepath.Join(configDir, "client.key")
+		clientKey, err := os.ReadFile(clientKeyPath)
+		if err != nil {
+			return nil, fmt.Errorf("Failed to read client key %q: %v", clientKeyPath, err)
+		}
+
+		r.ClientCertificate = string(clientCert)
+		r.ClientKey = string(clientKey)
+
+		// Load server certificate and compute fingerprint if it exists.
+		// If the certificate does not exist, continue without setting the fingerprint
+		// and let the provider attempt to connect without it, as it might be trusted
+		// by the system's CA store.
+		serverCertPath := filepath.Join(configDir, "servercerts", remoteName+".crt")
+		serverCert, err := shared.ReadCert(serverCertPath)
+		if err != nil && !errors.Is(err, fs.ErrNotExist) {
+			return nil, fmt.Errorf("Failed to read server certificate %q for remote %q: %v", serverCertPath, remoteName, err)
+		}
+
+		if serverCert != nil {
+			r.ServerCertificateFingerprint = shared.CertFingerprint(serverCert)
+		}
+	}
+
+	return r, nil
+}
+
+// loadLocalConfig loads the local LXD configuration from the specified directory or
+// from the default location if no directory is provided.
+// It returns the loaded configuration, the directory from which it was loaded.
+func loadLocalConfig(configDir string) (*lxdConfig.Config, string, error) {
+	// Determine LXD config directory.
+	if configDir == "" {
+		// Determine LXD configuration directory. First check for the presence
+		// of the /var/snap/lxd directory. If the directory exists, return
+		// snap's config path. Otherwise return the fallback path.
+		_, err := os.Stat("/var/snap/lxd")
+		if err == nil || os.IsExist(err) {
+			configDir = "$HOME/snap/lxd/common/config"
+		} else {
+			configDir = "$HOME/.config/lxc"
+		}
+	}
+
+	configDir = os.ExpandEnv(configDir)
+	configPath := filepath.Join(configDir, "config.yml")
+
+	config, err := lxdConfig.LoadConfig(configPath)
+	if err != nil {
+		return nil, "", fmt.Errorf("Failed to load LXD config from %q: %v", configPath, err)
+	}
+
+	return config, configDir, nil
 }
