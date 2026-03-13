@@ -25,7 +25,7 @@ func TestAccInstanceFile_basic(t *testing.T) {
 					resource.TestCheckNoResourceAttr("lxd_instance_file.file1", "source_path"),
 					resource.TestCheckResourceAttr("lxd_instance_file.file1", "target_path", "/foo/bar.txt"),
 					resource.TestCheckResourceAttr("lxd_instance_file.file1", "create_directories", "true"),
-					resource.TestCheckResourceAttr("lxd_instance_file.file1", "resource_id", fmt.Sprintf(":%s:/foo/bar.txt", instanceName)),
+					resource.TestCheckResourceAttr("lxd_instance_file.file1", "resource_id", fmt.Sprintf("%s:/foo/bar.txt", instanceName)),
 				),
 			},
 			{
@@ -34,7 +34,7 @@ func TestAccInstanceFile_basic(t *testing.T) {
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("lxd_instance.instance1", "name", instanceName),
 					resource.TestCheckResourceAttr("lxd_instance.instance1", "status", "Running"),
-					resource.TestCheckResourceAttr("lxd_instance_file.file1", "resource_id", fmt.Sprintf(":%s:/foo/bar.txt", instanceName)),
+					resource.TestCheckResourceAttr("lxd_instance_file.file1", "resource_id", fmt.Sprintf("%s:/foo/bar.txt", instanceName)),
 				),
 			},
 			{
@@ -49,7 +49,7 @@ func TestAccInstanceFile_basic(t *testing.T) {
 					resource.TestCheckResourceAttr("lxd_instance_file.file1", "source_path", "../acctest/fixtures/test-file.txt"),
 					resource.TestCheckResourceAttr("lxd_instance_file.file1", "target_path", "/foo/bar.txt"),
 					resource.TestCheckResourceAttr("lxd_instance_file.file1", "create_directories", "true"),
-					resource.TestCheckResourceAttr("lxd_instance_file.file1", "resource_id", fmt.Sprintf(":%s:/foo/bar.txt", instanceName)),
+					resource.TestCheckResourceAttr("lxd_instance_file.file1", "resource_id", fmt.Sprintf("%s:/foo/bar.txt", instanceName)),
 				),
 			},
 		},
@@ -76,7 +76,7 @@ func TestAccInstanceFile_project(t *testing.T) {
 					resource.TestCheckResourceAttr("lxd_instance_file.file1", "source_path", "../acctest/fixtures/test-file.txt"),
 					resource.TestCheckResourceAttr("lxd_instance_file.file1", "target_path", "/foo/bar.txt"),
 					resource.TestCheckResourceAttr("lxd_instance_file.file1", "create_directories", "true"),
-					resource.TestCheckResourceAttr("lxd_instance_file.file1", "resource_id", fmt.Sprintf(":%s:/foo/bar.txt", instanceName)),
+					resource.TestCheckResourceAttr("lxd_instance_file.file1", "resource_id", fmt.Sprintf("%s:/foo/bar.txt", instanceName)),
 				),
 			},
 		},
