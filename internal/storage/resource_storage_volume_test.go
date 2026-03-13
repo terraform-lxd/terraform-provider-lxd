@@ -20,7 +20,7 @@ func TestAccStorageVolume_basic(t *testing.T) {
 		ProtoV6ProviderFactories: acctest.ProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccStorageVolume_basic(poolName, volumeName),
+				Config: acctest.Provider() + testAccStorageVolume_basic(poolName, volumeName),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("lxd_storage_pool.pool1", "name", poolName),
 					resource.TestCheckResourceAttr("lxd_storage_pool.pool1", "driver", "dir"),
@@ -47,7 +47,7 @@ func TestAccStorageVolume_instanceAttach(t *testing.T) {
 		ProtoV6ProviderFactories: acctest.ProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccStorageVolume_instanceAttach(poolName, volumeName, instanceName),
+				Config: acctest.Provider() + testAccStorageVolume_instanceAttach(poolName, volumeName, instanceName),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("lxd_storage_pool.pool1", "name", poolName),
 					resource.TestCheckResourceAttr("lxd_storage_pool.pool1", "driver", "zfs"),
@@ -76,7 +76,7 @@ func TestAccStorageVolume_target(t *testing.T) {
 		ProtoV6ProviderFactories: acctest.ProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccStorageVolume_target(volumeName, targets[0]),
+				Config: acctest.Provider() + testAccStorageVolume_target(volumeName, targets[0]),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("lxd_volume.volume1", "name", volumeName),
 					resource.TestCheckResourceAttr("lxd_volume.volume1", "pool", "default"),
@@ -96,7 +96,7 @@ func TestAccStorageVolume_project(t *testing.T) {
 		ProtoV6ProviderFactories: acctest.ProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccStorageVolume_project(projectName, volumeName),
+				Config: acctest.Provider() + testAccStorageVolume_project(projectName, volumeName),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("lxd_project.project1", "name", projectName),
 					resource.TestCheckResourceAttr("lxd_volume.volume1", "name", volumeName),
@@ -120,7 +120,7 @@ func TestAccStorageVolume_contentType(t *testing.T) {
 		ProtoV6ProviderFactories: acctest.ProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccStorageVolume_contentType(poolName, volumeName),
+				Config: acctest.Provider() + testAccStorageVolume_contentType(poolName, volumeName),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("lxd_storage_pool.pool1", "name", poolName),
 					resource.TestCheckResourceAttr("lxd_storage_pool.pool1", "driver", "zfs"),
@@ -146,7 +146,7 @@ func TestAccStorageVolume_importBasic(t *testing.T) {
 		ProtoV6ProviderFactories: acctest.ProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccStorageVolume_basic(poolName, volName),
+				Config: acctest.Provider() + testAccStorageVolume_basic(poolName, volName),
 			},
 			{
 				ResourceName:                         resourceName,
@@ -172,7 +172,7 @@ func TestAccStorageVolume_importProject(t *testing.T) {
 		ProtoV6ProviderFactories: acctest.ProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccStorageVolume_project(projectName, volName),
+				Config: acctest.Provider() + testAccStorageVolume_project(projectName, volName),
 			},
 			{
 				ResourceName:                         resourceName,
@@ -197,7 +197,7 @@ func TestAccStorageVolume_inheritedStoragePoolKeys(t *testing.T) {
 		ProtoV6ProviderFactories: acctest.ProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccStorageVolume_inheritedStoragePoolVolumeKeys(poolName, volumeName),
+				Config: acctest.Provider() + testAccStorageVolume_inheritedStoragePoolVolumeKeys(poolName, volumeName),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("lxd_storage_pool.pool1", "name", poolName),
 					resource.TestCheckResourceAttr("lxd_storage_pool.pool1", "driver", "zfs"),

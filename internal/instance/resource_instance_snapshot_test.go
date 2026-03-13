@@ -18,7 +18,7 @@ func TestAccInstanceSnapshot_stateless(t *testing.T) {
 		ProtoV6ProviderFactories: acctest.ProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccInstanceSnapshot_basic(instanceName, snapshotName, false),
+				Config: acctest.Provider() + testAccInstanceSnapshot_basic(instanceName, snapshotName, false),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("lxd_instance.instance1", "name", instanceName),
 					resource.TestCheckResourceAttr("lxd_instance.instance1", "status", "Running"),
@@ -42,7 +42,7 @@ func TestAccInstanceSnapshot_stateless(t *testing.T) {
 // 		ProtoV6ProviderFactories: acctest.ProtoV6ProviderFactories,
 // 		Steps: []resource.TestStep{
 // 			{
-// 				Config: testAccInstanceSnapshot_basic(instanceName, snapshotName, true),
+// 				Config: acctest.ProviderBlock() + testAccInstanceSnapshot_basic(instanceName, snapshotName, true),
 // 				Check: resource.ComposeTestCheckFunc(
 // 					resource.TestCheckResourceAttr("lxd_instance.instance1", "name", instanceName),
 // 					resource.TestCheckResourceAttr("lxd_instance.instance1", "status", "Running"),
@@ -65,7 +65,7 @@ func TestAccInstanceSnapshot_multiple(t *testing.T) {
 		ProtoV6ProviderFactories: acctest.ProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccInstanceSnapshot_multiple1(instanceName, snapshotName1),
+				Config: acctest.Provider() + testAccInstanceSnapshot_multiple1(instanceName, snapshotName1),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("lxd_instance.instance1", "name", instanceName),
 					resource.TestCheckResourceAttr("lxd_instance.instance1", "status", "Running"),
@@ -75,7 +75,7 @@ func TestAccInstanceSnapshot_multiple(t *testing.T) {
 				),
 			},
 			{
-				Config: testAccInstanceSnapshot_multiple2(instanceName, snapshotName1, snapshotName2),
+				Config: acctest.Provider() + testAccInstanceSnapshot_multiple2(instanceName, snapshotName1, snapshotName2),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("lxd_instance.instance1", "name", instanceName),
 					resource.TestCheckResourceAttr("lxd_instance.instance1", "status", "Running"),
@@ -101,7 +101,7 @@ func TestAccInstanceSnapshot_project(t *testing.T) {
 		ProtoV6ProviderFactories: acctest.ProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccInstanceSnapshot_project(projectName, instanceName, snapshotName),
+				Config: acctest.Provider() + testAccInstanceSnapshot_project(projectName, instanceName, snapshotName),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("lxd_project.project1", "name", projectName),
 					resource.TestCheckResourceAttr("lxd_instance.instance1", "name", instanceName),
@@ -126,7 +126,7 @@ func TestAccInstanceSnapshot_missingInstance(t *testing.T) {
 		ProtoV6ProviderFactories: acctest.ProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
-				Config:      testAccInstanceSnapshot_missingInstance(instanceName, snapshotName),
+				Config:      acctest.Provider() + testAccInstanceSnapshot_missingInstance(instanceName, snapshotName),
 				ExpectError: regexp.MustCompile("Instance not[ \n]found"),
 			},
 		},

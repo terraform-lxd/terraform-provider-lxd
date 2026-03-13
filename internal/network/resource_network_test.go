@@ -33,7 +33,7 @@ func TestAccNetwork_basic(t *testing.T) {
 		ProtoV6ProviderFactories: acctest.ProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccNetwork_basic(networkName),
+				Config: acctest.Provider() + testAccNetwork_basic(networkName),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("lxd_network.network", "name", networkName),
 					resource.TestCheckResourceAttr("lxd_network.network", "type", "bridge"),
@@ -59,7 +59,7 @@ func TestAccNetwork_description(t *testing.T) {
 		ProtoV6ProviderFactories: acctest.ProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccNetwork_desc(networkName),
+				Config: acctest.Provider() + testAccNetwork_desc(networkName),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("lxd_network.network", "name", networkName),
 					resource.TestCheckResourceAttr("lxd_network.network", "type", "bridge"),
@@ -84,7 +84,7 @@ func TestAccNetwork_nullable(t *testing.T) {
 		ProtoV6ProviderFactories: acctest.ProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccNetwork_nullable(networkName),
+				Config: acctest.Provider() + testAccNetwork_nullable(networkName),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("lxd_network.network", "name", networkName),
 					resource.TestCheckResourceAttr("lxd_network.network", "type", "bridge"),
@@ -110,7 +110,7 @@ func TestAccNetwork_attach(t *testing.T) {
 		ProtoV6ProviderFactories: acctest.ProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccNetwork_attach(networkName, profileName, instanceName),
+				Config: acctest.Provider() + testAccNetwork_attach(networkName, profileName, instanceName),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("lxd_network.network", "name", networkName),
 					resource.TestCheckResourceAttr("lxd_profile.profile1", "name", profileName),
@@ -144,7 +144,7 @@ func TestAccNetwork_updateConfig(t *testing.T) {
 		ProtoV6ProviderFactories: acctest.ProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccNetwork_updateConfig_1(networkName, instanceName),
+				Config: acctest.Provider() + testAccNetwork_updateConfig_1(networkName, instanceName),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("lxd_network.network", "name", networkName),
 					resource.TestCheckResourceAttr("lxd_network.network", "config.ipv4.address", "10.150.30.1/24"),
@@ -158,7 +158,7 @@ func TestAccNetwork_updateConfig(t *testing.T) {
 				),
 			},
 			{
-				Config: testAccNetwork_updateConfig_2(networkName, instanceName),
+				Config: acctest.Provider() + testAccNetwork_updateConfig_2(networkName, instanceName),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("lxd_network.network", "name", networkName),
 					resource.TestCheckResourceAttr("lxd_network.network", "config.ipv4.address", "10.150.40.1/24"),
@@ -184,7 +184,7 @@ func TestAccNetwork_typeMacvlan(t *testing.T) {
 		ProtoV6ProviderFactories: acctest.ProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccNetwork_typeMacvlan(networkName),
+				Config: acctest.Provider() + testAccNetwork_typeMacvlan(networkName),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("lxd_network.network", "name", networkName),
 					resource.TestCheckResourceAttr("lxd_network.network", "type", "macvlan"),
@@ -206,7 +206,7 @@ func TestAccNetwork_target(t *testing.T) {
 		ProtoV6ProviderFactories: acctest.ProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccNetwork_target(networkName, targets),
+				Config: acctest.Provider() + testAccNetwork_target(networkName, targets),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("lxd_network.cluster_network_node1", "name", networkName),
 					resource.TestCheckResourceAttr("lxd_network.cluster_network_node1", "target", targets[0]),
@@ -235,7 +235,7 @@ func TestAccNetwork_project(t *testing.T) {
 		ProtoV6ProviderFactories: acctest.ProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccNetwork_project(networkName, projectName),
+				Config: acctest.Provider() + testAccNetwork_project(networkName, projectName),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("lxd_network.network", "name", networkName),
 					resource.TestCheckResourceAttr("lxd_network.network", "project", projectName),
@@ -258,7 +258,7 @@ func TestAccNetwork_importBasic(t *testing.T) {
 		ProtoV6ProviderFactories: acctest.ProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccNetwork_basic(networkName),
+				Config: acctest.Provider() + testAccNetwork_basic(networkName),
 			},
 			{
 				ResourceName:                         resourceName,
@@ -283,7 +283,7 @@ func TestAccNetwork_importDesc(t *testing.T) {
 		ProtoV6ProviderFactories: acctest.ProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccNetwork_desc(networkName),
+				Config: acctest.Provider() + testAccNetwork_desc(networkName),
 			},
 			{
 				ResourceName:                         resourceName,
@@ -309,7 +309,7 @@ func TestAccNetwork_importProject(t *testing.T) {
 		ProtoV6ProviderFactories: acctest.ProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccNetwork_project(networkName, projectName),
+				Config: acctest.Provider() + testAccNetwork_project(networkName, projectName),
 			},
 			{
 				ResourceName:                         resourceName,

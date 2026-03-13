@@ -17,7 +17,7 @@ func TestAccPublishImage_basic(t *testing.T) {
 		ProtoV6ProviderFactories: acctest.ProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccPublishImage_basic(instanceName),
+				Config: acctest.Provider() + testAccPublishImage_basic(instanceName),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("lxd_instance.instance1", "name", instanceName),
 					resource.TestCheckResourceAttr("lxd_instance.instance1", "status", "Stopped"),
@@ -39,7 +39,7 @@ func TestAccPublishImage_aliases(t *testing.T) {
 		ProtoV6ProviderFactories: acctest.ProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccPublishImage_aliases(instanceName, "alias1"),
+				Config: acctest.Provider() + testAccPublishImage_aliases(instanceName, "alias1"),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("lxd_instance.instance1", "name", instanceName),
 					resource.TestCheckResourceAttr("lxd_instance.instance1", "status", "Stopped"),
@@ -51,7 +51,7 @@ func TestAccPublishImage_aliases(t *testing.T) {
 			},
 			{
 				// Update aliases.
-				Config: testAccPublishImage_aliases(instanceName, "alias1", "alias2"),
+				Config: acctest.Provider() + testAccPublishImage_aliases(instanceName, "alias1", "alias2"),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("lxd_instance.instance1", "name", instanceName),
 					resource.TestCheckResourceAttr("lxd_instance.instance1", "status", "Stopped"),
@@ -75,7 +75,7 @@ func TestAccPublishImage_properties(t *testing.T) {
 		ProtoV6ProviderFactories: acctest.ProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccPublishImage_properties(instanceName, properties),
+				Config: acctest.Provider() + testAccPublishImage_properties(instanceName, properties),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("lxd_instance.instance1", "name", instanceName),
 					resource.TestCheckResourceAttr("lxd_instance.instance1", "status", "Stopped"),
@@ -100,7 +100,7 @@ func TestAccPublishImage_project(t *testing.T) {
 		ProtoV6ProviderFactories: acctest.ProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccPublishImage_project(projectName, instanceName),
+				Config: acctest.Provider() + testAccPublishImage_project(projectName, instanceName),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("lxd_project.project1", "name", projectName),
 					resource.TestCheckResourceAttr("lxd_instance.instance1", "name", instanceName),

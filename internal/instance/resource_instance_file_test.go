@@ -16,7 +16,7 @@ func TestAccInstanceFile_basic(t *testing.T) {
 		ProtoV6ProviderFactories: acctest.ProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccInstanceFile_content(instanceName),
+				Config: acctest.Provider() + testAccInstanceFile_content(instanceName),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("lxd_instance.instance1", "name", instanceName),
 					resource.TestCheckResourceAttr("lxd_instance.instance1", "status", "Running"),
@@ -30,7 +30,7 @@ func TestAccInstanceFile_basic(t *testing.T) {
 			},
 			{
 				// Ensure no changes happen.
-				Config: testAccInstanceFile_content(instanceName),
+				Config: acctest.Provider() + testAccInstanceFile_content(instanceName),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("lxd_instance.instance1", "name", instanceName),
 					resource.TestCheckResourceAttr("lxd_instance.instance1", "status", "Running"),
@@ -40,7 +40,7 @@ func TestAccInstanceFile_basic(t *testing.T) {
 			{
 				// Upload file from source instead of content.
 				// This should recreate the file.
-				Config: testAccInstanceFile_sourcePath(instanceName),
+				Config: acctest.Provider() + testAccInstanceFile_sourcePath(instanceName),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("lxd_instance.instance1", "name", instanceName),
 					resource.TestCheckResourceAttr("lxd_instance.instance1", "status", "Running"),
@@ -65,7 +65,7 @@ func TestAccInstanceFile_project(t *testing.T) {
 		ProtoV6ProviderFactories: acctest.ProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccInstanceFile_project(projectName, instanceName),
+				Config: acctest.Provider() + testAccInstanceFile_project(projectName, instanceName),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("lxd_project.project1", "name", projectName),
 					resource.TestCheckResourceAttr("lxd_instance.instance1", "name", instanceName),

@@ -21,7 +21,7 @@ func TestAccInstanceDevice_basic(t *testing.T) {
 		ProtoV6ProviderFactories: acctest.ProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccInstanceDevice_basic(instanceName, deviceName),
+				Config: acctest.Provider() + testAccInstanceDevice_basic(instanceName, deviceName),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("data.lxd_instance.inst", "name", instanceName),
 					resource.TestCheckResourceAttr("data.lxd_instance.inst", "status", "Stopped"),
@@ -49,7 +49,7 @@ func TestAccInstanceDevice_volumeAttach(t *testing.T) {
 		Steps: []resource.TestStep{
 			{
 				// Attach a volume to an instance.
-				Config: testAccInstanceDevice_volumeAttach(poolName, volumeName, instanceName, "/mnt"),
+				Config: acctest.Provider() + testAccInstanceDevice_volumeAttach(poolName, volumeName, instanceName, "/mnt"),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("lxd_storage_pool.pool1", "name", poolName),
 					resource.TestCheckResourceAttr("lxd_storage_pool.pool1", "driver", "zfs"),
@@ -66,7 +66,7 @@ func TestAccInstanceDevice_volumeAttach(t *testing.T) {
 			},
 			{
 				// Try reattaching the volume.
-				Config: testAccInstanceDevice_volumeAttach(poolName, volumeName, instanceName, "/data"),
+				Config: acctest.Provider() + testAccInstanceDevice_volumeAttach(poolName, volumeName, instanceName, "/data"),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("lxd_storage_pool.pool1", "name", poolName),
 					resource.TestCheckResourceAttr("lxd_storage_pool.pool1", "driver", "zfs"),
@@ -83,7 +83,7 @@ func TestAccInstanceDevice_volumeAttach(t *testing.T) {
 			},
 			{
 				// Try detaching the volume.
-				Config: testAccInstanceDevice_volumeDetach(poolName, volumeName, instanceName),
+				Config: acctest.Provider() + testAccInstanceDevice_volumeDetach(poolName, volumeName, instanceName),
 			},
 			{
 				// Validate detaching here. Otherwise, the datasource for lxd instance will
@@ -91,7 +91,7 @@ func TestAccInstanceDevice_volumeAttach(t *testing.T) {
 				// By validating in a separate step with the same config, the final
 				// state should remain the same, but the datasource for lxd instance will
 				// see the changes made in the previous "terraform apply".
-				Config: testAccInstanceDevice_volumeDetach(poolName, volumeName, instanceName),
+				Config: acctest.Provider() + testAccInstanceDevice_volumeDetach(poolName, volumeName, instanceName),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("lxd_storage_pool.pool1", "name", poolName),
 					resource.TestCheckResourceAttr("lxd_storage_pool.pool1", "driver", "zfs"),
@@ -120,7 +120,7 @@ func TestAccInstanceDevice_coexistingDevices(t *testing.T) {
 		ProtoV6ProviderFactories: acctest.ProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccInstanceDevice_coexistingDevices(poolName, volumeName, sharedDiskName, instanceName),
+				Config: acctest.Provider() + testAccInstanceDevice_coexistingDevices(poolName, volumeName, sharedDiskName, instanceName),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("lxd_storage_pool.pool1", "name", poolName),
 					resource.TestCheckResourceAttr("lxd_storage_pool.pool1", "driver", "zfs"),
@@ -170,7 +170,7 @@ func TestAccInstanceDevice_volumeAttachCluster(t *testing.T) {
 		ProtoV6ProviderFactories: acctest.ProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccInstanceDevice_volumeAttachCluster(instanceName, poolName, driverName, volumeName, targets),
+				Config: acctest.Provider() + testAccInstanceDevice_volumeAttachCluster(instanceName, poolName, driverName, volumeName, targets),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("lxd_storage_pool.storage_pool_node1", "name", poolName),
 					resource.TestCheckResourceAttr("lxd_storage_pool.storage_pool_node1", "driver", driverName),

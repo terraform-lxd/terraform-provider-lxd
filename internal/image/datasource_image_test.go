@@ -15,7 +15,7 @@ func TestAccImage_DS_basic(t *testing.T) {
 		ProtoV6ProviderFactories: acctest.ProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccImage_DS_basic(),
+				Config: acctest.Provider() + testAccImage_DS_basic(),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("data.lxd_image.img", "image", image),
 					resource.TestCheckResourceAttr("data.lxd_image.img", "type", "container"),
@@ -34,7 +34,7 @@ func TestAccImage_DS_basicVM(t *testing.T) {
 		ProtoV6ProviderFactories: acctest.ProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccImage_DS_basicVM(),
+				Config: acctest.Provider() + testAccImage_DS_basicVM(),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("data.lxd_image.img", "image", image),
 					resource.TestCheckResourceAttr("data.lxd_image.img", "type", "virtual-machine"),
@@ -53,7 +53,7 @@ func TestAccImage_DS_cached(t *testing.T) {
 		ProtoV6ProviderFactories: acctest.ProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccImage_DS_cached("custom-alias1", "custom-alias2"),
+				Config: acctest.Provider() + testAccImage_DS_cached("custom-alias1", "custom-alias2"),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("data.lxd_image.img", "type", "container"),
 					resource.TestCheckResourceAttr("data.lxd_image.img", "aliases.0", "custom-alias1"),
@@ -75,7 +75,7 @@ func TestAccImage_DS_project(t *testing.T) {
 		ProtoV6ProviderFactories: acctest.ProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccImage_DS_project(projectName),
+				Config: acctest.Provider() + testAccImage_DS_project(projectName),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("data.lxd_image.img", "type", "container"),
 					resource.TestCheckResourceAttr("data.lxd_image.img", "project", projectName),
