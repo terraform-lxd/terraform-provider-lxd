@@ -19,7 +19,7 @@ func TestAccIdentity_DS_bearer(t *testing.T) {
 		Steps: []resource.TestStep{
 			{
 				// Create identity.
-				Config: testAccIdentity_DS_bearer(identity, []string{}),
+				Config: acctest.Provider() + testAccIdentity_DS_bearer(identity, []string{}),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("data.lxd_auth_identity.identity", "name", identity),
 					resource.TestCheckResourceAttr("data.lxd_auth_identity.identity", "auth_method", "bearer"),
@@ -28,7 +28,7 @@ func TestAccIdentity_DS_bearer(t *testing.T) {
 			},
 			{
 				// Update groups.
-				Config: testAccIdentity_DS_bearer(identity, []string{"admins"}),
+				Config: acctest.Provider() + testAccIdentity_DS_bearer(identity, []string{"admins"}),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("data.lxd_auth_identity.identity", "name", identity),
 					resource.TestCheckResourceAttr("data.lxd_auth_identity.identity", "auth_method", "bearer"),
@@ -58,7 +58,7 @@ func TestAccIdentity_DS_tls(t *testing.T) {
 		Steps: []resource.TestStep{
 			{
 				// Create identity.
-				Config: testAccIdentity_DS_tls(identity, []string{}),
+				Config: acctest.Provider() + testAccIdentity_DS_tls(identity, []string{}),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("data.lxd_auth_identity.identity", "name", identity),
 					resource.TestCheckResourceAttr("data.lxd_auth_identity.identity", "auth_method", "tls"),
@@ -68,7 +68,7 @@ func TestAccIdentity_DS_tls(t *testing.T) {
 			},
 			{
 				// Update groups.
-				Config: testAccIdentity_DS_tls(identity, []string{"admins"}),
+				Config: acctest.Provider() + testAccIdentity_DS_tls(identity, []string{"admins"}),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("data.lxd_auth_identity.identity", "name", identity),
 					resource.TestCheckResourceAttr("data.lxd_auth_identity.identity", "auth_method", "tls"),

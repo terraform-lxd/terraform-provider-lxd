@@ -22,7 +22,7 @@ func TestAccStorageBucket_basic(t *testing.T) {
 		ProtoV6ProviderFactories: acctest.ProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccStorageBucket_basic(poolName, bucketName),
+				Config: acctest.Provider() + testAccStorageBucket_basic(poolName, bucketName),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("lxd_storage_pool.pool1", "name", poolName),
 					resource.TestCheckResourceAttr("lxd_storage_pool.pool1", "driver", "dir"),
@@ -46,7 +46,7 @@ func TestAccStorageBucket_target(t *testing.T) {
 		ProtoV6ProviderFactories: acctest.ProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccStorageBucket_target(bucketName, targets[0]),
+				Config: acctest.Provider() + testAccStorageBucket_target(bucketName, targets[0]),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("lxd_storage_bucket.bucket1", "name", bucketName),
 					resource.TestCheckResourceAttr("lxd_storage_bucket.bucket1", "pool", "default"),
@@ -69,7 +69,7 @@ func TestAccStorageBucket_project(t *testing.T) {
 		ProtoV6ProviderFactories: acctest.ProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccStorageBucket_project(projectName, bucketName),
+				Config: acctest.Provider() + testAccStorageBucket_project(projectName, bucketName),
 				Check: resource.ComposeTestCheckFunc(
 
 					resource.TestCheckResourceAttr("lxd_project.project1", "name", projectName),
@@ -95,7 +95,7 @@ func TestAccStorageBucket_importBasic(t *testing.T) {
 		ProtoV6ProviderFactories: acctest.ProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccStorageBucket_basic(poolName, bucketName),
+				Config: acctest.Provider() + testAccStorageBucket_basic(poolName, bucketName),
 			},
 			{
 				ResourceName:                         resourceName,
@@ -121,7 +121,7 @@ func TestAccStorageBucket_importProject(t *testing.T) {
 		ProtoV6ProviderFactories: acctest.ProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccStorageBucket_project(projectName, bucketName),
+				Config: acctest.Provider() + testAccStorageBucket_project(projectName, bucketName),
 			},
 			{
 				ResourceName:                         resourceName,

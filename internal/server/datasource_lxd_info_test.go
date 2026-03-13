@@ -17,7 +17,7 @@ func TestAccInfo_standalone(t *testing.T) {
 		ProtoV6ProviderFactories: acctest.ProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccInfo(),
+				Config: acctest.Provider() + testAccInfo(),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttrSet("data.lxd_info.self", "remote"),
 					resource.TestCheckResourceAttr("data.lxd_info.self", "cluster_members.%", "0"),
@@ -37,7 +37,7 @@ func TestAccInfo_cluster(t *testing.T) {
 		ProtoV6ProviderFactories: acctest.ProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccInfo(),
+				Config: acctest.Provider() + testAccInfo(),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttrSet("data.lxd_info.self", "remote"),
 					resource.TestCheckResourceAttr("data.lxd_info.self", "cluster_members.%", strconv.Itoa(len(members))),

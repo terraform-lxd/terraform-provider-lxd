@@ -16,7 +16,7 @@ func TestAccProject_DS_basic(t *testing.T) {
 		ProtoV6ProviderFactories: acctest.ProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccProject_DS_basic(projectName),
+				Config: acctest.Provider() + testAccProject_DS_basic(projectName),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("data.lxd_project.proj", "name", projectName),
 					resource.TestCheckResourceAttr("data.lxd_project.proj", "description", "Terraform provider test project"),

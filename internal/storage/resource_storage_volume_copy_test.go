@@ -21,7 +21,7 @@ func TestAccStorageVolumeCopy_basic(t *testing.T) {
 		ProtoV6ProviderFactories: acctest.ProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccStorageVolumeCopy_basic(poolName, volumeName),
+				Config: acctest.Provider() + testAccStorageVolumeCopy_basic(poolName, volumeName),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("lxd_storage_pool.pool1", "name", poolName),
 					resource.TestCheckResourceAttr("lxd_storage_pool.pool1", "driver", "lvm"),
@@ -34,7 +34,7 @@ func TestAccStorageVolumeCopy_basic(t *testing.T) {
 				),
 			},
 			{
-				Config: testAccStorageVolumeCopy_basic(poolName, volumeName),
+				Config: acctest.Provider() + testAccStorageVolumeCopy_basic(poolName, volumeName),
 				ConfigPlanChecks: resource.ConfigPlanChecks{
 					PreApply: []plancheck.PlanCheck{
 						plancheck.ExpectEmptyPlan(),

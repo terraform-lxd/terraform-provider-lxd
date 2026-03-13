@@ -17,7 +17,7 @@ func TestAccProfile_basic(t *testing.T) {
 		ProtoV6ProviderFactories: acctest.ProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccProfile_basic(profileName),
+				Config: acctest.Provider() + testAccProfile_basic(profileName),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("lxd_profile.profile1", "name", profileName),
 					resource.TestCheckResourceAttr("lxd_profile.profile1", "description", ""),
@@ -35,7 +35,7 @@ func TestAccProfile_config(t *testing.T) {
 		ProtoV6ProviderFactories: acctest.ProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccProfile_config(profileName),
+				Config: acctest.Provider() + testAccProfile_config(profileName),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("lxd_profile.profile1", "name", profileName),
 					resource.TestCheckResourceAttr("lxd_profile.profile1", "description", "My profile"),
@@ -54,7 +54,7 @@ func TestAccProfile_device(t *testing.T) {
 		ProtoV6ProviderFactories: acctest.ProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccProfile_device_1(profileName),
+				Config: acctest.Provider() + testAccProfile_device_1(profileName),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("lxd_profile.profile1", "name", profileName),
 					resource.TestCheckResourceAttr("lxd_profile.profile1", "device.#", "1"),
@@ -65,7 +65,7 @@ func TestAccProfile_device(t *testing.T) {
 				),
 			},
 			{
-				Config: testAccProfile_device_2(profileName),
+				Config: acctest.Provider() + testAccProfile_device_2(profileName),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("lxd_profile.profile1", "name", profileName),
 					resource.TestCheckResourceAttr("lxd_profile.profile1", "device.#", "1"),
@@ -87,14 +87,14 @@ func TestAccProfile_addDevice(t *testing.T) {
 		ProtoV6ProviderFactories: acctest.ProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccProfile_addDevice_1(profileName),
+				Config: acctest.Provider() + testAccProfile_addDevice_1(profileName),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("lxd_profile.profile1", "name", profileName),
 					resource.TestCheckResourceAttr("lxd_profile.profile1", "device.#", "0"),
 				),
 			},
 			{
-				Config: testAccProfile_addDevice_2(profileName),
+				Config: acctest.Provider() + testAccProfile_addDevice_2(profileName),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("lxd_profile.profile1", "name", profileName),
 					resource.TestCheckResourceAttr("lxd_profile.profile1", "device.#", "1"),
@@ -106,7 +106,7 @@ func TestAccProfile_addDevice(t *testing.T) {
 				),
 			},
 			{
-				Config: testAccProfile_addDevice_3(profileName),
+				Config: acctest.Provider() + testAccProfile_addDevice_3(profileName),
 				Check: resource.ComposeTestCheckFunc(
 					// Here we are naivly assuming devices are added to the
 					// state in the same order they were added. If any test
@@ -138,7 +138,7 @@ func TestAccProfile_removeDevice(t *testing.T) {
 		ProtoV6ProviderFactories: acctest.ProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccProfile_removeDevice_1(profileName),
+				Config: acctest.Provider() + testAccProfile_removeDevice_1(profileName),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("lxd_profile.profile1", "name", profileName),
 					resource.TestCheckResourceAttr("lxd_profile.profile1", "device.#", "1"),
@@ -149,7 +149,7 @@ func TestAccProfile_removeDevice(t *testing.T) {
 				),
 			},
 			{
-				Config: testAccProfile_removeDevice_2(profileName),
+				Config: acctest.Provider() + testAccProfile_removeDevice_2(profileName),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("lxd_profile.profile1", "name", profileName),
 					resource.TestCheckResourceAttr("lxd_profile.profile1", "device.#", "0"),
@@ -168,7 +168,7 @@ func TestAccProfile_instanceConfig(t *testing.T) {
 		ProtoV6ProviderFactories: acctest.ProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccProfile_instanceConfig(profileName, instanceName),
+				Config: acctest.Provider() + testAccProfile_instanceConfig(profileName, instanceName),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("lxd_profile.profile1", "name", profileName),
 					resource.TestCheckResourceAttr("lxd_profile.profile1", "config.%", "1"),
@@ -193,7 +193,7 @@ func TestAccProfile_instanceDevice(t *testing.T) {
 		ProtoV6ProviderFactories: acctest.ProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccProfile_instanceDevice(profileName, instanceName),
+				Config: acctest.Provider() + testAccProfile_instanceDevice(profileName, instanceName),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("lxd_profile.profile1", "name", profileName),
 					resource.TestCheckResourceAttr("lxd_profile.profile1", "device.#", "1"),
@@ -221,7 +221,7 @@ func TestAccProfile_project(t *testing.T) {
 		ProtoV6ProviderFactories: acctest.ProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccProfile_project(projectName, profileName),
+				Config: acctest.Provider() + testAccProfile_project(projectName, profileName),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("lxd_project.project1", "name", projectName),
 					resource.TestCheckResourceAttr("lxd_profile.profile1", "name", profileName),
@@ -243,18 +243,18 @@ func TestAccProfile_defaultProfile(t *testing.T) {
 		Steps: []resource.TestStep{
 			{
 				// Ensure default profile cannot be managed in default project.
-				Config:      testAccProfile_basic("default"),
+				Config:      acctest.Provider() + testAccProfile_basic("default"),
 				ExpectError: regexp.MustCompile("Cannot import existing profile"),
 			},
 			{
 				// Ensure default profile cannot be managed in project with "features.profiles".
-				Config:      testAccProfile_defaultProfile(projectName, false),
+				Config:      acctest.Provider() + testAccProfile_defaultProfile(projectName, false),
 				ExpectError: regexp.MustCompile("Cannot import existing profile"),
 			},
 			{
 				// Ensure default profile can be managed in non-default project that
 				// have "features.profiles" enabled.
-				Config: testAccProfile_defaultProfile(projectName, true),
+				Config: acctest.Provider() + testAccProfile_defaultProfile(projectName, true),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("lxd_project.project1", "name", projectName),
 					resource.TestCheckResourceAttr("lxd_profile.default", "name", "default"),
@@ -276,7 +276,7 @@ func TestAccProfile_importBasic(t *testing.T) {
 		ProtoV6ProviderFactories: acctest.ProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccProfile_basic(profileName),
+				Config: acctest.Provider() + testAccProfile_basic(profileName),
 			},
 			{
 				ResourceName:                         resourceName,
@@ -298,7 +298,7 @@ func TestAccProfile_importConfig(t *testing.T) {
 		ProtoV6ProviderFactories: acctest.ProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccProfile_config(profileName),
+				Config: acctest.Provider() + testAccProfile_config(profileName),
 			},
 			{
 				ResourceName:                         resourceName,
@@ -320,7 +320,7 @@ func TestAccProfile_importDevice(t *testing.T) {
 		ProtoV6ProviderFactories: acctest.ProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccProfile_device_1(profileName),
+				Config: acctest.Provider() + testAccProfile_device_1(profileName),
 			},
 			{
 				ResourceName:                         resourceName,

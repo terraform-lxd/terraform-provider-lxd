@@ -26,14 +26,14 @@ func TestAccAuthGroup_description(t *testing.T) {
 		ProtoV6ProviderFactories: acctest.ProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccAuthGroup_description(authGroup, "Initial auth group description"),
+				Config: acctest.Provider() + testAccAuthGroup_description(authGroup, "Initial auth group description"),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("lxd_auth_group.group", "name", authGroup),
 					resource.TestCheckResourceAttr("lxd_auth_group.group", "description", "Initial auth group description"),
 				),
 			},
 			{
-				Config: testAccAuthGroup_description(authGroup, "Updated auth group description"),
+				Config: acctest.Provider() + testAccAuthGroup_description(authGroup, "Updated auth group description"),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("lxd_auth_group.group", "name", authGroup),
 					resource.TestCheckResourceAttr("lxd_auth_group.group", "description", "Updated auth group description"),
@@ -55,7 +55,7 @@ func TestAccAuthGroup_permissions(t *testing.T) {
 		Steps: []resource.TestStep{
 			{
 				// Auth group with no permissions.
-				Config: testAccAuthGroup_permissions(authGroup, []permission{}),
+				Config: acctest.Provider() + testAccAuthGroup_permissions(authGroup, []permission{}),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("lxd_auth_group.group", "name", authGroup),
 					resource.TestCheckResourceAttr("lxd_auth_group.group", "permissions.#", "0"),
@@ -63,7 +63,7 @@ func TestAccAuthGroup_permissions(t *testing.T) {
 			},
 			{
 				// Add permission.
-				Config: testAccAuthGroup_permissions(authGroup, []permission{
+				Config: acctest.Provider() + testAccAuthGroup_permissions(authGroup, []permission{
 					{
 						Entitlement: "admin",
 						EntityType:  "server",
@@ -79,7 +79,7 @@ func TestAccAuthGroup_permissions(t *testing.T) {
 			},
 			{
 				// Replace permissions.
-				Config: testAccAuthGroup_permissions(authGroup, []permission{
+				Config: acctest.Provider() + testAccAuthGroup_permissions(authGroup, []permission{
 					{
 						Entitlement: "can_view_projects",
 						EntityType:  "server",
@@ -108,7 +108,7 @@ func TestAccAuthGroup_permissions(t *testing.T) {
 			},
 			{
 				// Add permission.
-				Config: testAccAuthGroup_permissions(authGroup, []permission{
+				Config: acctest.Provider() + testAccAuthGroup_permissions(authGroup, []permission{
 					{
 						Entitlement: "storage_pool_manager",
 						EntityType:  "server",
@@ -151,7 +151,7 @@ func TestAccAuthGroup_permissions(t *testing.T) {
 			},
 			{
 				// Remove permissions.
-				Config: testAccAuthGroup_permissions(authGroup, []permission{}),
+				Config: acctest.Provider() + testAccAuthGroup_permissions(authGroup, []permission{}),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("lxd_auth_group.group", "name", authGroup),
 					resource.TestCheckResourceAttr("lxd_auth_group.group", "permissions.#", "0"),
@@ -172,7 +172,7 @@ func TestAccAuthGroup_project(t *testing.T) {
 		ProtoV6ProviderFactories: acctest.ProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccAuthGroup_instanceInProject(name, "auth-group-test-project"),
+				Config: acctest.Provider() + testAccAuthGroup_instanceInProject(name, "auth-group-test-project"),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("lxd_auth_group.group", "name", name),
 					resource.TestCheckResourceAttr("lxd_auth_group.group", "permissions.#", "2"),
@@ -194,7 +194,7 @@ func TestAccAuthGroup_project(t *testing.T) {
 				),
 			},
 			{
-				Config: testAccAuthGroup_instanceInProject(name, "default"),
+				Config: acctest.Provider() + testAccAuthGroup_instanceInProject(name, "default"),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("lxd_auth_group.group", "name", name),
 					resource.TestCheckResourceAttr("lxd_auth_group.group", "permissions.#", "2"),
@@ -230,7 +230,7 @@ func TestAccAuthGroup_importEmpty(t *testing.T) {
 		ProtoV6ProviderFactories: acctest.ProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccAuthGroup_description("auth-group-test", "mydesc"),
+				Config: acctest.Provider() + testAccAuthGroup_description("auth-group-test", "mydesc"),
 			},
 			{
 				ResourceName:                         resourceName,
@@ -254,7 +254,7 @@ func TestAccAuthGroup_importWithPermissions(t *testing.T) {
 		ProtoV6ProviderFactories: acctest.ProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccAuthGroup_permissions("auth-group-test", []permission{
+				Config: acctest.Provider() + testAccAuthGroup_permissions("auth-group-test", []permission{
 					{
 						Entitlement: "admin",
 						EntityType:  "server",
