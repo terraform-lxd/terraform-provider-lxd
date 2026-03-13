@@ -34,9 +34,6 @@ EOF
 
 * `projects` - *Optional* - List of projects to restrict the certificate to.
 
-* `remote` - *Optional* - The remote in which the resource will be created. If
-	not provided, the provider's default remote will be used.
-
 ## Attribute Reference
 
 The following attributes are exported:

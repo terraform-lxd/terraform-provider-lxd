@@ -38,9 +38,6 @@ resource "lxd_volume_copy" "volume1_copy" {
 
 * `project` - *Optional* - Name of the target project where the volume will be copied to.
 
-* `remote` - *Optional* - The remote in which the resource will be created. If
-	not provided, the provider's default remote will be used.
-
 * `target` - *Optional* - Specify a target node in a cluster.
 
 ## Attribute Reference

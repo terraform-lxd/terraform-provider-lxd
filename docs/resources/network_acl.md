@@ -57,9 +57,6 @@ resource "lxd_network_acl" "acl1" {
 
 * `project` - *Optional* - Name of the project where the network ACL will be created.
 
-* `remote` - *Optional* - The remote in which the resource will be created. If
-  not provided, the provider's default remote will be used.
-
 The network ACL rule supports:
 
 * `action` - **Required** - Action to take for the matching traffic. Possible values are `allow`, `allow-stateless`, `drop`, or `reject`.

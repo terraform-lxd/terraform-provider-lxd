@@ -41,9 +41,6 @@ resource "lxd_auth_group" "group" {
 
 * `permissions` - *Optional* - List of group permissions. If not specified, the group has no permissions. Please, refer to the [official LXD documentation](https://documentation.ubuntu.com/lxd/latest/reference/permissions/) for available entity types and entitlements that can be granted against each entity type.
 
-* `remote` - *Optional* - The remote in which the resource will be created. If
-	not provided, the provider's default remote will be used.
-
 The `permissions` list element supports:
 
 * `entity_type` - **Required** - Entity type represents LXD API resource. Examples: `server`, `project`, `instance`.

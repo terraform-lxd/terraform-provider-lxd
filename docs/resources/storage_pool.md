@@ -65,9 +65,6 @@ for more details on how to create a storage pool in clustered mode.
 
 * `project` - *Optional* - Name of the project where the storage pool will be stored.
 
-* `remote` - *Optional* - The remote in which the resource will be created. If
-	not provided, the provider's default remote will be used.
-
 * `target` - *Optional* - Specify a target node in a cluster.
 
 ## Importing

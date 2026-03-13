@@ -31,9 +31,6 @@ resource "lxd_instance" "instance" {
 
 * `config` - *Optional* - Map of key/value pairs of [project config settings](https://documentation.ubuntu.com/lxd/latest/reference/projects/).
 
-* `remote` - *Optional* - The remote in which the resource will be created. If
-	not provided, the provider's default remote will be used.
-
 ## Attribute Reference
 
 No attributes are exported.

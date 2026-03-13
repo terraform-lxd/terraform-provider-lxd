@@ -71,9 +71,6 @@ resource "lxd_profile" "default" {
 
 * `project` - *Optional* - Name of the project where the profile will be stored.
 
-* `remote` - *Optional* - The remote in which the resource will be created. If
-	not provided, the provider's default remote will be used.
-
 The `device` block supports:
 
 * `name` - **Required** - Name of the device.
