@@ -186,6 +186,51 @@ func ConfigureTrustPassword(t *testing.T) string {
 	return password
 }
 
+// ConfigureBearerToken creates a bearer identity if it is missing, and issues a new bearer token.
+// If the server does not support bearer tokens, the test is skipped.
+func ConfigureBearerToken(t *testing.T) (token string, cleanup func()) {
+	server, err := testProvider().InstanceServer("", "")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if server.CheckExtension("auth_bearer") != nil {
+		t.Skipf("Test %q skipped. LXD server does not support bearer token authentication.", t.Name())
+	}
+
+	identityName := "tf-" + GenerateName(2, "-")
+
+	// Create new identity.
+	identityPost := api.IdentitiesBearerPost{
+		Name:   identityName,
+		Type:   api.IdentityTypeBearerTokenClient,
+		Groups: []string{},
+	}
+
+	err = server.CreateIdentityBearer(identityPost)
+	if err != nil {
+		t.Fatal(fmt.Errorf("Failed to create bearer identity %q: %w", identityName, err))
+	}
+
+	cleanup = func() {
+		err := server.DeleteIdentity(api.AuthenticationMethodBearer, identityName)
+		if err != nil {
+			t.Logf("Failed to delete bearer identity %q during cleanup: %v", identityName, err)
+		}
+	}
+
+	// Issue token for the created identity.
+	tokenPost := api.IdentityBearerTokenPost{}
+
+	bearerToken, err := server.IssueBearerIdentityToken(identityName, tokenPost)
+	if err != nil {
+		cleanup()
+		t.Fatal(fmt.Errorf("Failed to issue bearer token for identity %q: %w", identityName, err))
+	}
+
+	return bearerToken.Token, cleanup
+}
+
 // ConfigureTrustToken ensures the trust token is set to "test-pass". If the server
 // does not support trust password, the test is skipped.
 func ConfigureTrustToken(t *testing.T) string {
