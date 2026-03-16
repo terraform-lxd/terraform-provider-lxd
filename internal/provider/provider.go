@@ -3,9 +3,12 @@ package provider
 import (
 	"context"
 	"fmt"
+	"os"
+	"strings"
 
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
+	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/provider"
 	"github.com/hashicorp/terraform-plugin-framework/provider/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
@@ -26,10 +29,17 @@ import (
 
 // LxdProviderRemoteModel represents provider's schema remote.
 type LxdProviderRemoteModel struct {
-	Name       types.String `tfsdk:"name"`
-	Address    types.String `tfsdk:"address"`
-	Protocol   types.String `tfsdk:"protocol"`
-	TrustToken types.String `tfsdk:"trust_token"`
+	Name                         types.String `tfsdk:"name"`
+	Address                      types.String `tfsdk:"address"`
+	Protocol                     types.String `tfsdk:"protocol"`
+	TrustToken                   types.String `tfsdk:"trust_token"`
+	BearerToken                  types.String `tfsdk:"bearer_token"`
+	BearerTokenFile              types.String `tfsdk:"bearer_token_file"`
+	ClientKey                    types.String `tfsdk:"client_key"`
+	ClientKeyFile                types.String `tfsdk:"client_key_file"`
+	ClientCertificate            types.String `tfsdk:"client_certificate"`
+	ClientCertificateFile        types.String `tfsdk:"client_certificate_file"`
+	ServerCertificateFingerprint types.String `tfsdk:"server_certificate_fingerprint"`
 }
 
 // LxdProviderModel represents provider's schema.
@@ -73,15 +83,15 @@ func (p *LxdProvider) Schema(_ context.Context, _ provider.SchemaRequest, resp *
 					Attributes: map[string]schema.Attribute{
 						"name": schema.StringAttribute{
 							Required:    true,
-							Description: "Name of the LXD remote. Required when lxd_scheme set to https, to enable locating server certificate.",
+							Description: "Name of the LXD remote.",
 							Validators: []validator.String{
 								stringvalidator.LengthAtLeast(1),
 							},
 						},
 
 						"address": schema.StringAttribute{
-							Optional:    true,
-							Description: "The FQDN or IP where the LXD daemon can be contacted. (default = \"\")",
+							Required:    true,
+							Description: "Address of the LXD or SimpleStreams remote.",
 						},
 
 						"protocol": schema.StringAttribute{
@@ -96,6 +106,99 @@ func (p *LxdProvider) Schema(_ context.Context, _ provider.SchemaRequest, resp *
 							Optional:    true,
 							Sensitive:   true,
 							Description: "The trust token used for initial authentication with the LXD remote.",
+							Validators: []validator.String{
+								stringvalidator.ConflictsWith(
+									path.MatchRelative().AtParent().AtName("bearer_token"),
+									path.MatchRelative().AtParent().AtName("bearer_token_file"),
+								),
+							},
+						},
+
+						"bearer_token": schema.StringAttribute{
+							Optional:    true,
+							Sensitive:   true,
+							Description: "Bearer token for authentication.",
+							Validators: []validator.String{
+								stringvalidator.ConflictsWith(
+									path.MatchRelative().AtParent().AtName("bearer_token_file"),
+									path.MatchRelative().AtParent().AtName("client_certificate"),
+									path.MatchRelative().AtParent().AtName("client_certificate_file"),
+									path.MatchRelative().AtParent().AtName("client_key"),
+									path.MatchRelative().AtParent().AtName("client_key_file"),
+								),
+							},
+						},
+
+						"bearer_token_file": schema.StringAttribute{
+							Optional:    true,
+							Sensitive:   true,
+							Description: "Path to the file containing the bearer token for authentication.",
+							Validators: []validator.String{
+								stringvalidator.ConflictsWith(
+									path.MatchRelative().AtParent().AtName("bearer_token"),
+									path.MatchRelative().AtParent().AtName("client_certificate"),
+									path.MatchRelative().AtParent().AtName("client_certificate_file"),
+									path.MatchRelative().AtParent().AtName("client_key"),
+									path.MatchRelative().AtParent().AtName("client_key_file"),
+								),
+							},
+						},
+
+						"client_key": schema.StringAttribute{
+							Optional:    true,
+							Sensitive:   true,
+							Description: "PEM-encoded private key for mTLS authentication.",
+							Validators: []validator.String{
+								stringvalidator.ConflictsWith(
+									path.MatchRelative().AtParent().AtName("client_key_file"),
+									path.MatchRelative().AtParent().AtName("bearer_token"),
+									path.MatchRelative().AtParent().AtName("bearer_token_file"),
+								),
+							},
+						},
+
+						"client_key_file": schema.StringAttribute{
+							Optional:    true,
+							Sensitive:   true,
+							Description: "Path to the PEM-encoded private key for mTLS authentication.",
+							Validators: []validator.String{
+								stringvalidator.ConflictsWith(
+									path.MatchRelative().AtParent().AtName("client_key"),
+									path.MatchRelative().AtParent().AtName("bearer_token"),
+									path.MatchRelative().AtParent().AtName("bearer_token_file"),
+								),
+							},
+						},
+
+						"client_certificate": schema.StringAttribute{
+							Optional:    true,
+							Sensitive:   true,
+							Description: "PEM-encoded client certificate for mTLS authentication.",
+							Validators: []validator.String{
+								stringvalidator.ConflictsWith(
+									path.MatchRelative().AtParent().AtName("client_certificate_file"),
+									path.MatchRelative().AtParent().AtName("bearer_token"),
+									path.MatchRelative().AtParent().AtName("bearer_token_file"),
+								),
+							},
+						},
+
+						"client_certificate_file": schema.StringAttribute{
+							Optional:    true,
+							Sensitive:   true,
+							Description: "Path to the PEM-encoded client certificate for mTLS authentication.",
+							Validators: []validator.String{
+								stringvalidator.ConflictsWith(
+									path.MatchRelative().AtParent().AtName("client_certificate"),
+									path.MatchRelative().AtParent().AtName("bearer_token"),
+									path.MatchRelative().AtParent().AtName("bearer_token_file"),
+								),
+							},
+						},
+
+						"server_certificate_fingerprint": schema.StringAttribute{
+							Optional:    true,
+							Description: "SHA-256 fingerprint of the remote server's TLS certificate. Used to pin and verify the server certificate.",
 						},
 					},
 				},
@@ -129,10 +232,67 @@ func (p *LxdProvider) Configure(ctx context.Context, req provider.ConfigureReque
 			return
 		}
 
+		// Parse bearer token.
+		bearerToken := remote.BearerToken.ValueString()
+		if bearerToken == "" {
+			bearerTokenFile := remote.BearerTokenFile.ValueString()
+
+			if remote.BearerTokenFile.ValueString() != "" {
+				content, err := os.ReadFile(bearerTokenFile)
+				if err != nil {
+					resp.Diagnostics.AddError("Failed to read bearer token file", err.Error())
+					return
+				}
+
+				bearerToken = strings.TrimSpace(string(content))
+			}
+		}
+
+		// Parse client certificate.
+		clientCertificate := remote.ClientCertificate.ValueString()
+		if clientCertificate == "" {
+			clientCertificateFile := remote.ClientCertificateFile.ValueString()
+
+			if clientCertificateFile != "" {
+				content, err := os.ReadFile(clientCertificateFile)
+				if err != nil {
+					resp.Diagnostics.AddError("Failed to read client certificate file", err.Error())
+					return
+				}
+
+				clientCertificate = string(content)
+			}
+		}
+
+		// Parse client key.
+		clientKey := remote.ClientKey.ValueString()
+		if clientKey == "" {
+			clientKeyFile := remote.ClientKeyFile.ValueString()
+
+			if clientKeyFile != "" {
+				content, err := os.ReadFile(clientKeyFile)
+				if err != nil {
+					resp.Diagnostics.AddError("Failed to read client key file", err.Error())
+					return
+				}
+
+				clientKey = string(content)
+			}
+		}
+
+		if (clientCertificate != "" || clientKey != "") && (clientCertificate == "" || clientKey == "") {
+			resp.Diagnostics.AddError(fmt.Sprintf("Client certificate and key must be provided for remote %q", name), "Both client certificate and client key must be provided for TLS authentication.")
+			return
+		}
+
 		remotes[name] = provider_config.LxdRemote{
-			Address:    address,
-			Protocol:   protocol,
-			TrustToken: remote.TrustToken.ValueString(),
+			Address:                      address,
+			Protocol:                     protocol,
+			TrustToken:                   remote.TrustToken.ValueString(),
+			BearerToken:                  bearerToken,
+			ClientKey:                    clientKey,
+			ClientCertificate:            clientCertificate,
+			ServerCertificateFingerprint: remote.ServerCertificateFingerprint.ValueString(),
 		}
 	}
 
