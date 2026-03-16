@@ -17,7 +17,7 @@ func TestAccStorageBucket_basic(t *testing.T) {
 		PreCheck: func() {
 			acctest.PreCheck(t)
 			acctest.PreCheckStandalone(t)
-			acctest.PreCheckAPIExtensions(t, "storage_buckets")
+			acctest.PreCheckAPIExtensions(t, "storage_buckets_local")
 		},
 		ProtoV6ProviderFactories: acctest.ProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
@@ -41,7 +41,7 @@ func TestAccStorageBucket_target(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			acctest.PreCheck(t)
-			acctest.PreCheckAPIExtensions(t, "storage_buckets")
+			acctest.PreCheckAPIExtensions(t, "storage_buckets_local")
 		},
 		ProtoV6ProviderFactories: acctest.ProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
@@ -64,7 +64,7 @@ func TestAccStorageBucket_project(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			acctest.PreCheck(t)
-			acctest.PreCheckAPIExtensions(t, "storage_buckets")
+			acctest.PreCheckAPIExtensions(t, "storage_buckets_local")
 		},
 		ProtoV6ProviderFactories: acctest.ProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
@@ -90,7 +90,7 @@ func TestAccStorageBucket_importBasic(t *testing.T) {
 		PreCheck: func() {
 			acctest.PreCheck(t)
 			acctest.PreCheckStandalone(t)
-			acctest.PreCheckAPIExtensions(t, "storage_buckets")
+			acctest.PreCheckAPIExtensions(t, "storage_buckets_local")
 		},
 		ProtoV6ProviderFactories: acctest.ProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
@@ -116,7 +116,7 @@ func TestAccStorageBucket_importProject(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			acctest.PreCheck(t)
-			acctest.PreCheckAPIExtensions(t, "storage_buckets")
+			acctest.PreCheckAPIExtensions(t, "storage_buckets_local")
 		},
 		ProtoV6ProviderFactories: acctest.ProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
