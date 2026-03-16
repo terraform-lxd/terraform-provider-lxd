@@ -1,6 +1,8 @@
 package acctest
 
 import (
+	"encoding/base64"
+	"encoding/pem"
 	"fmt"
 	"net"
 	"os/exec"
@@ -8,9 +10,11 @@ import (
 	"testing"
 	"time"
 
+	"github.com/canonical/lxd/shared"
 	"github.com/canonical/lxd/shared/api"
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
 	"github.com/hashicorp/terraform-plugin-testing/terraform"
+	"github.com/terraform-lxd/terraform-provider-lxd/internal/errors"
 	"github.com/terraform-lxd/terraform-provider-lxd/internal/utils"
 )
 
@@ -229,6 +233,73 @@ func ConfigureBearerToken(t *testing.T) (token string, cleanup func()) {
 	}
 
 	return bearerToken.Token, cleanup
+}
+
+// GenerateClientCertificate generates a new client certificate and key pair
+// without adding the certificate to the server's trust store. Returns both
+// PEM-encoded, along with a cleanup function that removes the certificate
+// from the LXD trust store (in case it gets added during the test, e.g. via
+// trust token).
+func GenerateClientCertificate(t *testing.T) (clientCert string, clientKey string, cleanup func()) {
+	certPEM, keyPEM, err := shared.GenerateMemCert(true, shared.CertOptions{AddHosts: false})
+	if err != nil {
+		t.Fatalf("Failed to generate client certificate: %v", err)
+	}
+
+	clientCert = string(certPEM)
+	clientKey = string(keyPEM)
+
+	certFingerprint, err := shared.CertFingerprintStr(clientCert)
+	if err != nil {
+		t.Fatalf("Failed to compute certificate fingerprint: %v", err)
+	}
+
+	cleanup = func() {
+		server, err := testProvider().InstanceServer("", "", "")
+		if err != nil {
+			t.Logf("Failed to get server for certificate cleanup: %v", err)
+			return
+		}
+
+		err = server.DeleteCertificate(certFingerprint)
+		if err != nil && !errors.IsNotFoundError(err) {
+			t.Logf("Failed to delete client certificate %q during cleanup: %v", certFingerprint, err)
+		}
+	}
+
+	return clientCert, clientKey, cleanup
+}
+
+// ConfigureMutualTLS generates a new client certificate and key, adds the
+// certificate to the server's trust store, and returns the client certificate
+// and the key (both PEM-encoded).
+func ConfigureMutualTLS(t *testing.T) (clientCert string, clientKey string, cleanup func()) {
+	clientCert, clientKey, cleanup = GenerateClientCertificate(t)
+
+	// Decode PEM to get the DER bytes for base64 encoding.
+	block, _ := pem.Decode([]byte(clientCert))
+	if block == nil {
+		t.Fatal("Failed to decode generated certificate PEM")
+	}
+
+	req := api.CertificatesPost{
+		Name:        "tf-" + GenerateName(2, "-"),
+		Type:        "client",
+		Certificate: base64.StdEncoding.EncodeToString(block.Bytes),
+	}
+
+	server, err := testProvider().InstanceServer("", "", "")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// Add the client certificate directly to the server's trust store.
+	err = server.CreateCertificate(req)
+	if err != nil {
+		t.Fatalf("Failed to add client certificate to trust store: %v", err)
+	}
+
+	return clientCert, clientKey, cleanup
 }
 
 // ConfigureTrustToken ensures the trust token is set to "test-pass". If the server
