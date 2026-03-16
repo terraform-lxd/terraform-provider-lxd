@@ -23,8 +23,9 @@ import (
 )
 
 type noopModel struct {
-	Project       types.String `tfsdk:"project"`
-	ServerVersion types.String `tfsdk:"server_version"`
+	Project        types.String `tfsdk:"project"`
+	ServerVersion  types.String `tfsdk:"server_version"`
+	AuthUserMethod types.String `tfsdk:"auth_user_method"`
 }
 
 // noopResource represents noop resource used for testing.
@@ -56,7 +57,10 @@ func (r noopResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *
 			},
 
 			"server_version": schema.StringAttribute{
-				Optional: true,
+				Computed: true,
+			},
+
+			"auth_user_method": schema.StringAttribute{
 				Computed: true,
 			},
 		},
@@ -119,7 +123,9 @@ func (r noopResource) SyncState(ctx context.Context, tfState *tfsdk.State, m noo
 		return diag.Diagnostics{diag.NewErrorDiagnostic("Failed to retrieve the API server", err.Error())}
 	}
 
-	m.ServerVersion = types.StringValue(apiServer.Environment.Project)
+	m.Project = types.StringValue(apiServer.Environment.Project)
+	m.ServerVersion = types.StringValue(apiServer.Environment.ServerVersion)
+	m.AuthUserMethod = types.StringValue(apiServer.AuthUserMethod)
 
 	return tfState.Set(ctx, &m)
 }
