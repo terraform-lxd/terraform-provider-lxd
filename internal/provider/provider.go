@@ -3,9 +3,7 @@ package provider
 import (
 	"context"
 	"fmt"
-	"os"
 
-	"github.com/canonical/lxd/shared"
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/path"
@@ -39,10 +37,7 @@ type LxdProviderRemoteModel struct {
 
 // LxdProviderModel represents provider's schema.
 type LxdProviderModel struct {
-	Remotes                    []LxdProviderRemoteModel `tfsdk:"remote"`
-	ConfigDir                  types.String             `tfsdk:"config_dir"`
-	AcceptRemoteCertificate    types.Bool               `tfsdk:"accept_remote_certificate"`
-	GenerateClientCertificates types.Bool               `tfsdk:"generate_client_certificates"`
+	Remotes []LxdProviderRemoteModel `tfsdk:"remote"`
 }
 
 // LxdProvider ...
@@ -66,23 +61,6 @@ func (p *LxdProvider) Metadata(_ context.Context, _ provider.MetadataRequest, re
 
 func (p *LxdProvider) Schema(_ context.Context, _ provider.SchemaRequest, resp *provider.SchemaResponse) {
 	resp.Schema = schema.Schema{
-		Attributes: map[string]schema.Attribute{
-			"config_dir": schema.StringAttribute{
-				Optional:    true,
-				Description: "The directory to look for existing LXD configuration. (default = $HOME/snap/lxd/common/config:$HOME/.config/lxc)",
-			},
-
-			"generate_client_certificates": schema.BoolAttribute{
-				Optional:    true,
-				Description: "Automatically generate the LXD client certificates if they don't exist.",
-			},
-
-			"accept_remote_certificate": schema.BoolAttribute{
-				Optional:    true,
-				Description: "Accept the server certificate.",
-			},
-		},
-
 		Blocks: map[string]schema.Block{
 			"remote": schema.ListNestedBlock{
 				Description: "LXD Remote",
@@ -143,28 +121,6 @@ func (p *LxdProvider) Configure(ctx context.Context, req provider.ConfigureReque
 	diags := req.Config.Get(ctx, &data)
 	resp.Diagnostics.Append(diags...)
 
-	// Determine if the LXD server's SSL certificates should be accepted.
-	// If this is set to false and if the remote's certificates haven't
-	// already been accepted, the user will need to accept the certificates
-	// out of band of Terraform.
-	acceptServerCertificate := data.AcceptRemoteCertificate.ValueBool()
-	if data.AcceptRemoteCertificate.IsNull() || data.AcceptRemoteCertificate.IsUnknown() {
-		v, ok := os.LookupEnv("LXD_ACCEPT_SERVER_CERTIFICATE")
-		if ok {
-			acceptServerCertificate = shared.IsTrue(v)
-		}
-	}
-
-	// Determine if the missing client certificates should be generated.
-	// This has no effect if the certificates already exist.
-	generateClientCertificates := data.GenerateClientCertificates.ValueBool()
-	if data.GenerateClientCertificates.IsNull() || data.GenerateClientCertificates.IsUnknown() {
-		v, ok := os.LookupEnv("LXD_GENERATE_CLIENT_CERTS")
-		if ok {
-			generateClientCertificates = shared.IsTrue(v)
-		}
-	}
-
 	remotes := make(map[string]provider_config.LxdRemote)
 
 	// Read remotes from Terraform schema.
@@ -191,14 +147,8 @@ func (p *LxdProvider) Configure(ctx context.Context, req provider.ConfigureReque
 		}
 	}
 
-	options := provider_config.Options{
-		ConfigDir:                  data.ConfigDir.ValueString(),
-		AcceptServerCertificate:    acceptServerCertificate,
-		GenerateClientCertificates: generateClientCertificates,
-	}
-
 	// Initialize LXD provider configuration.
-	lxdProvider, err := provider_config.NewLxdProviderConfig(p.version, remotes, options)
+	lxdProvider, err := provider_config.NewLxdProviderConfig(p.version, remotes, provider_config.Options{})
 	if err != nil {
 		resp.Diagnostics.AddError("Failed initialize LXD provider", err.Error())
 		return
