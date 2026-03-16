@@ -24,9 +24,10 @@ import (
 )
 
 type noopModel struct {
-	Project       types.String `tfsdk:"project"`
-	Remote        types.String `tfsdk:"remote"`
-	ServerVersion types.String `tfsdk:"server_version"`
+	Project        types.String `tfsdk:"project"`
+	Remote         types.String `tfsdk:"remote"`
+	AuthUserMethod types.String `tfsdk:"auth_user_method"`
+	ServerVersion  types.String `tfsdk:"server_version"`
 }
 
 // noopResource represents noop resource used for testing.
@@ -60,13 +61,17 @@ func (r noopResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *
 			"remote": schema.StringAttribute{
 				Optional: true,
 				Computed: true,
+				Default:  stringdefault.StaticString(""),
 				PlanModifiers: []planmodifier.String{
 					stringplanmodifier.RequiresReplace(),
 				},
 			},
 
 			"server_version": schema.StringAttribute{
-				Optional: true,
+				Computed: true,
+			},
+
+			"auth_user_method": schema.StringAttribute{
 				Computed: true,
 			},
 		},
@@ -119,7 +124,7 @@ func (r noopResource) Delete(ctx context.Context, req resource.DeleteRequest, re
 }
 
 func (r noopResource) SyncState(ctx context.Context, tfState *tfsdk.State, m noopModel) diag.Diagnostics {
-	remote := r.provider.SelectRemote(m.Remote.ValueString())
+	remote := m.Remote.ValueString()
 	project := m.Project.ValueString()
 
 	server, err := r.provider.InstanceServer(remote, project, "")
@@ -132,8 +137,9 @@ func (r noopResource) SyncState(ctx context.Context, tfState *tfsdk.State, m noo
 		return diag.Diagnostics{diag.NewErrorDiagnostic(fmt.Sprintf("Failed to retrieve the API server for remote %q", remote), err.Error())}
 	}
 
-	m.Remote = types.StringValue(remote)
-	m.ServerVersion = types.StringValue(apiServer.Environment.Project)
+	m.Project = types.StringValue(apiServer.Environment.Project)
+	m.ServerVersion = types.StringValue(apiServer.Environment.ServerVersion)
+	m.AuthUserMethod = types.StringValue(apiServer.AuthUserMethod)
 
 	return tfState.Set(ctx, &m)
 }
