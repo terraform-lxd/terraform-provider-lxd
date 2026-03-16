@@ -1,6 +1,9 @@
 package acctest
 
 import (
+	"context"
+	"crypto/x509"
+	"encoding/pem"
 	"fmt"
 	"net"
 	"os/exec"
@@ -8,6 +11,8 @@ import (
 	"testing"
 	"time"
 
+	lxd "github.com/canonical/lxd/client"
+	"github.com/canonical/lxd/shared"
 	"github.com/canonical/lxd/shared/api"
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
 	"github.com/hashicorp/terraform-plugin-testing/terraform"
@@ -229,6 +234,92 @@ func ConfigureBearerToken(t *testing.T) (token string, cleanup func()) {
 	}
 
 	return bearerToken.Token, cleanup
+}
+
+// ConfigureMutualTLS generates a new client certificate and key, uses a trust
+// token to make the server trust the certificate, and returns the client
+// certificate, client key (both PEM-encoded), and server certificate fingerprint.
+func ConfigureMutualTLS(t *testing.T) (clientCert string, clientKey string, serverCertFingerprint string, cleanup func()) {
+	server, err := testProvider().InstanceServer("", "")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// Generate a new client certificate and key.
+	certPEM, keyPEM, err := shared.GenerateMemCert(true, shared.CertOptions{AddHosts: false})
+	if err != nil {
+		t.Fatalf("Failed to generate client certificate: %v", err)
+	}
+
+	// Create a trust token on the server.
+	tokenPost := api.CertificatesPost{
+		Name:  "tf-" + GenerateName(2, "-"),
+		Type:  "client",
+		Token: true,
+	}
+
+	op, err := server.CreateCertificateToken(tokenPost)
+	if err != nil {
+		t.Fatalf("Failed to create certificate token: %v", err)
+	}
+
+	opAPI := op.Get()
+	token, err := opAPI.ToCertificateAddToken()
+	if err != nil {
+		t.Fatalf("Failed to parse certificate add token: %v", err)
+	}
+
+	serverCertFingerprint = token.Fingerprint
+
+	// Pin the server certificate for the new connection.
+	serverCert, err := shared.GetRemoteCertificate(context.Background(), "https://127.0.0.1:8443", "test")
+	if err != nil {
+		t.Fatalf("Failed to get server certificate: %v", err)
+	}
+
+	serverCertPEM := pem.EncodeToMemory(&pem.Block{Type: "CERTIFICATE", Bytes: serverCert.Raw})
+
+	connArgs := &lxd.ConnectionArgs{
+		TLSClientCert: string(certPEM),
+		TLSClientKey:  string(keyPEM),
+		TLSServerCert: string(serverCertPEM),
+	}
+
+	// Connect to the server using the new client certificate and trust token.
+	newClient, err := lxd.ConnectLXD("https://127.0.0.1:8443", connArgs)
+	if err != nil {
+		t.Fatalf("Failed to connect to LXD server with new client certificate: %v", err)
+	}
+
+	certPost := api.CertificatesPost{
+		Name:       tokenPost.Name,
+		Type:       "client",
+		TrustToken: token.String(),
+	}
+
+	// Add the new client certificate to the server's trust store using the trust token.
+	err = newClient.CreateCertificate(certPost)
+	if err != nil {
+		t.Fatalf("Failed to add client certificate using trust token: %v", err)
+	}
+
+	// Parse the certificate to get its fingerprint for cleanup.
+	block, _ := pem.Decode(certPEM)
+	x509Cert, err := x509.ParseCertificate(block.Bytes)
+	if err != nil {
+		t.Fatalf("Failed to parse generated certificate: %v", err)
+	}
+
+	certFingerprint := shared.CertFingerprint(x509Cert)
+
+	cleanup = func() {
+		err := server.DeleteCertificate(certFingerprint)
+		if err != nil {
+			t.Logf("Failed to delete client certificate %q during cleanup: %v", certFingerprint, err)
+		}
+	}
+
+	return string(certPEM), string(keyPEM), serverCertFingerprint, cleanup
 }
 
 // ConfigureTrustToken ensures the trust token is set to "test-pass". If the server
