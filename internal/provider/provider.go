@@ -6,7 +6,6 @@ import (
 
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
-	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/provider"
 	"github.com/hashicorp/terraform-plugin-framework/provider/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
@@ -27,12 +26,11 @@ import (
 
 // LxdProviderRemoteModel represents provider's schema remote.
 type LxdProviderRemoteModel struct {
-	Name     types.String `tfsdk:"name"`
-	Address  types.String `tfsdk:"address"`
-	Protocol types.String `tfsdk:"protocol"`
-	Password types.String `tfsdk:"password"`
-	Token    types.String `tfsdk:"token"`
-	Default  types.Bool   `tfsdk:"default"`
+	Name       types.String `tfsdk:"name"`
+	Address    types.String `tfsdk:"address"`
+	Protocol   types.String `tfsdk:"protocol"`
+	TrustToken types.String `tfsdk:"trust_token"`
+	Default    types.Bool   `tfsdk:"default"`
 }
 
 // LxdProviderModel represents provider's schema.
@@ -79,28 +77,18 @@ func (p *LxdProvider) Schema(_ context.Context, _ provider.SchemaRequest, resp *
 							Description: "The FQDN or IP where the LXD daemon can be contacted. (default = \"\")",
 						},
 
-						"password": schema.StringAttribute{
-							Optional:    true,
-							Sensitive:   true,
-							Description: "The trust password used for initial authentication with the LXD remote.",
-						},
-
-						"token": schema.StringAttribute{
-							Optional:    true,
-							Sensitive:   true,
-							Description: "The trust token used for initial authentication with the LXD remote.",
-							Validators: []validator.String{
-								// Mutually exclusive with "password".
-								stringvalidator.ConflictsWith(path.MatchRelative().AtParent().AtName("password")),
-							},
-						},
-
 						"protocol": schema.StringAttribute{
 							Optional:    true,
 							Description: "Remote protocol",
 							Validators: []validator.String{
 								stringvalidator.OneOf("lxd", "simplestreams"),
 							},
+						},
+
+						"trust_token": schema.StringAttribute{
+							Optional:    true,
+							Sensitive:   true,
+							Description: "The trust token used for initial authentication with the LXD remote.",
 						},
 
 						"default": schema.BoolAttribute{
@@ -139,11 +127,10 @@ func (p *LxdProvider) Configure(ctx context.Context, req provider.ConfigureReque
 		}
 
 		remotes[name] = provider_config.LxdRemote{
-			Address:   address,
-			Protocol:  protocol,
-			Password:  remote.Password.ValueString(),
-			Token:     remote.Token.ValueString(),
-			IsDefault: remote.Default.ValueBool(),
+			Address:    address,
+			Protocol:   protocol,
+			TrustToken: remote.TrustToken.ValueString(),
+			IsDefault:  remote.Default.ValueBool(),
 		}
 	}
 
