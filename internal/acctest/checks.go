@@ -1,6 +1,7 @@
 package acctest
 
 import (
+	"context"
 	"encoding/base64"
 	"encoding/pem"
 	"fmt"
@@ -300,6 +301,17 @@ func ConfigureMutualTLS(t *testing.T) (clientCert string, clientKey string, clea
 	}
 
 	return clientCert, clientKey, cleanup
+}
+
+// GetServerCertificateFingerprint retrieves the certificate fingerprint of the
+// LXD server listening on https://127.0.0.1:8443.
+func GetServerCertificateFingerprint(t *testing.T) string {
+	serverCert, err := shared.GetRemoteCertificate(context.Background(), "https://127.0.0.1:8443", "test")
+	if err != nil {
+		t.Fatalf("Failed to get server certificate: %v", err)
+	}
+
+	return shared.CertFingerprint(serverCert)
 }
 
 // ConfigureTrustToken ensures the trust token is set to "test-pass". If the server
