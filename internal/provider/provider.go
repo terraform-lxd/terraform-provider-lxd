@@ -31,11 +31,9 @@ import (
 type LxdProviderRemoteModel struct {
 	Name     types.String `tfsdk:"name"`
 	Address  types.String `tfsdk:"address"`
-	Port     types.String `tfsdk:"port"`
 	Protocol types.String `tfsdk:"protocol"`
 	Password types.String `tfsdk:"password"`
 	Token    types.String `tfsdk:"token"`
-	Scheme   types.String `tfsdk:"scheme"`
 	Default  types.Bool   `tfsdk:"default"`
 }
 
@@ -101,22 +99,6 @@ func (p *LxdProvider) Schema(_ context.Context, _ provider.SchemaRequest, resp *
 						"address": schema.StringAttribute{
 							Optional:    true,
 							Description: "The FQDN or IP where the LXD daemon can be contacted. (default = \"\")",
-						},
-
-						// Deprecated, leave the attribute in so that we error out if it's used.
-						// DeprecationMessage would just print the warning, but we want to error
-						// out with a custom message.
-						"port": schema.StringAttribute{
-							Optional:    true,
-							Description: "Port LXD Daemon API is listening on. (default = 8443)",
-						},
-
-						// Deprecated, leave the attribute in so that we error out if it's used.
-						// DeprecationMessage would just print the warning, but we want to error
-						// out with a custom message.
-						"scheme": schema.StringAttribute{
-							Optional:    true,
-							Description: "Unix (unix) or HTTPs (https). (default = unix)",
 						},
 
 						"password": schema.StringAttribute{
@@ -197,23 +179,6 @@ func (p *LxdProvider) Configure(ctx context.Context, req provider.ConfigureReque
 		address, err := provider_config.DetermineLXDAddress(protocol, remote.Address.ValueString())
 		if err != nil {
 			resp.Diagnostics.AddError(fmt.Sprintf("Invalid remote %q", name), err.Error())
-			return
-		}
-
-		// Error out if deprecated port and scheme attributes are used.
-		if remote.Port.ValueString() != "" {
-			resp.Diagnostics.AddError(
-				fmt.Sprintf(`Remote %q contains deprecated attribute "port"`, name),
-				fmt.Sprintf(`Please remove the attribute "port" and set "address" to the fully qualified address instead. For example, "address=%s".`, address),
-			)
-			return
-		}
-
-		if remote.Scheme.ValueString() != "" {
-			resp.Diagnostics.AddError(
-				fmt.Sprintf(`Remote %q contains deprecated attribute "scheme"`, name),
-				fmt.Sprintf(`Please remove the attribute "port" and set "address" to the fully qualified address instead. For example, "address=%s".`, address),
-			)
 			return
 		}
 
