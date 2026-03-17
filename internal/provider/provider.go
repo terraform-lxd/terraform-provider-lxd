@@ -30,12 +30,12 @@ type LxdProviderRemoteModel struct {
 	Address    types.String `tfsdk:"address"`
 	Protocol   types.String `tfsdk:"protocol"`
 	TrustToken types.String `tfsdk:"trust_token"`
-	Default    types.Bool   `tfsdk:"default"`
 }
 
 // LxdProviderModel represents provider's schema.
 type LxdProviderModel struct {
-	Remotes []LxdProviderRemoteModel `tfsdk:"remote"`
+	Remotes       []LxdProviderRemoteModel `tfsdk:"remote"`
+	DefaultRemote types.String             `tfsdk:"default_remote"`
 }
 
 // LxdProvider ...
@@ -59,6 +59,13 @@ func (p *LxdProvider) Metadata(_ context.Context, _ provider.MetadataRequest, re
 
 func (p *LxdProvider) Schema(_ context.Context, _ provider.SchemaRequest, resp *provider.SchemaResponse) {
 	resp.Schema = schema.Schema{
+		Attributes: map[string]schema.Attribute{
+			"default_remote": schema.StringAttribute{
+				Optional:    true,
+				Description: "Name of the default LXD remote to use when no remote is specified in the resource. If two or more remotes are defined, one must be set as the default.",
+			},
+		},
+
 		Blocks: map[string]schema.Block{
 			"remote": schema.ListNestedBlock{
 				Description: "LXD Remote",
@@ -90,11 +97,6 @@ func (p *LxdProvider) Schema(_ context.Context, _ provider.SchemaRequest, resp *
 							Sensitive:   true,
 							Description: "The trust token used for initial authentication with the LXD remote.",
 						},
-
-						"default": schema.BoolAttribute{
-							Optional:    true,
-							Description: "Set this remote as default.",
-						},
 					},
 				},
 			},
@@ -110,6 +112,7 @@ func (p *LxdProvider) Configure(ctx context.Context, req provider.ConfigureReque
 	resp.Diagnostics.Append(diags...)
 
 	remotes := make(map[string]provider_config.LxdRemote)
+	defRemote := data.DefaultRemote.ValueString()
 
 	// Read remotes from Terraform schema.
 	for _, remote := range data.Remotes {
@@ -130,12 +133,11 @@ func (p *LxdProvider) Configure(ctx context.Context, req provider.ConfigureReque
 			Address:    address,
 			Protocol:   protocol,
 			TrustToken: remote.TrustToken.ValueString(),
-			IsDefault:  remote.Default.ValueBool(),
 		}
 	}
 
 	// Initialize LXD provider configuration.
-	lxdProvider, err := provider_config.NewLxdProviderConfig(p.version, remotes, provider_config.Options{})
+	lxdProvider, err := provider_config.NewLxdProviderConfig(p.version, remotes, defRemote)
 	if err != nil {
 		resp.Diagnostics.AddError("Failed initialize LXD provider", err.Error())
 		return
