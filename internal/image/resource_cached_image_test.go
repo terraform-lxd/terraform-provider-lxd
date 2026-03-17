@@ -8,6 +8,7 @@ import (
 
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
 	"github.com/terraform-lxd/terraform-provider-lxd/internal/acctest"
+	provider_config "github.com/terraform-lxd/terraform-provider-lxd/internal/provider-config"
 )
 
 func TestAccCachedImage_basic(t *testing.T) {
@@ -214,6 +215,12 @@ func TestAccCachedImage_instanceFromImageFingerprint(t *testing.T) {
 	projectName := acctest.GenerateName(2, "")
 	instanceName := acctest.GenerateName(2, "")
 
+	provider := acctest.ProviderWithRemotes(map[string]provider_config.LxdRemote{
+		"local": {
+			Address: "unix://",
+		},
+	})
+
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			acctest.PreCheck(t)
@@ -225,7 +232,7 @@ func TestAccCachedImage_instanceFromImageFingerprint(t *testing.T) {
 				// Create an instance from the cached image and do not set instance
 				// remote. Test will succeed only if the image is searched in the
 				// remote and project where instance is created.
-				Config: acctest.Provider() + testAccCachedImage_instanceFromImageFingerprint(projectName, instanceName, ""),
+				Config: provider + testAccCachedImage_instanceFromImageFingerprint(projectName, instanceName, ""),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("lxd_project.project1", "name", projectName),
 					resource.TestCheckResourceAttr("lxd_cached_image.img1", "project", projectName),
@@ -239,7 +246,7 @@ func TestAccCachedImage_instanceFromImageFingerprint(t *testing.T) {
 				// Create an instance from the cached image and set instance's remote.
 				// Test will succeed only if the image is searched in the remote and
 				// project where instance is created.
-				Config: acctest.Provider() + testAccCachedImage_instanceFromImageFingerprint(projectName, instanceName, "local"),
+				Config: provider + testAccCachedImage_instanceFromImageFingerprint(projectName, instanceName, "local"),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("lxd_project.project1", "name", projectName),
 					resource.TestCheckResourceAttr("lxd_cached_image.img1", "project", projectName),
