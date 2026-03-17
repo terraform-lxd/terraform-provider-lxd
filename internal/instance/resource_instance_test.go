@@ -7,6 +7,7 @@ import (
 
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
 	"github.com/terraform-lxd/terraform-provider-lxd/internal/acctest"
+	config "github.com/terraform-lxd/terraform-provider-lxd/internal/provider-config"
 )
 
 func TestAccInstance_basic(t *testing.T) {
@@ -1345,7 +1346,7 @@ func TestAccInstance_customImageServer(t *testing.T) {
 		ProtoV6ProviderFactories: acctest.ProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
-				Config: acctest.Provider() + testAccInstance_customImageServer(instanceName),
+				Config: testAccInstance_customImageServer(instanceName),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("lxd_instance.instance1", "name", instanceName),
 					resource.TestCheckResourceAttr("lxd_instance.instance1", "status", "Running"),
@@ -2406,15 +2407,14 @@ resource "lxd_instance" "instance1" {
 }
 
 func testAccInstance_customImageServer(instanceName string) string {
-	return fmt.Sprintf(`
-provider "lxd" {
-  remote {
-    name     = "images-temporary"
-    address  = "images.lxd.canonical.com"
-    protocol = "simplestreams"
-  }
-}
+	provider := acctest.ProviderWithRemotes(map[string]config.LxdRemote{
+		"images-temporary": {
+			Address:  "https://images.lxd.canonical.com",
+			Protocol: "simplestreams",
+		},
+	})
 
+	return provider + fmt.Sprintf(`
 resource "lxd_instance" "instance1" {
   name  = "%s"
   image = "images-temporary:alpine/edge"
