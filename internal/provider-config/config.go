@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"net/url"
+	"slices"
 	"strings"
 	"sync"
 	"time"
@@ -361,6 +362,56 @@ func (p *LxdProviderConfig) selectRemote(remoteName string) string {
 	}
 
 	return p.defaultRemote
+}
+
+// ToHCL returns the provider configuration as an HCL provider block string.
+func (p *LxdProviderConfig) ToHCL() string {
+	p.mux.RLock()
+	defer p.mux.RUnlock()
+
+	var b strings.Builder
+	b.WriteString(`provider "lxd" {` + "\n")
+	fmt.Fprintf(&b, "  default_remote = %q\n\n", p.defaultRemote)
+
+	builtinRemoteNames := []string{""}
+	for name := range builtinRemotes() {
+		builtinRemoteNames = append(builtinRemoteNames, name)
+	}
+
+	for name, remote := range p.remotes {
+		if slices.Contains(builtinRemoteNames, name) {
+			continue
+		}
+
+		b.WriteString("  remote {\n")
+		fmt.Fprintf(&b, "    name    = %q\n", name)
+		fmt.Fprintf(&b, "    address = %q\n", remote.Address)
+
+		if remote.Protocol != "" && remote.Protocol != "lxd" {
+			fmt.Fprintf(&b, "    protocol = %q\n", remote.Protocol)
+		}
+
+		if remote.BearerToken != "" {
+			fmt.Fprintf(&b, "    bearer_token = %q\n", remote.BearerToken)
+		}
+
+		if remote.ClientCertificate != "" {
+			fmt.Fprintf(&b, "    client_certificate = %q\n", remote.ClientCertificate)
+		}
+
+		if remote.ClientKey != "" {
+			fmt.Fprintf(&b, "    client_key = %q\n", remote.ClientKey)
+		}
+
+		if remote.ServerCertificateFingerprint != "" {
+			fmt.Fprintf(&b, "    server_certificate_fingerprint = %q\n", remote.ServerCertificateFingerprint)
+		}
+
+		b.WriteString("  }\n")
+	}
+
+	b.WriteString("}\n")
+	return b.String()
 }
 
 // DefaultTimeout returns the default time period after which a resource
