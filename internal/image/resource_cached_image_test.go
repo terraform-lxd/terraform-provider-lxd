@@ -8,6 +8,7 @@ import (
 
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
 	"github.com/terraform-lxd/terraform-provider-lxd/internal/acctest"
+	provider_config "github.com/terraform-lxd/terraform-provider-lxd/internal/provider-config"
 )
 
 func TestAccCachedImage_basic(t *testing.T) {
@@ -16,7 +17,7 @@ func TestAccCachedImage_basic(t *testing.T) {
 		ProtoV6ProviderFactories: acctest.ProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccCachedImage_basic(),
+				Config: acctest.Provider() + testAccCachedImage_basic(),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("lxd_cached_image.img1", "source_remote", acctest.TestCachedImageSourceRemote),
 					resource.TestCheckResourceAttr("lxd_cached_image.img1", "source_image", acctest.TestCachedImageSourceImage),
@@ -34,7 +35,7 @@ func TestAccCachedImage_basicVM(t *testing.T) {
 		ProtoV6ProviderFactories: acctest.ProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccCachedImage_basicVM(),
+				Config: acctest.Provider() + testAccCachedImage_basicVM(),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("lxd_cached_image.img1vm", "source_remote", acctest.TestCachedImageSourceRemote),
 					resource.TestCheckResourceAttr("lxd_cached_image.img1vm", "source_image", acctest.TestCachedImageSourceImage),
@@ -56,7 +57,7 @@ func TestAccCachedImage_alias(t *testing.T) {
 		ProtoV6ProviderFactories: acctest.ProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccCachedImage_aliases(alias1, alias2),
+				Config: acctest.Provider() + testAccCachedImage_aliases(alias1, alias2),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("lxd_cached_image.img2", "source_remote", acctest.TestCachedImageSourceRemote),
 					resource.TestCheckResourceAttr("lxd_cached_image.img2", "source_image", acctest.TestCachedImageSourceImage),
@@ -80,7 +81,7 @@ func TestAccCachedImage_copiedAliases(t *testing.T) {
 		ProtoV6ProviderFactories: acctest.ProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccCachedImage_copiedAliases(alias1, alias2),
+				Config: acctest.Provider() + testAccCachedImage_copiedAliases(alias1, alias2),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("lxd_cached_image.img3", "source_remote", acctest.TestCachedImageSourceRemote),
 					resource.TestCheckResourceAttr("lxd_cached_image.img3", "source_image", acctest.TestCachedImageSourceImage),
@@ -102,7 +103,7 @@ func TestAccCachedImage_aliasCollision(t *testing.T) {
 		ProtoV6ProviderFactories: acctest.ProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccCachedImage_aliasCollision(),
+				Config: acctest.Provider() + testAccCachedImage_aliasCollision(),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("lxd_cached_image.img4", "source_remote", acctest.TestCachedImageSourceRemote),
 					resource.TestCheckResourceAttr("lxd_cached_image.img4", "source_image", acctest.TestCachedImageSourceImage),
@@ -124,7 +125,7 @@ func TestAccCachedImage_aliasExists(t *testing.T) {
 		ProtoV6ProviderFactories: acctest.ProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccCachedImage_aliasExists1(alias),
+				Config: acctest.Provider() + testAccCachedImage_aliasExists1(alias),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("lxd_cached_image.exists1", "source_remote", acctest.TestCachedImageSourceRemote),
 					resource.TestCheckResourceAttr("lxd_cached_image.exists1", "source_image", acctest.TestCachedImageSourceImage),
@@ -135,7 +136,7 @@ func TestAccCachedImage_aliasExists(t *testing.T) {
 				),
 			},
 			{
-				Config:      testAccCachedImage_aliasExists2(alias),
+				Config:      acctest.Provider() + testAccCachedImage_aliasExists2(alias),
 				ExpectError: regexp.MustCompile(fmt.Sprintf(`Alias already exists: %s`, alias)),
 			},
 		},
@@ -151,7 +152,7 @@ func TestAccCachedImage_addRemoveAlias(t *testing.T) {
 		ProtoV6ProviderFactories: acctest.ProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccCachedImage_aliases(alias1),
+				Config: acctest.Provider() + testAccCachedImage_aliases(alias1),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("lxd_cached_image.img2", "source_remote", acctest.TestCachedImageSourceRemote),
 					resource.TestCheckResourceAttr("lxd_cached_image.img2", "source_image", acctest.TestCachedImageSourceImage),
@@ -162,7 +163,7 @@ func TestAccCachedImage_addRemoveAlias(t *testing.T) {
 				),
 			},
 			{
-				Config: testAccCachedImage_aliases(alias1, alias2),
+				Config: acctest.Provider() + testAccCachedImage_aliases(alias1, alias2),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("lxd_cached_image.img2", "source_remote", acctest.TestCachedImageSourceRemote),
 					resource.TestCheckResourceAttr("lxd_cached_image.img2", "source_image", acctest.TestCachedImageSourceImage),
@@ -174,7 +175,7 @@ func TestAccCachedImage_addRemoveAlias(t *testing.T) {
 				),
 			},
 			{
-				Config: testAccCachedImage_aliases(alias2),
+				Config: acctest.Provider() + testAccCachedImage_aliases(alias2),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("lxd_cached_image.img2", "source_remote", acctest.TestCachedImageSourceRemote),
 					resource.TestCheckResourceAttr("lxd_cached_image.img2", "source_image", acctest.TestCachedImageSourceImage),
@@ -196,7 +197,7 @@ func TestAccCachedImage_project(t *testing.T) {
 		ProtoV6ProviderFactories: acctest.ProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccCachedImage_project(projectName),
+				Config: acctest.Provider() + testAccCachedImage_project(projectName),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("lxd_project.project1", "name", projectName),
 					resource.TestCheckResourceAttr("lxd_cached_image.img1", "source_remote", acctest.TestCachedImageSourceRemote),
@@ -214,6 +215,12 @@ func TestAccCachedImage_instanceFromImageFingerprint(t *testing.T) {
 	projectName := acctest.GenerateName(2, "")
 	instanceName := acctest.GenerateName(2, "")
 
+	provider := acctest.ProviderWithRemotes(map[string]provider_config.LxdRemote{
+		"local": {
+			Address: "unix://",
+		},
+	})
+
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			acctest.PreCheck(t)
@@ -225,7 +232,7 @@ func TestAccCachedImage_instanceFromImageFingerprint(t *testing.T) {
 				// Create an instance from the cached image and do not set instance
 				// remote. Test will succeed only if the image is searched in the
 				// remote and project where instance is created.
-				Config: testAccCachedImage_instanceFromImageFingerprint(projectName, instanceName, ""),
+				Config: provider + testAccCachedImage_instanceFromImageFingerprint(projectName, instanceName, ""),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("lxd_project.project1", "name", projectName),
 					resource.TestCheckResourceAttr("lxd_cached_image.img1", "project", projectName),
@@ -239,7 +246,7 @@ func TestAccCachedImage_instanceFromImageFingerprint(t *testing.T) {
 				// Create an instance from the cached image and set instance's remote.
 				// Test will succeed only if the image is searched in the remote and
 				// project where instance is created.
-				Config: testAccCachedImage_instanceFromImageFingerprint(projectName, instanceName, "local"),
+				Config: provider + testAccCachedImage_instanceFromImageFingerprint(projectName, instanceName, "local"),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("lxd_project.project1", "name", projectName),
 					resource.TestCheckResourceAttr("lxd_cached_image.img1", "project", projectName),

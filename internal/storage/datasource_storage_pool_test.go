@@ -22,7 +22,7 @@ func TestAccStoragePool_DS_dir(t *testing.T) {
 		ProtoV6ProviderFactories: acctest.ProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccStoragePool_DS(poolName, driverName),
+				Config: acctest.Provider() + testAccStoragePool_DS(poolName, driverName),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("data.lxd_storage_pool.pool", "name", poolName),
 					resource.TestCheckResourceAttr("data.lxd_storage_pool.pool", "driver", driverName),
@@ -50,7 +50,7 @@ func TestAccStoragePool_DS_config(t *testing.T) {
 				ProtoV6ProviderFactories: acctest.ProtoV6ProviderFactories,
 				Steps: []resource.TestStep{
 					{
-						Config: testAccStoragePool_DS_config(poolName, poolDriver),
+						Config: acctest.Provider() + testAccStoragePool_DS_config(poolName, poolDriver),
 						Check: resource.ComposeTestCheckFunc(
 							resource.TestCheckResourceAttr("data.lxd_storage_pool.pool", "name", poolName),
 							resource.TestCheckResourceAttr("data.lxd_storage_pool.pool", "driver", poolDriver),
@@ -77,7 +77,7 @@ func TestAccStoragePool_DS_project(t *testing.T) {
 		ProtoV6ProviderFactories: acctest.ProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccStoragePool_DS_project(poolName, driverName, projectName),
+				Config: acctest.Provider() + testAccStoragePool_DS_project(poolName, driverName, projectName),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("data.lxd_storage_pool.pool", "name", poolName),
 					resource.TestCheckResourceAttr("data.lxd_storage_pool.pool", "driver", driverName),
@@ -98,7 +98,7 @@ func TestAccStoragePool_DS_cluster(t *testing.T) {
 		ProtoV6ProviderFactories: acctest.ProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccStoragePool_DS_cluster(poolName, driverName, targets),
+				Config: acctest.Provider() + testAccStoragePool_DS_cluster(poolName, driverName, targets),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("data.lxd_storage_pool.pool", "name", poolName),
 					resource.TestCheckResourceAttr("data.lxd_storage_pool.pool", "driver", driverName),

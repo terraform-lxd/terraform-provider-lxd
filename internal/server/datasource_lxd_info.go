@@ -102,7 +102,7 @@ func (d *InfoDataSource) Read(ctx context.Context, req datasource.ReadRequest, r
 		return
 	}
 
-	remote := d.provider.SelectRemote(config.Remote.ValueString())
+	remote := config.Remote.ValueString()
 	server, err := d.provider.InstanceServer(remote, "", "")
 	if err != nil {
 		resp.Diagnostics.Append(errors.NewInstanceServerError(err))

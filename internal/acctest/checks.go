@@ -1,6 +1,9 @@
 package acctest
 
 import (
+	"context"
+	"encoding/base64"
+	"encoding/pem"
 	"fmt"
 	"net"
 	"os/exec"
@@ -8,9 +11,11 @@ import (
 	"testing"
 	"time"
 
+	"github.com/canonical/lxd/shared"
 	"github.com/canonical/lxd/shared/api"
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
 	"github.com/hashicorp/terraform-plugin-testing/terraform"
+	"github.com/terraform-lxd/terraform-provider-lxd/internal/errors"
 	"github.com/terraform-lxd/terraform-provider-lxd/internal/utils"
 )
 
@@ -184,6 +189,129 @@ func ConfigureTrustPassword(t *testing.T) string {
 	}
 
 	return password
+}
+
+// ConfigureBearerToken creates a bearer identity if it is missing, and issues a new bearer token.
+// If the server does not support bearer tokens, the test is skipped.
+func ConfigureBearerToken(t *testing.T) (token string, cleanup func()) {
+	server, err := testProvider().InstanceServer("", "", "")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if server.CheckExtension("auth_bearer") != nil {
+		t.Skipf("Test %q skipped. LXD server does not support bearer token authentication.", t.Name())
+	}
+
+	identityName := "tf-" + GenerateName(2, "-")
+
+	// Create new identity.
+	identityPost := api.IdentitiesBearerPost{
+		Name:   identityName,
+		Type:   api.IdentityTypeBearerTokenClient,
+		Groups: []string{},
+	}
+
+	err = server.CreateIdentityBearer(identityPost)
+	if err != nil {
+		t.Fatal(fmt.Errorf("Failed to create bearer identity %q: %w", identityName, err))
+	}
+
+	cleanup = func() {
+		err := server.DeleteIdentity(api.AuthenticationMethodBearer, identityName)
+		if err != nil {
+			t.Logf("Failed to delete bearer identity %q during cleanup: %v", identityName, err)
+		}
+	}
+
+	// Issue token for the created identity.
+	tokenPost := api.IdentityBearerTokenPost{}
+
+	bearerToken, err := server.IssueBearerIdentityToken(identityName, tokenPost)
+	if err != nil {
+		cleanup()
+		t.Fatal(fmt.Errorf("Failed to issue bearer token for identity %q: %w", identityName, err))
+	}
+
+	return bearerToken.Token, cleanup
+}
+
+// GenerateClientCertificate generates a new client certificate and key pair
+// without adding the certificate to the server's trust store. Returns both
+// PEM-encoded, along with a cleanup function that removes the certificate
+// from the LXD trust store (in case it gets added during the test, e.g. via
+// trust token).
+func GenerateClientCertificate(t *testing.T) (clientCert string, clientKey string, cleanup func()) {
+	certPEM, keyPEM, err := shared.GenerateMemCert(true, shared.CertOptions{AddHosts: false})
+	if err != nil {
+		t.Fatalf("Failed to generate client certificate: %v", err)
+	}
+
+	clientCert = string(certPEM)
+	clientKey = string(keyPEM)
+
+	certFingerprint, err := shared.CertFingerprintStr(clientCert)
+	if err != nil {
+		t.Fatalf("Failed to compute certificate fingerprint: %v", err)
+	}
+
+	cleanup = func() {
+		server, err := testProvider().InstanceServer("", "", "")
+		if err != nil {
+			t.Logf("Failed to get server for certificate cleanup: %v", err)
+			return
+		}
+
+		err = server.DeleteCertificate(certFingerprint)
+		if err != nil && !errors.IsNotFoundError(err) {
+			t.Logf("Failed to delete client certificate %q during cleanup: %v", certFingerprint, err)
+		}
+	}
+
+	return clientCert, clientKey, cleanup
+}
+
+// ConfigureMutualTLS generates a new client certificate and key, adds the
+// certificate to the server's trust store, and returns the client certificate
+// and the key (both PEM-encoded).
+func ConfigureMutualTLS(t *testing.T) (clientCert string, clientKey string, cleanup func()) {
+	clientCert, clientKey, cleanup = GenerateClientCertificate(t)
+
+	// Decode PEM to get the DER bytes for base64 encoding.
+	block, _ := pem.Decode([]byte(clientCert))
+	if block == nil {
+		t.Fatal("Failed to decode generated certificate PEM")
+	}
+
+	req := api.CertificatesPost{
+		Name:        "tf-" + GenerateName(2, "-"),
+		Type:        "client",
+		Certificate: base64.StdEncoding.EncodeToString(block.Bytes),
+	}
+
+	server, err := testProvider().InstanceServer("", "", "")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// Add the client certificate directly to the server's trust store.
+	err = server.CreateCertificate(req)
+	if err != nil {
+		t.Fatalf("Failed to add client certificate to trust store: %v", err)
+	}
+
+	return clientCert, clientKey, cleanup
+}
+
+// GetServerCertificateFingerprint retrieves the certificate fingerprint of the
+// LXD server listening on https://127.0.0.1:8443.
+func GetServerCertificateFingerprint(t *testing.T) string {
+	serverCert, err := shared.GetRemoteCertificate(context.Background(), "https://127.0.0.1:8443", "test")
+	if err != nil {
+		t.Fatalf("Failed to get server certificate: %v", err)
+	}
+
+	return shared.CertFingerprint(serverCert)
 }
 
 // ConfigureTrustToken ensures the trust token is set to "test-pass". If the server

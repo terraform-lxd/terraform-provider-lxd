@@ -5,84 +5,48 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
-	"strings"
 	"testing"
 
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
-	"github.com/hashicorp/terraform-plugin-testing/terraform"
 	"github.com/terraform-lxd/terraform-provider-lxd/internal/acctest"
 )
 
-func TestAccProvider_configDir(t *testing.T) {
-	defer resetLXDRemoteEnvVars()
-
-	configDir := t.TempDir()
+func TestAccProvider_unixSocket(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { acctest.PreCheck(t) },
 		ProtoV6ProviderFactories: acctest.ProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
-				// Ensure config dir is configurable using Terraform configuration.
-				Config: testAccProvider_configDir(configDir),
+				// Ensure provider connects via unix socket using default address.
+				Config: testAccProvider_unixSocket(),
 				Check: resource.ComposeTestCheckFunc(
-					resource.TestCheckResourceAttr("lxd_noop.noop", "remote", "local"),
 					resource.TestCheckResourceAttr("lxd_noop.noop", "project", "default"),
+					resource.TestCheckResourceAttr("lxd_noop.noop", "auth_user_method", "unix"),
 					resource.TestCheckResourceAttrSet("lxd_noop.noop", "server_version"),
-					testCheckClientCert(configDir, true),
 				),
 			},
 		},
 	})
 }
 
-func TestAccProvider_trustToken(t *testing.T) {
-	defer resetLXDRemoteEnvVars()
-
-	token := acctest.ConfigureTrustToken(t)
-	configDir := t.TempDir()
-
-	invalidToken := `
-ewogICJjbGllbnRfbmFtZSI6ICJ0bXBfdG9rZW4iLAogICJmaW5nZXJwcmludCI6ICJZb3VfaGF2
-ZV9kZWNvZGVkX2FfdGVtcG9yYXJ5X3Rva2VuLkNvbmdyYXR1bGF0aW9ucyEiLAogICJhZGRyZXNz
-ZXMiOiBbCiAgICAiMTI3LjAuMC4xOjg0NDMiCiAgXSwKICAic2VjcmV0IjogIlRoaXNfaXNfYV90
-b3Bfc2VjcmV0LkRvX25vdF90ZWxsX2l0X3RvX2FueW9uZSEiLAogICJleHBpcmVzX2F0IjogIjAw
-MDEtMDEtMDFUMDA6MDA6MDBaIgp9Cg==`
+func TestAccProvider_bearerToken(t *testing.T) {
+	token, cleanup := acctest.ConfigureBearerToken(t)
+	defer cleanup()
 
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			acctest.PreCheck(t)
-			acctest.PreCheckStandalone(t) // Cluster is not accessible on localhost.
+			acctest.PreCheckStandalone(t)
 			acctest.PreCheckLocalServerHTTPS(t)
 		},
 		ProtoV6ProviderFactories: acctest.ProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
-				// Ensure authentication fails with incorrect token.
-				Config:      testAccProvider_remoteServer(configDir, "", invalidToken, true),
-				ExpectError: regexp.MustCompile(`mismatch between trust token and certificate`),
-			},
-			{
-				// Ensure authentication succeeds with correct token.
-				Config: testAccProvider_remoteServer(configDir, "", token, true),
+				// Ensure authentication succeeds with a valid bearer token.
+				Config: testAccProvider_bearerToken(token),
 				Check: resource.ComposeTestCheckFunc(
-					resource.TestCheckResourceAttr("lxd_noop.noop", "remote", "tf-remote"),
 					resource.TestCheckResourceAttr("lxd_noop.noop", "project", "default"),
-					resource.TestCheckResourceAttrSet("lxd_noop.noop", "server_version"),
-				),
-			},
-			{
-				// Ensure authentication succeeds if token is provided
-				// as environment variable.
-				PreConfig: func() {
-					configDir = t.TempDir()
-					_ = os.Setenv("LXD_REMOTE", "tf-remote-token-fqdn")
-					_ = os.Setenv("LXD_ADDR", "https://127.0.0.1:8443")
-					_ = os.Setenv("LXD_TOKEN", acctest.ConfigureTrustToken(t))
-				},
-				Config: testAccProvider_remoteServerEnv(configDir),
-				Check: resource.ComposeTestCheckFunc(
-					resource.TestCheckResourceAttr("lxd_noop.noop", "remote", "tf-remote-token-fqdn"),
-					resource.TestCheckResourceAttr("lxd_noop.noop", "project", "default"),
+					resource.TestCheckResourceAttr("lxd_noop.noop", "auth_user_method", "bearer"),
 					resource.TestCheckResourceAttrSet("lxd_noop.noop", "server_version"),
 				),
 			},
@@ -90,202 +54,497 @@ MDEtMDEtMDFUMDA6MDA6MDBaIgp9Cg==`
 	})
 }
 
-func TestAccProvider_generateClientCertificate(t *testing.T) {
-	configDir := t.TempDir()
-	resource.Test(t, resource.TestCase{
-		PreCheck:                 func() { acctest.PreCheck(t) },
-		ProtoV6ProviderFactories: acctest.ProtoV6ProviderFactories,
-		Steps: []resource.TestStep{
-			{
-				// Ensure certificates are missing.
-				Config: testAccProvider_localServer(configDir, false),
-				Check: resource.ComposeTestCheckFunc(
-					testCheckClientCert(configDir, false),
-				),
-			},
-			{
-				// Ensure certificates are generated.
-				Config: testAccProvider_localServer(configDir, true),
-				Check: resource.ComposeTestCheckFunc(
-					testCheckClientCert(configDir, true),
-				),
-			},
-		},
-	})
-}
+func TestAccProvider_bearerTokenFile(t *testing.T) {
+	token, cleanup := acctest.ConfigureBearerToken(t)
+	defer cleanup()
 
-func TestAccProvider_acceptRemoteCertificate(t *testing.T) {
-	password := acctest.ConfigureTrustPassword(t)
-	configDir := t.TempDir()
-
-	resource.Test(t, resource.TestCase{
-		PreCheck: func() {
-			acctest.PreCheck(t)
-			acctest.PreCheckStandalone(t) // Cluster is not accessible on localhost.
-			acctest.PreCheckLocalServerHTTPS(t)
-		},
-		ProtoV6ProviderFactories: acctest.ProtoV6ProviderFactories,
-		Steps: []resource.TestStep{
-			{
-				// Ensure authentication fails if remote server is not accepted.
-				Config:      testAccProvider_remoteServer(configDir, password, "", false),
-				ExpectError: regexp.MustCompile(`Failed to accept server certificate`),
-			},
-			{
-				// Ensure authentication succeeds if remote server is accepted.
-				Config: testAccProvider_remoteServer(configDir, password, "", true),
-				Check: resource.ComposeTestCheckFunc(
-					resource.TestCheckResourceAttr("lxd_noop.noop", "remote", "tf-remote"),
-					resource.TestCheckResourceAttr("lxd_noop.noop", "project", "default"),
-					resource.TestCheckResourceAttrSet("lxd_noop.noop", "server_version"),
-				),
-			},
-		},
-	})
-}
-
-func TestAccProvider_defaultRemote(t *testing.T) {
-	configDir := t.TempDir()
-	resource.Test(t, resource.TestCase{
-		PreCheck:                 func() { acctest.PreCheck(t) },
-		ProtoV6ProviderFactories: acctest.ProtoV6ProviderFactories,
-		Steps: []resource.TestStep{
-			{
-				// Ensure an error is returned if multiple default remotes are configured.
-				Config:      testAccProvider_defaultRemote(configDir, 2),
-				ExpectError: regexp.MustCompile(`Multiple remotes are configured as default`),
-				PlanOnly:    true, // This error should be thrown during the plan.
-			},
-			{
-				// Ensure a default remote can be configured.
-				Config: testAccProvider_defaultRemote(configDir, 1),
-				Check: resource.ComposeTestCheckFunc(
-					resource.TestCheckResourceAttr("lxd_noop.noop", "remote", "remote-0"),
-					resource.TestCheckResourceAttr("lxd_noop.noop", "project", "default"),
-					resource.TestCheckResourceAttrSet("lxd_noop.noop", "server_version"),
-				),
-			},
-		},
-	})
-}
-
-func testAccProvider_configDir(configDir string) string {
-	return fmt.Sprintf(`
-provider "lxd" {
-  generate_client_certificates = true
-  config_dir                   = %q
-}
-
-resource "lxd_noop" "noop" {
-}
-	`, configDir)
-}
-
-func testAccProvider_localServer(configDir string, generateClientCert bool) string {
-	return fmt.Sprintf(`
-provider "lxd" {
-  generate_client_certificates = %v
-  accept_remote_certificate    = true
-  config_dir                   = %q
-}
-
-resource "lxd_noop" "noop" {
-}
-	`, generateClientCert, configDir)
-}
-
-func testAccProvider_remoteServer(configDir string, password string, token string, acceptRemoteCert bool) string {
-	// Trust password and token are mutually exclusive in the configuration.
-	authField := ""
-	if password != "" {
-		authField = fmt.Sprintf("password = %q", password)
-	} else if token != "" {
-		authField = fmt.Sprintf("token = %q", token)
+	tokenFile := filepath.Join(t.TempDir(), "bearer_token")
+	err := os.WriteFile(tokenFile, []byte(token), 0600)
+	if err != nil {
+		t.Fatalf("Failed to write bearer token to file: %v", err)
 	}
 
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			acctest.PreCheck(t)
+			acctest.PreCheckStandalone(t)
+			acctest.PreCheckLocalServerHTTPS(t)
+		},
+		ProtoV6ProviderFactories: acctest.ProtoV6ProviderFactories,
+		Steps: []resource.TestStep{
+			{
+				// Ensure authentication succeeds when bearer token is read from a file.
+				Config: testAccProvider_bearerTokenFile(tokenFile),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr("lxd_noop.noop", "project", "default"),
+					resource.TestCheckResourceAttr("lxd_noop.noop", "auth_user_method", "bearer"),
+					resource.TestCheckResourceAttrSet("lxd_noop.noop", "server_version"),
+				),
+			},
+		},
+	})
+}
+
+func TestAccProvider_mtls(t *testing.T) {
+	clientCert, clientKey, cleanup := acctest.ConfigureMutualTLS(t)
+	defer cleanup()
+
+	serverCertFingerprint := acctest.GetServerCertificateFingerprint(t)
+
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			acctest.PreCheck(t)
+			acctest.PreCheckStandalone(t)
+			acctest.PreCheckLocalServerHTTPS(t)
+		},
+		ProtoV6ProviderFactories: acctest.ProtoV6ProviderFactories,
+		Steps: []resource.TestStep{
+			{
+				// Ensure provider connects using inline mTLS client certificate and key.
+				Config: testAccProvider_mtls(clientCert, clientKey, serverCertFingerprint),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr("lxd_noop.noop", "project", "default"),
+					resource.TestCheckResourceAttr("lxd_noop.noop", "auth_user_method", "tls"),
+					resource.TestCheckResourceAttrSet("lxd_noop.noop", "server_version"),
+				),
+			},
+		},
+	})
+}
+
+func TestAccProvider_mtlsFromFile(t *testing.T) {
+	clientCert, clientKey, cleanup := acctest.ConfigureMutualTLS(t)
+	defer cleanup()
+
+	serverCertFingerprint := acctest.GetServerCertificateFingerprint(t)
+
+	// Write credentials to temporary files.
+	tmpDir := t.TempDir()
+	certFile := filepath.Join(tmpDir, "client.crt")
+	keyFile := filepath.Join(tmpDir, "client.key")
+
+	err := os.WriteFile(certFile, []byte(clientCert), 0600)
+	if err != nil {
+		t.Fatalf("Failed to write client certificate file: %v", err)
+	}
+
+	err = os.WriteFile(keyFile, []byte(clientKey), 0600)
+	if err != nil {
+		t.Fatalf("Failed to write client key file: %v", err)
+	}
+
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			acctest.PreCheck(t)
+			acctest.PreCheckStandalone(t)
+			acctest.PreCheckLocalServerHTTPS(t)
+		},
+		ProtoV6ProviderFactories: acctest.ProtoV6ProviderFactories,
+		Steps: []resource.TestStep{
+			{
+				// Ensure provider connects using mTLS certificate and key from files.
+				Config: testAccProvider_mtlsFromFile(certFile, keyFile, serverCertFingerprint),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr("lxd_noop.noop", "project", "default"),
+					resource.TestCheckResourceAttr("lxd_noop.noop", "auth_user_method", "tls"),
+					resource.TestCheckResourceAttrSet("lxd_noop.noop", "server_version"),
+				),
+			},
+		},
+	})
+}
+
+func TestAccProvider_mtlsTrustToken(t *testing.T) {
+	// Generate client certificate and key without adding to the server's trust store.
+	clientCert, clientKey, cleanup := acctest.GenerateClientCertificate(t)
+	defer cleanup()
+
+	serverCertFingerprint := acctest.GetServerCertificateFingerprint(t)
+	invalidToken := `eyJjbGllbnRfbmFtZSI6InRtcF90b2tlbiIsImZpbmdlcnByaW50IjoiWW91X2hhdmVfZGVjb2RlZF9hX3RlbXBvcmFyeV90b2tlbi5Db25ncmF0dWxhdGlvbnMhIiwiYWRkcmVzc2VzIjpbIjEyNy4wLjAuMTo4NDQzIl0sInNlY3JldCI6IlRoaXNfaXNfYV90b3Bfc2VjcmV0LkRvX25vdF90ZWxsX2l0X3RvX2FueW9uZSEiLCJleHBpcmVzX2F0IjoiMDAwMS0wMS0wMVQwMDowMDowMFoifQo=`
+
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			acctest.PreCheck(t)
+			acctest.PreCheckStandalone(t)
+			acctest.PreCheckLocalServerHTTPS(t)
+		},
+		ProtoV6ProviderFactories: acctest.ProtoV6ProviderFactories,
+		Steps: []resource.TestStep{
+			{
+				// Ensure authentication fails with untrusted client certificate (no trust token).
+				Config:      testAccProvider_trustToken(clientCert, clientKey, "", serverCertFingerprint),
+				ExpectError: regexp.MustCompile(`Unable to authenticate with\s+remote server`),
+			},
+			{
+				// Ensure authentication fails with an invalid trust token.
+				Config:      testAccProvider_trustToken(clientCert, clientKey, invalidToken, serverCertFingerprint),
+				ExpectError: regexp.MustCompile(`(?s)(fingerprint.*does not match|Unable to authenticate)`),
+			},
+			{
+				// Ensure authentication succeeds with a valid trust token.
+				Config: testAccProvider_trustToken(clientCert, clientKey, acctest.ConfigureTrustToken(t), ""),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr("lxd_noop.noop", "remote", "tf-remote"),
+					resource.TestCheckResourceAttr("lxd_noop.noop", "project", "default"),
+					resource.TestCheckResourceAttrSet("lxd_noop.noop", "server_version"),
+				),
+			},
+			{
+				// Ensure authentication succeeds without a trust token once trusted.
+				Config: testAccProvider_trustToken(clientCert, clientKey, "", serverCertFingerprint),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr("lxd_noop.noop", "remote", "tf-remote"),
+					resource.TestCheckResourceAttr("lxd_noop.noop", "project", "default"),
+					resource.TestCheckResourceAttrSet("lxd_noop.noop", "server_version"),
+				),
+			},
+		},
+	})
+}
+
+func TestAccProvider_serverCertificateFingerprint(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			acctest.PreCheck(t)
+			acctest.PreCheckStandalone(t)
+			acctest.PreCheckLocalServerHTTPS(t)
+		},
+		ProtoV6ProviderFactories: acctest.ProtoV6ProviderFactories,
+		Steps: []resource.TestStep{
+			{
+				// Ensure connection fails when an incorrect server certificate fingerprint is provided.
+				Config:      testAccProvider_serverCertFingerprint("abcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890"),
+				ExpectError: regexp.MustCompile(`fingerprint mismatch`),
+			},
+		},
+	})
+}
+
+func TestAccProvider_conflictBearerTokenAndClientCert(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { acctest.PreCheck(t) },
+		ProtoV6ProviderFactories: acctest.ProtoV6ProviderFactories,
+		Steps: []resource.TestStep{
+			{
+				// Ensure an error is returned when both bearer_token and client_certificate are set.
+				Config:      testAccProvider_conflictBearerTokenAndClientCert(),
+				ExpectError: regexp.MustCompile(`cannot be specified when`),
+				PlanOnly:    true,
+			},
+		},
+	})
+}
+
+func TestAccProvider_conflictBearerTokenAndBearerTokenFile(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { acctest.PreCheck(t) },
+		ProtoV6ProviderFactories: acctest.ProtoV6ProviderFactories,
+		Steps: []resource.TestStep{
+			{
+				// Ensure an error is returned when both bearer_token and bearer_token_file are set.
+				Config:      testAccProvider_conflictBearerTokenAndBearerTokenFile(),
+				ExpectError: regexp.MustCompile(`cannot be specified when`),
+				PlanOnly:    true,
+			},
+		},
+	})
+}
+
+func TestAccProvider_incompleteMtls(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { acctest.PreCheck(t) },
+		ProtoV6ProviderFactories: acctest.ProtoV6ProviderFactories,
+		Steps: []resource.TestStep{
+			{
+				// Ensure an error is returned when client_certificate is set without client_key.
+				Config:      testAccProvider_incompleteMtlsCertOnly(),
+				ExpectError: regexp.MustCompile(`(?i)both.*client.certificate.*and.*client.key.*must be provided`),
+			},
+			{
+				// Ensure an error is returned when client_key is set without client_certificate.
+				Config:      testAccProvider_incompleteMtlsKeyOnly(),
+				ExpectError: regexp.MustCompile(`(?i)both.*client.certificate.*and.*client.key.*must be provided`),
+			},
+		},
+	})
+}
+
+func TestAccProvider_invalidProtocol(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { acctest.PreCheck(t) },
+		ProtoV6ProviderFactories: acctest.ProtoV6ProviderFactories,
+		Steps: []resource.TestStep{
+			{
+				// Ensure an error is returned when an unsupported protocol is configured.
+				Config:      testAccProvider_invalidProtocol(),
+				ExpectError: regexp.MustCompile(`Attribute remote\[0\].protocol value must be one of`),
+				PlanOnly:    true,
+			},
+		},
+	})
+}
+
+func TestAccProvider_multipleRemotes(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { acctest.PreCheck(t) },
+		ProtoV6ProviderFactories: acctest.ProtoV6ProviderFactories,
+		Steps: []resource.TestStep{
+			{
+				// Ensure multiple remotes work correctly when a default_remote is specified.
+				Config: testAccProvider_multipleRemotes(),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr("lxd_noop.noop", "project", "default"),
+					resource.TestCheckResourceAttr("lxd_noop.noop", "auth_user_method", "unix"),
+				),
+			},
+		},
+	})
+}
+
+func TestAccProvider_requireDefaultRemote(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { acctest.PreCheck(t) },
+		ProtoV6ProviderFactories: acctest.ProtoV6ProviderFactories,
+		Steps: []resource.TestStep{
+			{
+				// Ensure an error is returned when a default remote is not specified.
+				Config:      testAccProvider_requireDefaultRemote(),
+				ExpectError: regexp.MustCompile(`When multiple remotes are defined, a default remote must be specified`),
+				PlanOnly:    true,
+			},
+		},
+	})
+}
+
+// testAccProvider_unixSocket returns a provider config that uses the default unix socket.
+func testAccProvider_unixSocket() string {
+	return `
+provider "lxd" {
+  remote {
+    name    = "local"
+    address = "unix://"
+  }
+}
+
+resource "lxd_noop" "noop" {}
+`
+}
+
+// testAccProvider_bearerToken returns a provider config that uses bearer token authentication.
+func testAccProvider_bearerToken(token string) string {
 	return fmt.Sprintf(`
 provider "lxd" {
-  config_dir                   = %q
-  generate_client_certificates = true
-  accept_remote_certificate    = %v
-
   remote {
-    name     = "tf-remote"
-    protocol = "lxd"
-    address  = "https://127.0.0.1:8443"
-    %s
+    name         = "https-remote"
+    address      = "https://127.0.0.1:8443"
+    bearer_token = %q
+  }
+}
+
+resource "lxd_noop" "noop" {}
+`, token)
+}
+
+// testAccProvider_bearerTokenFile returns a provider config that reads the bearer token from a file.
+func testAccProvider_bearerTokenFile(tokenFile string) string {
+	return fmt.Sprintf(`
+provider "lxd" {
+  remote {
+    name              = "https-remote"
+    address           = "https://127.0.0.1:8443"
+    bearer_token_file = %q
+  }
+}
+
+resource "lxd_noop" "noop" {}
+`, tokenFile)
+}
+
+// testAccProvider_mtls returns a provider config that uses inline mTLS credentials.
+func testAccProvider_mtls(clientCert, clientKey, serverFingerprint string) string {
+	return fmt.Sprintf(`
+provider "lxd" {
+  remote {
+    name 			   = "https-remote"
+    address                        = "https://127.0.0.1:8443"
+    client_certificate             = %q
+    client_key                     = %q
+    server_certificate_fingerprint = %q
+  }
+}
+
+resource "lxd_noop" "noop" {}
+`, clientCert, clientKey, serverFingerprint)
+}
+
+// testAccProvider_mtlsFromFile returns a provider config that reads mTLS credentials from files.
+func testAccProvider_mtlsFromFile(certFile, keyFile, serverFingerprint string) string {
+	return fmt.Sprintf(`
+provider "lxd" {
+  remote {
+    name   		           = "https-remote"
+    address                        = "https://127.0.0.1:8443"
+    client_certificate_file        = %q
+    client_key_file                = %q
+    server_certificate_fingerprint = %q
+  }
+}
+
+resource "lxd_noop" "noop" {}
+`, certFile, keyFile, serverFingerprint)
+}
+
+func testAccProvider_trustToken(clientCert string, clientKey string, trustToken string, serverFingerprint string) string {
+	return fmt.Sprintf(`
+provider "lxd" {
+  remote {
+    name                           = "tf-remote"
+    protocol                       = "lxd"
+    address                        = "https://127.0.0.1:8443"
+    trust_token                    = %q
+    client_certificate             = %q
+    client_key                     = %q
+    server_certificate_fingerprint = %q
   }
 }
 
 resource "lxd_noop" "noop" {
   remote = "tf-remote"
 }
-	`, configDir, acceptRemoteCert, authField)
+`, trustToken, clientCert, clientKey, serverFingerprint)
 }
 
-func testAccProvider_remoteServerEnv(configDir string) string {
-	return fmt.Sprintf(`
+// testAccProvider_conflictBearerTokenAndClientCert returns a provider config with both bearer token and client cert set.
+func testAccProvider_conflictBearerTokenAndClientCert() string {
+	return `
 provider "lxd" {
-  generate_client_certificates = true
-  accept_remote_certificate    = true
-  config_dir  	       	       = %q
-}
-
-resource "lxd_noop" "noop" {
-}
-	`, configDir)
-}
-
-func testAccProvider_defaultRemote(configDir string, remoteCount int) string {
-	var remotes string
-
-	for i := 0; i < remoteCount; i++ {
-		remotes += fmt.Sprintf(`
-remote {
-  name    = "remote-%d"
-  default = true
-}
-`, i)
-	}
-
-	return fmt.Sprintf(`
-provider "lxd" {
-  generate_client_certificates = true
-  accept_remote_certificate    = true
-  config_dir  	       	       = %q
-
-  # Remotes.
-  %s
+  remote {
+    name               = "https-remote"
+    address            = "https://127.0.0.1:8443"
+    bearer_token       = "some-token"
+    client_certificate = "some-cert"
+    client_key         = "some-key"
+  }
 }
 
 resource "lxd_noop" "noop" {}
-	`, configDir, strings.Join([]string{remotes}, "\n"))
+`
 }
 
-// testCheckClientCert checks that the client certificate was generated.
-func testCheckClientCert(configDir string, shouldExist bool) resource.TestCheckFunc {
-	return func(_ *terraform.State) error {
-		for _, fileName := range []string{"client.crt", "client.key"} {
-			_, err := os.Stat(filepath.Join(configDir, fileName))
-
-			if shouldExist && err != nil {
-				return fmt.Errorf("File %q not found: %w", fileName, err)
-			}
-
-			if !shouldExist && err == nil {
-				return fmt.Errorf("File %q should not exist", fileName)
-			}
-		}
-
-		return nil
-	}
+// testAccProvider_conflictBearerTokenAndBearerTokenFile returns a provider config with both bearer token and bearer token file set.
+func testAccProvider_conflictBearerTokenAndBearerTokenFile() string {
+	return `
+provider "lxd" {
+  remote {
+    name              = "https-remote"
+    address           = "https://127.0.0.1:8443"
+    bearer_token      = "some-token"
+    bearer_token_file = "/tmp/token"
+  }
 }
 
-// resetLXDRemoteEnvVars unsets all environment variables that are supported by
-// the provider.
-func resetLXDRemoteEnvVars() {
-	_ = os.Unsetenv("LXD_REMOTE")
-	_ = os.Unsetenv("LXD_ADDR")
-	_ = os.Unsetenv("LXD_PASSWORD")
-	_ = os.Unsetenv("LXD_TOKEN")
+resource "lxd_noop" "noop" {}
+`
+}
+
+// testAccProvider_incompleteMtlsCertOnly returns a provider config with client_certificate but no client_key.
+func testAccProvider_incompleteMtlsCertOnly() string {
+	return `
+provider "lxd" {
+  remote {
+    name               = "https-remote"
+    address            = "https://127.0.0.1:8443"
+    client_certificate = "some-cert"
+  }
+}
+
+resource "lxd_noop" "noop" {}
+`
+}
+
+// testAccProvider_incompleteMtlsKeyOnly returns a provider config with client_key but no client_certificate.
+func testAccProvider_incompleteMtlsKeyOnly() string {
+	return `
+provider "lxd" {
+  remote {
+    name       = "https-remote"
+    address    = "https://127.0.0.1:8443"
+    client_key = "some-key"
+  }
+}
+
+resource "lxd_noop" "noop" {}
+`
+}
+
+// testAccProvider_invalidProtocol returns a provider config with an unsupported protocol.
+func testAccProvider_invalidProtocol() string {
+	return `
+provider "lxd" {
+  remote {
+    name     = "https-remote"
+    address  = "https://127.0.0.1:8443"
+    protocol = "unsupported"
+  }
+}
+
+resource "lxd_noop" "noop" {}
+`
+}
+
+// testAccProvider_serverCertFingerprint returns a provider config with a server certificate fingerprint.
+func testAccProvider_serverCertFingerprint(fingerprint string) string {
+	return fmt.Sprintf(`
+provider "lxd" {
+  remote {
+    name                           = "https-remote"
+    address                        = "https://127.0.0.1:8443"
+    server_certificate_fingerprint = %q
+  }
+}
+
+resource "lxd_noop" "noop" {}
+`, fingerprint)
+}
+
+// testAccProvider_multipleRemotes returns a provider config with multiple remotes
+// that require a default remote to be specified.
+func testAccProvider_multipleRemotes() string {
+	return `
+provider "lxd" {
+  default_remote = "local1"
+
+  remote {
+    name     = "local1"
+    address  = "unix://"
+  }
+
+  remote {
+    name     = "local2"
+    address  = "unix://"
+  }
+}
+
+resource "lxd_noop" "noop" {}
+`
+}
+
+// testAccProvider_requireDefaultRemote returns a provider config with multiple remotes
+// that require a default remote to be specified.
+func testAccProvider_requireDefaultRemote() string {
+	return `
+provider "lxd" {
+  remote {
+    name     = "local1"
+    address  = "unix://"
+  }
+
+  remote {
+    name     = "local2"
+    address  = "unix://"
+  }
+}
+
+resource "lxd_noop" "noop" {}
+`
 }

@@ -16,7 +16,7 @@ func TestAccNetworkACL_basic(t *testing.T) {
 		ProtoV6ProviderFactories: acctest.ProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccNetworkACL(aclName),
+				Config: acctest.Provider() + testAccNetworkACL(aclName),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("lxd_network_acl.acl", "name", aclName),
 					resource.TestCheckResourceAttr("lxd_network_acl.acl", "description", "Network ACL"),
@@ -52,7 +52,7 @@ func TestAccNetworkACL_egress(t *testing.T) {
 		ProtoV6ProviderFactories: acctest.ProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccNetworkACL_withEgressRules(aclName),
+				Config: acctest.Provider() + testAccNetworkACL_withEgressRules(aclName),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("lxd_network_acl.acl", "name", aclName),
 					resource.TestCheckResourceAttr("lxd_network_acl.acl", "description", "Network ACL"),
@@ -81,7 +81,7 @@ func TestAccNetworkACL_ingress(t *testing.T) {
 		ProtoV6ProviderFactories: acctest.ProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccNetworkACL_withIngressRules(aclName),
+				Config: acctest.Provider() + testAccNetworkACL_withIngressRules(aclName),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("lxd_network_acl.acl", "name", aclName),
 					resource.TestCheckResourceAttr("lxd_network_acl.acl", "description", "Network ACL"),
@@ -127,7 +127,7 @@ func TestAccNetworkACL_egressAndIngress(t *testing.T) {
 		ProtoV6ProviderFactories: acctest.ProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccNetworkACL_withTrafficRules(aclName),
+				Config: acctest.Provider() + testAccNetworkACL_withTrafficRules(aclName),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("lxd_network_acl.acl", "name", aclName),
 					resource.TestCheckResourceAttr("lxd_network_acl.acl", "description", "Network ACL"),

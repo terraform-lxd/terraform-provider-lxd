@@ -4,8 +4,8 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"strings"
 
-	"github.com/canonical/lxd/shared"
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/path"
@@ -29,22 +29,23 @@ import (
 
 // LxdProviderRemoteModel represents provider's schema remote.
 type LxdProviderRemoteModel struct {
-	Name     types.String `tfsdk:"name"`
-	Address  types.String `tfsdk:"address"`
-	Port     types.String `tfsdk:"port"`
-	Protocol types.String `tfsdk:"protocol"`
-	Password types.String `tfsdk:"password"`
-	Token    types.String `tfsdk:"token"`
-	Scheme   types.String `tfsdk:"scheme"`
-	Default  types.Bool   `tfsdk:"default"`
+	Name                         types.String `tfsdk:"name"`
+	Address                      types.String `tfsdk:"address"`
+	Protocol                     types.String `tfsdk:"protocol"`
+	TrustToken                   types.String `tfsdk:"trust_token"`
+	BearerToken                  types.String `tfsdk:"bearer_token"`
+	BearerTokenFile              types.String `tfsdk:"bearer_token_file"`
+	ClientKey                    types.String `tfsdk:"client_key"`
+	ClientKeyFile                types.String `tfsdk:"client_key_file"`
+	ClientCertificate            types.String `tfsdk:"client_certificate"`
+	ClientCertificateFile        types.String `tfsdk:"client_certificate_file"`
+	ServerCertificateFingerprint types.String `tfsdk:"server_certificate_fingerprint"`
 }
 
 // LxdProviderModel represents provider's schema.
 type LxdProviderModel struct {
-	Remotes                    []LxdProviderRemoteModel `tfsdk:"remote"`
-	ConfigDir                  types.String             `tfsdk:"config_dir"`
-	AcceptRemoteCertificate    types.Bool               `tfsdk:"accept_remote_certificate"`
-	GenerateClientCertificates types.Bool               `tfsdk:"generate_client_certificates"`
+	Remotes       []LxdProviderRemoteModel `tfsdk:"remote"`
+	DefaultRemote types.String             `tfsdk:"default_remote"`
 }
 
 // LxdProvider ...
@@ -69,19 +70,9 @@ func (p *LxdProvider) Metadata(_ context.Context, _ provider.MetadataRequest, re
 func (p *LxdProvider) Schema(_ context.Context, _ provider.SchemaRequest, resp *provider.SchemaResponse) {
 	resp.Schema = schema.Schema{
 		Attributes: map[string]schema.Attribute{
-			"config_dir": schema.StringAttribute{
+			"default_remote": schema.StringAttribute{
 				Optional:    true,
-				Description: "The directory to look for existing LXD configuration. (default = $HOME/snap/lxd/common/config:$HOME/.config/lxc)",
-			},
-
-			"generate_client_certificates": schema.BoolAttribute{
-				Optional:    true,
-				Description: "Automatically generate the LXD client certificates if they don't exist.",
-			},
-
-			"accept_remote_certificate": schema.BoolAttribute{
-				Optional:    true,
-				Description: "Accept the server certificate.",
+				Description: "Name of the default LXD remote to use when no remote is specified in the resource. If two or more remotes are defined, one must be set as the default.",
 			},
 		},
 
@@ -92,47 +83,15 @@ func (p *LxdProvider) Schema(_ context.Context, _ provider.SchemaRequest, resp *
 					Attributes: map[string]schema.Attribute{
 						"name": schema.StringAttribute{
 							Required:    true,
-							Description: "Name of the LXD remote. Required when lxd_scheme set to https, to enable locating server certificate.",
+							Description: "Name of the LXD remote.",
 							Validators: []validator.String{
 								stringvalidator.LengthAtLeast(1),
 							},
 						},
 
 						"address": schema.StringAttribute{
-							Optional:    true,
-							Description: "The FQDN or IP where the LXD daemon can be contacted. (default = \"\")",
-						},
-
-						// Deprecated, leave the attribute in so that we error out if it's used.
-						// DeprecationMessage would just print the warning, but we want to error
-						// out with a custom message.
-						"port": schema.StringAttribute{
-							Optional:    true,
-							Description: "Port LXD Daemon API is listening on. (default = 8443)",
-						},
-
-						// Deprecated, leave the attribute in so that we error out if it's used.
-						// DeprecationMessage would just print the warning, but we want to error
-						// out with a custom message.
-						"scheme": schema.StringAttribute{
-							Optional:    true,
-							Description: "Unix (unix) or HTTPs (https). (default = unix)",
-						},
-
-						"password": schema.StringAttribute{
-							Optional:    true,
-							Sensitive:   true,
-							Description: "The trust password used for initial authentication with the LXD remote.",
-						},
-
-						"token": schema.StringAttribute{
-							Optional:    true,
-							Sensitive:   true,
-							Description: "The trust token used for initial authentication with the LXD remote.",
-							Validators: []validator.String{
-								// Mutually exclusive with "password".
-								stringvalidator.ConflictsWith(path.MatchRelative().AtParent().AtName("password")),
-							},
+							Required:    true,
+							Description: "Address of the LXD or SimpleStreams remote.",
 						},
 
 						"protocol": schema.StringAttribute{
@@ -143,9 +102,103 @@ func (p *LxdProvider) Schema(_ context.Context, _ provider.SchemaRequest, resp *
 							},
 						},
 
-						"default": schema.BoolAttribute{
+						"trust_token": schema.StringAttribute{
 							Optional:    true,
-							Description: "Set this remote as default.",
+							Sensitive:   true,
+							Description: "The trust token used for initial authentication with the LXD remote.",
+							Validators: []validator.String{
+								stringvalidator.ConflictsWith(
+									path.MatchRelative().AtParent().AtName("bearer_token"),
+									path.MatchRelative().AtParent().AtName("bearer_token_file"),
+								),
+							},
+						},
+
+						"bearer_token": schema.StringAttribute{
+							Optional:    true,
+							Sensitive:   true,
+							Description: "Bearer token for authentication.",
+							Validators: []validator.String{
+								stringvalidator.ConflictsWith(
+									path.MatchRelative().AtParent().AtName("bearer_token_file"),
+									path.MatchRelative().AtParent().AtName("client_certificate"),
+									path.MatchRelative().AtParent().AtName("client_certificate_file"),
+									path.MatchRelative().AtParent().AtName("client_key"),
+									path.MatchRelative().AtParent().AtName("client_key_file"),
+								),
+							},
+						},
+
+						"bearer_token_file": schema.StringAttribute{
+							Optional:    true,
+							Sensitive:   true,
+							Description: "Path to the file containing the bearer token for authentication.",
+							Validators: []validator.String{
+								stringvalidator.ConflictsWith(
+									path.MatchRelative().AtParent().AtName("bearer_token"),
+									path.MatchRelative().AtParent().AtName("client_certificate"),
+									path.MatchRelative().AtParent().AtName("client_certificate_file"),
+									path.MatchRelative().AtParent().AtName("client_key"),
+									path.MatchRelative().AtParent().AtName("client_key_file"),
+								),
+							},
+						},
+
+						"client_key": schema.StringAttribute{
+							Optional:    true,
+							Sensitive:   true,
+							Description: "PEM-encoded private key for mTLS authentication.",
+							Validators: []validator.String{
+								stringvalidator.ConflictsWith(
+									path.MatchRelative().AtParent().AtName("client_key_file"),
+									path.MatchRelative().AtParent().AtName("bearer_token"),
+									path.MatchRelative().AtParent().AtName("bearer_token_file"),
+								),
+							},
+						},
+
+						"client_key_file": schema.StringAttribute{
+							Optional:    true,
+							Sensitive:   true,
+							Description: "Path to the PEM-encoded private key for mTLS authentication.",
+							Validators: []validator.String{
+								stringvalidator.ConflictsWith(
+									path.MatchRelative().AtParent().AtName("client_key"),
+									path.MatchRelative().AtParent().AtName("bearer_token"),
+									path.MatchRelative().AtParent().AtName("bearer_token_file"),
+								),
+							},
+						},
+
+						"client_certificate": schema.StringAttribute{
+							Optional:    true,
+							Sensitive:   true,
+							Description: "PEM-encoded client certificate for mTLS authentication.",
+							Validators: []validator.String{
+								stringvalidator.ConflictsWith(
+									path.MatchRelative().AtParent().AtName("client_certificate_file"),
+									path.MatchRelative().AtParent().AtName("bearer_token"),
+									path.MatchRelative().AtParent().AtName("bearer_token_file"),
+								),
+							},
+						},
+
+						"client_certificate_file": schema.StringAttribute{
+							Optional:    true,
+							Sensitive:   true,
+							Description: "Path to the PEM-encoded client certificate for mTLS authentication.",
+							Validators: []validator.String{
+								stringvalidator.ConflictsWith(
+									path.MatchRelative().AtParent().AtName("client_certificate"),
+									path.MatchRelative().AtParent().AtName("bearer_token"),
+									path.MatchRelative().AtParent().AtName("bearer_token_file"),
+								),
+							},
+						},
+
+						"server_certificate_fingerprint": schema.StringAttribute{
+							Optional:    true,
+							Description: "SHA-256 fingerprint of the remote server's TLS certificate. Used to pin and verify the server certificate.",
 						},
 					},
 				},
@@ -161,29 +214,8 @@ func (p *LxdProvider) Configure(ctx context.Context, req provider.ConfigureReque
 	diags := req.Config.Get(ctx, &data)
 	resp.Diagnostics.Append(diags...)
 
-	// Determine if the LXD server's SSL certificates should be accepted.
-	// If this is set to false and if the remote's certificates haven't
-	// already been accepted, the user will need to accept the certificates
-	// out of band of Terraform.
-	acceptServerCertificate := data.AcceptRemoteCertificate.ValueBool()
-	if data.AcceptRemoteCertificate.IsNull() || data.AcceptRemoteCertificate.IsUnknown() {
-		v, ok := os.LookupEnv("LXD_ACCEPT_SERVER_CERTIFICATE")
-		if ok {
-			acceptServerCertificate = shared.IsTrue(v)
-		}
-	}
-
-	// Determine if the missing client certificates should be generated.
-	// This has no effect if the certificates already exist.
-	generateClientCertificates := data.GenerateClientCertificates.ValueBool()
-	if data.GenerateClientCertificates.IsNull() || data.GenerateClientCertificates.IsUnknown() {
-		v, ok := os.LookupEnv("LXD_GENERATE_CLIENT_CERTS")
-		if ok {
-			generateClientCertificates = shared.IsTrue(v)
-		}
-	}
-
 	remotes := make(map[string]provider_config.LxdRemote)
+	defRemote := data.DefaultRemote.ValueString()
 
 	// Read remotes from Terraform schema.
 	for _, remote := range data.Remotes {
@@ -200,40 +232,72 @@ func (p *LxdProvider) Configure(ctx context.Context, req provider.ConfigureReque
 			return
 		}
 
-		// Error out if deprecated port and scheme attributes are used.
-		if remote.Port.ValueString() != "" {
-			resp.Diagnostics.AddError(
-				fmt.Sprintf(`Remote %q contains deprecated attribute "port"`, name),
-				fmt.Sprintf(`Please remove the attribute "port" and set "address" to the fully qualified address instead. For example, "address=%s".`, address),
-			)
-			return
+		// Parse bearer token.
+		bearerToken := remote.BearerToken.ValueString()
+		if bearerToken == "" {
+			bearerTokenFile := remote.BearerTokenFile.ValueString()
+
+			if remote.BearerTokenFile.ValueString() != "" {
+				content, err := os.ReadFile(bearerTokenFile)
+				if err != nil {
+					resp.Diagnostics.AddError("Failed to read bearer token file", err.Error())
+					return
+				}
+
+				bearerToken = strings.TrimSpace(string(content))
+			}
 		}
 
-		if remote.Scheme.ValueString() != "" {
-			resp.Diagnostics.AddError(
-				fmt.Sprintf(`Remote %q contains deprecated attribute "scheme"`, name),
-				fmt.Sprintf(`Please remove the attribute "port" and set "address" to the fully qualified address instead. For example, "address=%s".`, address),
-			)
+		// Parse client certificate.
+		clientCertificate := remote.ClientCertificate.ValueString()
+		if clientCertificate == "" {
+			clientCertificateFile := remote.ClientCertificateFile.ValueString()
+
+			if clientCertificateFile != "" {
+				content, err := os.ReadFile(clientCertificateFile)
+				if err != nil {
+					resp.Diagnostics.AddError("Failed to read client certificate file", err.Error())
+					return
+				}
+
+				clientCertificate = string(content)
+			}
+		}
+
+		// Parse client key.
+		clientKey := remote.ClientKey.ValueString()
+		if clientKey == "" {
+			clientKeyFile := remote.ClientKeyFile.ValueString()
+
+			if clientKeyFile != "" {
+				content, err := os.ReadFile(clientKeyFile)
+				if err != nil {
+					resp.Diagnostics.AddError("Failed to read client key file", err.Error())
+					return
+				}
+
+				clientKey = string(content)
+			}
+		}
+
+		if (clientCertificate != "" || clientKey != "") && (clientCertificate == "" || clientKey == "") {
+			resp.Diagnostics.AddError(fmt.Sprintf("Client certificate and key must be provided for remote %q", name), "Both client certificate and client key must be provided for TLS authentication.")
 			return
 		}
 
 		remotes[name] = provider_config.LxdRemote{
-			Address:   address,
-			Protocol:  protocol,
-			Password:  remote.Password.ValueString(),
-			Token:     remote.Token.ValueString(),
-			IsDefault: remote.Default.ValueBool(),
+			Address:                      address,
+			Protocol:                     protocol,
+			TrustToken:                   remote.TrustToken.ValueString(),
+			BearerToken:                  bearerToken,
+			ClientKey:                    clientKey,
+			ClientCertificate:            clientCertificate,
+			ServerCertificateFingerprint: remote.ServerCertificateFingerprint.ValueString(),
 		}
 	}
 
-	options := provider_config.Options{
-		ConfigDir:                  data.ConfigDir.ValueString(),
-		AcceptServerCertificate:    acceptServerCertificate,
-		GenerateClientCertificates: generateClientCertificates,
-	}
-
 	// Initialize LXD provider configuration.
-	lxdProvider, err := provider_config.NewLxdProviderConfig(p.version, remotes, options)
+	lxdProvider, err := provider_config.NewLxdProviderConfig(p.version, remotes, defRemote)
 	if err != nil {
 		resp.Diagnostics.AddError("Failed initialize LXD provider", err.Error())
 		return

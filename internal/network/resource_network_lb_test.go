@@ -20,7 +20,7 @@ func TestAccNetworkLB_basic(t *testing.T) {
 		ProtoV6ProviderFactories: acctest.ProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccNetworkLB_basic(),
+				Config: acctest.Provider() + testAccNetworkLB_basic(),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("lxd_network.ovnbr", "name", "ovnbr"),
 					resource.TestCheckResourceAttr("lxd_network.ovnbr", "type", "bridge"),
@@ -52,7 +52,7 @@ func TestAccNetworkLB_withConfig(t *testing.T) {
 		ProtoV6ProviderFactories: acctest.ProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccNetworkLB_withConfig(lbConfig),
+				Config: acctest.Provider() + testAccNetworkLB_withConfig(lbConfig),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("lxd_network.ovnbr", "name", "ovnbr"),
 					resource.TestCheckResourceAttr("lxd_network.ovn", "name", "ovn"),
@@ -93,7 +93,7 @@ func TestAccNetworkLB_withBackend(t *testing.T) {
 		ProtoV6ProviderFactories: acctest.ProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccNetworkLB_withBackendAndPort(instanceName, backend, port),
+				Config: acctest.Provider() + testAccNetworkLB_withBackendAndPort(instanceName, backend, port),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("lxd_network.ovnbr", "name", "ovnbr"),
 					resource.TestCheckResourceAttr("lxd_network.ovn", "name", "ovn"),
@@ -140,7 +140,7 @@ func TestAccNetworkLB_withBackend_noDescriptions(t *testing.T) {
 		ProtoV6ProviderFactories: acctest.ProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccNetworkLB_withBackendAndPort_noDescription(backend, port),
+				Config: acctest.Provider() + testAccNetworkLB_withBackendAndPort_noDescription(backend, port),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("lxd_network.ovnbr", "name", "ovnbr"),
 					resource.TestCheckResourceAttr("lxd_network.ovn", "name", "ovn"),
