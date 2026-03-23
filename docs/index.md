@@ -68,11 +68,16 @@ This provider supports the following methods:
 
 #### Handling Sensitive Information
 
-When providing sensitive values, such as tokens or certificates, directly in HCL, use [ephemeral variables](https://developer.hashicorp.com/terraform/language/manage-sensitive-data#omit-values-from-state-and-plan-files) to prevent them from being stored in Terraform state:
+~> Avoid passing sensitive values with `-var` on the command line, as they may be stored in shell history.
+Prefer interactive input or a local `terraform.tfvars` file instead.
+
+When providing sensitive values, such as tokens or certificates, through Terraform configuration, use variables marked as [sensitive](https://developer.hashicorp.com/terraform/language/manage-sensitive-data#hide-sensitive-variables-and-outputs) and [ephemeral](https://developer.hashicorp.com/terraform/language/manage-sensitive-data#omit-values-from-state-and-plan-files).
+This prevents values from being shown in interactive prompts or Terraform output, and avoids storing them in Terraform plan or state files.
 
 ```hcl
 variable "bearer_token" {
   type      = string
+  sensitive = true
   ephemeral = true
 }
 
@@ -109,6 +114,7 @@ See [Bearer token authentication](https://documentation.ubuntu.com/lxd/latest/au
 ```hcl
 variable "bearer_token" {
   type      = string
+  sensitive = true
   ephemeral = true
 }
 
