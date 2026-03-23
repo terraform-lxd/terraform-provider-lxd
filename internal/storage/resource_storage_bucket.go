@@ -76,6 +76,8 @@ func (r StorageBucketResource) Schema(ctx context.Context, req resource.SchemaRe
 
 			"project": schema.StringAttribute{
 				Optional: true,
+				Computed: true,
+				Default:  stringdefault.StaticString(provider_config.DefaultProject),
 				PlanModifiers: []planmodifier.String{
 					stringplanmodifier.RequiresReplace(),
 				},
@@ -281,6 +283,10 @@ func (r StorageBucketResource) ImportState(ctx context.Context, req resource.Imp
 	if diags != nil {
 		resp.Diagnostics.Append(diags)
 		return
+	}
+
+	if fields["project"] == "" {
+		fields["project"] = provider_config.DefaultProject
 	}
 
 	for k, v := range fields {

@@ -1362,7 +1362,7 @@ func TestAccInstance_removeProject(t *testing.T) {
 					resource.TestCheckResourceAttr("lxd_project.project1", "name", projectName),
 					resource.TestCheckResourceAttr("lxd_instance.instance1", "name", instanceName),
 					resource.TestCheckResourceAttr("lxd_instance.instance1", "project", projectName),
-					resource.TestCheckResourceAttr("lxd_instance.instance1", "status", "Running"),
+					resource.TestCheckResourceAttr("lxd_instance.instance1", "status", "Stopped"),
 				),
 			},
 			{
@@ -1370,8 +1370,8 @@ func TestAccInstance_removeProject(t *testing.T) {
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("lxd_project.project1", "name", projectName),
 					resource.TestCheckResourceAttr("lxd_instance.instance1", "name", instanceName),
-					resource.TestCheckNoResourceAttr("lxd_instance.instance1", "project"),
-					resource.TestCheckResourceAttr("lxd_instance.instance1", "status", "Running"),
+					resource.TestCheckResourceAttr("lxd_instance.instance1", "project", "default"),
+					resource.TestCheckResourceAttr("lxd_instance.instance1", "status", "Stopped"),
 				),
 			},
 		},
@@ -2425,7 +2425,7 @@ resource "lxd_instance" "instance1" {
 	`, projectName, instanceName, acctest.TestImage)
 }
 
-func testAccInstance_removeProject_1(projectName, instanceName string) string {
+func testAccInstance_removeProject_1(projectName string, instanceName string) string {
 	return fmt.Sprintf(`
 resource "lxd_project" "project1" {
   name = "%s"
@@ -2439,19 +2439,21 @@ resource "lxd_instance" "instance1" {
   name    = "%s"
   image   = "%s"
   project = lxd_project.project1.name
+  running = false
 }
 	`, projectName, instanceName, acctest.TestImage)
 }
 
-func testAccInstance_removeProject_2(projectName, instanceName string) string {
+func testAccInstance_removeProject_2(projectName string, instanceName string) string {
 	return fmt.Sprintf(`
 resource "lxd_project" "project1" {
   name = "%s"
 }
 
 resource "lxd_instance" "instance1" {
-  name  = "%s"
-  image = "%s"
+  name    = "%s"
+  image   = "%s"
+  running = false
 }
 	`, projectName, instanceName, acctest.TestImage)
 }

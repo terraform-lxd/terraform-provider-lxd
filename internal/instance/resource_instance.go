@@ -167,6 +167,8 @@ func (r InstanceResource) Schema(ctx context.Context, _ resource.SchemaRequest, 
 
 			"project": schema.StringAttribute{
 				Optional: true,
+				Computed: true,
+				Default:  stringdefault.StaticString(provider_config.DefaultProject),
 				PlanModifiers: []planmodifier.String{
 					stringplanmodifier.RequiresReplace(),
 				},
@@ -1150,6 +1152,10 @@ func (r *InstanceResource) ImportState(ctx context.Context, req resource.ImportS
 	if diag != nil {
 		resp.Diagnostics.Append(diag)
 		return
+	}
+
+	if fields["project"] == "" {
+		fields["project"] = provider_config.DefaultProject
 	}
 
 	for k, v := range fields {

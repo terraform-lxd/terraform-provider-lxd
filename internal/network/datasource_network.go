@@ -48,6 +48,7 @@ func (d *NetworkDataSource) Schema(_ context.Context, req datasource.SchemaReque
 
 			"project": schema.StringAttribute{
 				Optional: true,
+				Computed: true,
 			},
 
 			"remote": schema.StringAttribute{
@@ -139,6 +140,7 @@ func (d *NetworkDataSource) Read(ctx context.Context, req datasource.ReadRequest
 	state.Description = types.StringValue(network.Description)
 	state.Type = types.StringValue(network.Type)
 	state.Managed = types.BoolValue(network.Managed)
+	state.Project = types.StringValue(network.Project)
 	state.Config = config
 
 	state.IPv4 = types.StringValue(ipv4)

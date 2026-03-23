@@ -75,6 +75,8 @@ func (r LxdNetworkLBResource) Schema(_ context.Context, _ resource.SchemaRequest
 
 			"project": schema.StringAttribute{
 				Optional: true,
+				Computed: true,
+				Default:  stringdefault.StaticString(provider_config.DefaultProject),
 				PlanModifiers: []planmodifier.String{
 					stringplanmodifier.RequiresReplace(),
 				},

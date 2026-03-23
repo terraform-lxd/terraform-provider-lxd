@@ -63,6 +63,8 @@ func (r NetworkZoneResource) Schema(_ context.Context, _ resource.SchemaRequest,
 
 			"project": schema.StringAttribute{
 				Optional: true,
+				Computed: true,
+				Default:  stringdefault.StaticString(provider_config.DefaultProject),
 				PlanModifiers: []planmodifier.String{
 					stringplanmodifier.RequiresReplace(),
 				},
@@ -255,6 +257,10 @@ func (r NetworkZoneResource) ImportState(ctx context.Context, req resource.Impor
 	if diag != nil {
 		resp.Diagnostics.Append(diag)
 		return
+	}
+
+	if fields["project"] == "" {
+		fields["project"] = provider_config.DefaultProject
 	}
 
 	for k, v := range fields {

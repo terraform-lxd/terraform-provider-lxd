@@ -33,6 +33,7 @@ func (d *ProfileDataSource) Schema(_ context.Context, req datasource.SchemaReque
 
 			"project": schema.StringAttribute{
 				Optional: true,
+				Computed: true,
 			},
 
 			"remote": schema.StringAttribute{
@@ -118,6 +119,7 @@ func (d *ProfileDataSource) Read(ctx context.Context, req datasource.ReadRequest
 
 	state.Name = types.StringValue(profile.Name)
 	state.Description = types.StringValue(profile.Description)
+	state.Project = types.StringValue(project)
 	state.Devices = devices
 	state.Config = config
 
