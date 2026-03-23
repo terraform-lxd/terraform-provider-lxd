@@ -24,10 +24,10 @@ func TestAccStorageVolume_basic(t *testing.T) {
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("lxd_storage_pool.pool1", "name", poolName),
 					resource.TestCheckResourceAttr("lxd_storage_pool.pool1", "driver", "dir"),
-					resource.TestCheckResourceAttr("lxd_volume.volume1", "name", volumeName),
-					resource.TestCheckResourceAttr("lxd_volume.volume1", "pool", poolName),
-					resource.TestCheckResourceAttr("lxd_volume.volume1", "type", "custom"),
-					resource.TestCheckResourceAttr("lxd_volume.volume1", "content_type", "filesystem"),
+					resource.TestCheckResourceAttr("lxd_storage_volume.volume1", "name", volumeName),
+					resource.TestCheckResourceAttr("lxd_storage_volume.volume1", "pool", poolName),
+					resource.TestCheckResourceAttr("lxd_storage_volume.volume1", "type", "custom"),
+					resource.TestCheckResourceAttr("lxd_storage_volume.volume1", "content_type", "filesystem"),
 				),
 			},
 		},
@@ -51,8 +51,8 @@ func TestAccStorageVolume_instanceAttach(t *testing.T) {
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("lxd_storage_pool.pool1", "name", poolName),
 					resource.TestCheckResourceAttr("lxd_storage_pool.pool1", "driver", "zfs"),
-					resource.TestCheckResourceAttr("lxd_volume.volume1", "name", volumeName),
-					resource.TestCheckResourceAttr("lxd_volume.volume1", "pool", poolName),
+					resource.TestCheckResourceAttr("lxd_storage_volume.volume1", "name", volumeName),
+					resource.TestCheckResourceAttr("lxd_storage_volume.volume1", "pool", poolName),
 					resource.TestCheckResourceAttr("lxd_instance.instance1", "name", instanceName),
 					resource.TestCheckResourceAttr("lxd_instance.instance1", "status", "Stopped"),
 					resource.TestCheckResourceAttr("lxd_instance.instance1", "device.#", "1"),
@@ -78,9 +78,9 @@ func TestAccStorageVolume_target(t *testing.T) {
 			{
 				Config: acctest.Provider() + testAccStorageVolume_target(volumeName, targets[0]),
 				Check: resource.ComposeTestCheckFunc(
-					resource.TestCheckResourceAttr("lxd_volume.volume1", "name", volumeName),
-					resource.TestCheckResourceAttr("lxd_volume.volume1", "pool", "default"),
-					resource.TestCheckResourceAttr("lxd_volume.volume1", "target", targets[0]),
+					resource.TestCheckResourceAttr("lxd_storage_volume.volume1", "name", volumeName),
+					resource.TestCheckResourceAttr("lxd_storage_volume.volume1", "pool", "default"),
+					resource.TestCheckResourceAttr("lxd_storage_volume.volume1", "target", targets[0]),
 				),
 			},
 		},
@@ -99,9 +99,9 @@ func TestAccStorageVolume_project(t *testing.T) {
 				Config: acctest.Provider() + testAccStorageVolume_project(projectName, volumeName),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("lxd_project.project1", "name", projectName),
-					resource.TestCheckResourceAttr("lxd_volume.volume1", "name", volumeName),
-					resource.TestCheckResourceAttr("lxd_volume.volume1", "pool", "default"),
-					resource.TestCheckResourceAttr("lxd_volume.volume1", "project", projectName),
+					resource.TestCheckResourceAttr("lxd_storage_volume.volume1", "name", volumeName),
+					resource.TestCheckResourceAttr("lxd_storage_volume.volume1", "pool", "default"),
+					resource.TestCheckResourceAttr("lxd_storage_volume.volume1", "project", projectName),
 				),
 			},
 		},
@@ -124,9 +124,9 @@ func TestAccStorageVolume_contentType(t *testing.T) {
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("lxd_storage_pool.pool1", "name", poolName),
 					resource.TestCheckResourceAttr("lxd_storage_pool.pool1", "driver", "zfs"),
-					resource.TestCheckResourceAttr("lxd_volume.volume1", "name", volumeName),
-					resource.TestCheckResourceAttr("lxd_volume.volume1", "pool", poolName),
-					resource.TestCheckResourceAttr("lxd_volume.volume1", "content_type", "block"),
+					resource.TestCheckResourceAttr("lxd_storage_volume.volume1", "name", volumeName),
+					resource.TestCheckResourceAttr("lxd_storage_volume.volume1", "pool", poolName),
+					resource.TestCheckResourceAttr("lxd_storage_volume.volume1", "content_type", "block"),
 				),
 			},
 		},
@@ -136,7 +136,7 @@ func TestAccStorageVolume_contentType(t *testing.T) {
 func TestAccStorageVolume_importBasic(t *testing.T) {
 	volName := acctest.GenerateName(2, "-")
 	poolName := acctest.GenerateName(2, "-")
-	resourceName := "lxd_volume.volume1"
+	resourceName := "lxd_storage_volume.volume1"
 
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
@@ -162,7 +162,7 @@ func TestAccStorageVolume_importBasic(t *testing.T) {
 func TestAccStorageVolume_importProject(t *testing.T) {
 	volName := acctest.GenerateName(2, "-")
 	projectName := acctest.GenerateName(2, "-")
-	resourceName := "lxd_volume.volume1"
+	resourceName := "lxd_storage_volume.volume1"
 
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
@@ -203,14 +203,14 @@ func TestAccStorageVolume_inheritedStoragePoolKeys(t *testing.T) {
 					resource.TestCheckResourceAttr("lxd_storage_pool.pool1", "driver", "zfs"),
 					resource.TestCheckResourceAttr("lxd_storage_pool.pool1", "config.volume.zfs.remove_snapshots", "true"),
 					resource.TestCheckResourceAttr("lxd_storage_pool.pool1", "config.volume.zfs.use_refquota", "true"),
-					resource.TestCheckResourceAttr("lxd_volume.volume1", "name", volumeName),
-					resource.TestCheckResourceAttr("lxd_volume.volume1", "pool", poolName),
-					resource.TestCheckResourceAttr("lxd_volume.volume1", "type", "custom"),
-					resource.TestCheckResourceAttr("lxd_volume.volume1", "content_type", "block"),
+					resource.TestCheckResourceAttr("lxd_storage_volume.volume1", "name", volumeName),
+					resource.TestCheckResourceAttr("lxd_storage_volume.volume1", "pool", poolName),
+					resource.TestCheckResourceAttr("lxd_storage_volume.volume1", "type", "custom"),
+					resource.TestCheckResourceAttr("lxd_storage_volume.volume1", "content_type", "block"),
 
 					// Ensure computed keys are not tracked.
-					resource.TestCheckNoResourceAttr("lxd_volume.volume1", "config.zfs.remove_snapshots"),
-					resource.TestCheckNoResourceAttr("lxd_volume.volume1", "config.zfs.use_refquota"),
+					resource.TestCheckNoResourceAttr("lxd_storage_volume.volume1", "config.zfs.remove_snapshots"),
+					resource.TestCheckNoResourceAttr("lxd_storage_volume.volume1", "config.zfs.use_refquota"),
 				),
 			},
 		},
@@ -224,7 +224,7 @@ resource "lxd_storage_pool" "pool1" {
   driver = "dir"
 }
 
-resource "lxd_volume" "volume1" {
+resource "lxd_storage_volume" "volume1" {
   name = "%s"
   pool = lxd_storage_pool.pool1.name
 }
@@ -238,7 +238,7 @@ resource "lxd_storage_pool" "pool1" {
   driver = "zfs"
 }
 
-resource "lxd_volume" "volume1" {
+resource "lxd_storage_volume" "volume1" {
   name = "%s"
   pool = lxd_storage_pool.pool1.name
 }
@@ -253,7 +253,7 @@ resource "lxd_instance" "instance1" {
     type = "disk"
     properties = {
       path   = "/mnt"
-      source = lxd_volume.volume1.name
+      source = lxd_storage_volume.volume1.name
       pool   = lxd_storage_pool.pool1.name
     }
   }
@@ -263,7 +263,7 @@ resource "lxd_instance" "instance1" {
 
 func testAccStorageVolume_target(volumeName string, target string) string {
 	return fmt.Sprintf(`
-resource "lxd_volume" "volume1" {
+resource "lxd_storage_volume" "volume1" {
   name   = "%s"
   pool   = "default"
   target = "%s"
@@ -280,7 +280,7 @@ resource "lxd_project" "project1" {
   }
 }
 
-resource "lxd_volume" "volume1" {
+resource "lxd_storage_volume" "volume1" {
   name    = "%s"
   pool    = "default"
   project = lxd_project.project1.name
@@ -295,7 +295,7 @@ resource "lxd_storage_pool" "pool1" {
   driver = "zfs"
 }
 
-resource "lxd_volume" "volume1" {
+resource "lxd_storage_volume" "volume1" {
   name         = "%s"
   pool         = lxd_storage_pool.pool1.name
   content_type = "block"
@@ -314,7 +314,7 @@ resource "lxd_storage_pool" "pool1" {
   }
 }
 
-resource "lxd_volume" "volume1" {
+resource "lxd_storage_volume" "volume1" {
   name         = "%s"
   pool         = lxd_storage_pool.pool1.name
   content_type = "block"

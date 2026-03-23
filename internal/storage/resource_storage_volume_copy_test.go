@@ -25,12 +25,12 @@ func TestAccStorageVolumeCopy_basic(t *testing.T) {
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("lxd_storage_pool.pool1", "name", poolName),
 					resource.TestCheckResourceAttr("lxd_storage_pool.pool1", "driver", "lvm"),
-					resource.TestCheckResourceAttr("lxd_volume.volume1", "name", volumeName),
-					resource.TestCheckResourceAttr("lxd_volume.volume1", "pool", poolName),
-					resource.TestCheckResourceAttr("lxd_volume_copy.volume1_copy", "name", fmt.Sprintf("%s-copy", volumeName)),
-					resource.TestCheckResourceAttr("lxd_volume_copy.volume1_copy", "pool", "default"),
-					resource.TestCheckResourceAttr("lxd_volume_copy.volume1_copy", "source_name", volumeName),
-					resource.TestCheckResourceAttr("lxd_volume_copy.volume1_copy", "source_pool", poolName),
+					resource.TestCheckResourceAttr("lxd_storage_volume.volume1", "name", volumeName),
+					resource.TestCheckResourceAttr("lxd_storage_volume.volume1", "pool", poolName),
+					resource.TestCheckResourceAttr("lxd_storage_volume_copy.volume1_copy", "name", volumeName+"-copy"),
+					resource.TestCheckResourceAttr("lxd_storage_volume_copy.volume1_copy", "pool", "default"),
+					resource.TestCheckResourceAttr("lxd_storage_volume_copy.volume1_copy", "source_name", volumeName),
+					resource.TestCheckResourceAttr("lxd_storage_volume_copy.volume1_copy", "source_pool", poolName),
 				),
 			},
 			{
@@ -52,16 +52,16 @@ resource "lxd_storage_pool" "pool1" {
   driver = "lvm"
 }
 
-resource "lxd_volume" "volume1" {
+resource "lxd_storage_volume" "volume1" {
   name = "%[2]s"
   pool = lxd_storage_pool.pool1.name
 }
 
-resource "lxd_volume_copy" "volume1_copy" {
+resource "lxd_storage_volume_copy" "volume1_copy" {
   name        = "%[2]s-copy"
   pool        = "default"
   source_pool = lxd_storage_pool.pool1.name
-  source_name = lxd_volume.volume1.name
+  source_name = lxd_storage_volume.volume1.name
 }
 `,
 		poolName, volumeName)

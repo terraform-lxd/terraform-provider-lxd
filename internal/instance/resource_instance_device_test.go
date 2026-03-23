@@ -53,8 +53,8 @@ func TestAccInstanceDevice_volumeAttach(t *testing.T) {
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("lxd_storage_pool.pool1", "name", poolName),
 					resource.TestCheckResourceAttr("lxd_storage_pool.pool1", "driver", "zfs"),
-					resource.TestCheckResourceAttr("lxd_volume.volume1", "name", volumeName),
-					resource.TestCheckResourceAttr("lxd_volume.volume1", "pool", poolName),
+					resource.TestCheckResourceAttr("lxd_storage_volume.volume1", "name", volumeName),
+					resource.TestCheckResourceAttr("lxd_storage_volume.volume1", "pool", poolName),
 					resource.TestCheckResourceAttr("data.lxd_instance.inst", "name", instanceName),
 					resource.TestCheckResourceAttr("data.lxd_instance.inst", "status", "Stopped"),
 					resource.TestCheckResourceAttr("data.lxd_instance.inst", "devices.%", "1"),
@@ -70,8 +70,8 @@ func TestAccInstanceDevice_volumeAttach(t *testing.T) {
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("lxd_storage_pool.pool1", "name", poolName),
 					resource.TestCheckResourceAttr("lxd_storage_pool.pool1", "driver", "zfs"),
-					resource.TestCheckResourceAttr("lxd_volume.volume1", "name", volumeName),
-					resource.TestCheckResourceAttr("lxd_volume.volume1", "pool", poolName),
+					resource.TestCheckResourceAttr("lxd_storage_volume.volume1", "name", volumeName),
+					resource.TestCheckResourceAttr("lxd_storage_volume.volume1", "pool", poolName),
 					resource.TestCheckResourceAttr("data.lxd_instance.inst", "name", instanceName),
 					resource.TestCheckResourceAttr("data.lxd_instance.inst", "status", "Stopped"),
 					resource.TestCheckResourceAttr("data.lxd_instance.inst", "devices.%", "1"),
@@ -95,8 +95,8 @@ func TestAccInstanceDevice_volumeAttach(t *testing.T) {
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("lxd_storage_pool.pool1", "name", poolName),
 					resource.TestCheckResourceAttr("lxd_storage_pool.pool1", "driver", "zfs"),
-					resource.TestCheckResourceAttr("lxd_volume.volume1", "name", volumeName),
-					resource.TestCheckResourceAttr("lxd_volume.volume1", "pool", poolName),
+					resource.TestCheckResourceAttr("lxd_storage_volume.volume1", "name", volumeName),
+					resource.TestCheckResourceAttr("lxd_storage_volume.volume1", "pool", poolName),
 					resource.TestCheckResourceAttr("data.lxd_instance.inst", "name", instanceName),
 					resource.TestCheckResourceAttr("data.lxd_instance.inst", "status", "Stopped"),
 					resource.TestCheckResourceAttr("data.lxd_instance.inst", "devices.%", "0"),
@@ -125,8 +125,8 @@ func TestAccInstanceDevice_coexistingDevices(t *testing.T) {
 					resource.TestCheckResourceAttr("lxd_storage_pool.pool1", "name", poolName),
 					resource.TestCheckResourceAttr("lxd_storage_pool.pool1", "driver", "zfs"),
 
-					resource.TestCheckResourceAttr("lxd_volume.volume1", "name", volumeName),
-					resource.TestCheckResourceAttr("lxd_volume.volume1", "pool", poolName),
+					resource.TestCheckResourceAttr("lxd_storage_volume.volume1", "name", volumeName),
+					resource.TestCheckResourceAttr("lxd_storage_volume.volume1", "pool", poolName),
 
 					// "lxd_instance" resource state should contain only its own device.
 					resource.TestCheckResourceAttr("lxd_instance.inst", "name", instanceName),
@@ -231,7 +231,7 @@ resource "lxd_storage_pool" "pool1" {
   driver = "zfs"
 }
 
-resource "lxd_volume" "volume1" {
+resource "lxd_storage_volume" "volume1" {
   name = %q
   pool = lxd_storage_pool.pool1.name
 }
@@ -243,13 +243,13 @@ resource "lxd_instance" "inst" {
 }
 
 resource "lxd_instance_device" "vol_attach" {
-   name          = lxd_volume.volume1.name
+   name          = lxd_storage_volume.volume1.name
    instance_name = lxd_instance.inst.name
    type          = "disk"
 
    properties = {
       path   = %q
-      source = lxd_volume.volume1.name
+      source = lxd_storage_volume.volume1.name
       pool   = lxd_storage_pool.pool1.name
    }
 }
@@ -271,7 +271,7 @@ resource "lxd_storage_pool" "pool1" {
   driver = "zfs"
 }
 
-resource "lxd_volume" "volume1" {
+resource "lxd_storage_volume" "volume1" {
   name = %q
   pool = lxd_storage_pool.pool1.name
 }
@@ -295,7 +295,7 @@ resource "lxd_storage_pool" "pool1" {
   driver = "zfs"
 }
 
-resource "lxd_volume" "volume1" {
+resource "lxd_storage_volume" "volume1" {
   name = %q
   pool = lxd_storage_pool.pool1.name
 }
@@ -316,13 +316,13 @@ resource "lxd_instance" "inst" {
 }
 
 resource "lxd_instance_device" "vol_attach" {
-   name          = lxd_volume.volume1.name
+   name          = lxd_storage_volume.volume1.name
    instance_name = lxd_instance.inst.name
    type          = "disk"
 
    properties = {
       path   = "/data"
-      source = lxd_volume.volume1.name
+      source = lxd_storage_volume.volume1.name
       pool   = lxd_storage_pool.pool1.name
    }
 }
@@ -366,19 +366,19 @@ resource "lxd_instance" "inst" {
 }
 
 resource "lxd_instance_device" "vol_attach" {
-   name          = lxd_volume.volume1.name
+   name          = lxd_storage_volume.volume1.name
    instance_name = lxd_instance.inst.name
    target        = lxd_instance.inst.location
    type          = "disk"
 
    properties = {
       path   = "/data"
-      source = lxd_volume.volume1.name
+      source = lxd_storage_volume.volume1.name
       pool   = lxd_storage_pool.storage_pool.name
    }
 }
 
-resource "lxd_volume" "volume1" {
+resource "lxd_storage_volume" "volume1" {
   name   = %q
   pool   = lxd_storage_pool.storage_pool.name
   target = lxd_instance.inst.location

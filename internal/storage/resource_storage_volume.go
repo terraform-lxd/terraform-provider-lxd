@@ -51,7 +51,7 @@ func NewStorageVolumeResource() resource.Resource {
 }
 
 func (r StorageVolumeResource) Metadata(_ context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
-	resp.TypeName = req.ProviderTypeName + "_volume"
+	resp.TypeName = req.ProviderTypeName + "_storage_volume"
 }
 
 func (r StorageVolumeResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *resource.SchemaResponse) {
