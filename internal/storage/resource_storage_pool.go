@@ -84,9 +84,6 @@ func (r StoragePoolResource) Schema(_ context.Context, _ resource.SchemaRequest,
 
 			"project": schema.StringAttribute{
 				Optional: true,
-				PlanModifiers: []planmodifier.String{
-					stringplanmodifier.RequiresReplace(),
-				},
 				Validators: []validator.String{
 					stringvalidator.LengthAtLeast(1),
 				},

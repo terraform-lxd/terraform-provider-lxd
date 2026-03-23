@@ -95,6 +95,8 @@ func (r StorageBucketKeyResource) Schema(ctx context.Context, req resource.Schem
 
 			"project": schema.StringAttribute{
 				Optional: true,
+				Computed: true,
+				Default:  stringdefault.StaticString(provider_config.DefaultProject),
 				PlanModifiers: []planmodifier.String{
 					stringplanmodifier.RequiresReplace(),
 				},
