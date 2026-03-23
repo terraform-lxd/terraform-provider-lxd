@@ -94,9 +94,6 @@ func (r *NetworkForwardResource) Schema(ctx context.Context, req resource.Schema
 
 			"remote": schema.StringAttribute{
 				Optional: true,
-				PlanModifiers: []planmodifier.String{
-					stringplanmodifier.RequiresReplace(),
-				},
 			},
 
 			"config": schema.MapAttribute{

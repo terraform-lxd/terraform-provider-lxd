@@ -80,9 +80,6 @@ func (r ProfileResource) Schema(_ context.Context, _ resource.SchemaRequest, res
 
 			"remote": schema.StringAttribute{
 				Optional: true,
-				PlanModifiers: []planmodifier.String{
-					stringplanmodifier.RequiresReplace(),
-				},
 			},
 
 			"config": schema.MapAttribute{

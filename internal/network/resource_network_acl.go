@@ -89,9 +89,6 @@ func (r *NetworkAclResource) Schema(_ context.Context, _ resource.SchemaRequest,
 
 			"remote": schema.StringAttribute{
 				Optional: true,
-				PlanModifiers: []planmodifier.String{
-					stringplanmodifier.RequiresReplace(),
-				},
 			},
 
 			"config": schema.MapAttribute{

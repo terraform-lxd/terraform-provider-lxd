@@ -86,9 +86,6 @@ func (r StorageBucketResource) Schema(ctx context.Context, req resource.SchemaRe
 
 			"remote": schema.StringAttribute{
 				Optional: true,
-				PlanModifiers: []planmodifier.String{
-					stringplanmodifier.RequiresReplace(),
-				},
 			},
 
 			"target": schema.StringAttribute{

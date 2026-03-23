@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
+	"github.com/hashicorp/terraform-plugin-testing/plancheck"
 	"github.com/terraform-lxd/terraform-provider-lxd/internal/acctest"
 	config "github.com/terraform-lxd/terraform-provider-lxd/internal/provider-config"
 )
@@ -310,6 +311,45 @@ func TestAccInstance_renameInstance(t *testing.T) {
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("lxd_instance.instance1", "name", instanceNameE), // Ensure name is unchanged.
 					resource.TestCheckResourceAttr("lxd_instance.instance1", "status", "Running"),
+				),
+			},
+		},
+	})
+}
+
+func TestAccInstance_remoteSwitch(t *testing.T) {
+	instanceName := acctest.GenerateName(2, "-")
+
+	provider := acctest.ProviderWithRemotes(map[string]config.LxdRemote{
+		"local": {Address: "unix://"},
+	})
+
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			acctest.PreCheck(t)
+			acctest.PreCheckStandalone(t)
+			acctest.PreCheckLocalServerHTTPS(t)
+		},
+		ProtoV6ProviderFactories: acctest.ProtoV6ProviderFactories,
+		Steps: []resource.TestStep{
+			{
+				Config: provider + testAccInstance_remoteSwitch(instanceName, ""),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr("lxd_instance.instance1", "name", instanceName),
+					resource.TestCheckResourceAttr("lxd_instance.instance1", "status", "Stopped"),
+				),
+			},
+			{
+				Config: provider + testAccInstance_remoteSwitch(instanceName, "local"),
+				ConfigPlanChecks: resource.ConfigPlanChecks{
+					PreApply: []plancheck.PlanCheck{
+						// Make sure the action is update, and not replace (delete + create).
+						plancheck.ExpectResourceAction("lxd_instance.instance1", plancheck.ResourceActionUpdate),
+					},
+				},
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr("lxd_instance.instance1", "name", instanceName),
+					resource.TestCheckResourceAttr("lxd_instance.instance1", "status", "Stopped"),
 				),
 			},
 		},
@@ -2179,6 +2219,16 @@ resource "lxd_instance" "instance1" {
   image         = "%s"
 }
 	`, name, running, allowRestart, acctest.TestImage)
+}
+
+func testAccInstance_remoteSwitch(name string, remote string) string {
+	return fmt.Sprintf(`
+resource "lxd_instance" "instance1" {
+  name    = "%s"
+  running = false
+  remote  = "%s"
+}
+	`, name, remote)
 }
 
 func testAccInstance_remoteImage(name string) string {

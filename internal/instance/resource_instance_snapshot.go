@@ -88,9 +88,6 @@ func (r InstanceSnapshotResource) Schema(_ context.Context, _ resource.SchemaReq
 
 			"remote": schema.StringAttribute{
 				Optional: true,
-				PlanModifiers: []planmodifier.String{
-					stringplanmodifier.RequiresReplace(),
-				},
 			},
 
 			// Computed.

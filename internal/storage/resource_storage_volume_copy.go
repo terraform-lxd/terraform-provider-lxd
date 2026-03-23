@@ -97,6 +97,7 @@ func (r StorageVolumeCopyResource) Schema(_ context.Context, _ resource.SchemaRe
 			"remote": schema.StringAttribute{
 				Optional: true,
 				PlanModifiers: []planmodifier.String{
+					// Force replace because resource does not implement "Update".
 					stringplanmodifier.RequiresReplace(),
 				},
 			},

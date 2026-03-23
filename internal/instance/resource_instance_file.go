@@ -87,9 +87,6 @@ func (r InstanceFileResource) Schema(_ context.Context, _ resource.SchemaRequest
 
 			"remote": schema.StringAttribute{
 				Optional: true,
-				PlanModifiers: []planmodifier.String{
-					stringplanmodifier.RequiresReplace(),
-				},
 			},
 
 			"content": schema.StringAttribute{

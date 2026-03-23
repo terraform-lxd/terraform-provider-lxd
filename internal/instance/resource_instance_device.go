@@ -86,12 +86,6 @@ func (r InstanceDeviceResource) Schema(ctx context.Context, _ resource.SchemaReq
 			"remote": schema.StringAttribute{
 				Optional:    true,
 				Description: "Remote",
-				PlanModifiers: []planmodifier.String{
-					stringplanmodifier.RequiresReplace(),
-				},
-				Validators: []validator.String{
-					stringvalidator.LengthAtLeast(1),
-				},
 			},
 
 			"target": schema.StringAttribute{

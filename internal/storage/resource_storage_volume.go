@@ -110,9 +110,6 @@ func (r StorageVolumeResource) Schema(_ context.Context, _ resource.SchemaReques
 
 			"remote": schema.StringAttribute{
 				Optional: true,
-				PlanModifiers: []planmodifier.String{
-					stringplanmodifier.RequiresReplace(),
-				},
 			},
 
 			"target": schema.StringAttribute{
