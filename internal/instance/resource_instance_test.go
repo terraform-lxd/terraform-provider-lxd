@@ -160,7 +160,7 @@ func TestAccInstance_virtualMachineNoDevLxd(t *testing.T) {
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("lxd_instance.instance1", "name", instanceName),
 					resource.TestCheckResourceAttr("lxd_instance.instance1", "type", "virtual-machine"),
-					resource.TestCheckResourceAttr("lxd_instance.instance1", "status", "Running"),
+					resource.TestCheckResourceAttr("lxd_instance.instance1", "status", "Stopped"),
 					resource.TestCheckResourceAttr("lxd_instance.instance1", "config.security.devlxd", "false"),
 				),
 			},
@@ -367,7 +367,7 @@ func TestAccInstance_remoteImage(t *testing.T) {
 				Config: acctest.Provider() + testAccInstance_remoteImage(instanceName),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("lxd_instance.instance1", "name", instanceName),
-					resource.TestCheckResourceAttr("lxd_instance.instance1", "status", "Running"),
+					resource.TestCheckResourceAttr("lxd_instance.instance1", "status", "Stopped"),
 					resource.TestCheckResourceAttr("lxd_instance.instance1", "image", acctest.TestImage),
 				),
 			},
@@ -386,7 +386,7 @@ func TestAccInstance_config(t *testing.T) {
 				Config: acctest.Provider() + testAccInstance_config(instanceName),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("lxd_instance.instance1", "name", instanceName),
-					resource.TestCheckResourceAttr("lxd_instance.instance1", "status", "Running"),
+					resource.TestCheckResourceAttr("lxd_instance.instance1", "status", "Stopped"),
 					resource.TestCheckResourceAttr("lxd_instance.instance1", "config.boot.autostart", "1"),
 				),
 			},
@@ -405,7 +405,7 @@ func TestAccInstance_updateConfig(t *testing.T) {
 				Config: acctest.Provider() + testAccInstance_updateConfig1(instanceName),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("lxd_instance.instance1", "name", instanceName),
-					resource.TestCheckResourceAttr("lxd_instance.instance1", "status", "Running"),
+					resource.TestCheckResourceAttr("lxd_instance.instance1", "status", "Stopped"),
 					resource.TestCheckResourceAttr("lxd_instance.instance1", "config.boot.autostart", "1"),
 					resource.TestCheckResourceAttr("lxd_instance.instance1", "config.user.dummy", "5"),
 				),
@@ -414,7 +414,7 @@ func TestAccInstance_updateConfig(t *testing.T) {
 				Config: acctest.Provider() + testAccInstance_updateConfig2(instanceName),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("lxd_instance.instance1", "name", instanceName),
-					resource.TestCheckResourceAttr("lxd_instance.instance1", "status", "Running"),
+					resource.TestCheckResourceAttr("lxd_instance.instance1", "status", "Stopped"),
 					resource.TestCheckResourceAttr("lxd_instance.instance1", "config.user.dummy", "5"),
 					resource.TestCheckResourceAttr("lxd_instance.instance1", "config.user.user-data", "#cloud-config"),
 					resource.TestCheckNoResourceAttr("lxd_instance.instance1", "config.boot.autostart"),
@@ -424,7 +424,7 @@ func TestAccInstance_updateConfig(t *testing.T) {
 				Config: acctest.Provider() + testAccInstance_updateConfig3(instanceName),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("lxd_instance.instance1", "name", instanceName),
-					resource.TestCheckResourceAttr("lxd_instance.instance1", "status", "Running"),
+					resource.TestCheckResourceAttr("lxd_instance.instance1", "status", "Stopped"),
 					resource.TestCheckResourceAttr("lxd_instance.instance1", "config.user.dummy", "5"),
 					resource.TestCheckResourceAttr("lxd_instance.instance1", "config.user.user-data", "#cloud-config"),
 					resource.TestCheckResourceAttr("lxd_instance.instance1", "config.cloud-init.vendor-data", "#cloud-config"),
@@ -446,7 +446,7 @@ func TestAccInstance_addProfile(t *testing.T) {
 				Config: acctest.Provider() + testAccInstance_addProfile_1(instanceName),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("lxd_instance.instance1", "name", instanceName),
-					resource.TestCheckResourceAttr("lxd_instance.instance1", "status", "Running"),
+					resource.TestCheckResourceAttr("lxd_instance.instance1", "status", "Stopped"),
 					resource.TestCheckResourceAttr("lxd_instance.instance1", "profiles.#", "1"),
 					resource.TestCheckResourceAttr("lxd_instance.instance1", "profiles.0", "default"),
 				),
@@ -456,7 +456,7 @@ func TestAccInstance_addProfile(t *testing.T) {
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("lxd_profile.profile1", "name", profileName),
 					resource.TestCheckResourceAttr("lxd_instance.instance1", "name", instanceName),
-					resource.TestCheckResourceAttr("lxd_instance.instance1", "status", "Running"),
+					resource.TestCheckResourceAttr("lxd_instance.instance1", "status", "Stopped"),
 					resource.TestCheckResourceAttr("lxd_instance.instance1", "profiles.#", "2"),
 					resource.TestCheckResourceAttr("lxd_instance.instance1", "profiles.0", "default"),
 					resource.TestCheckResourceAttr("lxd_instance.instance1", "profiles.1", profileName),
@@ -479,7 +479,7 @@ func TestAccInstance_removeProfile(t *testing.T) {
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("lxd_profile.profile1", "name", profileName),
 					resource.TestCheckResourceAttr("lxd_instance.instance1", "name", instanceName),
-					resource.TestCheckResourceAttr("lxd_instance.instance1", "status", "Running"),
+					resource.TestCheckResourceAttr("lxd_instance.instance1", "status", "Stopped"),
 					resource.TestCheckResourceAttr("lxd_instance.instance1", "profiles.#", "2"),
 					resource.TestCheckResourceAttr("lxd_instance.instance1", "profiles.0", "default"),
 					resource.TestCheckResourceAttr("lxd_instance.instance1", "profiles.1", profileName),
@@ -490,7 +490,7 @@ func TestAccInstance_removeProfile(t *testing.T) {
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("lxd_profile.profile1", "name", profileName),
 					resource.TestCheckResourceAttr("lxd_instance.instance1", "name", instanceName),
-					resource.TestCheckResourceAttr("lxd_instance.instance1", "status", "Running"),
+					resource.TestCheckResourceAttr("lxd_instance.instance1", "status", "Stopped"),
 					resource.TestCheckResourceAttr("lxd_instance.instance1", "profiles.#", "1"),
 					resource.TestCheckResourceAttr("lxd_instance.instance1", "profiles.0", "default"),
 				),
@@ -515,7 +515,7 @@ func TestAccInstance_noProfile(t *testing.T) {
 					resource.TestCheckResourceAttr("lxd_storage_pool.pool1", "name", name),
 					resource.TestCheckResourceAttr("lxd_storage_pool.pool1", "driver", "zfs"),
 					resource.TestCheckResourceAttr("lxd_instance.instance1", "name", name),
-					resource.TestCheckResourceAttr("lxd_instance.instance1", "status", "Running"),
+					resource.TestCheckResourceAttr("lxd_instance.instance1", "status", "Stopped"),
 					resource.TestCheckResourceAttr("lxd_instance.instance1", "profiles.#", "0"),
 					resource.TestCheckResourceAttr("lxd_instance.instance1", "device.#", "1"),
 					resource.TestCheckResourceAttr("lxd_instance.instance1", "device.0.type", "disk"),
@@ -538,7 +538,7 @@ func TestAccInstance_device(t *testing.T) {
 				Config: acctest.Provider() + testAccInstance_device_1(instanceName),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("lxd_instance.instance1", "name", instanceName),
-					resource.TestCheckResourceAttr("lxd_instance.instance1", "status", "Running"),
+					resource.TestCheckResourceAttr("lxd_instance.instance1", "status", "Stopped"),
 					resource.TestCheckResourceAttr("lxd_instance.instance1", "device.#", "1"),
 					resource.TestCheckResourceAttr("lxd_instance.instance1", "device.0.name", "shared"),
 					resource.TestCheckResourceAttr("lxd_instance.instance1", "device.0.type", "disk"),
@@ -550,7 +550,7 @@ func TestAccInstance_device(t *testing.T) {
 				Config: acctest.Provider() + testAccInstance_device_2(instanceName),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("lxd_instance.instance1", "name", instanceName),
-					resource.TestCheckResourceAttr("lxd_instance.instance1", "status", "Running"),
+					resource.TestCheckResourceAttr("lxd_instance.instance1", "status", "Stopped"),
 					resource.TestCheckResourceAttr("lxd_instance.instance1", "device.#", "1"),
 					resource.TestCheckResourceAttr("lxd_instance.instance1", "device.0.name", "shared"),
 					resource.TestCheckResourceAttr("lxd_instance.instance1", "device.0.type", "disk"),
@@ -573,7 +573,7 @@ func TestAccInstance_addDevice(t *testing.T) {
 				Config: acctest.Provider() + testAccInstance_addDevice_1(instanceName),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("lxd_instance.instance1", "name", instanceName),
-					resource.TestCheckResourceAttr("lxd_instance.instance1", "status", "Running"),
+					resource.TestCheckResourceAttr("lxd_instance.instance1", "status", "Stopped"),
 					resource.TestCheckResourceAttr("lxd_instance.instance1", "device.#", "0"),
 				),
 			},
@@ -581,7 +581,7 @@ func TestAccInstance_addDevice(t *testing.T) {
 				Config: acctest.Provider() + testAccInstance_addDevice_2(instanceName),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("lxd_instance.instance1", "name", instanceName),
-					resource.TestCheckResourceAttr("lxd_instance.instance1", "status", "Running"),
+					resource.TestCheckResourceAttr("lxd_instance.instance1", "status", "Stopped"),
 					resource.TestCheckResourceAttr("lxd_instance.instance1", "device.#", "1"),
 					resource.TestCheckResourceAttr("lxd_instance.instance1", "device.0.name", "shared"),
 					resource.TestCheckResourceAttr("lxd_instance.instance1", "device.0.type", "disk"),
@@ -604,7 +604,7 @@ func TestAccInstance_removeDevice(t *testing.T) {
 				Config: acctest.Provider() + testAccInstance_removeDevice_1(instanceName),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("lxd_instance.instance1", "name", instanceName),
-					resource.TestCheckResourceAttr("lxd_instance.instance1", "status", "Running"),
+					resource.TestCheckResourceAttr("lxd_instance.instance1", "status", "Stopped"),
 					resource.TestCheckResourceAttr("lxd_instance.instance1", "device.#", "1"),
 					resource.TestCheckResourceAttr("lxd_instance.instance1", "device.0.name", "shared"),
 					resource.TestCheckResourceAttr("lxd_instance.instance1", "device.0.type", "disk"),
@@ -616,7 +616,7 @@ func TestAccInstance_removeDevice(t *testing.T) {
 				Config: acctest.Provider() + testAccInstance_removeDevice_2(instanceName),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("lxd_instance.instance1", "name", instanceName),
-					resource.TestCheckResourceAttr("lxd_instance.instance1", "status", "Running"),
+					resource.TestCheckResourceAttr("lxd_instance.instance1", "status", "Stopped"),
 					resource.TestCheckResourceAttr("lxd_instance.instance1", "device.#", "0"),
 				),
 			},
@@ -1150,7 +1150,7 @@ func TestAccInstance_configLimits(t *testing.T) {
 				Config: acctest.Provider() + testAccInstance_configLimits_1(instanceName),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("lxd_instance.instance1", "name", instanceName),
-					resource.TestCheckResourceAttr("lxd_instance.instance1", "status", "Running"),
+					resource.TestCheckResourceAttr("lxd_instance.instance1", "status", "Stopped"),
 					resource.TestCheckResourceAttr("lxd_instance.instance1", "config.limits.cpu", "1"),
 				),
 			},
@@ -1158,7 +1158,7 @@ func TestAccInstance_configLimits(t *testing.T) {
 				Config: acctest.Provider() + testAccInstance_configLimits_2(instanceName),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("lxd_instance.instance1", "name", instanceName),
-					resource.TestCheckResourceAttr("lxd_instance.instance1", "status", "Running"),
+					resource.TestCheckResourceAttr("lxd_instance.instance1", "status", "Stopped"),
 					resource.TestCheckResourceAttr("lxd_instance.instance1", "config.limits.cpu", "2"),
 					resource.TestCheckResourceAttr("lxd_instance.instance1", "config.limits.memory", "128MiB"),
 				),
@@ -1339,7 +1339,7 @@ func TestAccInstance_createProject(t *testing.T) {
 					resource.TestCheckResourceAttr("lxd_project.project1", "name", projectName),
 					resource.TestCheckResourceAttr("lxd_instance.instance1", "name", instanceName),
 					resource.TestCheckResourceAttr("lxd_instance.instance1", "project", projectName),
-					resource.TestCheckResourceAttr("lxd_instance.instance1", "status", "Running"),
+					resource.TestCheckResourceAttr("lxd_instance.instance1", "status", "Stopped"),
 				),
 			},
 		},
@@ -1542,7 +1542,7 @@ func TestAccInstance_importProject(t *testing.T) {
 			},
 			{
 				ResourceName:                         resourceName,
-				ImportStateId:                        fmt.Sprintf("%s/%s,image=%s", projectName, instanceName, acctest.TestImage),
+				ImportStateId:                        fmt.Sprintf("%s/%s", projectName, instanceName),
 				ImportStateVerifyIdentifierAttribute: "name",
 				ImportStateVerify:                    true,
 				ImportState:                          true,
@@ -1692,21 +1692,19 @@ func testAccInstance_ephemeralStopped(name string) string {
 	return fmt.Sprintf(`
 resource "lxd_instance" "instance1" {
   name      = "%s"
-  image     = "%s"
   running   = false
   ephemeral = true
-}`, name, acctest.TestImage)
+}`, name)
 }
 
 func testAccInstance_container(name string) string {
 	return fmt.Sprintf(`
 resource "lxd_instance" "instance1" {
   name    = "%s"
-  image   = "%s"
   type    = "container"
   running = false
 }
-	`, name, acctest.TestImage)
+	`, name)
 }
 
 func testAccInstance_virtualMachine(name string) string {
@@ -1726,16 +1724,15 @@ resource "lxd_instance" "instance1" {
 func testAccInstance_virtualMachineNoDevLxd(name string) string {
 	return fmt.Sprintf(`
 resource "lxd_instance" "instance1" {
-  name  = "%s"
-  image = "%s"
-  type  = "virtual-machine"
+  name    = "%s"
+  type    = "virtual-machine"
+  running = false
 
   config = {
-    "security.devlxd"     = false
-    %s
+    "security.devlxd" = false
   }
 }
-	`, name, acctest.TestImage, acctest.DisableSecureBootConfigEntry())
+	`, name)
 }
 
 func testAccInstance_started(name string, instanceType string) string {
@@ -1807,62 +1804,62 @@ resource "lxd_instance" "instance1" {
 func testAccInstance_config(name string) string {
 	return fmt.Sprintf(`
 resource "lxd_instance" "instance1" {
-  name  = "%s"
-  image = "%s"
+  name    = "%s"
+  running = false
   config = {
     "boot.autostart" = 1
   }
 }
-	`, name, acctest.TestImage)
+	`, name)
 }
 
 func testAccInstance_updateConfig1(name string) string {
 	return fmt.Sprintf(`
 resource "lxd_instance" "instance1" {
-  name  = "%s"
-  image = "%s"
+  name    = "%s"
+  running = false
   config = {
     "user.dummy"     = 5
     "boot.autostart" = 1
   }
 }
-	`, name, acctest.TestImage)
+	`, name)
 }
 
 func testAccInstance_updateConfig2(name string) string {
 	return fmt.Sprintf(`
 resource "lxd_instance" "instance1" {
-  name  = "%s"
-  image = "%s"
+  name    = "%s"
+  running = false
   config = {
     "user.dummy"     = 5
     "user.user-data" = "#cloud-config"
   }
 }
-	`, name, acctest.TestImage)
+	`, name)
 }
 
 func testAccInstance_updateConfig3(name string) string {
 	return fmt.Sprintf(`
 resource "lxd_instance" "instance1" {
-  name  = "%s"
-  image = "%s"
+  name    = "%s"
+  running = false
   config = {
     "user.dummy"             = 5
     "user.user-data"         = "#cloud-config"
     "cloud-init.vendor-data" = "#cloud-config"
   }
 }
-	`, name, acctest.TestImage)
+	`, name)
 }
 
 func testAccInstance_addProfile_1(instanceName string) string {
 	return fmt.Sprintf(`
 resource "lxd_instance" "instance1" {
-  name  = "%s"
-  image = "%s"
+  name    = "%s"
+  running = false
 }
-	`, instanceName, acctest.TestImage)
+	`, instanceName)
 }
 
 func testAccInstance_addProfile_2(profileName, instanceName string) string {
@@ -1873,10 +1870,10 @@ resource "lxd_profile" "profile1" {
 
 resource "lxd_instance" "instance1" {
   name     = "%s"
-  image    = "%s"
+  running  = false
   profiles = ["default", lxd_profile.profile1.name]
 }
-	`, profileName, instanceName, acctest.TestImage)
+	`, profileName, instanceName)
 }
 
 func testAccInstance_removeProfile_1(profileName, instanceName string) string {
@@ -1887,10 +1884,10 @@ resource "lxd_profile" "profile1" {
 
 resource "lxd_instance" "instance1" {
   name     = "%s"
-  image    = "%s"
+  running  = false
   profiles = ["default", lxd_profile.profile1.name]
 }
-	`, profileName, instanceName, acctest.TestImage)
+	`, profileName, instanceName)
 }
 
 func testAccInstance_removeProfile_2(profileName, instanceName string) string {
@@ -1901,10 +1898,10 @@ resource "lxd_profile" "profile1" {
 
 resource "lxd_instance" "instance1" {
   name     = "%s"
-  image    = "%s"
+  running  = false
   profiles = ["default"]
 }
-	`, profileName, instanceName, acctest.TestImage)
+	`, profileName, instanceName)
 }
 
 func testAccInstance_noProfile(name string) string {
@@ -1916,7 +1913,7 @@ resource "lxd_storage_pool" "pool1" {
 
 resource "lxd_instance" "instance1" {
   name             = "%[1]s"
-  image            = "%s"
+  running          = false
   profiles         = []
 
   device {
@@ -1928,14 +1925,14 @@ resource "lxd_instance" "instance1" {
     }
   }
 }
-	`, name, acctest.TestImage)
+	`, name)
 }
 
 func testAccInstance_device_1(name string) string {
 	return fmt.Sprintf(`
 resource "lxd_instance" "instance1" {
-  name  = "%s"
-  image = "%s"
+  name    = "%s"
+  running = false
 
   device {
     name = "shared"
@@ -1946,14 +1943,14 @@ resource "lxd_instance" "instance1" {
     }
   }
 }
-	`, name, acctest.TestImage)
+	`, name)
 }
 
 func testAccInstance_device_2(name string) string {
 	return fmt.Sprintf(`
 resource "lxd_instance" "instance1" {
-  name  = "%s"
-  image = "%s"
+  name    = "%s"
+  running = false
 
   device {
     name = "shared"
@@ -1964,23 +1961,23 @@ resource "lxd_instance" "instance1" {
     }
   }
 }
-	`, name, acctest.TestImage)
+	`, name)
 }
 
 func testAccInstance_addDevice_1(name string) string {
 	return fmt.Sprintf(`
 resource "lxd_instance" "instance1" {
-  name  = "%s"
-  image = "%s"
+  name    = "%s"
+  running = false
 }
-	`, name, acctest.TestImage)
+	`, name)
 }
 
 func testAccInstance_addDevice_2(name string) string {
 	return fmt.Sprintf(`
 resource "lxd_instance" "instance1" {
-  name  = "%s"
-  image = "%s"
+  name    = "%s"
+  running = false
 
   device {
     name = "shared"
@@ -1991,14 +1988,14 @@ resource "lxd_instance" "instance1" {
     }
   }
 }
-	`, name, acctest.TestImage)
+	`, name)
 }
 
 func testAccInstance_removeDevice_1(name string) string {
 	return fmt.Sprintf(`
 resource "lxd_instance" "instance1" {
-  name  = "%s"
-  image = "%s"
+  name    = "%s"
+  running = false
 
   device {
     name = "shared"
@@ -2009,16 +2006,16 @@ resource "lxd_instance" "instance1" {
     }
   }
 }
-	`, name, acctest.TestImage)
+	`, name)
 }
 
 func testAccInstance_removeDevice_2(name string) string {
 	return fmt.Sprintf(`
 resource "lxd_instance" "instance1" {
-  name  = "%s"
-  image = "%s"
+  name    = "%s"
+  running = false
 }
-	`, name, acctest.TestImage)
+	`, name)
 }
 
 func testAccInstance_fileUploadContent_1(name string) string {
@@ -2362,8 +2359,9 @@ resource "lxd_instance" "instance1" {
 func testAccInstance_remoteImage(name string) string {
 	return fmt.Sprintf(`
 resource "lxd_instance" "instance1" {
-  name  = "%s"
-  image = "%s"
+  name    = "%s"
+  image   = "%s"
+  running = false
 }
 	`, name, acctest.TestImage)
 }
@@ -2371,28 +2369,28 @@ resource "lxd_instance" "instance1" {
 func testAccInstance_configLimits_1(name string) string {
 	return fmt.Sprintf(`
 resource "lxd_instance" "instance1" {
-  name  = "%s"
-  image = "%s"
+  name    = "%s"
+  running = false
 
   config = {
     "limits.cpu" = 1
   }
 }
-	`, name, acctest.TestImage)
+	`, name)
 }
 
 func testAccInstance_configLimits_2(name string) string {
 	return fmt.Sprintf(`
 resource "lxd_instance" "instance1" {
-  name  = "%s"
-  image = "%s"
+  name    = "%s"
+  running = false
 
   config = {
     "limits.cpu"    = 2
     "limits.memory" = "128MiB"
   }
 }
-	`, name, acctest.TestImage)
+	`, name)
 }
 
 func testAccInstance_vm_limits(name string, cpu int, memory string, allowRestart bool) string {
@@ -2552,11 +2550,11 @@ resource "lxd_project" "project1" {
 }
 
 resource "lxd_instance" "instance1" {
-  name  = "%s"
-  image = "%s"
+  name    = "%s"
+  running = false
   project = lxd_project.project1.name
 }
-	`, projectName, instanceName, acctest.TestImage)
+	`, projectName, instanceName)
 }
 
 func testAccInstance_removeProject_1(projectName string, instanceName string) string {
@@ -2571,11 +2569,10 @@ resource "lxd_project" "project1" {
 
 resource "lxd_instance" "instance1" {
   name    = "%s"
-  image   = "%s"
   project = lxd_project.project1.name
   running = false
 }
-	`, projectName, instanceName, acctest.TestImage)
+	`, projectName, instanceName)
 }
 
 func testAccInstance_removeProject_2(projectName string, instanceName string) string {
@@ -2586,10 +2583,9 @@ resource "lxd_project" "project1" {
 
 resource "lxd_instance" "instance1" {
   name    = "%s"
-  image   = "%s"
   running = false
 }
-	`, projectName, instanceName, acctest.TestImage)
+	`, projectName, instanceName)
 }
 
 func testAccInstance_customImageServer(instanceName string) string {

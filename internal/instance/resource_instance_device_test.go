@@ -200,7 +200,6 @@ func testAccInstanceDevice_basic(instanceName string, deviceName string) string 
 	return fmt.Sprintf(`
 resource "lxd_instance" "inst" {
    name    = %q
-   image   = %q
    running = false
 }
 
@@ -221,7 +220,7 @@ data "lxd_instance" "inst" {
       lxd_instance_device.disk_attach
    ]
 }
-   `, instanceName, acctest.TestImage, deviceName, deviceName)
+   `, instanceName, deviceName, deviceName)
 }
 
 func testAccInstanceDevice_volumeAttach(poolName string, volumeName string, instanceName string, mountPath string) string {
@@ -238,7 +237,6 @@ resource "lxd_storage_volume" "volume1" {
 
 resource "lxd_instance" "inst" {
   name    = %q
-  image   = %q
   running = false
 }
 
@@ -261,7 +259,7 @@ data "lxd_instance" "inst" {
       lxd_instance_device.vol_attach
    ]
 }
-	`, poolName, volumeName, instanceName, acctest.TestImage, mountPath)
+	`, poolName, volumeName, instanceName, mountPath)
 }
 
 func testAccInstanceDevice_volumeDetach(poolName string, volumeName string, instanceName string) string {
@@ -278,14 +276,13 @@ resource "lxd_storage_volume" "volume1" {
 
 resource "lxd_instance" "inst" {
   name    = %q
-  image   = %q
   running = false
 }
 
 data "lxd_instance" "inst" {
    name = lxd_instance.inst.name
 }
-	`, poolName, volumeName, instanceName, acctest.TestImage)
+	`, poolName, volumeName, instanceName)
 }
 
 func testAccInstanceDevice_coexistingDevices(poolName string, volumeName string, sharedDiskName string, instanceName string) string {
@@ -302,7 +299,6 @@ resource "lxd_storage_volume" "volume1" {
 
 resource "lxd_instance" "inst" {
   name    = %q
-  image   = %q
   running = false
 
   device {
@@ -334,7 +330,7 @@ data "lxd_instance" "inst" {
       lxd_instance_device.vol_attach
    ]
 }
-   `, poolName, volumeName, instanceName, acctest.TestImage, sharedDiskName)
+   `, poolName, volumeName, instanceName, sharedDiskName)
 }
 
 func testAccInstanceDevice_volumeAttachCluster(instanceName string, poolName string, driver string, volumeName string, targets []string) string {
@@ -361,7 +357,6 @@ resource "lxd_storage_pool" "storage_pool" {
 	config += fmt.Sprintf(`
 resource "lxd_instance" "inst" {
    name    = %q
-   image   = %q
    running = false
 }
 
@@ -383,7 +378,7 @@ resource "lxd_storage_volume" "volume1" {
   pool   = lxd_storage_pool.storage_pool.name
   target = lxd_instance.inst.location
 }
-   `, instanceName, acctest.TestImage, volumeName)
+   `, instanceName, volumeName)
 
 	return config
 }
