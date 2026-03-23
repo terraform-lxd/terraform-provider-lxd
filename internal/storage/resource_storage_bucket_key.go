@@ -310,6 +310,10 @@ func (r StorageBucketKeyResource) ImportState(ctx context.Context, req resource.
 		return
 	}
 
+	if fields["project"] == "" {
+		fields["project"] = provider_config.DefaultProject
+	}
+
 	for k, v := range fields {
 		resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root(k), v)...)
 	}

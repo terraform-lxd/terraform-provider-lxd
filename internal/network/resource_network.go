@@ -320,6 +320,10 @@ func (r NetworkResource) ImportState(ctx context.Context, req resource.ImportSta
 		return
 	}
 
+	if fields["project"] == "" {
+		fields["project"] = provider_config.DefaultProject
+	}
+
 	for k, v := range fields {
 		resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root(k), v)...)
 	}
