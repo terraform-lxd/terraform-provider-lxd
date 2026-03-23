@@ -21,6 +21,9 @@ import (
 // supportedLXDVersions defines LXD versions that are supported by the provider.
 const supportedLXDVersions = ">= 4.0.0"
 
+// DefaultProject is the default LXD project used by the provider when no project is specified.
+const DefaultProject = "default"
+
 // LxdRemote contains the configuration for a single LXD remote.
 type LxdRemote struct {
 	Protocol string
