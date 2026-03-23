@@ -174,7 +174,7 @@ func TestAccProfile_instanceConfig(t *testing.T) {
 					resource.TestCheckResourceAttr("lxd_profile.profile1", "config.%", "1"),
 					resource.TestCheckResourceAttr("lxd_profile.profile1", "config.limits.cpu", "2"),
 					resource.TestCheckResourceAttr("lxd_instance.instance1", "name", instanceName),
-					resource.TestCheckResourceAttr("lxd_instance.instance1", "status", "Running"),
+					resource.TestCheckResourceAttr("lxd_instance.instance1", "status", "Stopped"),
 					resource.TestCheckResourceAttr("lxd_instance.instance1", "profiles.#", "2"),
 					resource.TestCheckResourceAttr("lxd_instance.instance1", "profiles.0", "default"),
 					resource.TestCheckResourceAttr("lxd_instance.instance1", "profiles.1", profileName),
@@ -474,10 +474,10 @@ resource "lxd_profile" "profile1" {
 
 resource "lxd_instance" "instance1" {
   name     = "%s"
-  image    = "%s"
+  running  = false
   profiles = ["default", lxd_profile.profile1.name]
 }
-	`, profileName, instanceName, acctest.TestImage)
+	`, profileName, instanceName)
 }
 
 func testAccProfile_instanceDevice(profileName, instanceName string) string {
@@ -496,10 +496,10 @@ resource "lxd_profile" "profile1" {
 
 resource "lxd_instance" "instance1" {
   name     = "%s"
-  image    = "%s"
+  running  = false
   profiles = ["default", lxd_profile.profile1.name]
 }
-	`, profileName, instanceName, acctest.TestImage)
+	`, profileName, instanceName)
 }
 
 func testAccProfile_project(projectName string, profileName string) string {
