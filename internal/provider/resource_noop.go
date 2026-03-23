@@ -63,6 +63,7 @@ func (r noopResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *
 				Computed: true,
 				Default:  stringdefault.StaticString(""),
 				PlanModifiers: []planmodifier.String{
+					// Force replace because resource does not implement "Update".
 					stringplanmodifier.RequiresReplace(),
 				},
 			},

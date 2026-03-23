@@ -85,9 +85,6 @@ func (r NetworkZoneRecordResource) Schema(_ context.Context, _ resource.SchemaRe
 
 			"remote": schema.StringAttribute{
 				Optional: true,
-				PlanModifiers: []planmodifier.String{
-					stringplanmodifier.RequiresReplace(),
-				},
 			},
 
 			"config": schema.MapAttribute{

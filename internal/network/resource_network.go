@@ -95,9 +95,6 @@ func (r NetworkResource) Schema(_ context.Context, _ resource.SchemaRequest, res
 
 			"remote": schema.StringAttribute{
 				Optional: true,
-				PlanModifiers: []planmodifier.String{
-					stringplanmodifier.RequiresReplace(),
-				},
 			},
 
 			"target": schema.StringAttribute{

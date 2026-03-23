@@ -122,9 +122,6 @@ func (r CachedImageResource) Schema(_ context.Context, _ resource.SchemaRequest,
 
 			"remote": schema.StringAttribute{
 				Optional: true,
-				PlanModifiers: []planmodifier.String{
-					stringplanmodifier.RequiresReplace(),
-				},
 			},
 
 			// Computed attributes.

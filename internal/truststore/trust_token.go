@@ -73,6 +73,7 @@ func (r TrustTokenResource) Schema(_ context.Context, _ resource.SchemaRequest, 
 				Optional:    true,
 				Description: "The remote in which the trust token is created. If not provided, the provider's default remote is used.",
 				PlanModifiers: []planmodifier.String{
+					// Force replace because resource does not implement "Update".
 					stringplanmodifier.RequiresReplace(),
 				},
 			},

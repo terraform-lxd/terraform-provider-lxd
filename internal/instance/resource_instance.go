@@ -177,9 +177,6 @@ func (r InstanceResource) Schema(ctx context.Context, _ resource.SchemaRequest, 
 
 			"remote": schema.StringAttribute{
 				Optional: true,
-				PlanModifiers: []planmodifier.String{
-					stringplanmodifier.RequiresReplace(),
-				},
 			},
 
 			"target": schema.StringAttribute{

@@ -105,9 +105,6 @@ func (r StorageBucketKeyResource) Schema(ctx context.Context, req resource.Schem
 
 			"remote": schema.StringAttribute{
 				Optional: true,
-				PlanModifiers: []planmodifier.String{
-					stringplanmodifier.RequiresReplace(),
-				},
 			},
 
 			// Computed.
