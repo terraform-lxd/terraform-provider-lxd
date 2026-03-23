@@ -28,7 +28,7 @@ resource "lxd_instance" "instance1" {
   }
 }
 
-resource "lxd_volume" "vol1" {
+resource "lxd_storage_volume" "vol1" {
   name   = "vol1"
   pool   = "default"
   type   = "disk"
@@ -50,13 +50,13 @@ resource "lxd_volume" "vol1" {
 # Device attachment after instance creation.
 resource "lxd_device" "vol1" {
   instance     = lxd_instance.instance1.name # Target instance.
-  device_name  = lxd_volume.vol1.name        # Target volume, which is created after instance creation.
+  device_name  = lxd_storage_volume.vol1.name        # Target volume, which is created after instance creation.
   type         = "disk"
 
   properties = {
     path   = "/mnt/vol1"
     pool   = "default"
-    source = lxd_volume.vol1.name
+    source = lxd_storage_volume.vol1.name
   }
 }
 ```

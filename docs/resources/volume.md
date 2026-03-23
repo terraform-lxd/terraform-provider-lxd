@@ -1,6 +1,6 @@
-# lxd_volume
+# lxd_storage_volume
 
-Manages an LXD volume.
+Manages an LXD storage volume.
 
 ## Example Usage
 
@@ -11,7 +11,7 @@ resource "lxd_storage_pool" "pool" {
   driver = "zfs"
 }
 
-resource "lxd_volume" "volume" {
+resource "lxd_storage_volume" "volume" {
   name = "myvolume"
   pool = lxd_storage_pool.pool.name
 }
@@ -26,7 +26,7 @@ resource "lxd_storage_pool" "pool" {
 }
 
 # Create custom volume.
-resource "lxd_volume" "volume" {
+resource "lxd_storage_volume" "volume" {
   name = "myvol"
   pool = lxd_storage_pool.pool.name
 
@@ -54,9 +54,9 @@ resource "lxd_instance" "instance" {
     name = "vol-01"
     type = "disk"
     properties = {
-      path   = "/var/lib/docker"           # Path where volume is mounted within an instance.
-      pool   = lxd_storage_pool.pool.name  # Storage pool name where volume is created.
-      source = lxd_volume.volume.name      # Volume name.
+      path   = "/var/lib/docker"               # Path where volume is mounted within an instance.
+      pool   = lxd_storage_pool.pool.name      # Storage pool name where volume is created.
+      source = lxd_storage_volume.volume.name  # Volume name.
     }
   }
 }
@@ -109,20 +109,20 @@ Import ID syntax: `[<remote>:][<project>]/<pool>/<name>`
 Example using terraform import command:
 
 ```shell
-$ terraform import lxd_volume.myvol proj/pool1/vol1
+$ terraform import lxd_storage_volume.myvol proj/pool1/vol1
 ```
 
 Example using the import block:
 
 ```hcl
-resource "lxd_volume" "myvol" {
+resource "lxd_storage_volume" "myvol" {
   name    = "vol1"
   pool    = "pool1"
   project = "proj"
 }
 
 import {
-  to = lxd_volume.myvol
+  to = lxd_storage_volume.myvol
   id = "proj/pool1/vol1"
 }
 ```

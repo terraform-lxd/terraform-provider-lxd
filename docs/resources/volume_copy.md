@@ -1,6 +1,6 @@
-# lxd_volume_copy
+# lxd_storage_volume_copy
 
-Copies an existing LXD volume.
+Copies an existing LXD storage volume.
 
 ## Example Usage
 
@@ -10,16 +10,16 @@ resource "lxd_storage_pool" "pool1" {
   driver = "dir"
 }
 
-resource "lxd_volume" "volume1" {
+resource "lxd_storage_volume" "volume1" {
   name = "myvolume"
   pool = lxd_storage_pool.pool1.name
 }
 
-resource "lxd_volume_copy" "volume1_copy" {
+resource "lxd_storage_volume_copy" "volume1_copy" {
   name        = "myvolume_copy"
   pool        = lxd_storage_pool.pool1.name
   source_pool = lxd_storage_pool.pool1.name
-  source_name = lxd_volume.volume1.name
+  source_name = lxd_storage_volume.volume1.name
 }
 ```
 
