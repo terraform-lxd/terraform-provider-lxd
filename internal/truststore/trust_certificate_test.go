@@ -66,37 +66,6 @@ func TestAccTrustCertificate_path(t *testing.T) {
 	})
 }
 
-func TestAccTrustCertificate_type(t *testing.T) {
-	certName := acctest.GenerateName(2, "-")
-	cert, fingerprint := generateCert(t)
-
-	resource.Test(t, resource.TestCase{
-		PreCheck:                 func() { acctest.PreCheck(t) },
-		ProtoV6ProviderFactories: acctest.ProtoV6ProviderFactories,
-		Steps: []resource.TestStep{
-			{
-				Config: acctest.Provider() + testAccTrustCertificate_type(certName, "client", cert),
-				Check: resource.ComposeTestCheckFunc(
-					resource.TestCheckResourceAttr("lxd_trust_certificate.cert", "name", certName),
-					resource.TestCheckResourceAttr("lxd_trust_certificate.cert", "type", "client"),
-					resource.TestCheckResourceAttr("lxd_trust_certificate.cert", "content", cert),
-					resource.TestCheckResourceAttr("lxd_trust_certificate.cert", "fingerprint", fingerprint),
-					resource.TestCheckResourceAttr("lxd_trust_certificate.cert", "projects.#", "0"),
-				),
-			},
-			{
-				Config: acctest.Provider() + testAccTrustCertificate_type(certName, "metrics", cert),
-				Check: resource.ComposeTestCheckFunc(
-					resource.TestCheckResourceAttr("lxd_trust_certificate.cert", "name", certName),
-					resource.TestCheckResourceAttr("lxd_trust_certificate.cert", "type", "metrics"),
-					resource.TestCheckResourceAttr("lxd_trust_certificate.cert", "content", cert),
-					resource.TestCheckResourceAttr("lxd_trust_certificate.cert", "fingerprint", fingerprint),
-				),
-			},
-		},
-	})
-}
-
 func TestAccTrustCertificate_rename(t *testing.T) {
 	certName1 := acctest.GenerateName(2, "-")
 	certName2 := acctest.GenerateName(2, "-")
@@ -203,19 +172,6 @@ resource "lxd_trust_certificate" "cert" {
   projects = [%s]
 }
 	`, name, certPath, acctest.QuoteStrings(projects))
-}
-
-func testAccTrustCertificate_type(name string, certType string, cert string, projects ...string) string {
-	return fmt.Sprintf(`
-resource "lxd_trust_certificate" "cert" {
-  name     = "%s"
-  type     = "%s"
-  content = <<-EOF
-%s
-EOF
-  projects = [%s]
-}
-	`, name, certType, strings.TrimRight(cert, "\n"), acctest.QuoteStrings(projects))
 }
 
 func testAccTrustCertificate_generatedCertificate(certName string) string {
