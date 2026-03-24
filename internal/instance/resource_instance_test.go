@@ -1629,6 +1629,11 @@ func testAccInstance_started(name string, instanceType string) string {
 		config = acctest.DisableSecureBootConfigEntry()
 	}
 
+	var waitForAgentConfig string
+	if instanceType == "virtual-machine" {
+		waitForAgentConfig = `wait_for { type = "agent" }`
+	}
+
 	return fmt.Sprintf(`
 resource "lxd_instance" "instance1" {
   name    = "%s"
@@ -1639,8 +1644,10 @@ resource "lxd_instance" "instance1" {
   config = {
     %s
   }
+
+  %s
 }
-	`, name, acctest.TestImage, instanceType, config)
+	`, name, acctest.TestImage, instanceType, config, waitForAgentConfig)
 }
 
 func testAccInstance_empty(name string, instanceType string) string {
@@ -1796,7 +1803,6 @@ resource "lxd_instance" "instance1" {
   name             = "%[1]s"
   image            = "%s"
   profiles         = []
-  wait_for_network = false
 
   device {
     name = "root"
@@ -1954,11 +1960,22 @@ func testAccInstance_fileUploadSource(instanceName string, instanceType string) 
 		config = acctest.DisableSecureBootConfigEntry()
 	}
 
+	var waitForAgentConfig string
+	if instanceType == "virtual-machine" {
+		waitForAgentConfig = `wait_for { type = "agent" }`
+	}
+
 	return fmt.Sprintf(`
 resource "lxd_instance" "instance1" {
   name  = "%s"
   type  = "%s"
   image = "%s"
+
+  config = {
+    %s
+  }
+
+  %s
 
   file {
     source_path        = "../acctest/fixtures/test-file.txt"
@@ -1966,12 +1983,8 @@ resource "lxd_instance" "instance1" {
     mode               = "0644"
     create_directories = true
   }
-
-  config = {
-    %s
-  }
 }
-	`, instanceName, instanceType, acctest.TestImage, config)
+	`, instanceName, instanceType, acctest.TestImage, config, waitForAgentConfig)
 }
 
 func testAccInstance_exec(instanceName string) string {
@@ -2305,6 +2318,11 @@ resource "lxd_instance" "instance1" {
 
   config = {
     "user.access_interface" = "eth0"
+  }
+
+  wait_for {
+    type = "ipv4"
+    nic  = "eth0"
   }
 
   device {

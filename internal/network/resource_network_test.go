@@ -405,7 +405,10 @@ resource "lxd_network" "network" {
 resource "lxd_instance" "instance1" {
   name             = "%s"
   image            = "%s"
-  wait_for_network = true
+
+  wait_for {
+    type = "ipv4"
+  }
 
   device {
     name = "eth0"
@@ -435,7 +438,6 @@ resource "lxd_network" "network" {
 resource "lxd_instance" "instance1" {
   name             = "%s"
   image            = "%s"
-  wait_for_network = false
 
   device {
     name = "eth0"
