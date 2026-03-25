@@ -135,7 +135,7 @@ resource "lxd_instance" "instance1" {
 
 * `ephemeral` - *Optional* - Boolean indicating if this instance is ephemeral. Defaults to `false`.
 
-* `running` - *Optional* - Boolean indicating whether the instance should be started (report status *Running*). Defaults to `true`.
+* `running` - *Optional* - When enabled, the provider starts the instance if it is not already running, and waits for its status to be reported as *Running* or *Ready*. Defaults to `true`.
 
 * `wait_for` - *Optional* - WaitFor definition. See reference below.
   If `running` is set to false or instance is already running (on update), this value has no effect.
