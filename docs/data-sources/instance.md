@@ -35,9 +35,6 @@ This data source exports the following attributes in addition to the arguments a
 
 * `devices` - Map of instance devices. The map key represents a device name.
 
-* `limits` - Map of key/value pairs that define the
-	[instance resources limits](https://documentation.ubuntu.com/lxd/latest/reference/instance_options/#resource-limits).
-
 * `config` - Map of key/value pairs of
 	[instance config settings](https://documentation.ubuntu.com/lxd/latest/reference/instance_options/).
 

@@ -13,10 +13,7 @@ resource "lxd_instance" "instance1" {
 
   config = {
     "boot.autostart" = true
-  }
-
-  limits = {
-    cpu = 2
+    "limits.cpu" = 2
   }
 }
 ```
@@ -151,9 +148,6 @@ resource "lxd_instance" "instance1" {
 * `file` - *Optional* - File to upload to the instance. See reference below.
 
 * `execs` - *Optional* - Map of exec commands to run within the instance. See reference below.
-
-* `limits` - *Optional* - Map of key/value pairs that define the
-	[instance resources limits](https://documentation.ubuntu.com/lxd/latest/reference/instance_options/#resource-limits).
 
 * `config` - *Optional* - Map of key/value pairs of
 	[instance config settings](https://documentation.ubuntu.com/lxd/latest/reference/instance_options/).

@@ -1151,8 +1151,7 @@ func TestAccInstance_configLimits(t *testing.T) {
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("lxd_instance.instance1", "name", instanceName),
 					resource.TestCheckResourceAttr("lxd_instance.instance1", "status", "Running"),
-					resource.TestCheckResourceAttr("lxd_instance.instance1", "limits.%", "1"),
-					resource.TestCheckResourceAttr("lxd_instance.instance1", "limits.cpu", "1"),
+					resource.TestCheckResourceAttr("lxd_instance.instance1", "config.limits.cpu", "1"),
 				),
 			},
 			{
@@ -1160,9 +1159,8 @@ func TestAccInstance_configLimits(t *testing.T) {
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("lxd_instance.instance1", "name", instanceName),
 					resource.TestCheckResourceAttr("lxd_instance.instance1", "status", "Running"),
-					resource.TestCheckResourceAttr("lxd_instance.instance1", "limits.%", "2"),
-					resource.TestCheckResourceAttr("lxd_instance.instance1", "limits.cpu", "2"),
-					resource.TestCheckResourceAttr("lxd_instance.instance1", "limits.memory", "128MiB"),
+					resource.TestCheckResourceAttr("lxd_instance.instance1", "config.limits.cpu", "2"),
+					resource.TestCheckResourceAttr("lxd_instance.instance1", "config.limits.memory", "128MiB"),
 				),
 			},
 		},
@@ -1186,8 +1184,8 @@ func TestAccInstance_vm_configLimits(t *testing.T) {
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("lxd_instance.instance1", "name", instanceName),
 					resource.TestCheckResourceAttr("lxd_instance.instance1", "status", "Running"),
-					resource.TestCheckResourceAttr("lxd_instance.instance1", "limits.cpu", "1"),
-					resource.TestCheckResourceAttr("lxd_instance.instance1", "limits.memory", "512MiB"),
+					resource.TestCheckResourceAttr("lxd_instance.instance1", "config.limits.cpu", "1"),
+					resource.TestCheckResourceAttr("lxd_instance.instance1", "config.limits.memory", "512MiB"),
 				),
 			},
 			{
@@ -1196,8 +1194,8 @@ func TestAccInstance_vm_configLimits(t *testing.T) {
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("lxd_instance.instance1", "name", instanceName),
 					resource.TestCheckResourceAttr("lxd_instance.instance1", "status", "Running"),
-					resource.TestCheckResourceAttr("lxd_instance.instance1", "limits.cpu", "2"),
-					resource.TestCheckResourceAttr("lxd_instance.instance1", "limits.memory", "512MiB"),
+					resource.TestCheckResourceAttr("lxd_instance.instance1", "config.limits.cpu", "2"),
+					resource.TestCheckResourceAttr("lxd_instance.instance1", "config.limits.memory", "512MiB"),
 				),
 			},
 			{
@@ -1210,8 +1208,8 @@ func TestAccInstance_vm_configLimits(t *testing.T) {
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("lxd_instance.instance1", "name", instanceName),
 					resource.TestCheckResourceAttr("lxd_instance.instance1", "status", "Running"),
-					resource.TestCheckResourceAttr("lxd_instance.instance1", "limits.cpu", "2"),
-					resource.TestCheckResourceAttr("lxd_instance.instance1", "limits.memory", "512MiB"),
+					resource.TestCheckResourceAttr("lxd_instance.instance1", "config.limits.cpu", "2"),
+					resource.TestCheckResourceAttr("lxd_instance.instance1", "config.limits.memory", "512MiB"),
 				),
 				ExpectError: regexp.MustCompile("Cannot increase memory"),
 			},
@@ -1221,8 +1219,8 @@ func TestAccInstance_vm_configLimits(t *testing.T) {
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("lxd_instance.instance1", "name", instanceName),
 					resource.TestCheckResourceAttr("lxd_instance.instance1", "status", "Running"),
-					resource.TestCheckResourceAttr("lxd_instance.instance1", "limits.cpu", "2"),
-					resource.TestCheckResourceAttr("lxd_instance.instance1", "limits.memory", "768MiB"),
+					resource.TestCheckResourceAttr("lxd_instance.instance1", "config.limits.cpu", "2"),
+					resource.TestCheckResourceAttr("lxd_instance.instance1", "config.limits.memory", "768MiB"),
 				),
 			},
 		},
@@ -2376,8 +2374,8 @@ resource "lxd_instance" "instance1" {
   name  = "%s"
   image = "%s"
 
-  limits = {
-    "cpu" = 1
+  config = {
+    "limits.cpu" = 1
   }
 }
 	`, name, acctest.TestImage)
@@ -2389,9 +2387,9 @@ resource "lxd_instance" "instance1" {
   name  = "%s"
   image = "%s"
 
-  limits = {
-    "cpu"    = 2
-    "memory" = "128MiB"
+  config = {
+    "limits.cpu"    = 2
+    "limits.memory" = "128MiB"
   }
 }
 	`, name, acctest.TestImage)
@@ -2411,12 +2409,9 @@ resource "lxd_instance" "instance1" {
     type = "agent"
   }
 
-  limits = {
-    "cpu"    = %d
-    "memory" = %q
-  }
-
   config = {
+    "limits.cpu"    = %d
+    "limits.memory" = %q
     %s
   }
 }
