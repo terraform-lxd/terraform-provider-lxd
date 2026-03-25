@@ -180,7 +180,6 @@ resource "lxd_instance" "inst" {
   image            = %q
   profiles         = ["default"]
   ephemeral        = true
-  wait_for_network = false
 }
 
 data "lxd_instance" "inst" {

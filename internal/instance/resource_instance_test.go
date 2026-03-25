@@ -1553,6 +1553,123 @@ func TestAccInstance_importProject(t *testing.T) {
 	})
 }
 
+func TestAccInstance_waitForAgent(t *testing.T) {
+	instanceName := acctest.GenerateName(2, "-")
+
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			acctest.PreCheck(t)
+			acctest.PreCheckVirtualization(t)
+		},
+		ProtoV6ProviderFactories: acctest.ProtoV6ProviderFactories,
+		Steps: []resource.TestStep{
+			{
+				Config: acctest.Provider() + testAccInstance_waitForAgent(instanceName),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr("lxd_instance.instance1", "name", instanceName),
+					resource.TestCheckResourceAttr("lxd_instance.instance1", "type", "virtual-machine"),
+					resource.TestCheckResourceAttr("lxd_instance.instance1", "wait_for.0.type", "agent"),
+				),
+			},
+		},
+	})
+}
+
+func TestAccInstance_waitForDelay(t *testing.T) {
+	instanceName := acctest.GenerateName(2, "-")
+	delay := "3s"
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { acctest.PreCheck(t) },
+		ProtoV6ProviderFactories: acctest.ProtoV6ProviderFactories,
+		Steps: []resource.TestStep{
+			{
+				Config: acctest.Provider() + testAccInstance_waitForDelay(instanceName, delay),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr("lxd_instance.instance1", "name", instanceName),
+					resource.TestCheckResourceAttr("lxd_instance.instance1", "status", "Running"),
+					resource.TestCheckResourceAttr("lxd_instance.instance1", "wait_for.0.type", "delay"),
+					resource.TestCheckResourceAttr("lxd_instance.instance1", "wait_for.0.delay", delay),
+				),
+			},
+		},
+	})
+}
+
+func TestAccInstance_waitForIPv4(t *testing.T) {
+	networkName := acctest.GenerateName(1, "-")
+	instanceName := acctest.GenerateName(2, "-")
+
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			acctest.PreCheck(t)
+			acctest.PreCheckStandalone(t) // Due to standalone network creation.
+		},
+		ProtoV6ProviderFactories: acctest.ProtoV6ProviderFactories,
+		Steps: []resource.TestStep{
+			{
+				Config: acctest.Provider() + testAccInstance_waitForIPv4(networkName, instanceName),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr("lxd_instance.instance1", "name", instanceName),
+					resource.TestCheckResourceAttr("lxd_instance.instance1", "status", "Running"),
+					resource.TestCheckResourceAttr("lxd_instance.instance1", "wait_for.0.type", "ipv4"),
+					resource.TestCheckResourceAttr("lxd_instance.instance1", "wait_for.0.nic", "eth0"),
+				),
+			},
+		},
+	})
+}
+
+func TestAccInstance_waitForIPv6(t *testing.T) {
+	networkName := acctest.GenerateName(1, "-")
+	instanceName := acctest.GenerateName(2, "-")
+
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			acctest.PreCheck(t)
+			acctest.PreCheckStandalone(t) // Due to standalone network creation.
+		},
+		ProtoV6ProviderFactories: acctest.ProtoV6ProviderFactories,
+		Steps: []resource.TestStep{
+			{
+				Config: acctest.Provider() + testAccInstance_waitForIPv6(networkName, instanceName),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr("lxd_instance.instance1", "name", instanceName),
+					resource.TestCheckResourceAttr("lxd_instance.instance1", "status", "Running"),
+					resource.TestCheckResourceAttr("lxd_instance.instance1", "wait_for.0.type", "ipv6"),
+					resource.TestCheckResourceAttr("lxd_instance.instance1", "wait_for.0.nic", "eth0"),
+				),
+			},
+		},
+	})
+}
+
+func TestAccInstance_waitForIPv4AndIPv6(t *testing.T) {
+	networkName := acctest.GenerateName(1, "-")
+	instanceName := acctest.GenerateName(2, "-")
+
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			acctest.PreCheck(t)
+			acctest.PreCheckStandalone(t) // Due to standalone network creation.
+		},
+		ProtoV6ProviderFactories: acctest.ProtoV6ProviderFactories,
+		Steps: []resource.TestStep{
+			{
+				Config: acctest.Provider() + testAccInstance_waitForIPv4AndIPv6(networkName, instanceName),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr("lxd_instance.instance1", "name", instanceName),
+					resource.TestCheckResourceAttr("lxd_instance.instance1", "status", "Running"),
+					resource.TestCheckResourceAttr("lxd_instance.instance1", "wait_for.0.type", "ipv4"),
+					resource.TestCheckResourceAttr("lxd_instance.instance1", "wait_for.0.nic", "eth0"),
+					resource.TestCheckResourceAttr("lxd_instance.instance1", "wait_for.1.type", "ipv6"),
+					resource.TestCheckResourceAttr("lxd_instance.instance1", "wait_for.1.nic", "eth0"),
+				),
+			},
+		},
+	})
+}
+
 func testAccInstance_basic(name string) string {
 	return fmt.Sprintf(`
 resource "lxd_instance" "instance1" {
@@ -1629,6 +1746,11 @@ func testAccInstance_started(name string, instanceType string) string {
 		config = acctest.DisableSecureBootConfigEntry()
 	}
 
+	var waitForAgentConfig string
+	if instanceType == "virtual-machine" {
+		waitForAgentConfig = `wait_for { type = "agent" }`
+	}
+
 	return fmt.Sprintf(`
 resource "lxd_instance" "instance1" {
   name    = "%s"
@@ -1639,8 +1761,10 @@ resource "lxd_instance" "instance1" {
   config = {
     %s
   }
+
+  %s
 }
-	`, name, acctest.TestImage, instanceType, config)
+	`, name, acctest.TestImage, instanceType, config, waitForAgentConfig)
 }
 
 func testAccInstance_empty(name string, instanceType string) string {
@@ -1796,7 +1920,6 @@ resource "lxd_instance" "instance1" {
   name             = "%[1]s"
   image            = "%s"
   profiles         = []
-  wait_for_network = false
 
   device {
     name = "root"
@@ -1954,11 +2077,22 @@ func testAccInstance_fileUploadSource(instanceName string, instanceType string) 
 		config = acctest.DisableSecureBootConfigEntry()
 	}
 
+	var waitForAgentConfig string
+	if instanceType == "virtual-machine" {
+		waitForAgentConfig = `wait_for { type = "agent" }`
+	}
+
 	return fmt.Sprintf(`
 resource "lxd_instance" "instance1" {
   name  = "%s"
   type  = "%s"
   image = "%s"
+
+  config = {
+    %s
+  }
+
+  %s
 
   file {
     source_path        = "../acctest/fixtures/test-file.txt"
@@ -1966,12 +2100,8 @@ resource "lxd_instance" "instance1" {
     mode               = "0644"
     create_directories = true
   }
-
-  config = {
-    %s
-  }
 }
-	`, instanceName, instanceType, acctest.TestImage, config)
+	`, instanceName, instanceType, acctest.TestImage, config, waitForAgentConfig)
 }
 
 func testAccInstance_exec(instanceName string) string {
@@ -2277,6 +2407,10 @@ resource "lxd_instance" "instance1" {
 
   allow_restart = %v
 
+  wait_for {
+    type = "agent"
+  }
+
   limits = {
     "cpu"    = %d
     "memory" = %q
@@ -2305,6 +2439,11 @@ resource "lxd_instance" "instance1" {
 
   config = {
     "user.access_interface" = "eth0"
+  }
+
+  wait_for {
+    type = "ipv4"
+    nic  = "eth0"
   }
 
   device {
@@ -2504,4 +2643,154 @@ resource "lxd_instance" "instance1" {
   image         = %q
 }
 	`, instanceName, target, running, allowRestart, acctest.TestImage)
+}
+
+func testAccInstance_waitForAgent(name string) string {
+	return fmt.Sprintf(`
+resource "lxd_instance" "instance1" {
+  name  = "%s"
+  image = "%s"
+  type  = "virtual-machine"
+
+  config = {
+    %s
+  }
+
+  wait_for {
+    type = "agent"
+  }
+}
+	`, name, acctest.TestImage, acctest.DisableSecureBootConfigEntry())
+}
+
+func testAccInstance_waitForDelay(name string, delay string) string {
+	return fmt.Sprintf(`
+resource "lxd_instance" "instance1" {
+  name  = "%s"
+  image = "%s"
+
+  wait_for {
+    type  = "delay"
+    delay = "%s"
+  }
+}
+	`, name, acctest.TestImage, delay)
+}
+
+func testAccInstance_waitForIPv4(networkName, instanceName string) string {
+	return fmt.Sprintf(`
+resource "lxd_network" "network1" {
+  name = "%s"
+
+  config = {
+    "ipv4.address" = "10.150.18.1/24"
+    "ipv6.address" = "none"
+  }
+}
+
+resource "lxd_instance" "instance1" {
+  name  = "%s"
+  image = "%s"
+
+  config = {
+    "user.access_interface" = "eth0"
+  }
+
+  wait_for {
+    type = "ipv4"
+    nic  = "eth0"
+  }
+
+  device {
+    name = "eth0"
+    type = "nic"
+
+    properties = {
+      nictype        = "bridged"
+      parent         = "${lxd_network.network1.name}"
+      "ipv4.address" = "10.150.18.200"
+    }
+  }
+}
+	`, networkName, instanceName, acctest.TestImage)
+}
+
+func testAccInstance_waitForIPv6(networkName, instanceName string) string {
+	return fmt.Sprintf(`
+resource "lxd_network" "network1" {
+  name = "%s"
+
+  config = {
+    "ipv4.address" = "none"
+    "ipv6.address" = "fd42:1000:1000:1000::1/64"
+  }
+}
+
+resource "lxd_instance" "instance1" {
+  name  = "%s"
+  image = "%s"
+
+  config = {
+    "user.access_interface" = "eth0"
+  }
+
+  wait_for {
+    type = "ipv6"
+    nic  = "eth0"
+  }
+
+  device {
+    name = "eth0"
+    type = "nic"
+
+    properties = {
+      nictype = "bridged"
+      parent  = "${lxd_network.network1.name}"
+    }
+  }
+}
+	`, networkName, instanceName, acctest.TestImage)
+}
+
+func testAccInstance_waitForIPv4AndIPv6(networkName, instanceName string) string {
+	return fmt.Sprintf(`
+resource "lxd_network" "network1" {
+  name = "%s"
+
+  config = {
+    "ipv4.address" = "10.150.18.1/24"
+    "ipv6.address" = "fd42:1000:1000:1000::1/64"
+  }
+}
+
+resource "lxd_instance" "instance1" {
+  name  = "%s"
+  image = "%s"
+
+  config = {
+    "user.access_interface" = "eth0"
+  }
+
+  wait_for {
+    type = "ipv4"
+    nic  = "eth0"
+  }
+
+  wait_for {
+    type = "ipv6"
+    nic  = "eth0"
+  }
+
+  device {
+    name = "eth0"
+    type = "nic"
+
+    properties = {
+      nictype        = "bridged"
+      parent         = "${lxd_network.network1.name}"
+      "ipv4.address" = "10.150.18.200"
+    }
+  }
+}
+	`, networkName, instanceName, acctest.TestImage)
 }

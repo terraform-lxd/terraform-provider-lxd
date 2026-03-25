@@ -43,6 +43,85 @@ resource "lxd_instance" "instance2" {
 }
 ```
 
+## Example of waiting for the LXD agent in a virtual machine
+
+```hcl
+resource "lxd_instance" "instance1" {
+  project = "default"
+  name    = "instance1"
+  image   = "images:debian/12"
+  type    = "virtual-machine"
+
+  wait_for {
+    type = "agent"
+  }
+}
+```
+
+## Example of waiting for a certain time period
+
+```hcl
+resource "lxd_instance" "instance1" {
+  project = "default"
+  name    = "instance1"
+  image   = "images:debian/12"
+
+  wait_for {
+    type  = "delay"
+    delay = "30s"
+  }
+}
+```
+
+## Example of waiting for the IPv4 network to be ready
+
+```hcl
+resource "lxd_instance" "instance1" {
+  project = "default"
+  name    = "instance1"
+  image   = "images:debian/12"
+
+  wait_for {
+    type = "ipv4"
+  }
+}
+```
+
+## Example of waiting for the IPv6 network to be ready on a specific network interface
+
+```hcl
+resource "lxd_instance" "instance1" {
+  project = "default"
+  name    = "instance1"
+  image   = "images:debian/12"
+
+  wait_for {
+    type = "ipv6"
+    nic  = "eth0"
+  }
+}
+```
+
+## Example of waiting for the IPv4 and IPv6 network to be ready on a specific network interface
+
+```hcl
+resource "lxd_instance" "instance1" {
+  project = "default"
+  name    = "instance1"
+  image   = "images:debian/12"
+
+  wait_for {
+    type = "ipv4"
+    nic  = "eth0"
+  }
+
+  wait_for {
+    type = "ipv6"
+    nic  = "eth0"
+  }
+}
+```
+
 ## Argument Reference
 
 * `name` - **Required** - Name of the instance.
@@ -52,14 +131,14 @@ resource "lxd_instance" "instance2" {
 
 * `description` - *Optional* - Description of the instance.
 
-* `type` - *Optional* -  Instance type. Can be `container`, or `virtual-machine`. Defaults to `container`.
+* `type` - *Optional* - Instance type. Can be `container`, or `virtual-machine`. Defaults to `container`.
 
 * `ephemeral` - *Optional* - Boolean indicating if this instance is ephemeral. Defaults to `false`.
 
-* `running` - *Optional* - Boolean indicating whether the instance should be started (running). Defaults to `true`.
+* `running` - *Optional* - Boolean indicating whether the instance should be started (report status *Running*). Defaults to `true`.
 
-* `wait_for_network` - *Optional* - Boolean indicating if the provider should wait for the instance to get an IPv4 address before considering the instance as started.
-  If `running` is set to false or instance is already running (on update), this value has no effect. Defaults to `true`.
+* `wait_for` - *Optional* - WaitFor definition. See reference below.
+  If `running` is set to false or instance is already running (on update), this value has no effect.
 
 * `allow_restart` - *Optional* - Allow instance to be stopped and restarted if required by the provider for operations like migration or renaming.
 
@@ -85,6 +164,19 @@ resource "lxd_instance" "instance2" {
 	not provided, the provider's default remote will be used.
 
 * `target` - *Optional* - Specify a target cluster member or cluster member group.
+
+The `wait_for` block supports:
+
+* `type` - **Required** - Type of condition to wait for. Can be one of the following:
+  + `agent` - Wait for the LXD agent to start within the virtual machine. Only applicable to virtual machines.
+  + `delay` - Wait for a specified time period after the instance has started. Requires the `delay` attribute to be set.
+  + `ipv4` - Wait for the instance to receive a global IPv4 address. Optionally, use `nic` to wait on a specific network interface. If `nic` is not provided, the `user.access_interface` instance config key is used if set, otherwise any network interface is checked.
+  + `ipv6` - Wait for the instance to receive a global IPv6 address. Optionally, use `nic` to wait on a specific network interface. If `nic` is not provided, the instance `user.access_interface` config key is used if set, otherwise any network interface is checked.
+  + `ready` - Wait for the instance to report a *Ready* status. Note that this status is only reported when the instance explicitly signals readiness (e.g., via cloud-init or the LXD agent).
+
+* `delay` - *Optional* - Delay time that should be waited for when type is `delay`, e.g. `30s`.
+
+* `nic` - *Optional* - Network interface that should be waited for when type is `ipv4` or `ipv6`.
 
 The `device` block supports:
 
