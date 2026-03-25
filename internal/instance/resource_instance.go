@@ -49,7 +49,6 @@ type InstanceModel struct {
 	Devices        types.Set    `tfsdk:"device"`
 	Files          types.Set    `tfsdk:"file"`
 	Execs          types.Map    `tfsdk:"execs"`
-	Limits         types.Map    `tfsdk:"limits"`
 	Config         types.Map    `tfsdk:"config"`
 	Project        types.String `tfsdk:"project"`
 	Remote         types.String `tfsdk:"remote"`
@@ -179,18 +178,6 @@ func (r InstanceResource) Schema(ctx context.Context, _ resource.SchemaRequest, 
 				Validators: []validator.List{
 					// Prevent empty values.
 					listvalidator.ValueStringsAre(stringvalidator.LengthAtLeast(1)),
-				},
-			},
-
-			"limits": schema.MapAttribute{
-				Optional:    true,
-				Computed:    true,
-				ElementType: types.StringType,
-				Default:     mapdefault.StaticValue(types.MapValueMust(types.StringType, map[string]attr.Value{})),
-				Validators: []validator.Map{
-					// Prevent empty keys or values.
-					mapvalidator.KeysAre(stringvalidator.LengthAtLeast(1)),
-					mapvalidator.ValueStringsAre(stringvalidator.LengthAtLeast(1)),
 				},
 			},
 
@@ -741,9 +728,6 @@ func (r InstanceResource) Create(ctx context.Context, req resource.CreateRequest
 	config, diags := common.ToConfigMap(ctx, plan.Config)
 	resp.Diagnostics.Append(diags...)
 
-	limits, diags := common.ToConfigMap(ctx, plan.Limits)
-	resp.Diagnostics.Append(diags...)
-
 	if resp.Diagnostics.HasError() {
 		return
 	}
@@ -752,12 +736,6 @@ func (r InstanceResource) Create(ctx context.Context, req resource.CreateRequest
 		// Mark the device as managed by terraform to differentiate between
 		// devices added by terraform and devices added manually.
 		device[common.UserManagedBy] = common.DeviceManagedByTerraform
-	}
-
-	// Merge limits into instance config.
-	for k, v := range limits {
-		key := "limits." + k
-		config[key] = v
 	}
 
 	// Prepare instance request.
@@ -982,9 +960,6 @@ func (r InstanceResource) Update(ctx context.Context, req resource.UpdateRequest
 	devices, diags := common.ToDeviceMap(ctx, plan.Devices)
 	resp.Diagnostics.Append(diags...)
 
-	limits, diag := common.ToConfigMap(ctx, plan.Limits)
-	resp.Diagnostics.Append(diag...)
-
 	userConfig, diags := common.ToConfigMap(ctx, plan.Config)
 	resp.Diagnostics.Append(diags...)
 
@@ -1030,7 +1005,7 @@ func (r InstanceResource) Update(ctx context.Context, req resource.UpdateRequest
 				return
 			}
 
-			newMemory, err := units.ParseByteSizeString(limits["memory"])
+			newMemory, err := units.ParseByteSizeString(config["limits.memory"])
 			if err != nil {
 				resp.Diagnostics.AddError("Failed to parse new memory limit", err.Error())
 				return
@@ -1089,12 +1064,6 @@ func (r InstanceResource) Update(ctx context.Context, req resource.UpdateRequest
 		if !alreadyAdded {
 			devices[deviceName] = device
 		}
-	}
-
-	// Merge limits into instance config.
-	for k, v := range limits {
-		key := "limits." + k
-		config[key] = v
 	}
 
 	newInstance := api.InstancePut{
@@ -1382,16 +1351,6 @@ func (r InstanceResource) SyncState(ctx context.Context, tfState *tfsdk.State, s
 	// Extract user defined config and merge it with current resource config.
 	stateConfig := common.StripConfig(instance.Config, m.Config, m.ComputedKeys())
 
-	// Extract enteries with "limits." prefix.
-	instanceLimits := make(map[string]string)
-	for k, v := range stateConfig {
-		key, ok := strings.CutPrefix(k, "limits.")
-		if ok {
-			instanceLimits[key] = *v
-			delete(stateConfig, k)
-		}
-	}
-
 	// Get devices configured using this instance resource (not device resource).
 	configuredDevices, diags := common.ToDeviceMap(ctx, m.Devices)
 	respDiags.Append(diags...)
@@ -1422,11 +1381,8 @@ func (r InstanceResource) SyncState(ctx context.Context, tfState *tfsdk.State, s
 		}
 	}
 
-	// Convert config, limits, profiles, and devices into schema type.
+	// Convert config, profiles, and devices into schema type.
 	config, diags := common.ToConfigMapType(ctx, stateConfig, m.Config)
-	respDiags.Append(diags...)
-
-	limits, diags := common.ToConfigMapType(ctx, common.ToNullableConfig(instanceLimits), m.Config)
 	respDiags.Append(diags...)
 
 	profiles, diags := ToProfileListType(ctx, instance.Profiles)
@@ -1448,7 +1404,6 @@ func (r InstanceResource) SyncState(ctx context.Context, tfState *tfsdk.State, s
 	m.Ephemeral = types.BoolValue(instance.Ephemeral)
 	m.Status = types.StringValue(instance.Status)
 	m.Profiles = profiles
-	m.Limits = limits
 	m.Devices = devices
 	m.Interfaces = interfaces
 	m.Config = config
