@@ -65,9 +65,8 @@ func TestAccInstance_DS_config(t *testing.T) {
 					resource.TestCheckResourceAttr("data.lxd_instance.inst", "name", instanceName),
 					resource.TestCheckResourceAttr("data.lxd_instance.inst", "status", "Stopped"),
 					resource.TestCheckResourceAttr("data.lxd_instance.inst", "config.boot.autostart", "1"),
-					resource.TestCheckResourceAttr("data.lxd_instance.inst", "limits.%", "2"),
-					resource.TestCheckResourceAttr("data.lxd_instance.inst", "limits.cpu", "2"),
-					resource.TestCheckResourceAttr("data.lxd_instance.inst", "limits.memory", "128MiB"),
+					resource.TestCheckResourceAttr("data.lxd_instance.inst", "config.limits.cpu", "2"),
+					resource.TestCheckResourceAttr("data.lxd_instance.inst", "config.limits.memory", "128MiB"),
 				),
 			},
 		},
@@ -195,13 +194,10 @@ resource "lxd_instance" "inst" {
   image   = %q
   running = false
 
-  limits = {
-    "cpu"    = 2
-    "memory" = "128MiB"
-  }
-
   config = {
     "boot.autostart" = 1
+    "limits.cpu"     = 2
+    "limits.memory"  = "128MiB"
   }
 }
 
