@@ -3,7 +3,6 @@ package instance
 import (
 	"context"
 	"fmt"
-	"strings"
 
 	"github.com/canonical/lxd/shared/api"
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
@@ -32,7 +31,6 @@ type InstanceDataSourceModel struct {
 	Running     types.Bool   `tfsdk:"running"`
 	Profiles    types.List   `tfsdk:"profiles"`
 	Devices     types.Map    `tfsdk:"devices"`
-	Limits      types.Map    `tfsdk:"limits"`
 	Config      types.Map    `tfsdk:"config"`
 	Interfaces  types.Map    `tfsdk:"interfaces"`
 }
@@ -83,11 +81,6 @@ func (d *InstanceDataSource) Schema(_ context.Context, req datasource.SchemaRequ
 			},
 
 			"profiles": schema.ListAttribute{
-				Computed:    true,
-				ElementType: types.StringType,
-			},
-
-			"limits": schema.MapAttribute{
 				Computed:    true,
 				ElementType: types.StringType,
 			},
@@ -269,24 +262,8 @@ func (d *InstanceDataSource) Read(ctx context.Context, req datasource.ReadReques
 		}
 	}
 
-	// Extract limits (the rest is simply config).
-	instanceLimits := make(map[string]string)
-	instanceConfig := make(map[string]string)
-	for k, v := range instance.Config {
-		key, ok := strings.CutPrefix(k, "limits.")
-		if ok {
-			instanceLimits[key] = v
-			continue
-		}
-
-		instanceConfig[k] = v
-	}
-
-	// Convert config, limits, profiles, and devices into schema type.
-	config, diags := common.ToConfigMapType(ctx, common.ToNullableConfig(instanceConfig), state.Config)
-	resp.Diagnostics.Append(diags...)
-
-	limits, diags := common.ToConfigMapType(ctx, common.ToNullableConfig(instanceLimits), state.Limits)
+	// Convert config, profiles, and devices into schema type.
+	config, diags := common.ToConfigMapType(ctx, common.ToNullableConfig(instance.Config), state.Config)
 	resp.Diagnostics.Append(diags...)
 
 	profiles, diags := ToProfileListType(ctx, instance.Profiles)
@@ -310,7 +287,6 @@ func (d *InstanceDataSource) Read(ctx context.Context, req datasource.ReadReques
 	state.Location = types.StringValue(instance.Location)
 	state.Status = types.StringValue(instance.Status)
 	state.Profiles = profiles
-	state.Limits = limits
 	state.Devices = devices
 	state.Interfaces = interfaces
 	state.Config = config
