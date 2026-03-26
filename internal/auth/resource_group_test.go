@@ -335,7 +335,6 @@ func testAccAuthGroup_instanceInProject(name string, project string) string {
 	return resProject + fmt.Sprintf(`
                 resource "lxd_instance" "inst" {
                   name    = %[1]q
-                  image   = %[2]q
                   project = try(lxd_project.proj[0].name, "default")
                   running = false
                 }
@@ -362,6 +361,5 @@ func testAccAuthGroup_instanceInProject(name string, project string) string {
                 }
         `,
 		name,
-		acctest.TestImage,
 	)
 }
