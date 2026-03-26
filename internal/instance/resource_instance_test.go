@@ -145,29 +145,6 @@ func TestAccInstance_virtualMachine(t *testing.T) {
 	})
 }
 
-func TestAccInstance_virtualMachineNoDevLxd(t *testing.T) {
-	instanceName := acctest.GenerateName(2, "-")
-
-	resource.Test(t, resource.TestCase{
-		PreCheck: func() {
-			acctest.PreCheck(t)
-			acctest.PreCheckVirtualization(t)
-		},
-		ProtoV6ProviderFactories: acctest.ProtoV6ProviderFactories,
-		Steps: []resource.TestStep{
-			{
-				Config: acctest.Provider() + testAccInstance_virtualMachineNoDevLxd(instanceName),
-				Check: resource.ComposeTestCheckFunc(
-					resource.TestCheckResourceAttr("lxd_instance.instance1", "name", instanceName),
-					resource.TestCheckResourceAttr("lxd_instance.instance1", "type", "virtual-machine"),
-					resource.TestCheckResourceAttr("lxd_instance.instance1", "status", "Stopped"),
-					resource.TestCheckResourceAttr("lxd_instance.instance1", "config.security.devlxd", "false"),
-				),
-			},
-		},
-	})
-}
-
 func TestAccInstance_restartContainer(t *testing.T) {
 	instanceName := acctest.GenerateName(2, "-")
 	instanceType := "container"
@@ -1719,20 +1696,6 @@ resource "lxd_instance" "instance1" {
   }
 }
 	`, name, acctest.TestImage, acctest.DisableSecureBootConfigEntry())
-}
-
-func testAccInstance_virtualMachineNoDevLxd(name string) string {
-	return fmt.Sprintf(`
-resource "lxd_instance" "instance1" {
-  name    = "%s"
-  type    = "virtual-machine"
-  running = false
-
-  config = {
-    "security.devlxd" = false
-  }
-}
-	`, name)
 }
 
 func testAccInstance_started(name string, instanceType string) string {
