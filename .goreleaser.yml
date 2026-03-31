@@ -38,8 +38,5 @@ archives:
 checksum:
   name_template: '{{ .ProjectName }}_{{ .Version }}_SHA256SUMS'
   algorithm: sha256
-release:
-  # If you want to manually examine the release before its live, uncomment this line:
-  # draft: true
 changelog:
   disable: true
