@@ -31,7 +31,7 @@ resource "lxd_instance" "instance1" {
 resource "lxd_storage_volume" "vol1" {
   name   = "vol1"
   pool   = "default"
-  type   = "disk"
+  type   = "custom"
 
   # In case we want to create the volume on the same cluster member
   # where the instance has been created, the "target" needs to match.
