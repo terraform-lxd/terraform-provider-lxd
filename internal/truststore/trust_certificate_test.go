@@ -125,6 +125,7 @@ func TestAccTrustCertificate_restricted(t *testing.T) {
 		},
 	})
 }
+
 func TestAccTrustCertificate_generatedCertificate(t *testing.T) {
 	certName := acctest.GenerateName(2, "-")
 
