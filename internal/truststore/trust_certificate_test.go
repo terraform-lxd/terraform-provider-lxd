@@ -125,6 +125,7 @@ func TestAccTrustCertificate_restricted(t *testing.T) {
 		},
 	})
 }
+
 func TestAccTrustCertificate_generatedCertificate(t *testing.T) {
 	certName := acctest.GenerateName(2, "-")
 
@@ -183,6 +184,10 @@ resource "tls_private_key" "client_key" {
 resource "tls_self_signed_cert" "client_cert" {
   private_key_pem       = tls_private_key.client_key.private_key_pem
   validity_period_hours = 1
+
+  subject {
+    common_name = "test-client"
+  }
 
   allowed_uses = [
     "client_auth",

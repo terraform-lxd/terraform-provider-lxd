@@ -37,7 +37,7 @@ type StoragePoolModel struct {
 	Config      types.Map    `tfsdk:"config"`
 }
 
-// StoragePoolResource represent LXD storage pool resource.
+// StoragePoolResource represents LXD storage pool resource.
 type StoragePoolResource struct {
 	provider *provider_config.LxdProviderConfig
 }
@@ -389,11 +389,11 @@ func (m StoragePoolModel) ComputedKeys(driver string) []string {
 			"size",
 		}
 	case "ceph":
-		// TODO
+		// Ceph block storage pools currently have no additional computed keys defined.
 	case "cephfs":
-		// TODO
+		// CephFS storage pools currently have no additional computed keys defined.
 	case "cephobject":
-		// TODO
+		// Ceph object storage pools currently have no additional computed keys defined.
 	}
 
 	return append(keys, "volatile.")

@@ -31,7 +31,7 @@ resource "lxd_instance" "instance1" {
 resource "lxd_storage_volume" "vol1" {
   name   = "vol1"
   pool   = "default"
-  type   = "disk"
+  type   = "custom"
 
   # In case we want to create the volume on the same cluster member
   # where the instance has been created, the "target" needs to match.
@@ -42,13 +42,13 @@ resource "lxd_storage_volume" "vol1" {
   # after instance creation.
   target = lxd_instance.instance1.location
 
-  config {
+  config = {
     size = "10GB"
   }
 }
 
 # Device attachment after instance creation.
-resource "lxd_device" "vol1" {
+resource "lxd_instance_device" "vol1" {
   instance     = lxd_instance.instance1.name # Target instance.
   device_name  = lxd_storage_volume.vol1.name        # Target volume, which is created after instance creation.
   type         = "disk"

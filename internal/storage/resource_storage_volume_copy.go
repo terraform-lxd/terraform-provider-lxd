@@ -20,14 +20,15 @@ import (
 
 // StorageVolumeCopyModel represents a LXD storage volume copy.
 type StorageVolumeCopyModel struct {
-	Name         types.String `tfsdk:"name"`
-	Pool         types.String `tfsdk:"pool"`
-	SourceName   types.String `tfsdk:"source_name"`
-	SourcePool   types.String `tfsdk:"source_pool"`
-	SourceRemote types.String `tfsdk:"source_remote"`
-	Project      types.String `tfsdk:"project"`
-	Target       types.String `tfsdk:"target"`
-	Remote       types.String `tfsdk:"remote"`
+	Name          types.String `tfsdk:"name"`
+	Pool          types.String `tfsdk:"pool"`
+	SourceName    types.String `tfsdk:"source_name"`
+	SourcePool    types.String `tfsdk:"source_pool"`
+	SourceProject types.String `tfsdk:"source_project"`
+	SourceRemote  types.String `tfsdk:"source_remote"`
+	Project       types.String `tfsdk:"project"`
+	Target        types.String `tfsdk:"target"`
+	Remote        types.String `tfsdk:"remote"`
 }
 
 // StorageVolumeCopyResource represent LXD storage volume copy resource.
@@ -82,6 +83,19 @@ func (r StorageVolumeCopyResource) Schema(_ context.Context, _ resource.SchemaRe
 				Description: "The remote from which the source volume is copied.",
 				PlanModifiers: []planmodifier.String{
 					stringplanmodifier.RequiresReplace(),
+				},
+			},
+
+			"source_project": schema.StringAttribute{
+				Optional:    true,
+				Computed:    true,
+				Default:     stringdefault.StaticString(provider_config.DefaultProject),
+				Description: "The project from which the source volume is copied.",
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.RequiresReplace(),
+				},
+				Validators: []validator.String{
+					stringvalidator.LengthAtLeast(1),
 				},
 			},
 
@@ -150,7 +164,8 @@ func (r StorageVolumeCopyResource) Create(ctx context.Context, req resource.Crea
 		return
 	}
 
-	srcServer, err := r.provider.InstanceServer(plan.SourceRemote.ValueString(), "", "")
+	srcProject := plan.SourceProject.ValueString()
+	srcServer, err := r.provider.InstanceServer(plan.SourceRemote.ValueString(), srcProject, "")
 	if err != nil {
 		resp.Diagnostics.Append(errors.NewInstanceServerError(err))
 		return
