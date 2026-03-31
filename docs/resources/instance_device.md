@@ -42,7 +42,7 @@ resource "lxd_storage_volume" "vol1" {
   # after instance creation.
   target = lxd_instance.instance1.location
 
-  config {
+  config = {
     size = "10GB"
   }
 }
