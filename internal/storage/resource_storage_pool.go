@@ -37,7 +37,7 @@ type StoragePoolModel struct {
 	Config      types.Map    `tfsdk:"config"`
 }
 
-// StoragePoolResource represent LXD storage pool resource.
+// StoragePoolResource represents LXD storage pool resource.
 type StoragePoolResource struct {
 	provider *provider_config.LxdProviderConfig
 }
