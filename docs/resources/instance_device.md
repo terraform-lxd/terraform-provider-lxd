@@ -48,7 +48,7 @@ resource "lxd_storage_volume" "vol1" {
 }
 
 # Device attachment after instance creation.
-resource "lxd_device" "vol1" {
+resource "lxd_instance_device" "vol1" {
   instance     = lxd_instance.instance1.name # Target instance.
   device_name  = lxd_storage_volume.vol1.name        # Target volume, which is created after instance creation.
   type         = "disk"
