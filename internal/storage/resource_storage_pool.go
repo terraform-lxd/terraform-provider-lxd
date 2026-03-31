@@ -389,11 +389,11 @@ func (m StoragePoolModel) ComputedKeys(driver string) []string {
 			"size",
 		}
 	case "ceph":
-		// TODO
+		// Ceph block storage pools currently have no additional computed keys defined.
 	case "cephfs":
-		// TODO
+		// CephFS storage pools currently have no additional computed keys defined.
 	case "cephobject":
-		// TODO
+		// Ceph object storage pools currently have no additional computed keys defined.
 	}
 
 	return append(keys, "volatile.")
