@@ -171,7 +171,11 @@ func (r StoragePoolResource) Create(ctx context.Context, req resource.CreateRequ
 		},
 	}
 
-	err = server.CreateStoragePool(pool)
+	op, err := server.CreateStoragePool(pool)
+	if err == nil {
+		err = op.WaitContext(ctx)
+	}
+
 	if err != nil {
 		resp.Diagnostics.AddError(fmt.Sprintf("Failed to create storage pool %q", pool.Name), err.Error())
 		return
@@ -253,7 +257,11 @@ func (r StoragePoolResource) Update(ctx context.Context, req resource.UpdateRequ
 		Config:      config,
 	}
 
-	err = server.UpdateStoragePool(poolName, newPool, etag)
+	op, err := server.UpdateStoragePool(poolName, newPool, etag)
+	if err == nil {
+		err = op.WaitContext(ctx)
+	}
+
 	if err != nil {
 		resp.Diagnostics.AddError(fmt.Sprintf("Failed to update storage pool %q", poolName), err.Error())
 		return
@@ -283,7 +291,11 @@ func (r StoragePoolResource) Delete(ctx context.Context, req resource.DeleteRequ
 	}
 
 	poolName := state.Name.ValueString()
-	err = server.DeleteStoragePool(poolName)
+	op, err := server.DeleteStoragePool(poolName)
+	if err == nil {
+		err = op.WaitContext(ctx)
+	}
+
 	if err != nil {
 		// When clustered storage pool is removed, per target storage
 		// pools will no longer exist.

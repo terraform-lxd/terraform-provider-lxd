@@ -112,7 +112,8 @@ jobs:
       fail-fast: false
       matrix:
         os:
-          - ubuntu-24.04
+          # TODO: Shift back to 24.04 once AppArmor issue on 6.17 kernel is fixed.
+          - ubuntu-22.04
         channel:
           - 5.21/stable
           - 5.21/edge
