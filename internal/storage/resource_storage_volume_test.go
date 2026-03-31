@@ -245,7 +245,6 @@ resource "lxd_storage_volume" "volume1" {
 
 resource "lxd_instance" "instance1" {
   name    = "%s"
-  image   = "%s"
   running = false
 
   device {
@@ -258,7 +257,7 @@ resource "lxd_instance" "instance1" {
     }
   }
 }
-	`, poolName, volumeName, instanceName, acctest.TestImage)
+	`, poolName, volumeName, instanceName)
 }
 
 func testAccStorageVolume_target(volumeName string, target string) string {

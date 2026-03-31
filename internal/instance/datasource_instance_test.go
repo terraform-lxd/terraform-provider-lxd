@@ -162,14 +162,13 @@ func testAccInstance_DS_basic(name string) string {
 	return fmt.Sprintf(`
 resource "lxd_instance" "inst" {
   name    = %q
-  image   = %q
   running = false
 }
 
 data "lxd_instance" "inst" {
   name = lxd_instance.inst.name
 }
-  `, name, acctest.TestImage)
+  `, name)
 }
 
 func testAccInstance_DS_ephemeral(name string) string {
@@ -191,7 +190,6 @@ func testAccInstance_DS_config(name string) string {
 	return fmt.Sprintf(`
 resource "lxd_instance" "inst" {
   name    = %q
-  image   = %q
   running = false
 
   config = {
@@ -204,14 +202,13 @@ resource "lxd_instance" "inst" {
 data "lxd_instance" "inst" {
   name = lxd_instance.inst.name
 }
-  `, name, acctest.TestImage)
+  `, name)
 }
 
 func testAccInstance_DS_device(name string) string {
 	return fmt.Sprintf(`
 resource "lxd_instance" "inst" {
   name    = %q
-  image   = %q
   running = false
 
   device {
@@ -227,7 +224,7 @@ resource "lxd_instance" "inst" {
 data "lxd_instance" "inst" {
   name = lxd_instance.inst.name
 }
-  `, name, acctest.TestImage)
+  `, name)
 }
 
 func testAccInstance_DS_accessInterface(networkName string, instanceName string, running bool) string {
@@ -280,7 +277,6 @@ resource "lxd_project" "proj" {
 
 resource "lxd_instance" "inst" {
   name    = %q
-  image   = %q
   running = false
   project = lxd_project.proj.name
 }
@@ -289,5 +285,5 @@ data "lxd_instance" "inst" {
   name    = lxd_instance.inst.name
   project = lxd_instance.inst.project
 }
-  `, projectName, instanceName, acctest.TestImage)
+  `, projectName, instanceName)
 }

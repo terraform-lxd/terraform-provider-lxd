@@ -123,8 +123,7 @@ resource "lxd_instance" "instance1" {
 
 * `name` - **Required** - Name of the instance.
 
-* `image` - **Optional** - Base image from which the instance will be created. **For containers** it must
-  specify [an image accessible from the provider remote](https://documentation.ubuntu.com/lxd/latest/reference/remote_image_servers/). If omitted, it is equivalent to the `--empty` CLI flag and creates an empty virtual machine.
+* `image` - *Optional* - Base image from which the instance will be created. If omitted, an empty instance is created, which is equivalent to the `--empty` CLI flag. For a container to be started, [an image accessible from the provider remote](https://documentation.ubuntu.com/lxd/latest/reference/remote_image_servers/) must be specified.
 
 * `description` - *Optional* - Description of the instance.
 

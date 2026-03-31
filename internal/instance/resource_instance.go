@@ -571,12 +571,12 @@ func (r InstanceResource) ValidateConfig(ctx context.Context, req resource.Valid
 		)
 	}
 
-	// Ensure image is set for container instances
-	if config.Image.IsNull() && config.Type.ValueString() == "container" {
+	// Ensure empty container cannot be started.
+	if running && (config.Image.IsNull() || config.Image.ValueString() == "") && config.Type.ValueString() == "container" {
 		resp.Diagnostics.AddAttributeError(
 			path.Root("image"),
 			fmt.Sprintf("Instance %q is a container and requires image", config.Name.ValueString()),
-			fmt.Sprintf("Container instances require a rootfs (image), therefore attribute %q must be set.", "image"),
+			`Container instances require a rootfs (image) to be started, therefore attribute "image" must be set.`,
 		)
 	}
 
