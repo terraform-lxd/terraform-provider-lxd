@@ -21,11 +21,11 @@ runs:
   using: composite
   steps:
     - name: Reclaim disk space
-      uses: canonical/lxd/.github/actions/reclaim-disk-space@main
+      uses: canonical/lxd/.github/actions/reclaim-disk-space@main # zizmor: ignore[unpinned-uses]
 
       # Remove Docker to avoid conflicts with LXD networks.
     - name: Remove Docker
-      uses: canonical/lxd/.github/actions/disable-docker@main
+      uses: canonical/lxd/.github/actions/disable-docker@main # zizmor: ignore[unpinned-uses]
 
     - name: Remove existing snaps
       shell: bash

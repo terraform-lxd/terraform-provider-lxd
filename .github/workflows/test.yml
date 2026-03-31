@@ -69,7 +69,7 @@ jobs:
           lxc remote add localhost "$(lxc config trust add --name lxd-terraform-provider --quiet)"
 
       - name: Download minio/mc
-        uses: canonical/lxd/.github/actions/download-minio@main
+        uses: canonical/lxd/.github/actions/download-minio@main # zizmor: ignore[unpinned-uses]
         if: ${{ matrix.channel != '5.0/stable' && matrix.channel != '5.0/edge' }}
 
       - name: Configure MinIO
@@ -178,7 +178,7 @@ jobs:
           persist-credentials: false
 
       - name: Require GHA pinning
-        uses: canonical/lxd/.github/actions/require-gha-pinning@main
+        uses: canonical/lxd/.github/actions/require-gha-pinning@main # zizmor: ignore[unpinned-uses]
 
       - name: Install Go
         uses: actions/setup-go@4b73464bb391d4059bd26b0524d20df3927bd417 # v6.3.0
