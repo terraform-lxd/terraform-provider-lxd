@@ -167,7 +167,11 @@ func (r StorageBucketResource) Create(ctx context.Context, req resource.CreateRe
 		},
 	}
 
-	_, err = server.CreateStoragePoolBucket(poolName, bucket)
+	op, err := server.CreateStoragePoolBucket(poolName, bucket)
+	if err == nil {
+		err = op.WaitContext(ctx)
+	}
+
 	if err != nil {
 		resp.Diagnostics.AddError(fmt.Sprintf("Failed to create storage bucket %q", bucketName), err.Error())
 		return
@@ -237,7 +241,11 @@ func (r StorageBucketResource) Update(ctx context.Context, req resource.UpdateRe
 		Description: plan.Description.ValueString(),
 	}
 
-	err = server.UpdateStoragePoolBucket(poolName, bucketName, newBucket, etag)
+	op, err := server.UpdateStoragePoolBucket(poolName, bucketName, newBucket, etag)
+	if err == nil {
+		err = op.WaitContext(ctx)
+	}
+
 	if err != nil {
 		resp.Diagnostics.AddError(fmt.Sprintf("Failed to update storage bucket %q", bucketName), err.Error())
 		return
@@ -266,7 +274,11 @@ func (r StorageBucketResource) Delete(ctx context.Context, req resource.DeleteRe
 
 	poolName := state.Pool.ValueString()
 	bucketName := state.Name.ValueString()
-	err = server.DeleteStoragePoolBucket(poolName, bucketName)
+	op, err := server.DeleteStoragePoolBucket(poolName, bucketName)
+	if err == nil {
+		err = op.WaitContext(ctx)
+	}
+
 	if err != nil {
 		resp.Diagnostics.AddError(fmt.Sprintf("Failed to delete storage bucket %q", bucketName), err.Error())
 		return
