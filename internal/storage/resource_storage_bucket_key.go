@@ -37,12 +37,12 @@ type StorageBucketKeyModel struct {
 	SecretKey types.String `tfsdk:"secret_key"`
 }
 
-// StorageBucketKeyResource represent LXD storage bucket key resource.
+// StorageBucketKeyResource represents a LXD storage bucket key resource.
 type StorageBucketKeyResource struct {
 	provider *provider_config.LxdProviderConfig
 }
 
-// NewStorageBucketKeyResource return a new storage bucket key resource.
+// NewStorageBucketKeyResource returns a new storage bucket key resource.
 func NewStorageBucketKeyResource() resource.Resource {
 	return &StorageBucketKeyResource{}
 }
@@ -232,7 +232,7 @@ func (r StorageBucketKeyResource) Update(ctx context.Context, req resource.Updat
 	poolName := plan.Pool.ValueString()
 	bucketName := plan.Bucket.ValueString()
 
-	// Ensure strorage bucket exists.
+	// Ensure storage bucket exists.
 	_, _, err = server.GetStoragePoolBucket(poolName, bucketName)
 	if err != nil {
 		resp.Diagnostics.AddError(fmt.Sprintf("Failed to retrieve storage bucket %q", bucketName), err.Error())
