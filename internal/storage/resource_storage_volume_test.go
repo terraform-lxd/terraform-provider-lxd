@@ -129,6 +129,28 @@ func TestAccStorageVolume_contentType(t *testing.T) {
 					resource.TestCheckResourceAttr("lxd_storage_volume.volume1", "content_type", "block"),
 				),
 			},
+			{
+				// Update the storage volume back to the default filesystem content type.
+				Config: acctest.Provider() + testAccStorageVolume_contentTypeFilesystem(poolName, volumeName),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr("lxd_storage_pool.pool1", "name", poolName),
+					resource.TestCheckResourceAttr("lxd_storage_pool.pool1", "driver", "zfs"),
+					resource.TestCheckResourceAttr("lxd_storage_volume.volume1", "name", volumeName),
+					resource.TestCheckResourceAttr("lxd_storage_volume.volume1", "pool", poolName),
+					resource.TestCheckResourceAttr("lxd_storage_volume.volume1", "content_type", "filesystem"),
+				),
+			},
+			{
+				// Change the storage volume content type back to block to verify updates are reflected.
+				Config: acctest.Provider() + testAccStorageVolume_contentType(poolName, volumeName),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr("lxd_storage_pool.pool1", "name", poolName),
+					resource.TestCheckResourceAttr("lxd_storage_pool.pool1", "driver", "zfs"),
+					resource.TestCheckResourceAttr("lxd_storage_volume.volume1", "name", volumeName),
+					resource.TestCheckResourceAttr("lxd_storage_volume.volume1", "pool", poolName),
+					resource.TestCheckResourceAttr("lxd_storage_volume.volume1", "content_type", "block"),
+				),
+			},
 		},
 	})
 }
@@ -157,6 +179,31 @@ func TestAccStorageVolume_importBasic(t *testing.T) {
 			},
 		},
 	})
+}
+
+// Configuration used to verify that volume-level config overrides inherited pool-level config.
+func testAccStorageVolume_inheritedStoragePoolVolumeKeysOverride(poolName, volumeName string) string {
+	return fmt.Sprintf(`
+resource "lxd_storage_pool" "pool1" {
+  name   = "%s"
+  driver = "zfs"
+  config = {
+    "volume.zfs.remove_snapshots" = true
+    "volume.zfs.use_refquota"     = true
+  }
+}
+
+resource "lxd_storage_volume" "volume1" {
+  name         = "%s"
+  pool         = lxd_storage_pool.pool1.name
+  content_type = "block"
+
+  config = {
+    // Explicitly set size on the volume
+    size = "5GiB"
+  }
+}
+	`, poolName, volumeName)
 }
 
 func TestAccStorageVolume_importProject(t *testing.T) {
@@ -211,6 +258,17 @@ func TestAccStorageVolume_inheritedStoragePoolKeys(t *testing.T) {
 					// Ensure computed keys are not tracked.
 					resource.TestCheckNoResourceAttr("lxd_storage_volume.volume1", "config.zfs.remove_snapshots"),
 					resource.TestCheckNoResourceAttr("lxd_storage_volume.volume1", "config.zfs.use_refquota"),
+				),
+			},
+			// Verify that explicitly set volume-level config keys override inherited pool-level keys
+			{
+				Config: acctest.Provider() + testAccStorageVolume_inheritedStoragePoolVolumeKeysOverride(poolName, volumeName),
+				Check: resource.ComposeTestCheckFunc(
+					// Pool still has its original config
+					resource.TestCheckResourceAttr("lxd_storage_pool.pool1", "name", poolName),
+					// Volume explicitly overrides a config key that exists on the pool
+					resource.TestCheckResourceAttr("lxd_storage_volume.volume1", "name", volumeName),
+					resource.TestCheckResourceAttr("lxd_storage_volume.volume1", "config.size", "5GiB"),
 				),
 			},
 		},
@@ -298,6 +356,21 @@ resource "lxd_storage_volume" "volume1" {
   name         = "%s"
   pool         = lxd_storage_pool.pool1.name
   content_type = "block"
+}
+	`, poolName, volumeName)
+}
+
+func testAccStorageVolume_contentTypeFilesystem(poolName, volumeName string) string {
+	return fmt.Sprintf(`
+resource "lxd_storage_pool" "pool1" {
+  name   = "%s"
+  driver = "zfs"
+}
+
+resource "lxd_storage_volume" "volume1" {
+  name         = "%s"
+  pool         = lxd_storage_pool.pool1.name
+  content_type = "filesystem"
 }
 	`, poolName, volumeName)
 }
