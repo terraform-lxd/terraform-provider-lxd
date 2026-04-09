@@ -36,6 +36,8 @@ resource "lxd_storage_volume_copy" "volume1_copy" {
 * `source_remote` - *Optional* - The remote from which the source volume is to be copied. If
 	it is not provided, the default provider remote is used.
 
+* `source_project` - *Optional* - Name of the project from which the source volume is copied. Defaults to `default`.
+
 * `project` - *Optional* - Name of the target project where the volume will be copied to.
 
 * `remote` - *Optional* - The remote in which the resource will be created. If

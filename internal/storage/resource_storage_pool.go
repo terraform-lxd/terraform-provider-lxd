@@ -389,11 +389,11 @@ func (m StoragePoolModel) ComputedKeys(driver string) []string {
 			"size",
 		}
 	case "ceph":
-		// Ceph block storage pools currently have no additional computed keys defined.
+		// TODO: Add computed keys for Ceph block storage pools: https://github.com/terraform-lxd/terraform-provider-lxd/issues/644
 	case "cephfs":
-		// CephFS storage pools currently have no additional computed keys defined.
+		// TODO: Add computed keys for CephFS storage pools: https://github.com/terraform-lxd/terraform-provider-lxd/issues/644
 	case "cephobject":
-		// Ceph object storage pools currently have no additional computed keys defined.
+		// TODO: Add computed keys for Ceph object storage pools: https://github.com/terraform-lxd/terraform-provider-lxd/issues/644
 	}
 
 	return append(keys, "volatile.")
