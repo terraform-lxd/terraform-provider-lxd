@@ -182,7 +182,11 @@ func (r NetworkResource) Create(ctx context.Context, req resource.CreateRequest,
 		},
 	}
 
-	err = server.CreateNetwork(network)
+	op, err := server.CreateNetwork(network)
+	if err == nil {
+		err = op.WaitContext(ctx)
+	}
+
 	if err != nil {
 		resp.Diagnostics.AddError(fmt.Sprintf("Failed to create network %q", network.Name), err.Error())
 		return
@@ -263,7 +267,11 @@ func (r NetworkResource) Update(ctx context.Context, req resource.UpdateRequest,
 		Config:      config,
 	}
 
-	err = server.UpdateNetwork(networkName, newNetwork, etag)
+	op, err := server.UpdateNetwork(networkName, newNetwork, etag)
+	if err == nil {
+		err = op.WaitContext(ctx)
+	}
+
 	if err != nil {
 		resp.Diagnostics.AddError(fmt.Sprintf("Failed to update network %q", networkName), err.Error())
 		return
@@ -293,7 +301,11 @@ func (r NetworkResource) Delete(ctx context.Context, req resource.DeleteRequest,
 	}
 
 	networkName := state.Name.ValueString()
-	err = server.DeleteNetwork(networkName)
+	op, err := server.DeleteNetwork(networkName)
+	if err == nil {
+		err = op.WaitContext(ctx)
+	}
+
 	if err != nil {
 		// When clustered network is removed, per target networks
 		// will no longer exist.

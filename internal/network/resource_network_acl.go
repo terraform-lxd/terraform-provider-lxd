@@ -248,7 +248,11 @@ func (r *NetworkAclResource) Create(ctx context.Context, req resource.CreateRequ
 		},
 	}
 
-	err = server.CreateNetworkACL(aclReq)
+	op, err := server.CreateNetworkACL(aclReq)
+	if err == nil {
+		err = op.WaitContext(ctx)
+	}
+
 	if err != nil {
 		resp.Diagnostics.AddError(fmt.Sprintf("Failed to create network ACL %q", aclName), err.Error())
 		return
@@ -323,7 +327,11 @@ func (r *NetworkAclResource) Update(ctx context.Context, req resource.UpdateRequ
 		Ingress:     ingress,
 	}
 
-	err = server.UpdateNetworkACL(aclName, aclReq, etag)
+	op, err := server.UpdateNetworkACL(aclName, aclReq, etag)
+	if err == nil {
+		err = op.WaitContext(ctx)
+	}
+
 	if err != nil {
 		resp.Diagnostics.AddError(fmt.Sprintf("Failed to update network ACL %q", aclName), err.Error())
 		return
@@ -351,9 +359,14 @@ func (r *NetworkAclResource) Delete(ctx context.Context, req resource.DeleteRequ
 	}
 
 	aclName := state.Name.ValueString()
-	err = server.DeleteNetworkACL(aclName)
+	op, err := server.DeleteNetworkACL(aclName)
+	if err == nil {
+		err = op.WaitContext(ctx)
+	}
+
 	if err != nil {
 		resp.Diagnostics.AddError(fmt.Sprintf("Failed to remove network ACL %q", aclName), err.Error())
+		return
 	}
 }
 
