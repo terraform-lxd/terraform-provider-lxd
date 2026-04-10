@@ -200,7 +200,11 @@ func (r NetworkPeerResource) Create(ctx context.Context, req resource.CreateRequ
 		TargetNetwork: dstNetwork,
 	}
 
-	err = server.CreateNetworkPeer(srcNetwork, peer)
+	op, err := server.CreateNetworkPeer(srcNetwork, peer)
+	if err == nil {
+		err = op.WaitContext(ctx)
+	}
+
 	if err != nil {
 		resp.Diagnostics.AddError(fmt.Sprintf("Failed to create network peer %q", peerName), err.Error())
 		return
@@ -272,7 +276,11 @@ func (r NetworkPeerResource) Update(ctx context.Context, req resource.UpdateRequ
 	}
 
 	// Update network peer.
-	err = server.UpdateNetworkPeer(srcNetwork, peerName, srcPeer, etag)
+	op, err := server.UpdateNetworkPeer(srcNetwork, peerName, srcPeer, etag)
+	if err == nil {
+		err = op.WaitContext(ctx)
+	}
+
 	if err != nil {
 		resp.Diagnostics.AddError(fmt.Sprintf("Failed to update network peer %q", peerName), err.Error())
 		return
@@ -307,9 +315,13 @@ func (r NetworkPeerResource) Delete(ctx context.Context, req resource.DeleteRequ
 	// network peer is removed immediately after creation, the changes
 	// may not be applied in OVN database yet.
 	for range 3 {
-		err = server.DeleteNetworkPeer(srcNetwork, peerName)
+		var op lxd.Operation
+		op, err = server.DeleteNetworkPeer(srcNetwork, peerName)
 		if err == nil {
-			break
+			err = op.WaitContext(ctx)
+			if err == nil {
+				break
+			}
 		}
 
 		if errors.IsNotFoundError(err) {
