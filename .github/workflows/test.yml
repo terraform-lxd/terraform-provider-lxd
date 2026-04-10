@@ -150,7 +150,7 @@ jobs:
       - name: Run acceptance tests
         run: make test
 
-  build-platforms:
+  build:
     runs-on: ubuntu-24.04
     steps:
       - name: Checkout
@@ -169,7 +169,7 @@ jobs:
         with:
           args: build --snapshot
 
-  check-lint:
+  lint:
     runs-on: ubuntu-slim
     steps:
       - name: Checkout
