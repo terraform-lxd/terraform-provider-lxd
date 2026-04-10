@@ -49,7 +49,9 @@ fmtcheck:
 
 .PHONY: static-analysis
 static-analysis:
-	@if command -v golangci-lint > /dev/null; then \
+	@if [ "$$GITHUB_ACTIONS" = "true" ]; then \
+		echo "==> Skipping golangci-lint (handled by GHA action)"; \
+	elif command -v golangci-lint > /dev/null; then \
 		echo "==> Running golangci-lint"; \
 		golangci-lint run --timeout 5m; \
 	else \
