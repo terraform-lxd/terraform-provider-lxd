@@ -72,7 +72,7 @@ make
 ##### Acceptance tests
 
 ```shell
-make acc
+make testacc
 # or run an individual test
 TESTARGS="-run TestAccCachedImage_basicVM" make testacc
 # increase test verbosity. options are trace, debug, info, warn, or error (default)
