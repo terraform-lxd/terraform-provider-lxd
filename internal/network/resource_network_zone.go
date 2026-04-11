@@ -134,7 +134,11 @@ func (r NetworkZoneResource) Create(ctx context.Context, req resource.CreateRequ
 		},
 	}
 
-	err = server.CreateNetworkZone(zoneReq)
+	op, err := server.CreateNetworkZone(zoneReq)
+	if err == nil {
+		err = op.WaitContext(ctx)
+	}
+
 	if err != nil {
 		resp.Diagnostics.AddError(fmt.Sprintf("Failed to create network zone %q", zoneName), err.Error())
 		return
@@ -212,7 +216,11 @@ func (r NetworkZoneResource) Update(ctx context.Context, req resource.UpdateRequ
 		Config:      config,
 	}
 
-	err = server.UpdateNetworkZone(zoneName, zoneReq, etag)
+	op, err := server.UpdateNetworkZone(zoneName, zoneReq, etag)
+	if err == nil {
+		err = op.WaitContext(ctx)
+	}
+
 	if err != nil {
 		resp.Diagnostics.AddError(fmt.Sprintf("Failed to update network zone %q", zoneName), err.Error())
 		return
@@ -241,7 +249,11 @@ func (r NetworkZoneResource) Delete(ctx context.Context, req resource.DeleteRequ
 	}
 
 	zoneName := state.Name.ValueString()
-	err = server.DeleteNetworkZone(zoneName)
+	op, err := server.DeleteNetworkZone(zoneName)
+	if err == nil {
+		err = op.WaitContext(ctx)
+	}
+
 	if err != nil {
 		resp.Diagnostics.AddError(fmt.Sprintf("Failed to remove network zone %q", zoneName), err.Error())
 	}

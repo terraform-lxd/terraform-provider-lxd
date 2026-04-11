@@ -227,7 +227,11 @@ func (r LxdNetworkLBResource) Create(ctx context.Context, req resource.CreateReq
 	}
 
 	// Create LB.
-	err = server.CreateNetworkLoadBalancer(networkName, lbReq)
+	op, err := server.CreateNetworkLoadBalancer(networkName, lbReq)
+	if err == nil {
+		err = op.WaitContext(ctx)
+	}
+
 	if err != nil {
 		resp.Diagnostics.AddError(fmt.Sprintf("Failed to create network load balancer %q", lbName), err.Error())
 		return
@@ -317,7 +321,11 @@ func (r LxdNetworkLBResource) Update(ctx context.Context, req resource.UpdateReq
 		return
 	}
 
-	err = server.UpdateNetworkLoadBalancer(networkName, listenAddr, lbReq, etag)
+	op, err := server.UpdateNetworkLoadBalancer(networkName, listenAddr, lbReq, etag)
+	if err == nil {
+		err = op.WaitContext(ctx)
+	}
+
 	if err != nil {
 		resp.Diagnostics.AddError(fmt.Sprintf("Failed to update network load balancer %q", lbName), err.Error())
 		return
@@ -349,7 +357,11 @@ func (r LxdNetworkLBResource) Delete(ctx context.Context, req resource.DeleteReq
 	listenAddr := state.ListenAddress.ValueString()
 	lbName := toLBName(networkName, listenAddr)
 
-	err = server.DeleteNetworkLoadBalancer(networkName, listenAddr)
+	op, err := server.DeleteNetworkLoadBalancer(networkName, listenAddr)
+	if err == nil {
+		err = op.WaitContext(ctx)
+	}
+
 	if err != nil {
 		resp.Diagnostics.AddError(fmt.Sprintf("Failed to remove network load balancer %q", lbName), err.Error())
 	}

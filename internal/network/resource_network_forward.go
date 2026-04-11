@@ -211,7 +211,11 @@ func (r *NetworkForwardResource) Create(ctx context.Context, req resource.Create
 		},
 	}
 
-	err = server.CreateNetworkForward(networkName, createRequest)
+	op, err := server.CreateNetworkForward(networkName, createRequest)
+	if err == nil {
+		err = op.WaitContext(ctx)
+	}
+
 	if err != nil {
 		resp.Diagnostics.AddError(fmt.Sprintf("Failed to create network forward for %q", listenAddress), err.Error())
 		return
@@ -283,7 +287,11 @@ func (r *NetworkForwardResource) Update(ctx context.Context, req resource.Update
 		resp.Diagnostics.AddError(fmt.Sprintf("Failed to retrieve network forward for %q", listenAddress), err.Error())
 	}
 
-	err = server.UpdateNetworkForward(networkName, listenAddress, updateRequest, etag)
+	op, err := server.UpdateNetworkForward(networkName, listenAddress, updateRequest, etag)
+	if err == nil {
+		err = op.WaitContext(ctx)
+	}
+
 	if err != nil {
 		resp.Diagnostics.AddError(fmt.Sprintf("Failed to update network forward for %q", listenAddress), err.Error())
 		return
@@ -313,7 +321,11 @@ func (r *NetworkForwardResource) Delete(ctx context.Context, req resource.Delete
 	networkName := state.Network.ValueString()
 	listenAddress := state.ListenAddress.ValueString()
 
-	err = server.DeleteNetworkForward(networkName, listenAddress)
+	op, err := server.DeleteNetworkForward(networkName, listenAddress)
+	if err == nil {
+		err = op.WaitContext(ctx)
+	}
+
 	if err != nil {
 		resp.Diagnostics.AddError(fmt.Sprintf("Failed to delete network forward for %q", listenAddress), err.Error())
 	}

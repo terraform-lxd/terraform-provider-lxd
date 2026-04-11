@@ -187,7 +187,11 @@ func (r NetworkZoneRecordResource) Create(ctx context.Context, req resource.Crea
 	}
 
 	// Create network zone record.
-	err = server.CreateNetworkZoneRecord(zoneName, recordReq)
+	op, err := server.CreateNetworkZoneRecord(zoneName, recordReq)
+	if err == nil {
+		err = op.WaitContext(ctx)
+	}
+
 	if err != nil {
 		resp.Diagnostics.AddError(fmt.Sprintf("Failed to create network zone record %q", recordName), err.Error())
 		return
@@ -265,7 +269,11 @@ func (r NetworkZoneRecordResource) Update(ctx context.Context, req resource.Upda
 		Config:      config,
 	}
 
-	err = server.UpdateNetworkZoneRecord(zoneName, recordName, recordReq, etag)
+	op, err := server.UpdateNetworkZoneRecord(zoneName, recordName, recordReq, etag)
+	if err == nil {
+		err = op.WaitContext(ctx)
+	}
+
 	if err != nil {
 		resp.Diagnostics.AddError(fmt.Sprintf("Failed to update network zone record %q", zoneName), err.Error())
 		return
@@ -296,7 +304,12 @@ func (r NetworkZoneRecordResource) Delete(ctx context.Context, req resource.Dele
 
 	zoneName := state.Zone.ValueString()
 	recordName := state.Name.ValueString()
-	err = server.DeleteNetworkZoneRecord(zoneName, recordName)
+
+	op, err := server.DeleteNetworkZoneRecord(zoneName, recordName)
+	if err == nil {
+		err = op.WaitContext(ctx)
+	}
+
 	if err != nil {
 		resp.Diagnostics.AddError(fmt.Sprintf("Failed to remove network zone record %q", recordName), err.Error())
 	}
