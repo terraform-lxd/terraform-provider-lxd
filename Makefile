@@ -1,6 +1,5 @@
 GO ?= go
 GOFMT_FILES?=$$(find . -name '*.go' |grep -v vendor)
-TARGETS=darwin/amd64 freebsd/386 freebsd/amd64 freebsd/arm linux/386 linux/amd64 linux/arm openbsd/386 openbsd/amd64 windows/386 windows/amd64
 TF_LOG?=error
 
 default: build
@@ -14,12 +13,6 @@ testacc:
 
 build:
 	$(GO) build -v
-
-targets:
-	gox -osarch='$(TARGETS)' -output="dist/{{.OS}}_{{.Arch}}/terraform-provider-lxd_${TRAVIS_TAG}_x4"
-	find dist -maxdepth 1 -mindepth 1 -type d -print0 | \
-	sed -z -e 's,^dist/,,' | \
-	xargs -0 --verbose --replace={} zip -r -j "dist/terraform-provider-lxd_${TRAVIS_TAG}_{}.zip" "dist/{}"
 
 dev:
 	$(GO) build -v
@@ -71,4 +64,4 @@ update-gomod:
 	$(GO) get toolchain@none
 	@echo "Dependencies updated"
 
-.PHONY: build test testacc dev vet fmt fmtcheck targets
+.PHONY: build test testacc dev vet fmt fmtcheck
