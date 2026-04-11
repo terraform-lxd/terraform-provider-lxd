@@ -38,7 +38,7 @@ fmt:
 
 fmtcheck:
 	@echo "==> Checking that code complies with gofmt requirements..." ; \
-	files=$$(find . -name '*.go' ) ; \
+	files=$(GOFMT_FILES) ; \
 	gofmt_files=`gofmt -l $$files`; \
 	if [ -n "$$gofmt_files" ]; then \
 		echo 'gofmt needs running on the following files:'; \
