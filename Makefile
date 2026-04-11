@@ -14,9 +14,6 @@ testacc:
 build:
 	$(GO) build -v
 
-dev:
-	$(GO) build -v
-
 vet:
 	@echo "$(GO) vet ."
 	@$(GO) vet $$($(GO) list ./... | grep -v vendor/) ; if [ $$? -eq 1 ]; then \
@@ -64,4 +61,4 @@ update-gomod:
 	$(GO) get toolchain@none
 	@echo "Dependencies updated"
 
-.PHONY: build test testacc dev vet fmt fmtcheck
+.PHONY: build test testacc vet fmt fmtcheck
