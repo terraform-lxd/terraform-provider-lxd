@@ -275,7 +275,7 @@ func (r NetworkZoneRecordResource) Update(ctx context.Context, req resource.Upda
 	}
 
 	if err != nil {
-		resp.Diagnostics.AddError(fmt.Sprintf("Failed to update network zone record %q", zoneName), err.Error())
+		resp.Diagnostics.AddError(fmt.Sprintf("Failed to update network zone record %q in zone %q", recordName, zoneName), err.Error())
 		return
 	}
 

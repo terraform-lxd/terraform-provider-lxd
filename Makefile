@@ -1,27 +1,16 @@
 GO ?= go
 GOFMT_FILES?=$$(find . -name '*.go' |grep -v vendor)
-TARGETS=darwin/amd64 freebsd/386 freebsd/amd64 freebsd/arm linux/386 linux/amd64 linux/arm openbsd/386 openbsd/amd64 windows/386 windows/amd64
 TF_LOG?=error
 
 default: build
 
 test:
-	$(GO) get -t ./...
-	$(GO) test -parallel $$(nproc) -race -timeout 60m -v ./internal/...
+	$(GO) test -race -timeout 60m -v ./internal/...
 
 testacc:
 	TF_LOG=$(TF_LOG) TF_ACC=1 $(GO) test -parallel 4 -v -race $(TESTARGS) -timeout 60m ./internal/...
 
 build:
-	$(GO) build -v
-
-targets:
-	gox -osarch='$(TARGETS)' -output="dist/{{.OS}}_{{.Arch}}/terraform-provider-lxd_${TRAVIS_TAG}_x4"
-	find dist -maxdepth 1 -mindepth 1 -type d -print0 | \
-	sed -z -e 's,^dist/,,' | \
-	xargs -0 --verbose --replace={} zip -r -j "dist/terraform-provider-lxd_${TRAVIS_TAG}_{}.zip" "dist/{}"
-
-dev:
 	$(GO) build -v
 
 vet:
@@ -38,7 +27,7 @@ fmt:
 
 fmtcheck:
 	@echo "==> Checking that code complies with gofmt requirements..." ; \
-	files=$$(find . -name '*.go' ) ; \
+	files=$(GOFMT_FILES) ; \
 	gofmt_files=`gofmt -l $$files`; \
 	if [ -n "$$gofmt_files" ]; then \
 		echo 'gofmt needs running on the following files:'; \
@@ -71,4 +60,4 @@ update-gomod:
 	$(GO) get toolchain@none
 	@echo "Dependencies updated"
 
-.PHONY: build test testacc dev vet fmt fmtcheck targets
+.PHONY: build test testacc vet fmt fmtcheck
