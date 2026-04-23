@@ -303,7 +303,13 @@ func (p *LxdProvider) Configure(ctx context.Context, req provider.ConfigureReque
 		return
 	}
 
-	tflog.Debug(ctx, "LXD Provider configured", map[string]any{"provider": lxdProvider})
+	// Avoid logging sensitive provider internals (tokens/keys). Log only
+	// minimal, non-sensitive metadata instead.
+	tflog.Debug(ctx, "LXD Provider configured", map[string]any{
+		"version":        p.version,
+		"default_remote": defRemote,
+		"remotes_count":  len(remotes),
+	})
 
 	resp.ResourceData = lxdProvider
 	resp.DataSourceData = lxdProvider
