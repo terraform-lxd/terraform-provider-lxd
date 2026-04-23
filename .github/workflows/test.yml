@@ -70,10 +70,10 @@ jobs:
 
       - name: Download minio/mc
         uses: canonical/lxd/.github/actions/download-minio@main # zizmor: ignore[unpinned-uses]
-        if: ${{ matrix.channel != '5.0/stable' && matrix.channel != '5.0/edge' }}
+        if: ${{ startsWith(matrix.channel, '5.21/') || matrix.channel == '6/stable' }}
 
       - name: Configure MinIO
-        if: ${{ matrix.channel != '5.0/stable' && matrix.channel != '5.0/edge' }}
+        if: ${{ startsWith(matrix.channel, '5.21/') || matrix.channel == '6/stable' }}
         run: |
           mkdir -p /opt/minio
           mv "$(go env GOPATH)/bin/minio" /opt/minio/
