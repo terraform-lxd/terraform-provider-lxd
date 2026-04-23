@@ -53,6 +53,16 @@ func TestDetermineLXDAddress(t *testing.T) {
 			Expect:  "https://localhost:1234",
 		},
 		{
+			Name:    "IPv4 | URL",
+			Address: "127.0.0.1",
+			Expect:  "https://127.0.0.1:8443",
+		},
+		{
+			Name:    "IPv6 | URL",
+			Address: "[::1]",
+			Expect:  "https://[::1]:8443",
+		},
+		{
 			Name:     "Scheme, hostname, port | URL path",
 			Protocol: "simplestreams",
 			Address:  "https://example.com/cloud-images/releases",
