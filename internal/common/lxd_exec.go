@@ -86,8 +86,8 @@ func (e *ExecModel) Execute(ctx context.Context, server lxd.InstanceServer, inst
 		Interactive:  false,
 		RecordOutput: false,
 		Cwd:          e.WorkingDir.ValueString(),
-		User:         uint32(e.GroupID.ValueInt64()),
-		Group:        uint32(e.UserID.ValueInt64()),
+		User:         uint32(e.UserID.ValueInt64()),
+		Group:        uint32(e.GroupID.ValueInt64()),
 	}
 
 	// Create buffers to capture stdout and stderr.

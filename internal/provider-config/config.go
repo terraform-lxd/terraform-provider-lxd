@@ -474,7 +474,14 @@ func DetermineLXDAddress(protocol string, address string) (string, error) {
 				port = "443"
 			}
 
-			url.Host = url.Hostname() + ":" + port
+			host := url.Hostname()
+			// If the hostname contains ':' it's likely an IPv6 address and
+			// must be enclosed in brackets when adding a port.
+			if strings.Contains(host, ":") {
+				url.Host = "[" + host + "]:" + port
+			} else {
+				url.Host = host + ":" + port
+			}
 		}
 
 		return url.String(), nil
