@@ -69,7 +69,7 @@ jobs:
           lxc remote add localhost "$(lxc config trust add --name lxd-terraform-provider --quiet)"
 
       - name: Download minio/mc
-        uses: canonical/lxd/.github/actions/download-minio@9aaba5cbc24f143a0e8bc8119bc9f4ab6383c02a # stable-5.21
+        uses: canonical/lxd/.github/actions/download-minio@e986727356495f15cae122a6f2db51bb6eacd948 # stable-5.21
         if: ${{ startsWith(matrix.channel, '5.21/') || matrix.channel == '6/stable' }}
 
       - name: Configure MinIO
@@ -168,7 +168,7 @@ jobs:
           go-version-file: 'go.mod'
 
       - name: Run GoReleaser in build mode to test all release platforms
-        uses: goreleaser/goreleaser-action@ec59f474b9834571250b370d4735c50f8e2d1e29 # v7.0.0
+        uses: goreleaser/goreleaser-action@e24998b8b67b290c2fa8b7c14fcfa7de2c5c9b8c # v7.1.0
         with:
           args: build --snapshot
 
