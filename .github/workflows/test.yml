@@ -69,11 +69,11 @@ jobs:
           lxc remote add localhost "$(lxc config trust add --name lxd-terraform-provider --quiet)"
 
       - name: Download minio/mc
-        uses: canonical/lxd/.github/actions/download-minio@main
-        if: ${{ matrix.channel != '5.0/stable' && matrix.channel != '5.0/edge' }}
+        uses: canonical/lxd/.github/actions/download-minio@9aaba5cbc24f143a0e8bc8119bc9f4ab6383c02a # stable-5.21
+        if: ${{ startsWith(matrix.channel, '5.21/') || matrix.channel == '6/stable' }}
 
       - name: Configure MinIO
-        if: ${{ matrix.channel != '5.0/stable' && matrix.channel != '5.0/edge' }}
+        if: ${{ startsWith(matrix.channel, '5.21/') || matrix.channel == '6/stable' }}
         run: |
           mkdir -p /opt/minio
           mv "$(go env GOPATH)/bin/minio" /opt/minio/
@@ -114,14 +114,18 @@ jobs:
         os:
           - ubuntu-24.04
         channel:
-          - 5.21/stable
+          - 5.21/candidate
           - 5.21/edge
-          - 6/stable
+          - 6/candidate
           - 6/edge
         include:
           - channel: 5.0/stable
             os: ubuntu-22.04
           - channel: 5.0/edge
+            os: ubuntu-22.04
+          - channel: 5.21/stable
+            os: ubuntu-22.04
+          - channel: 6/stable
             os: ubuntu-22.04
 
     steps:
@@ -149,7 +153,7 @@ jobs:
       - name: Run acceptance tests
         run: make test
 
-  build-platforms:
+  build:
     runs-on: ubuntu-24.04
     steps:
       - name: Checkout
@@ -168,8 +172,8 @@ jobs:
         with:
           args: build --snapshot
 
-  check-lint:
-    runs-on: ubuntu-24.04
+  lint:
+    runs-on: ubuntu-slim
     steps:
       - name: Checkout
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
@@ -184,9 +188,10 @@ jobs:
         with:
           go-version-file: 'go.mod'
 
-      - name: Install dependencies
-        run: |
-          curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(go env GOPATH)/bin
+      - name: Run golangci-lint
+        uses: golangci/golangci-lint-action@1e7e51e771db61008b38414a730f564565cf7c20 # v9.2.0
+        with:
+          version: latest
 
       - run: make fmtcheck
       - run: make vet
