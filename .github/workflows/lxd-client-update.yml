@@ -1,0 +1,142 @@
+name: LXD Client Update
+
+on:
+  repository_dispatch:
+    types: [lxd-client-updated]
+  workflow_dispatch:
+    inputs:
+      sha:
+        description: "LXD commit SHA to update to"
+        required: true
+      ref:
+        description: "LXD branch/ref (e.g., refs/heads/main)"
+        required: true
+
+permissions:
+  contents: write
+  pull-requests: write
+
+concurrency:
+  group: lxd-client-update
+  cancel-in-progress: true
+
+env:
+  LXD_MODULE: github.com/canonical/lxd
+
+jobs:
+  update-client:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Resolve inputs
+        id: inputs
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          DISPATCH_SHA: ${{ github.event.client_payload.sha }}
+          DISPATCH_REF: ${{ github.event.client_payload.ref }}
+          DISPATCH_REPO: ${{ github.event.client_payload.repository }}
+          INPUT_SHA: ${{ github.event.inputs.sha }}
+          INPUT_REF: ${{ github.event.inputs.ref }}
+        run: |
+          if [ "${EVENT_NAME}" = "repository_dispatch" ]; then
+            SHA="${DISPATCH_SHA}"
+            REF="${DISPATCH_REF}"
+            REPO="${DISPATCH_REPO}"
+          else
+            SHA="${INPUT_SHA}"
+            REF="${INPUT_REF}"
+            REPO="canonical/lxd"
+          fi
+
+          echo "sha=${SHA}" >> "$GITHUB_OUTPUT"
+          echo "ref=${REF}" >> "$GITHUB_OUTPUT"
+          echo "repository=${REPO}" >> "$GITHUB_OUTPUT"
+          echo "sha_short=${SHA:0:12}" >> "$GITHUB_OUTPUT"
+
+      - name: Checkout
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          persist-credentials: false
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Configure Git
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPO: ${{ github.repository }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git remote set-url origin "https://x-access-token:${GH_TOKEN}@github.com/${REPO}.git"
+
+      - name: Install Go
+        uses: actions/setup-go@4a3601121dd01d1626a1e23e37211e3254c1c06c # v6.4.0
+        with:
+          go-version-file: 'go.mod'
+
+      - name: Update LXD dependency
+        env:
+          LXD_SHA: ${{ steps.inputs.outputs.sha }}
+        run: |
+          echo "Updating ${LXD_MODULE} to ${LXD_SHA}"
+          go get "${LXD_MODULE}@${LXD_SHA}"
+          go mod tidy
+
+      - name: Create branch and commit
+        id: branch
+        env:
+          SHA_SHORT: ${{ steps.inputs.outputs.sha_short }}
+          LXD_SHA: ${{ steps.inputs.outputs.sha }}
+          LXD_REF: ${{ steps.inputs.outputs.ref }}
+        run: |
+          BRANCH="lxd-client-update/${SHA_SHORT}"
+          echo "name=${BRANCH}" >> "$GITHUB_OUTPUT"
+
+          git checkout -b "${BRANCH}"
+          git add go.mod go.sum
+
+          if git diff --cached --quiet; then
+            echo "No dependency changes to commit."
+            echo "has_changes=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          echo "has_changes=true" >> "$GITHUB_OUTPUT"
+
+          git commit -m "api: update LXD client to ${SHA_SHORT}
+
+          Update github.com/canonical/lxd dependency to commit ${LXD_SHA}.
+          Source ref: ${LXD_REF}
+
+          Co-authored-by: github-actions[bot] <41898282+github-actions[bot]@users.noreply.github.com>"
+
+          git push origin "${BRANCH}"
+
+      - name: Open draft PR
+        if: steps.branch.outputs.has_changes == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          BRANCH_NAME: ${{ steps.branch.outputs.name }}
+          SHA_SHORT: ${{ steps.inputs.outputs.sha_short }}
+          LXD_SHA: ${{ steps.inputs.outputs.sha }}
+          LXD_REF: ${{ steps.inputs.outputs.ref }}
+          LXD_REPO: ${{ steps.inputs.outputs.repository }}
+        run: |
+          EXISTING=$(gh pr list --head "${BRANCH_NAME}" --json number --jq '.[0].number' 2>/dev/null || true)
+
+          if [ -n "${EXISTING}" ]; then
+            echo "PR #${EXISTING} already exists for branch ${BRANCH_NAME}. Skipping creation."
+            exit 0
+          fi
+
+          gh pr create \
+            --draft \
+            --base main \
+            --head "${BRANCH_NAME}" \
+            --title "api: update LXD client to ${SHA_SHORT}" \
+            --body "## LXD Client Update
+
+          This PR updates the \`github.com/canonical/lxd\` dependency to accommodate upstream client SDK changes.
+
+          **LXD commit:** [\`${SHA_SHORT}\`](https://github.com/${LXD_REPO}/commit/${LXD_SHA})
+          **LXD ref:** \`${LXD_REF}\`
+
+          > **Note:** This is a dependency-only bump. Build compatibility has not been verified."
