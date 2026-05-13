@@ -1,3 +1,11 @@
+## 2.7.1 (May 12, 2026)
+
+## What's Changed
+
+### Other Changes
+* go: Update dependencies by @simondeziel in https://github.com/terraform-lxd/terraform-provider-lxd/pull/669
+* Cherry pick: Handle async operations (provider v2) by @MusicDin in https://github.com/terraform-lxd/terraform-provider-lxd/pull/713
+
 ## 2.7.0 (February 27, 2026)
 
 ## What's Changed
