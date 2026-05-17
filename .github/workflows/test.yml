@@ -69,7 +69,7 @@ jobs:
           lxc remote add localhost "$(lxc config trust add --name lxd-terraform-provider --quiet)"
 
       - name: Download minio/mc
-        uses: canonical/lxd/.github/actions/download-minio@3ed66b1e950a831ca1ccda6a7b246d066d0555c1 # stable-5.21
+        uses: canonical/lxd/.github/actions/download-minio@885e72c3e3bf769c154101d9c21ceef634a1f62e # stable-5.21
         if: ${{ startsWith(matrix.channel, '5.21/') || matrix.channel == '6/stable' }}
 
       - name: Configure MinIO
