@@ -69,7 +69,7 @@ jobs:
           lxc remote add localhost "$(lxc config trust add --name lxd-terraform-provider --quiet)"
 
       - name: Download minio/mc
-        uses: canonical/lxd/.github/actions/download-minio@885e72c3e3bf769c154101d9c21ceef634a1f62e # stable-5.21
+        uses: canonical/lxd/.github/actions/download-minio@aaac1b7da892e6082dba673fe5cb7cdedc38fbe1 # stable-5.21
         if: ${{ startsWith(matrix.channel, '5.21/') || matrix.channel == '6/stable' }}
 
       - name: Configure MinIO
@@ -98,7 +98,7 @@ jobs:
             external_ids:ovn-encap-ip=127.0.0.1
 
       - name: Setup Terraform
-        uses: hashicorp/setup-terraform@5e8dbf3c6d9deaf4193ca7a8fb23f2ac83bb6c85 # v4.0.0
+        uses: hashicorp/setup-terraform@dfe3c3f87815947d99a8997f908cb6525fc44e9e # v4.0.1
         with:
           terraform_wrapper: false
 
@@ -146,7 +146,7 @@ jobs:
           lxd-version: ${{ matrix.channel }}
 
       - name: Setup Terraform
-        uses: hashicorp/setup-terraform@5e8dbf3c6d9deaf4193ca7a8fb23f2ac83bb6c85 # v4.0.0
+        uses: hashicorp/setup-terraform@dfe3c3f87815947d99a8997f908cb6525fc44e9e # v4.0.1
         with:
           terraform_wrapper: false
 
