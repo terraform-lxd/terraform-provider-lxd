@@ -6,7 +6,6 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
-	"strconv"
 	"strings"
 	"testing"
 
@@ -222,8 +221,7 @@ func TestAccStoragePool_configSource(t *testing.T) {
 						Check: resource.ComposeTestCheckFunc(
 							resource.TestCheckResourceAttr("lxd_storage_pool.storage_pool1", "name", poolName),
 							resource.TestCheckResourceAttr("lxd_storage_pool.storage_pool1", "driver", poolDriver),
-							resource.TestCheckResourceAttr("lxd_storage_pool.storage_pool1", "source", poolSource),
-							resource.TestCheckNoResourceAttr("lxd_storage_pool.storage_pool1", "config.source"),
+							resource.TestCheckResourceAttr("lxd_storage_pool.storage_pool1", "config.source", poolSource),
 						),
 					},
 					{
@@ -263,7 +261,7 @@ func TestAccStoragePool_project(t *testing.T) {
 	})
 }
 
-func TestAccStoragePool_target(t *testing.T) {
+func TestAccStoragePool_members(t *testing.T) {
 	targets := acctest.PreCheckClustering(t, 2)
 	poolName := acctest.GenerateName(2, "-")
 	driverName := "dir"
@@ -273,17 +271,18 @@ func TestAccStoragePool_target(t *testing.T) {
 		ProtoV6ProviderFactories: acctest.ProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
-				Config: acctest.Provider() + testAccStoragePool_target(poolName, driverName, targets),
+				Config: acctest.Provider() + testAccStoragePool_members(poolName, driverName, targets),
 				Check: resource.ComposeTestCheckFunc(
-					resource.TestCheckResourceAttr("lxd_storage_pool.storage_pool_node1", "name", poolName),
-					resource.TestCheckResourceAttr("lxd_storage_pool.storage_pool_node1", "driver", driverName),
-					resource.TestCheckResourceAttr("lxd_storage_pool.storage_pool_node1", "target", targets[0]),
-					resource.TestCheckResourceAttr("lxd_storage_pool.storage_pool_node2", "name", poolName),
-					resource.TestCheckResourceAttr("lxd_storage_pool.storage_pool_node2", "driver", driverName),
-					resource.TestCheckResourceAttr("lxd_storage_pool.storage_pool_node2", "target", targets[1]),
-					resource.TestCheckResourceAttr("lxd_storage_pool.storage_pool", "name", poolName),
-					resource.TestCheckResourceAttr("lxd_storage_pool.storage_pool", "driver", driverName),
+					resource.TestCheckResourceAttr("lxd_storage_pool.pool", "name", poolName),
+					resource.TestCheckResourceAttr("lxd_storage_pool.pool", "driver", driverName),
+					resource.TestCheckResourceAttr("lxd_storage_pool.pool", "members.%", "2"),
+					resource.TestCheckResourceAttr("lxd_storage_pool.pool", fmt.Sprintf("members.%s.%%", targets[0]), "0"),
+					resource.TestCheckResourceAttr("lxd_storage_pool.pool", fmt.Sprintf("members.%s.%%", targets[1]), "0"),
 				),
+			},
+			{
+				// Reapply the same config to ensure there is no drift in terraform state.
+				Config: acctest.Provider() + testAccStoragePool_members(poolName, driverName, targets),
 			},
 		},
 	})
@@ -394,7 +393,9 @@ func testAccStoragePool_configSource(name string, driver string, source string) 
 resource "lxd_storage_pool" "storage_pool1" {
   name   = "%s"
   driver = "%s"
-  source = "%s"
+  config = {
+    source = "%s"
+  }
 }
 	`, name, driver, source)
 }
@@ -417,28 +418,19 @@ resource "lxd_storage_pool" "storage_pool1" {
 	`, project, name, driver)
 }
 
-func testAccStoragePool_target(name string, driver string, targets []string) string {
-	var config string
-	var deps []string
-
-	for i, target := range targets {
-		deps = append(deps, "lxd_storage_pool.storage_pool_node"+strconv.Itoa(i+1))
-		config += fmt.Sprintf(`
-resource "lxd_storage_pool" "storage_pool_node%d" {
-  name   = "%s"
-  driver = "%s"
-  target = "%s"
-}`, i+1, name, driver, target)
+func testAccStoragePool_members(name string, driver string, targets []string) string {
+	membersBlock := ""
+	for _, t := range targets {
+		membersBlock += fmt.Sprintf("    %q = {}\n", t)
 	}
 
-	config += fmt.Sprintf(`
-resource "lxd_storage_pool" "storage_pool" {
-  depends_on = [ %[3]s ]
-  name       = "%[1]s"
-  driver     = "%[2]s"
-}`, name, driver, strings.Join(deps, ", "))
-
-	return config
+	return fmt.Sprintf(`
+resource "lxd_storage_pool" "pool" {
+  name   = "%s"
+  driver = "%s"
+  members = {
+%s  }
+}`, name, driver, membersBlock)
 }
 
 // ensureSource ensures temporary storage pool source is created based on the provided
