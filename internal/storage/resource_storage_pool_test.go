@@ -6,6 +6,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"sort"
 	"strings"
 	"testing"
 
@@ -261,7 +262,7 @@ func TestAccStoragePool_project(t *testing.T) {
 	})
 }
 
-func TestAccStoragePool_members(t *testing.T) {
+func TestAccStoragePool_clusterConfigNoMemberOverrides(t *testing.T) {
 	targets := acctest.PreCheckClustering(t, 2)
 	poolName := acctest.GenerateName(2, "-")
 	driverName := "dir"
@@ -271,18 +272,161 @@ func TestAccStoragePool_members(t *testing.T) {
 		ProtoV6ProviderFactories: acctest.ProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
-				Config: acctest.Provider() + testAccStoragePool_members(poolName, driverName, targets),
+				Config: acctest.Provider() + testAccStoragePool(poolName, driverName),
 				Check: resource.ComposeTestCheckFunc(
-					resource.TestCheckResourceAttr("lxd_storage_pool.pool", "name", poolName),
-					resource.TestCheckResourceAttr("lxd_storage_pool.pool", "driver", driverName),
-					resource.TestCheckResourceAttr("lxd_storage_pool.pool", "members.%", "2"),
-					resource.TestCheckResourceAttr("lxd_storage_pool.pool", fmt.Sprintf("members.%s.%%", targets[0]), "0"),
-					resource.TestCheckResourceAttr("lxd_storage_pool.pool", fmt.Sprintf("members.%s.%%", targets[1]), "0"),
+					resource.TestCheckResourceAttr("lxd_storage_pool.storage_pool1", "name", poolName),
+					resource.TestCheckResourceAttr("lxd_storage_pool.storage_pool1", "driver", driverName),
+					resource.TestCheckResourceAttr("lxd_storage_pool.storage_pool1", "members.%", fmt.Sprintf("%d", len(targets))),
+					resource.TestCheckResourceAttr("lxd_storage_pool.storage_pool1", fmt.Sprintf("members.%s.config.%%", targets[0]), "0"),
+					resource.TestCheckResourceAttr("lxd_storage_pool.storage_pool1", fmt.Sprintf("members.%s.config.%%", targets[1]), "0"),
+				),
+			},
+			{
+				Config: acctest.Provider() + testAccStoragePool(poolName, driverName),
+			},
+		},
+	})
+}
+
+func TestAccStoragePool_clusterConfigEmptyMemberOverrides(t *testing.T) {
+	targets := acctest.PreCheckClustering(t, 2)
+	poolName := acctest.GenerateName(2, "-")
+	driverName := "dir"
+
+	step1Overrides := map[string]map[string]string{
+		targets[0]: {},
+	}
+	step2Overrides := map[string]map[string]string{}
+	for _, target := range targets[1:] {
+		step2Overrides[target] = map[string]string{}
+	}
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { acctest.PreCheck(t) },
+		ProtoV6ProviderFactories: acctest.ProtoV6ProviderFactories,
+		Steps: []resource.TestStep{
+			{
+				Config: acctest.Provider() + testAccStoragePool_memberOverrides(poolName, driverName, nil, step1Overrides),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr("lxd_storage_pool.pool", "members.%", fmt.Sprintf("%d", len(targets))),
+					resource.TestCheckResourceAttr("lxd_storage_pool.pool", "member_overrides.%", "1"),
+					resource.TestCheckResourceAttr("lxd_storage_pool.pool", fmt.Sprintf("member_overrides.%s.config.%%", targets[0]), "0"),
+					resource.TestCheckResourceAttr("lxd_storage_pool.pool", fmt.Sprintf("members.%s.config.%%", targets[0]), "0"),
+					resource.TestCheckResourceAttr("lxd_storage_pool.pool", fmt.Sprintf("members.%s.config.%%", targets[1]), "0"),
+				),
+			},
+			{
+				Config: acctest.Provider() + testAccStoragePool_memberOverrides(poolName, driverName, nil, step2Overrides),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr("lxd_storage_pool.pool", "members.%", fmt.Sprintf("%d", len(targets))),
+					resource.TestCheckResourceAttr("lxd_storage_pool.pool", "member_overrides.%", fmt.Sprintf("%d", len(targets)-1)),
+					resource.TestCheckNoResourceAttr("lxd_storage_pool.pool", fmt.Sprintf("member_overrides.%s", targets[0])),
+					resource.TestCheckResourceAttr("lxd_storage_pool.pool", fmt.Sprintf("members.%s.config.%%", targets[0]), "0"),
+					resource.TestCheckResourceAttr("lxd_storage_pool.pool", fmt.Sprintf("members.%s.config.%%", targets[1]), "0"),
 				),
 			},
 			{
 				// Reapply the same config to ensure there is no drift in terraform state.
-				Config: acctest.Provider() + testAccStoragePool_members(poolName, driverName, targets),
+				Config: acctest.Provider() + testAccStoragePool_memberOverrides(poolName, driverName, nil, step2Overrides),
+			},
+		},
+	})
+}
+
+func TestAccStoragePool_clusterConfigLifecycle(t *testing.T) {
+	targets := acctest.PreCheckClustering(t, 2)
+	poolName := acctest.GenerateName(2, "-")
+	overrideTarget := targets[0]
+	defaultTarget := targets[1]
+
+	// Use the "dir" driver with the "source.recover" key (a node-specific boolean key) so the
+	// test does not depend on loop devices or kernel storage modules, which are unavailable
+	// when LXD runs nested in a container, as is the case in the cluster test environment.
+	driverName := "dir"
+	configKey := "source.recover"
+
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			acctest.PreCheck(t)
+			acctest.PreCheckAPIExtensions(t, "storage_source_recover")
+		},
+		ProtoV6ProviderFactories: acctest.ProtoV6ProviderFactories,
+		Steps: []resource.TestStep{
+			{
+				// Set config key in global settings.
+				Config: acctest.Provider() + testAccStoragePool_memberOverrides(poolName, driverName, map[string]string{configKey: "false"}, nil),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr("lxd_storage_pool.pool", "name", poolName),
+					resource.TestCheckResourceAttr("lxd_storage_pool.pool", "driver", driverName),
+					resource.TestCheckResourceAttr("lxd_storage_pool.pool", "config."+configKey, "false"),
+					resource.TestCheckResourceAttr("lxd_storage_pool.pool", fmt.Sprintf("members.%s.config.%s", overrideTarget, configKey), "false"),
+					resource.TestCheckResourceAttr("lxd_storage_pool.pool", fmt.Sprintf("members.%s.config.%s", defaultTarget, configKey), "false"),
+				),
+			},
+			{
+				// Set config key in global settings and one member override.
+				Config: acctest.Provider() + testAccStoragePool_memberOverrides(poolName, driverName, map[string]string{configKey: "false"}, map[string]map[string]string{overrideTarget: {configKey: "true"}}),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr("lxd_storage_pool.pool", "config."+configKey, "false"),
+					resource.TestCheckResourceAttr("lxd_storage_pool.pool", fmt.Sprintf("member_overrides.%s.config.%s", overrideTarget, configKey), "true"),
+					resource.TestCheckResourceAttr("lxd_storage_pool.pool", fmt.Sprintf("members.%s.config.%s", overrideTarget, configKey), "true"),
+					resource.TestCheckResourceAttr("lxd_storage_pool.pool", fmt.Sprintf("members.%s.config.%s", defaultTarget, configKey), "false"),
+				),
+			},
+			{
+				// Change the value of one member override.
+				Config: acctest.Provider() + testAccStoragePool_memberOverrides(poolName, driverName, map[string]string{configKey: "false"}, map[string]map[string]string{overrideTarget: {configKey: "false"}}),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr("lxd_storage_pool.pool", "config."+configKey, "false"),
+					resource.TestCheckResourceAttr("lxd_storage_pool.pool", fmt.Sprintf("member_overrides.%s.config.%s", overrideTarget, configKey), "false"),
+					resource.TestCheckResourceAttr("lxd_storage_pool.pool", fmt.Sprintf("members.%s.config.%s", overrideTarget, configKey), "false"),
+					resource.TestCheckResourceAttr("lxd_storage_pool.pool", fmt.Sprintf("members.%s.config.%s", defaultTarget, configKey), "false"),
+				),
+			},
+			{
+				// Change global config while keeping the member override.
+				Config: acctest.Provider() + testAccStoragePool_memberOverrides(poolName, driverName, map[string]string{configKey: "true"}, map[string]map[string]string{overrideTarget: {configKey: "false"}}),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr("lxd_storage_pool.pool", "config."+configKey, "true"),
+					resource.TestCheckResourceAttr("lxd_storage_pool.pool", fmt.Sprintf("member_overrides.%s.config.%s", overrideTarget, configKey), "false"),
+					resource.TestCheckResourceAttr("lxd_storage_pool.pool", fmt.Sprintf("members.%s.config.%s", overrideTarget, configKey), "false"),
+					resource.TestCheckResourceAttr("lxd_storage_pool.pool", fmt.Sprintf("members.%s.config.%s", defaultTarget, configKey), "true"),
+				),
+			},
+			{
+				// Set different member override values for both members.
+				Config: acctest.Provider() + testAccStoragePool_memberOverrides(poolName, driverName, map[string]string{configKey: "true"}, map[string]map[string]string{overrideTarget: {configKey: "true"}, defaultTarget: {configKey: "false"}}),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr("lxd_storage_pool.pool", "config."+configKey, "true"),
+					resource.TestCheckResourceAttr("lxd_storage_pool.pool", fmt.Sprintf("member_overrides.%s.config.%s", overrideTarget, configKey), "true"),
+					resource.TestCheckResourceAttr("lxd_storage_pool.pool", fmt.Sprintf("member_overrides.%s.config.%s", defaultTarget, configKey), "false"),
+					resource.TestCheckResourceAttr("lxd_storage_pool.pool", fmt.Sprintf("members.%s.config.%s", overrideTarget, configKey), "true"),
+					resource.TestCheckResourceAttr("lxd_storage_pool.pool", fmt.Sprintf("members.%s.config.%s", defaultTarget, configKey), "false"),
+				),
+			},
+			{
+				// Remove the config key from member overrides and use the global value.
+				Config: acctest.Provider() + testAccStoragePool_memberOverrides(poolName, driverName, map[string]string{configKey: "false"}, nil),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckNoResourceAttr("lxd_storage_pool.pool", fmt.Sprintf("member_overrides.%s", overrideTarget)),
+					resource.TestCheckNoResourceAttr("lxd_storage_pool.pool", fmt.Sprintf("member_overrides.%s", defaultTarget)),
+					resource.TestCheckResourceAttr("lxd_storage_pool.pool", "config."+configKey, "false"),
+					resource.TestCheckResourceAttr("lxd_storage_pool.pool", fmt.Sprintf("members.%s.config.%s", overrideTarget, configKey), "false"),
+					resource.TestCheckResourceAttr("lxd_storage_pool.pool", fmt.Sprintf("members.%s.config.%s", defaultTarget, configKey), "false"),
+				),
+			},
+			{
+				// Remove the global config key and ensure it is no longer managed.
+				Config: acctest.Provider() + testAccStoragePool_memberOverrides(poolName, driverName, nil, nil),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckNoResourceAttr("lxd_storage_pool.pool", "config."+configKey),
+					resource.TestCheckResourceAttr("lxd_storage_pool.pool", fmt.Sprintf("members.%s.config.%%", overrideTarget), "0"),
+					resource.TestCheckResourceAttr("lxd_storage_pool.pool", fmt.Sprintf("members.%s.config.%%", defaultTarget), "0"),
+				),
+			},
+			{
+				// Reapply final state to ensure no error and no drift.
+				Config: acctest.Provider() + testAccStoragePool_memberOverrides(poolName, driverName, nil, nil),
 			},
 		},
 	})
@@ -418,19 +562,69 @@ resource "lxd_storage_pool" "storage_pool1" {
 	`, project, name, driver)
 }
 
-func testAccStoragePool_members(name string, driver string, targets []string) string {
-	membersBlock := ""
-	for _, t := range targets {
-		membersBlock += fmt.Sprintf("    %q = {}\n", t)
+func testAccStoragePool_memberOverrides(name string, driver string, config map[string]string, memberOverrides map[string]map[string]string) string {
+	var b strings.Builder
+	fmt.Fprintf(&b, `
+resource "lxd_storage_pool" "pool" {
+  name   = %q
+  driver = %q
+`, name, driver)
+
+	if len(config) > 0 {
+		configKeys := make([]string, 0, len(config))
+		for k := range config {
+			configKeys = append(configKeys, k)
+		}
+
+		sort.Strings(configKeys)
+
+		b.WriteString(`
+  config = {
+`)
+
+		for _, key := range configKeys {
+			fmt.Fprintf(&b, "    %q = %q\n", key, config[key])
+		}
+
+		fmt.Fprintf(&b, `
+  }
+`)
 	}
 
-	return fmt.Sprintf(`
-resource "lxd_storage_pool" "pool" {
-  name   = "%s"
-  driver = "%s"
-  members = {
-%s  }
-}`, name, driver, membersBlock)
+	if len(memberOverrides) > 0 {
+		memberKeys := make([]string, 0, len(memberOverrides))
+		for member := range memberOverrides {
+			memberKeys = append(memberKeys, member)
+		}
+
+		sort.Strings(memberKeys)
+
+		b.WriteString("\n  member_overrides = {\n")
+		for _, member := range memberKeys {
+			overrideConfig := memberOverrides[member]
+
+			fmt.Fprintf(&b, "    %q = {\n", member)
+			b.WriteString("      config = {\n")
+
+			overrideKeys := make([]string, 0, len(overrideConfig))
+			for key := range overrideConfig {
+				overrideKeys = append(overrideKeys, key)
+			}
+
+			sort.Strings(overrideKeys)
+			for _, key := range overrideKeys {
+				fmt.Fprintf(&b, "        %q = %q\n", key, overrideConfig[key])
+			}
+
+			b.WriteString("      }\n")
+			b.WriteString("    }\n")
+		}
+
+		b.WriteString("  }\n")
+	}
+
+	b.WriteString("}\n")
+	return b.String()
 }
 
 // ensureSource ensures temporary storage pool source is created based on the provided
