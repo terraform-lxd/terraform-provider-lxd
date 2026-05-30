@@ -299,7 +299,7 @@ func (p *LxdProvider) Configure(ctx context.Context, req provider.ConfigureReque
 	// Initialize LXD provider configuration.
 	lxdProvider, err := provider_config.NewLxdProviderConfig(p.version, remotes, defRemote)
 	if err != nil {
-		resp.Diagnostics.AddError("Failed initialize LXD provider", err.Error())
+		resp.Diagnostics.AddError("Failed to initialize LXD provider", err.Error())
 		return
 	}
 
