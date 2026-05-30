@@ -29,7 +29,7 @@
 * Go refresh by @simondeziel in https://github.com/terraform-lxd/terraform-provider-lxd/pull/660
 
 ### Other Changes
-* docs/resources: stop mentionning long EOL Terraform 1.5.0 by @simondeziel in https://github.com/terraform-lxd/terraform-provider-lxd/pull/662
+* docs/resources: stop mentioning long EOL Terraform 1.5.0 by @simondeziel in https://github.com/terraform-lxd/terraform-provider-lxd/pull/662
 * docs/auth_group: Remove mention of EOL Terraform 1.5.0 by @MusicDin in https://github.com/terraform-lxd/terraform-provider-lxd/pull/663
 * image: Re-enable publish image in project test  by @MusicDin in https://github.com/terraform-lxd/terraform-provider-lxd/pull/667
 
@@ -102,7 +102,7 @@
 
 ### Other Changes ❓
 * Fix cluster tests and linter by @MusicDin in https://github.com/terraform-lxd/terraform-provider-lxd/pull/579
-* glangci-lint: Remove unnecessary exclusions by @MusicDin in https://github.com/terraform-lxd/terraform-provider-lxd/pull/580
+* golangci-lint: Remove unnecessary exclusions by @MusicDin in https://github.com/terraform-lxd/terraform-provider-lxd/pull/580
 * Tweak GitHub workflows by @simondeziel in https://github.com/terraform-lxd/terraform-provider-lxd/pull/593
 * Fix unsupported content-type during file upload by @MusicDin in https://github.com/terraform-lxd/terraform-provider-lxd/pull/602
 * Rename `lxd_shared` to `lxdShared` by @MusicDin in https://github.com/terraform-lxd/terraform-provider-lxd/pull/603
