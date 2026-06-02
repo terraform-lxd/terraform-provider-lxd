@@ -103,11 +103,9 @@ func (r NetworkZoneRecordResource) Schema(_ context.Context, _ resource.SchemaRe
 					Attributes: map[string]schema.Attribute{
 						"type": schema.StringAttribute{
 							Required:    true,
-							Description: "Record entry type",
+							Description: "Record entry type. All valid DNS types are accepted (e.g. A, AAAA, CNAME, MX, TXT).",
 							Validators: []validator.String{
-								stringvalidator.OneOf(
-									"A", "AAAA", "CNAME", "TXT",
-								),
+								stringvalidator.LengthAtLeast(1),
 							},
 						},
 
@@ -121,7 +119,7 @@ func (r NetworkZoneRecordResource) Schema(_ context.Context, _ resource.SchemaRe
 							Computed:    true,
 							Description: "Record entry TTL",
 							Validators: []validator.Int64{
-								int64validator.AtLeast(1),
+								int64validator.AtLeast(0),
 							},
 						},
 					},
