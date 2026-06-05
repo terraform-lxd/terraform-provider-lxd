@@ -155,6 +155,9 @@ func TestAccStoragePool_btrfs(t *testing.T) {
 
 func TestAccStoragePool_config(t *testing.T) {
 	poolName := acctest.GenerateName(2, "-")
+	poolConfig := map[string]string{
+		"size": "128MiB",
+	}
 
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
@@ -164,7 +167,7 @@ func TestAccStoragePool_config(t *testing.T) {
 		ProtoV6ProviderFactories: acctest.ProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
-				Config: acctest.Provider() + testAccStoragePool_config(poolName, "zfs"),
+				Config: acctest.Provider() + testAccStoragePool_config(poolName, "zfs", poolConfig),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("lxd_storage_pool.storage_pool1", "name", poolName),
 					resource.TestCheckResourceAttr("lxd_storage_pool.storage_pool1", "driver", "zfs"),
@@ -173,7 +176,7 @@ func TestAccStoragePool_config(t *testing.T) {
 				),
 			},
 			{
-				Config: acctest.Provider() + testAccStoragePool_config(poolName, "lvm"),
+				Config: acctest.Provider() + testAccStoragePool_config(poolName, "lvm", poolConfig),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("lxd_storage_pool.storage_pool1", "name", poolName),
 					resource.TestCheckResourceAttr("lxd_storage_pool.storage_pool1", "driver", "lvm"),
@@ -182,7 +185,7 @@ func TestAccStoragePool_config(t *testing.T) {
 				),
 			},
 			{
-				Config: acctest.Provider() + testAccStoragePool_config(poolName, "btrfs"),
+				Config: acctest.Provider() + testAccStoragePool_config(poolName, "btrfs", poolConfig),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("lxd_storage_pool.storage_pool1", "name", poolName),
 					resource.TestCheckResourceAttr("lxd_storage_pool.storage_pool1", "driver", "btrfs"),
@@ -204,6 +207,9 @@ func TestAccStoragePool_configSource(t *testing.T) {
 	for _, poolDriver := range drivers {
 		poolName := acctest.GenerateName(2, "-")
 		poolSource, cleanup := ensureSource(t, poolDriver)
+		poolConfig := map[string]string{
+			"source": poolSource,
+		}
 
 		t.Run(fmt.Sprintf("%s[%s]", t.Name(), poolDriver), func(t *testing.T) {
 			defer cleanup()
@@ -215,7 +221,7 @@ func TestAccStoragePool_configSource(t *testing.T) {
 				ProtoV6ProviderFactories: acctest.ProtoV6ProviderFactories,
 				Steps: []resource.TestStep{
 					{
-						Config: acctest.Provider() + testAccStoragePool_configSource(poolName, poolDriver, poolSource),
+						Config: acctest.Provider() + testAccStoragePool_config(poolName, poolDriver, poolConfig),
 						Check: resource.ComposeTestCheckFunc(
 							resource.TestCheckResourceAttr("lxd_storage_pool.storage_pool1", "name", poolName),
 							resource.TestCheckResourceAttr("lxd_storage_pool.storage_pool1", "driver", poolDriver),
@@ -224,7 +230,7 @@ func TestAccStoragePool_configSource(t *testing.T) {
 					},
 					{
 						// Reapply the same config to ensure there is no drift in terraform state.
-						Config: acctest.Provider() + testAccStoragePool_configSource(poolName, poolDriver, poolSource),
+						Config: acctest.Provider() + testAccStoragePool_config(poolName, poolDriver, poolConfig),
 					},
 				},
 			})
@@ -465,7 +471,7 @@ func TestAccStoragePool_importConfig(t *testing.T) {
 		ProtoV6ProviderFactories: acctest.ProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
-				Config: acctest.Provider() + testAccStoragePool_config(poolName, driverName),
+				Config: acctest.Provider() + testAccStoragePool_config(poolName, driverName, nil),
 			},
 			{
 				ResourceName:                         resourceName,
@@ -514,28 +520,21 @@ resource "lxd_storage_pool" "storage_pool1" {
 	`, name, driver)
 }
 
-func testAccStoragePool_config(name string, driver string) string {
-	return fmt.Sprintf(`
-resource "lxd_storage_pool" "storage_pool1" {
-  name   = "%s"
-  driver = "%s"
-  config = {
-    size = "128MiB"
-  }
-}
-	`, name, driver)
-}
+func testAccStoragePool_config(name string, driver string, config map[string]string) string {
+	configStr := ""
+	for key, value := range config {
+		configStr += fmt.Sprintf("    %q = %q\n", key, value)
+	}
 
-func testAccStoragePool_configSource(name string, driver string, source string) string {
 	return fmt.Sprintf(`
 resource "lxd_storage_pool" "storage_pool1" {
   name   = "%s"
   driver = "%s"
   config = {
-    source = "%s"
+    %s
   }
 }
-	`, name, driver, source)
+	`, name, driver, configStr)
 }
 
 func testAccStoragePool_project(name string, driver string, project string) string {
