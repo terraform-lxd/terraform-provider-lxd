@@ -73,9 +73,12 @@ func ToNullableConfig(config map[string]string) map[string]*string {
 	return nullConfig
 }
 
-// MergeConfig merges resource (existing) configuration with user defined
-// configuration. Non-empty resource config entries that are contained in
-// the provided computed keys are inserted in the user config.
+// MergeConfig returns a copy of the user configuration with computed values
+// from the resource configuration added back in.
+//
+// User-defined values take precedence. Empty values are skipped because LXD
+// treats them as unset. Resource values are only included when they are
+// non-empty, absent from the user configuration, and listed in computedKeys.
 func MergeConfig(resConfig map[string]string, usrConfig map[string]string, computedKeys []string) map[string]string {
 	config := make(map[string]string)
 
