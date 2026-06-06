@@ -398,3 +398,54 @@ func (m StoragePoolModel) ComputedKeys(driver string) []string {
 
 	return append(keys, "volatile.")
 }
+
+// MemberSpecificKeys returns list of member-specific config keys.
+// For storage pool drivers that do not have member-specific keys, nil is returned.
+//
+// This is mainly used for LXD servers that do not support metadata configuration
+// endpoint, which allows to determine member-specific config keys dynamically.
+func (m StoragePoolModel) MemberSpecificKeys(driver string) []string {
+	switch driver {
+	case "dir":
+		return []string{
+			"source",
+			"source.recover",
+		}
+	case "zfs":
+		return []string{
+			"size",
+			"source",
+			"source.recover",
+			"source.wipe",
+			"zfs.pool_name",
+		}
+	case "lvm":
+		return []string{
+			"lvm.thinpool_name",
+			"lvm.vg_name",
+			"size",
+			"source",
+			"source.recover",
+			"source.wipe",
+		}
+	case "btrfs":
+		return []string{
+			"size",
+			"source",
+			"source.recover",
+			"source.wipe",
+		}
+	case "ceph":
+		return []string{
+			"source",
+			"source.recover",
+		}
+	case "cephfs":
+		return []string{
+			"source",
+			"source.recover",
+		}
+	default:
+		return nil
+	}
+}
