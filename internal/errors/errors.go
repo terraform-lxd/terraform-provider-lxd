@@ -1,8 +1,10 @@
 package errors
 
 import (
+	"errors"
 	"fmt"
 	"net/http"
+	"strings"
 
 	"github.com/canonical/lxd/shared/api"
 	"github.com/hashicorp/terraform-plugin-framework/diag"
@@ -41,4 +43,39 @@ func NewProviderDataTypeError(value any) diag.Diagnostic {
 			value,
 		),
 	)
+}
+
+// FromDiagnostics converts a [diag.Diagnostics] object into an [error].
+// If the Diagnostics object does not contain any errors, nil is returned.
+func FromDiagnostics(diags diag.Diagnostics) error {
+	if diags == nil || !diags.HasError() {
+		return nil
+	}
+
+	toErrorMsg := func(diag diag.Diagnostic) string {
+		msg := diag.Summary()
+
+		detail := diag.Detail()
+		if detail != "" {
+			msg += ": " + detail
+		}
+
+		return msg
+	}
+
+	errDiags := diags.Errors()
+
+	if len(errDiags) == 1 {
+		msg := toErrorMsg(errDiags[0])
+		return errors.New(msg)
+	}
+
+	var msg strings.Builder
+	fmt.Fprintf(&msg, "%d errors occurred:", len(errDiags))
+	for _, e := range errDiags {
+		msg.WriteString("\n- ")
+		msg.WriteString(toErrorMsg(e))
+	}
+
+	return errors.New(msg.String())
 }
