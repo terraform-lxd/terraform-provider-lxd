@@ -372,6 +372,59 @@ func (m StoragePoolModel) TaintState(ctx context.Context, tfState *tfsdk.State) 
 	return diags
 }
 
+// storagePoolConfigKeys retrieves a map of storage pool configuration keys and their scope.
+func (m StoragePoolModel) storagePoolConfigKeys(serverName string, server lxd.InstanceServer, driver string) (allKeys []string, localKeys []string, err error) {
+	if server.CheckExtension("metadata_configuration") != nil {
+		localKeys = m.MemberSpecificKeys(driver)
+		return nil, localKeys, nil
+	}
+
+	meta, err := common.ServerMetadataConfiguration(serverName, server)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	driverConfigKey := "storage-" + driver
+	driverConfig, ok := meta.Configs[driverConfigKey]
+	if !ok {
+		return nil, nil, fmt.Errorf("Metadata configuration %q not found", driverConfigKey)
+	}
+
+	// Parse pool config keys.
+	poolConfigKey := "pool-conf"
+	poolConfig, ok := driverConfig[poolConfigKey]
+	if !ok {
+		return nil, nil, fmt.Errorf("Metadata configuration %q does not contain %q keys", driverConfigKey, poolConfigKey)
+	}
+
+	for _, configKeys := range poolConfig.Keys {
+		for k, v := range configKeys {
+			allKeys = append(allKeys, k)
+			if v.Scope == "local" {
+				localKeys = append(localKeys, k)
+			}
+		}
+	}
+
+	// Parse volume config keys.
+	volConfig, ok := driverConfig["volume-conf"]
+	if ok {
+		for _, configKeys := range volConfig.Keys {
+			for k, v := range configKeys {
+				// Pool accepts volume keys only with the "volume." prefix.
+				key := "volume." + k
+
+				allKeys = append(allKeys, key)
+				if v.Scope == "local" {
+					localKeys = append(localKeys, key)
+				}
+			}
+		}
+	}
+
+	return allKeys, localKeys, nil
+}
+
 // ComputedKeys returns list of computed config keys.
 func (m StoragePoolModel) ComputedKeys(driver string) []string {
 	var keys []string
