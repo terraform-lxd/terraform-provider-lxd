@@ -389,11 +389,27 @@ func (m StoragePoolModel) ComputedKeys(driver string) []string {
 			"size",
 		}
 	case "ceph":
-		// TODO: Add computed keys for Ceph block storage pools: https://github.com/terraform-lxd/terraform-provider-lxd/issues/644
+		keys = []string{
+			"source",
+			"ceph.cluster_name",
+			"ceph.user.name",
+			"ceph.osd.pg_num",
+			"ceph.osd.pool_name",
+			"ceph.osd.pool_size",
+		}
 	case "cephfs":
-		// TODO: Add computed keys for CephFS storage pools: https://github.com/terraform-lxd/terraform-provider-lxd/issues/644
+		keys = []string{
+			"source",
+			"cephfs.cluster_name",
+			"cephfs.user.name",
+			"cephfs.osd_pg_num",
+			"cephfs.osd_pool_size",
+		}
 	case "cephobject":
-		// TODO: Add computed keys for Ceph object storage pools: https://github.com/terraform-lxd/terraform-provider-lxd/issues/644
+		keys = []string{
+			"cephobject.cluster_name",
+			"cephobject.user.name",
+		}
 	}
 
 	return append(keys, "volatile.")
