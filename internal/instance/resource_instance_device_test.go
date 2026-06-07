@@ -2,8 +2,6 @@ package instance_test
 
 import (
 	"fmt"
-	"strconv"
-	"strings"
 	"testing"
 
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
@@ -172,12 +170,6 @@ func TestAccInstanceDevice_volumeAttachCluster(t *testing.T) {
 			{
 				Config: acctest.Provider() + testAccInstanceDevice_volumeAttachCluster(instanceName, poolName, driverName, volumeName, targets),
 				Check: resource.ComposeTestCheckFunc(
-					resource.TestCheckResourceAttr("lxd_storage_pool.storage_pool_node1", "name", poolName),
-					resource.TestCheckResourceAttr("lxd_storage_pool.storage_pool_node1", "driver", driverName),
-					resource.TestCheckResourceAttr("lxd_storage_pool.storage_pool_node1", "target", targets[0]),
-					resource.TestCheckResourceAttr("lxd_storage_pool.storage_pool_node2", "name", poolName),
-					resource.TestCheckResourceAttr("lxd_storage_pool.storage_pool_node2", "driver", driverName),
-					resource.TestCheckResourceAttr("lxd_storage_pool.storage_pool_node2", "target", targets[1]),
 					resource.TestCheckResourceAttr("lxd_storage_pool.storage_pool", "name", poolName),
 					resource.TestCheckResourceAttr("lxd_storage_pool.storage_pool", "driver", driverName),
 
@@ -334,27 +326,12 @@ data "lxd_instance" "inst" {
 }
 
 func testAccInstanceDevice_volumeAttachCluster(instanceName string, poolName string, driver string, volumeName string, targets []string) string {
-	var config string
-	var deps []string
-
-	for i, target := range targets {
-		deps = append(deps, "lxd_storage_pool.storage_pool_node"+strconv.Itoa(i+1))
-		config += fmt.Sprintf(`
-resource "lxd_storage_pool" "storage_pool_node%d" {
-  name   = "%s"
-  driver = "%s"
-  target = "%s"
-}`, i+1, poolName, driver, target)
-	}
-
-	config += fmt.Sprintf(`
+	return fmt.Sprintf(`
 resource "lxd_storage_pool" "storage_pool" {
-  depends_on = [ %[3]s ]
-  name       = "%[1]s"
-  driver     = "%[2]s"
-}`, poolName, driver, strings.Join(deps, ", "))
+  name       = %q
+  driver     = %q
+}
 
-	config += fmt.Sprintf(`
 resource "lxd_instance" "inst" {
    name    = %q
    running = false
@@ -378,7 +355,5 @@ resource "lxd_storage_volume" "volume1" {
   pool   = lxd_storage_pool.storage_pool.name
   target = lxd_instance.inst.location
 }
-   `, instanceName, volumeName)
-
-	return config
+   `, poolName, driver, instanceName, volumeName)
 }
