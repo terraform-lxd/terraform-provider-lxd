@@ -146,6 +146,22 @@ import {
     - driver == `btrfs`
       + `size`
       + `source`
+    - driver == `ceph`
+      + `source` (LXD version < 5.21)
+      + `ceph.cluster_name`
+      + `ceph.user.name`
+      + `ceph.osd.pg_num`
+      + `ceph.osd.pool_name`
+      + `ceph.osd.pool_size`
+    - driver == `cephfs`
+      + `source` (LXD version < 5.21)
+      + `cephfs.cluster_name`
+      + `cephfs.user.name`
+      + `cephfs.osd_pg_num`
+      + `cephfs.osd_pool_size`
+    - driver == `cephobject`
+      + `cephobject.cluster_name`
+      + `cephobject.user.name`
 
 * The value of `config.source` may be changed by LXD after storage pool creation.
   Therefore, the provider ignores the live `config.source` value when refreshing state to avoid drift.
