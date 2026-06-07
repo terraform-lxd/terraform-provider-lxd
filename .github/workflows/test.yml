@@ -24,6 +24,10 @@ jobs:
   acc-standalone:
     runs-on: ${{ matrix.os }}
     name: standalone (${{ matrix.channel }}, ${{ matrix.os }})
+    env:
+      LXD_CEPH_CLUSTER: "ceph"
+      LXD_CEPH_CEPHFS: "cephfs"
+      LXD_CEPH_CEPHOBJECT_RADOSGW: "http://127.0.0.1"
     strategy:
       fail-fast: false
       matrix:
@@ -67,6 +71,11 @@ jobs:
 
           # Add HTTPS remote.
           lxc remote add localhost "$(lxc config trust add --name lxd-terraform-provider --quiet)"
+
+      - name: Setup MicroCeph
+        uses: canonical/lxd/.github/actions/setup-microceph@8a8e4c8ad05da9d5345e08a2821e530adff7b8a8 # stable-5.21
+        with:
+          osd-count: "1"
 
       - name: Download minio/mc
         uses: canonical/lxd/.github/actions/download-minio@943a5f1be3a193294e9f9a05a0fcce6a1a43d5e1 # stable-5.21
