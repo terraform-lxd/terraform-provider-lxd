@@ -153,6 +153,84 @@ func TestAccStoragePool_btrfs(t *testing.T) {
 	})
 }
 
+func TestAccStoragePool_ceph(t *testing.T) {
+	poolName := acctest.GenerateName(2, "-")
+	driverName := "ceph"
+
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			acctest.PreCheck(t)
+			acctest.PreCheckCeph(t)
+		},
+		ProtoV6ProviderFactories: acctest.ProtoV6ProviderFactories,
+		Steps: []resource.TestStep{
+			{
+				Config: acctest.Provider() + testAccStoragePool_config(poolName, driverName, nil),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr("lxd_storage_pool.storage_pool1", "name", poolName),
+					resource.TestCheckResourceAttr("lxd_storage_pool.storage_pool1", "driver", driverName),
+				),
+			},
+		},
+	})
+}
+
+func TestAccStoragePool_cephfs(t *testing.T) {
+	clusterName, cephfsName, _ := acctest.PreCheckCeph(t)
+
+	poolName := acctest.GenerateName(2, "-")
+	driverName := "cephfs"
+	poolConfig := map[string]string{
+		"cephfs.cluster_name": clusterName,
+		"cephfs.path":         cephfsName,
+	}
+
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			acctest.PreCheck(t)
+			acctest.PreCheckAPIExtensions(t, "storage_remote_drop_source")
+		},
+		ProtoV6ProviderFactories: acctest.ProtoV6ProviderFactories,
+		Steps: []resource.TestStep{
+			{
+				Config: acctest.Provider() + testAccStoragePool_config(poolName, driverName, poolConfig),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr("lxd_storage_pool.storage_pool1", "name", poolName),
+					resource.TestCheckResourceAttr("lxd_storage_pool.storage_pool1", "driver", driverName),
+					resource.TestCheckResourceAttr("lxd_storage_pool.storage_pool1", "config.cephfs.cluster_name", clusterName),
+					resource.TestCheckResourceAttr("lxd_storage_pool.storage_pool1", "config.cephfs.path", cephfsName),
+				),
+			},
+		},
+	})
+}
+
+func TestAccStoragePool_cephobject(t *testing.T) {
+	_, _, radosgwEndpoint := acctest.PreCheckCeph(t)
+
+	poolName := acctest.GenerateName(2, "-")
+	driverName := "cephobject"
+
+	poolConfig := map[string]string{
+		"cephobject.radosgw.endpoint": radosgwEndpoint,
+	}
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { acctest.PreCheck(t) },
+		ProtoV6ProviderFactories: acctest.ProtoV6ProviderFactories,
+		Steps: []resource.TestStep{
+			{
+				Config: acctest.Provider() + testAccStoragePool_config(poolName, driverName, poolConfig),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr("lxd_storage_pool.storage_pool1", "name", poolName),
+					resource.TestCheckResourceAttr("lxd_storage_pool.storage_pool1", "driver", driverName),
+					resource.TestCheckResourceAttr("lxd_storage_pool.storage_pool1", "config.cephobject.radosgw.endpoint", radosgwEndpoint),
+				),
+			},
+		},
+	})
+}
+
 func TestAccStoragePool_config(t *testing.T) {
 	poolName := acctest.GenerateName(2, "-")
 	poolConfig := map[string]string{
