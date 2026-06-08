@@ -2,11 +2,7 @@
 
 Manages an LXD network.
 
-You must be using LXD 2.3 or later. See
-[this](https://www.stgraber.org/2016/10/27/network-management-with-lxd-2-3/)
-blog post for details about LXD networking and the
-[configuration reference](https://documentation.ubuntu.com/lxd/latest/explanation/networks/)
-for all network details.
+Refer to the [configuration reference](https://documentation.ubuntu.com/lxd/latest/explanation/networks/) for all network details.
 
 ## Example Usage
 
@@ -145,34 +141,42 @@ Also note how the client does not provide an IP address range.
 
 ## Cluster Example
 
-In order to create a network in a cluster, you first have to
-define the network on each node in the cluster. Then you can create
-the actual network:
+A single `lxd_network` resource is enough to create a network across all cluster members.
 
 ```hcl
-resource "lxd_network" "my_network_node1" {
-  name   = "my_network"
-  target = "node1"
-}
-
-resource "lxd_network" "my_network_node2" {
-  name   = "my_network"
-  target = "node2"
-}
-
 resource "lxd_network" "my_network" {
-  depends_on = [
-    "lxd_network.my_network_node1",
-    "lxd_network.my_network_node2",
-  ]
-
   name = "my_network"
+  type = "bridge"
+}
+```
+
+For clustered networks, per-member local config keys (such as `bridge.external_interfaces` or
+`parent`) are extracted from `config` and applied across all cluster members. However, custom
+per-member configuration can be set using `member_overrides`.
+
+```hcl
+resource "lxd_network" "my_network" {
+  name = "my_network"
+  type = "bridge"
 
   config = {
-    "ipv4.address" = "10.150.19.1/24"
-    "ipv4.nat"     = "true"
-    "ipv6.address" = "fd42:474b:622d:259d::1/64"
-    "ipv6.nat"     = "true"
+    "ipv4.address"               = "10.150.19.1/24"
+    "ipv4.nat"                   = "true"
+    "bridge.external_interfaces" = "eth0"
+  }
+
+  member_overrides = {
+    "member-1" = {
+      config = {
+        "bridge.external_interfaces" = "eth1"
+      }
+    }
+
+    "member-2" = {
+      config = {
+        "bridge.external_interfaces" = "eth2"
+      }
+    }
   }
 }
 ```
@@ -195,12 +199,18 @@ for more details on how to create a network in clustered mode.
 * `config` - *Optional* - Map of key/value pairs of
 	[network config settings](https://documentation.ubuntu.com/lxd/latest/networks/).
 
+* `member_overrides` - *Optional* - Map of per-member local config overrides for clustered networks.
+  Each key is a cluster member name.
+  Each value is an object with a config map of local-scoped keys to apply for that member.
+  Values in `member_overrides` take precedence over values from `config`.
+
+* `members` - *Computed* - Map of resolved local config for every cluster member, populated
+  after apply. Used by the provider to detect out-of-band changes (drift) on individual cluster members.
+
 * `project` - *Optional* - Name of the project where the network will be created.
 
 * `remote` - *Optional* - The remote in which the resource will be created. If
 	not provided, the provider's default remote will be used.
-
-* `target` - *Optional* - Specify a target node in a cluster.
 
 ## Attribute Reference
 
