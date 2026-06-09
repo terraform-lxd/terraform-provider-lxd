@@ -3,7 +3,6 @@ package storage_test
 import (
 	"fmt"
 	"strconv"
-	"strings"
 	"testing"
 
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
@@ -98,7 +97,7 @@ func TestAccStoragePool_DS_cluster(t *testing.T) {
 		ProtoV6ProviderFactories: acctest.ProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
-				Config: acctest.Provider() + testAccStoragePool_DS_cluster(poolName, driverName, targets),
+				Config: acctest.Provider() + testAccStoragePool_DS_cluster(poolName, driverName),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("data.lxd_storage_pool.pool", "name", poolName),
 					resource.TestCheckResourceAttr("data.lxd_storage_pool.pool", "driver", driverName),
@@ -160,31 +159,15 @@ data "lxd_storage_pool" "pool" {
   `, project, name, driver)
 }
 
-func testAccStoragePool_DS_cluster(name string, driver string, targets []string) string {
-	var config string
-	var deps []string
-
-	for i, target := range targets {
-		deps = append(deps, "lxd_storage_pool.pool_node"+strconv.Itoa(i+1))
-		config += fmt.Sprintf(`
-resource "lxd_storage_pool" "pool_node%d" {
+func testAccStoragePool_DS_cluster(name string, driver string) string {
+	return fmt.Sprintf(`
+resource "lxd_storage_pool" "pool" {
   name   = %q
   driver = %q
-  target = %q
-}`, i+1, name, driver, target)
-	}
-
-	config += fmt.Sprintf(`
-resource "lxd_storage_pool" "pool" {
-  depends_on = [ %[3]s ]
-  name       = %[1]q
-  driver     = %[2]q
 }
 
 data "lxd_storage_pool" "pool" {
-  name   = lxd_storage_pool.pool.name
+  name = lxd_storage_pool.pool.name
 }
-  `, name, driver, strings.Join(deps, ", "))
-
-	return config
+	`, name, driver)
 }

@@ -7,39 +7,62 @@ Manages an LXD storage pool.
 ### Basic Example
 
 ```hcl
-resource "lxd_storage_pool" "pool1" {
+resource "lxd_storage_pool" "pool" {
   name   = "mypool"
   driver = "dir"
 }
 ```
 
-### Cluster Example
-
-In order to create a storage pool in a cluster, you first have to define
-the storage pool on each node in the cluster. Then you can create the
-actual pool
+### Pool with explicit config
 
 ```hcl
-resource "lxd_storage_pool" "mypool_node1" {
+resource "lxd_storage_pool" "pool" {
   name   = "mypool"
   driver = "zfs"
-  target = "node1"
+  config = {
+    size   = "100GiB"
+    source = "/dev/sdb"
+  }
 }
+```
 
-resource "lxd_storage_pool" "mypool_node2" {
+### Cluster Example
+
+A single `lxd_storage_pool` resource is enough to create a storage pool across all cluster members.
+
+```hcl
+resource "lxd_storage_pool" "pool" {
   name   = "mypool"
   driver = "zfs"
-  target = "node2"
+  config = {
+    size = "100GiB"
+  }
 }
+```
 
-resource "lxd_storage_pool" "mypool" {
-  depends_on = [
-    lxd_storage_pool.mypool_node1,
-    lxd_storage_pool.mypool_node2,
-  ]
+For clustered pools, per-member local config keys are extracted from `config` and applied across all cluster members. However, custom per-member configuration can be set using `member_overrides`.
 
+```hcl
+resource "lxd_storage_pool" "pool" {
   name   = "mypool"
   driver = "zfs"
+  config = {
+    size = "100GiB"
+  }
+
+  member_overrides = {
+    node1 = {
+      config = {
+        source = "/dev/sdb"
+      }
+    }
+
+    node2 = {
+      config = {
+        source = "/dev/sdc"
+      }
+    }
+  }
 }
 ```
 
@@ -48,27 +71,27 @@ for more details on how to create a storage pool in clustered mode.
 
 ## Argument Reference
 
-* `name`   - **Required** - Name of the storage pool.
+* `name` - **Required** - Name of the storage pool.
 
 * `driver` - **Required** - Storage pool driver. Must be one of `dir`, `zfs`, `lvm`, `btrfs`, `ceph`, `cephfs`, or `cephobject`.
-
-* `source` - *Optional* - Source of the storage pool that is applicable only during the creation.
-  While this corresponds to `config.source` in LXD, `config.source` is adjusted after creation by
-  LXD based on the underlying storage driver. Therefore, using `source` during creation prevents an
-  inconsistent Terraform plan.
 
 * `description` - *Optional* - Description of the storage pool.
 
 * `config` - *Optional* - Map of key/value pairs of
-	[storage pool config settings](https://documentation.ubuntu.com/lxd/latest/reference/storage_drivers/).
-	Config settings vary from driver to driver.
+  [storage pool config settings](https://documentation.ubuntu.com/lxd/latest/reference/storage_drivers/).
+  Config settings vary from driver to driver.
+
+* `member_overrides` - *Optional* - Map of per-member local config overrides for clustered storage pools.
+  Each key is a cluster member name. Each value is a map of local-scoped config keys to apply for that member.
+  Values in `member_overrides` take precedence over values from `config`.
+
+* `members` - *Computed* - Map of resolved local config for every cluster member, populated after
+  apply. Used by the provider to detect out-of-band changes (drift) on individual cluster nodes.
 
 * `project` - *Optional* - Name of the project where the storage pool will be stored.
 
 * `remote` - *Optional* - The remote in which the resource will be created. If
 	not provided, the provider's default remote will be used.
-
-* `target` - *Optional* - Specify a target node in a cluster.
 
 ## Importing
 
@@ -120,6 +143,25 @@ import {
       + `source`
       + `lvm.vg_name`
       + `lvm.thinpool_name`
-    - driver == `zfs`
+    - driver == `btrfs`
       + `size`
       + `source`
+    - driver == `ceph`
+      + `source` (LXD version < 5.21)
+      + `ceph.cluster_name`
+      + `ceph.user.name`
+      + `ceph.osd.pg_num`
+      + `ceph.osd.pool_name`
+      + `ceph.osd.pool_size`
+    - driver == `cephfs`
+      + `source` (LXD version < 5.21)
+      + `cephfs.cluster_name`
+      + `cephfs.user.name`
+      + `cephfs.osd_pg_num`
+      + `cephfs.osd_pool_size`
+    - driver == `cephobject`
+      + `cephobject.cluster_name`
+      + `cephobject.user.name`
+
+* The value of `config.source` may be changed by LXD after storage pool creation.
+  Therefore, the provider ignores the live `config.source` value when refreshing state to avoid drift.

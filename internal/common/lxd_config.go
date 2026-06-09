@@ -73,9 +73,12 @@ func ToNullableConfig(config map[string]string) map[string]*string {
 	return nullConfig
 }
 
-// MergeConfig merges resource (existing) configuration with user defined
-// configuration. Non-empty resource config entries that are contained in
-// the provided computed keys are inserted in the user config.
+// MergeConfig returns a copy of the user configuration with computed values
+// from the resource configuration added back in.
+//
+// User-defined values take precedence. Empty values are skipped because LXD
+// treats them as unset. Resource values are only included when they are
+// non-empty, absent from the user configuration, and listed in computedKeys.
 func MergeConfig(resConfig map[string]string, usrConfig map[string]string, computedKeys []string) map[string]string {
 	config := make(map[string]string)
 
@@ -100,49 +103,32 @@ func MergeConfig(resConfig map[string]string, usrConfig map[string]string, compu
 	return config
 }
 
-// StripConfig removes any computed keys from the user-defined configuration
-// file in order to be able to produce a consistent Terraform plan. If there
-// is a non-computed-key entry, it will be retained in the configuration and
-// will trigger an error.
-func StripConfig(resConfig map[string]string, modelConfig types.Map, computedKeys []string) map[string]*string {
+// StripConfig returns the user configuration with managed resource values
+// merged in, while excluding computed-only values.
+//
+// Null user-configured values are preserved so they remain visible in state
+// instead of disappearing.
+func StripConfig(resConfig map[string]string, usrConfigType types.Map, computedKeys []string) map[string]*string {
 	// Handle nulls in modelConfig.
 	usrConfig := map[string]*string{}
-	if !modelConfig.IsNull() && !modelConfig.IsUnknown() {
-		_ = modelConfig.ElementsAs(context.Background(), &usrConfig, false)
-	}
-
-	// Populate empty values from user config, so they do not "disappear"
-	// from the state.
-	config := make(map[string]*string)
-
-	for k, v := range usrConfig {
-		if v == nil {
-			config[k] = nil
-		}
+	if !usrConfigType.IsNull() && !usrConfigType.IsUnknown() {
+		_ = usrConfigType.ElementsAs(context.Background(), &usrConfig, false)
 	}
 
 	// Apply entries to the config that are not empty (unset), are not
-	// computed, or are present in the user configuration file. The last
-	// one ensures that the correct change is shown in the terraform plan.
+	// computed, or are present in the user configuration. The last one
+	// ensures that the correct change is shown in the terraform plan.
 	for k, v := range resConfig {
 		if v == "" {
 			continue
 		}
 
-		_, ok := usrConfig[k]
-		if ok || !isComputedKey(k, computedKeys) {
-			if usrConfig[k] == nil && isComputedKey(k, computedKeys) {
-				// Keep as null.
-				config[k] = nil
-			} else {
-				// Copy the value.
-				v := string(resConfig[k])
-				config[k] = &v
-			}
+		if usrConfig[k] != nil || !isComputedKey(k, computedKeys) {
+			usrConfig[k] = &v
 		}
 	}
 
-	return config
+	return usrConfig
 }
 
 // isComputedKey determines if a given key is considered "computed".

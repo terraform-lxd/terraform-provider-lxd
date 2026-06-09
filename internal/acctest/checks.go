@@ -6,6 +6,7 @@ import (
 	"encoding/pem"
 	"fmt"
 	"net"
+	"os"
 	"os/exec"
 	"strings"
 	"testing"
@@ -140,6 +141,23 @@ func PreCheckStandalone(t *testing.T) {
 	if server.IsClustered() {
 		t.Skipf("Test %q skipped. LXD server is not running in standalone mode.", t.Name())
 	}
+}
+
+// PreCheckCeph skips the test unless a Ceph cluster is available for acceptance
+// testing. It returns the Ceph cluster name, the CephFS file system name, and
+// the Ceph Object Gateway endpoint, all read from the LXD_CEPH_CLUSTER,
+// LXD_CEPH_CEPHFS, and LXD_CEPH_CEPHOBJECT_RADOSGW environment variables. These
+// are set by the CI workflow when MicroCeph is installed on the test runner.
+func PreCheckCeph(t *testing.T) (clusterName string, cephfsName string, radosgwEndpoint string) {
+	clusterName = os.Getenv("LXD_CEPH_CLUSTER")
+	cephfsName = os.Getenv("LXD_CEPH_CEPHFS")
+	radosgwEndpoint = os.Getenv("LXD_CEPH_CEPHOBJECT_RADOSGW")
+
+	if clusterName == "" || cephfsName == "" || radosgwEndpoint == "" {
+		t.Skipf("Test %q skipped. Ceph environment variables (LXD_CEPH_CLUSTER, LXD_CEPH_CEPHFS, LXD_CEPH_CEPHOBJECT_RADOSGW) are not set.", t.Name())
+	}
+
+	return clusterName, cephfsName, radosgwEndpoint
 }
 
 // PreCheckRoot skips the test if the user cannot escalate privileges without a password.
