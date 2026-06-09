@@ -635,7 +635,7 @@ func (m StoragePoolModel) ParsePoolConfigs(ctx context.Context, server lxd.Insta
 	for memberName, override := range memberOverrides {
 		memberPoolConfig, ok := memberPoolConfigs[memberName]
 		if !ok {
-			return nil, nil, fmt.Errorf("Storage pool %q (%s) contains member-specific config override for a non-existing cluster member %q!", poolName, driver, memberName)
+			return nil, nil, fmt.Errorf("Storage pool %q (%s) contains member-specific config override for a non-existent cluster member %q!", poolName, driver, memberName)
 		}
 
 		// Parse and apply member-specific override.
@@ -683,7 +683,7 @@ func (m StoragePoolModel) storagePoolConfigKeys(serverName string, server lxd.In
 	poolConfigKey := "pool-conf"
 	poolConfig, ok := driverConfig[poolConfigKey]
 	if !ok {
-		return nil, nil, fmt.Errorf("Metadata configuration %q does not contain %q keys", driverConfigKey, poolConfigKey)
+		return nil, nil, fmt.Errorf("Metadata configuration %q does not contain %q key", driverConfigKey, poolConfigKey)
 	}
 
 	for _, configKeys := range poolConfig.Keys {
