@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"maps"
 	"slices"
+	"time"
 
 	lxd "github.com/canonical/lxd/client"
 	"github.com/canonical/lxd/shared/api"
@@ -314,6 +315,14 @@ func (r NetworkResource) Create(ctx context.Context, req resource.CreateRequest,
 		return
 	}
 
+	if networkType == "ovn" {
+		err := waitActiveOVNChassis(ctx, server, networkName)
+		if err != nil {
+			resp.Diagnostics.AddError(fmt.Sprintf("Failed to wait for OVN network %q to become available", networkName), err.Error())
+			return
+		}
+	}
+
 	// Update Terraform state.
 	diags = r.SyncState(ctx, &resp.State, server, plan)
 	resp.Diagnostics.Append(diags...)
@@ -415,6 +424,14 @@ func (r NetworkResource) Update(ctx context.Context, req resource.UpdateRequest,
 	if err != nil {
 		resp.Diagnostics.AddError(fmt.Sprintf("Failed to update network %q", networkName), err.Error())
 		return
+	}
+
+	if networkType == "ovn" {
+		err := waitActiveOVNChassis(ctx, server, networkName)
+		if err != nil {
+			resp.Diagnostics.AddError(fmt.Sprintf("Failed to wait for OVN network %q to become available", networkName), err.Error())
+			return
+		}
 	}
 
 	// Update Terraform state.
@@ -785,4 +802,36 @@ func findGlobalCIDRs(addrs []api.NetworkStateAddress) (ipv4 string, ipv6 string)
 	}
 
 	return ipv4, ipv6
+}
+
+// waitActiveOVNChassis waits until OVN network reports an active chassis in its state.
+func waitActiveOVNChassis(ctx context.Context, server lxd.InstanceServer, networkName string) error {
+	ctx, cancel := context.WithTimeout(ctx, 10*time.Second)
+	defer cancel()
+
+	ticker := time.NewTicker(time.Second)
+	defer ticker.Stop()
+
+	var lastErr error
+	for {
+		// Reset error each loop to avoid returning stale error.
+		lastErr = nil
+
+		state, err := server.GetNetworkState(networkName)
+		if err != nil {
+			lastErr = fmt.Errorf("Failed to retrieve state of OVN network %q: %w", networkName, err)
+		} else if state.OVN != nil && state.OVN.Chassis != "" {
+			return nil
+		}
+
+		select {
+		case <-ticker.C:
+		case <-ctx.Done():
+			if lastErr != nil {
+				return lastErr
+			}
+
+			return fmt.Errorf("Timed out waiting for OVN network %q to have an active chassis: %w", networkName, ctx.Err())
+		}
+	}
 }
