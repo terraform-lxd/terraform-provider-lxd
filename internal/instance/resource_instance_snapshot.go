@@ -48,7 +48,7 @@ func NewInstanceSnapshotResource() resource.Resource {
 }
 
 func (r InstanceSnapshotResource) Metadata(_ context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
-	resp.TypeName = fmt.Sprintf("%s_snapshot", req.ProviderTypeName)
+	resp.TypeName = fmt.Sprintf("%s_instance_snapshot", req.ProviderTypeName)
 }
 
 func (r InstanceSnapshotResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *resource.SchemaResponse) {
