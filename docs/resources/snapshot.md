@@ -1,4 +1,4 @@
-# lxd_snapshot
+# lxd_instance_snapshot
 
 Manages a snapshot of an LXD instance.
 
@@ -11,7 +11,7 @@ resource "lxd_instance" "instance" {
   ephemeral = false
 }
 
-resource "lxd_snapshot" "snap1" {
+resource "lxd_instance_snapshot" "snap1" {
   name     = "my-snapshot-1"
   instance = lxd_instance.instance.name
 }
