@@ -22,10 +22,10 @@ func TestAccInstanceSnapshot_stateless(t *testing.T) {
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("lxd_instance.instance1", "name", instanceName),
 					resource.TestCheckResourceAttr("lxd_instance.instance1", "status", "Running"),
-					resource.TestCheckResourceAttr("lxd_snapshot.snapshot1", "name", snapshotName),
-					resource.TestCheckResourceAttr("lxd_snapshot.snapshot1", "instance", instanceName),
-					resource.TestCheckResourceAttr("lxd_snapshot.snapshot1", "stateful", "false"),
-					resource.TestCheckResourceAttrSet("lxd_snapshot.snapshot1", "created_at"),
+					resource.TestCheckResourceAttr("lxd_instance_snapshot.snapshot1", "name", snapshotName),
+					resource.TestCheckResourceAttr("lxd_instance_snapshot.snapshot1", "instance", instanceName),
+					resource.TestCheckResourceAttr("lxd_instance_snapshot.snapshot1", "stateful", "false"),
+					resource.TestCheckResourceAttrSet("lxd_instance_snapshot.snapshot1", "created_at"),
 				),
 			},
 		},
@@ -69,9 +69,9 @@ func TestAccInstanceSnapshot_multiple(t *testing.T) {
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("lxd_instance.instance1", "name", instanceName),
 					resource.TestCheckResourceAttr("lxd_instance.instance1", "status", "Running"),
-					resource.TestCheckResourceAttr("lxd_snapshot.snapshot1", "name", snapshotName1),
-					resource.TestCheckResourceAttr("lxd_snapshot.snapshot1", "instance", instanceName),
-					resource.TestCheckResourceAttrSet("lxd_snapshot.snapshot1", "created_at"),
+					resource.TestCheckResourceAttr("lxd_instance_snapshot.snapshot1", "name", snapshotName1),
+					resource.TestCheckResourceAttr("lxd_instance_snapshot.snapshot1", "instance", instanceName),
+					resource.TestCheckResourceAttrSet("lxd_instance_snapshot.snapshot1", "created_at"),
 				),
 			},
 			{
@@ -79,12 +79,12 @@ func TestAccInstanceSnapshot_multiple(t *testing.T) {
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("lxd_instance.instance1", "name", instanceName),
 					resource.TestCheckResourceAttr("lxd_instance.instance1", "status", "Running"),
-					resource.TestCheckResourceAttr("lxd_snapshot.snapshot1", "name", snapshotName1),
-					resource.TestCheckResourceAttr("lxd_snapshot.snapshot1", "instance", instanceName),
-					resource.TestCheckResourceAttrSet("lxd_snapshot.snapshot1", "created_at"),
-					resource.TestCheckResourceAttr("lxd_snapshot.snapshot2", "name", snapshotName2),
-					resource.TestCheckResourceAttr("lxd_snapshot.snapshot2", "instance", instanceName),
-					resource.TestCheckResourceAttrSet("lxd_snapshot.snapshot2", "created_at"),
+					resource.TestCheckResourceAttr("lxd_instance_snapshot.snapshot1", "name", snapshotName1),
+					resource.TestCheckResourceAttr("lxd_instance_snapshot.snapshot1", "instance", instanceName),
+					resource.TestCheckResourceAttrSet("lxd_instance_snapshot.snapshot1", "created_at"),
+					resource.TestCheckResourceAttr("lxd_instance_snapshot.snapshot2", "name", snapshotName2),
+					resource.TestCheckResourceAttr("lxd_instance_snapshot.snapshot2", "instance", instanceName),
+					resource.TestCheckResourceAttrSet("lxd_instance_snapshot.snapshot2", "created_at"),
 				),
 			},
 		},
@@ -107,10 +107,10 @@ func TestAccInstanceSnapshot_project(t *testing.T) {
 					resource.TestCheckResourceAttr("lxd_instance.instance1", "name", instanceName),
 					resource.TestCheckResourceAttr("lxd_instance.instance1", "project", projectName),
 					resource.TestCheckResourceAttr("lxd_instance.instance1", "status", "Running"),
-					resource.TestCheckResourceAttr("lxd_snapshot.snapshot1", "name", snapshotName),
-					resource.TestCheckResourceAttr("lxd_snapshot.snapshot1", "instance", instanceName),
-					resource.TestCheckResourceAttr("lxd_snapshot.snapshot1", "project", projectName),
-					resource.TestCheckResourceAttrSet("lxd_snapshot.snapshot1", "created_at"),
+					resource.TestCheckResourceAttr("lxd_instance_snapshot.snapshot1", "name", snapshotName),
+					resource.TestCheckResourceAttr("lxd_instance_snapshot.snapshot1", "instance", instanceName),
+					resource.TestCheckResourceAttr("lxd_instance_snapshot.snapshot1", "project", projectName),
+					resource.TestCheckResourceAttrSet("lxd_instance_snapshot.snapshot1", "created_at"),
 				),
 			},
 		},
@@ -140,7 +140,7 @@ resource "lxd_instance" "instance1" {
   image = "%s"
 }
 
-resource "lxd_snapshot" "snapshot1" {
+resource "lxd_instance_snapshot" "snapshot1" {
   instance = lxd_instance.instance1.name
   name     = "%s"
   stateful = "%v"
@@ -155,7 +155,7 @@ resource "lxd_instance" "instance1" {
   image = "%s"
 }
 
-resource "lxd_snapshot" "snapshot1" {
+resource "lxd_instance_snapshot" "snapshot1" {
   name     = "%s"
   instance = lxd_instance.instance1.name
   stateful = false
@@ -170,13 +170,13 @@ resource "lxd_instance" "instance1" {
   image = "%s"
 }
 
-resource "lxd_snapshot" "snapshot1" {
+resource "lxd_instance_snapshot" "snapshot1" {
   name     = "%s"
   instance = lxd_instance.instance1.name
   stateful = "false"
 }
 
-resource "lxd_snapshot" "snapshot2" {
+resource "lxd_instance_snapshot" "snapshot2" {
   name     = "%s"
   instance = lxd_instance.instance1.name
   stateful = "false"
@@ -200,7 +200,7 @@ resource "lxd_instance" "instance1" {
   project = lxd_project.project1.name
 }
 
-resource "lxd_snapshot" "snapshot1" {
+resource "lxd_instance_snapshot" "snapshot1" {
   name     = "%s"
   instance = lxd_instance.instance1.name
   stateful = false
@@ -211,7 +211,7 @@ resource "lxd_snapshot" "snapshot1" {
 
 func testAccInstanceSnapshot_missingInstance(instanceName, snapshotName string) string {
 	return fmt.Sprintf(`
-resource "lxd_snapshot" "snapshot1" {
+resource "lxd_instance_snapshot" "snapshot1" {
   instance = "%s"
   name     = "%s"
 }
