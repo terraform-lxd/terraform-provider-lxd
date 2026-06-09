@@ -121,6 +121,9 @@ func (r LxdNetworkLBResource) Schema(_ context.Context, _ resource.SchemaRequest
 						"target_port": schema.StringAttribute{
 							Optional:    true,
 							Description: "LB backend target port",
+							Validators: []validator.String{
+								stringvalidator.LengthAtLeast(1),
+							},
 						},
 					},
 				},
@@ -448,11 +451,16 @@ func ToLBBackendList(ctx context.Context, backendsSet types.Set) ([]api.NetworkL
 func ToLBBackendSetType(ctx context.Context, backends []api.NetworkLoadBalancerBackend) (types.Set, diag.Diagnostics) {
 	backendList := make([]LxdNetworkLBBackendModel, 0, len(backends))
 	for _, b := range backends {
+		targetPort := types.StringNull()
+		if b.TargetPort != "" {
+			targetPort = types.StringValue(b.TargetPort)
+		}
+
 		backend := LxdNetworkLBBackendModel{
 			Name:          types.StringValue(b.Name),
 			Description:   types.StringValue(b.Description),
 			TargetAddress: types.StringValue(b.TargetAddress),
-			TargetPort:    types.StringValue(b.TargetPort),
+			TargetPort:    targetPort,
 		}
 
 		backendList = append(backendList, backend)

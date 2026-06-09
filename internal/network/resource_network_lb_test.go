@@ -68,7 +68,59 @@ func TestAccNetworkLB_withConfig(t *testing.T) {
 	})
 }
 
-func TestAccNetworkLB_withBackend(t *testing.T) {
+func TestAccNetworkLB_withBackendOnly(t *testing.T) {
+	backendName := acctest.GenerateName(2, "-")
+
+	backend1 := api.NetworkLoadBalancerBackend{
+		Name:          backendName,
+		TargetAddress: "10.0.0.2",
+		TargetPort:    "80",
+	}
+
+	backend2 := api.NetworkLoadBalancerBackend{
+		Name:          backendName,
+		TargetAddress: "10.0.0.2",
+	}
+
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			acctest.PreCheck(t)
+			acctest.PreCheckStandalone(t)
+			acctest.PreCheckAPIExtensions(t, "network_load_balancer")
+		},
+		ProtoV6ProviderFactories: acctest.ProtoV6ProviderFactories,
+		Steps: []resource.TestStep{
+			{
+				Config: acctest.Provider() + testAccNetworkLB_withBackend(backend1),
+				Check: resource.ComposeTestCheckFunc(
+					acctest.PrintResourceState(t, "lxd_network_lb.test"),
+					resource.TestCheckResourceAttr("lxd_network.ovnbr", "name", "ovnbr"),
+					resource.TestCheckResourceAttr("lxd_network.ovn", "name", "ovn"),
+					resource.TestCheckResourceAttr("lxd_network_lb.test", "network", "ovn"),
+					resource.TestCheckResourceAttr("lxd_network_lb.test", "backend.#", "1"),
+					resource.TestCheckResourceAttr("lxd_network_lb.test", "backend.0.name", backend1.Name),
+					resource.TestCheckResourceAttr("lxd_network_lb.test", "backend.0.target_address", backend1.TargetAddress),
+					resource.TestCheckResourceAttr("lxd_network_lb.test", "backend.0.target_port", backend1.TargetPort),
+				),
+			},
+			{
+				Config: acctest.Provider() + testAccNetworkLB_withBackend(backend2),
+				Check: resource.ComposeTestCheckFunc(
+					acctest.PrintResourceState(t, "lxd_network_lb.test"),
+					resource.TestCheckResourceAttr("lxd_network.ovnbr", "name", "ovnbr"),
+					resource.TestCheckResourceAttr("lxd_network.ovn", "name", "ovn"),
+					resource.TestCheckResourceAttr("lxd_network_lb.test", "network", "ovn"),
+					resource.TestCheckResourceAttr("lxd_network_lb.test", "backend.#", "1"),
+					resource.TestCheckResourceAttr("lxd_network_lb.test", "backend.0.name", backend2.Name),
+					resource.TestCheckResourceAttr("lxd_network_lb.test", "backend.0.target_address", backend2.TargetAddress),
+					resource.TestCheckNoResourceAttr("lxd_network_lb.test", "backend.0.target_port"),
+				),
+			},
+		},
+	})
+}
+
+func TestAccNetworkLB_withBackendAndPort(t *testing.T) {
 	instanceName := acctest.GenerateName(2, "")
 
 	backend := api.NetworkLoadBalancerBackend{
@@ -119,7 +171,7 @@ func TestAccNetworkLB_withBackend(t *testing.T) {
 	})
 }
 
-func TestAccNetworkLB_withBackend_noDescriptions(t *testing.T) {
+func TestAccNetworkLB_withBackendAndPort_noDescriptions(t *testing.T) {
 	backend := api.NetworkLoadBalancerBackend{
 		Name:          "backend",
 		TargetAddress: "10.0.0.2",
@@ -149,6 +201,47 @@ func TestAccNetworkLB_withBackend_noDescriptions(t *testing.T) {
 					resource.TestCheckResourceAttr("lxd_network_lb.test", "backend.0.description", ""),
 					resource.TestCheckResourceAttr("lxd_network_lb.test", "port.#", "1"),
 					resource.TestCheckResourceAttr("lxd_network_lb.test", "port.0.description", ""),
+				),
+			},
+		},
+	})
+}
+
+func TestAccNetworkLB_withBackendAndPort_noTargetPort(t *testing.T) {
+	backend := api.NetworkLoadBalancerBackend{
+		Name:          "backend",
+		TargetAddress: "10.0.0.2",
+	}
+
+	port := api.NetworkLoadBalancerPort{
+		Protocol:   "tcp",
+		ListenPort: "8080",
+	}
+
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			acctest.PreCheck(t)
+			acctest.PreCheckStandalone(t)
+			acctest.PreCheckAPIExtensions(t, "network_load_balancer")
+		},
+		ProtoV6ProviderFactories: acctest.ProtoV6ProviderFactories,
+		Steps: []resource.TestStep{
+			{
+				Config: acctest.Provider() + testAccNetworkLB_withBackendAndPort_noTargetPort(backend, port),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr("lxd_network.ovnbr", "name", "ovnbr"),
+					resource.TestCheckResourceAttr("lxd_network.ovn", "name", "ovn"),
+					resource.TestCheckResourceAttr("lxd_network_lb.test", "network", "ovn"),
+					resource.TestCheckResourceAttr("lxd_network_lb.test", "backend.#", "1"),
+					resource.TestCheckResourceAttr("lxd_network_lb.test", "backend.0.name", "backend"),
+					resource.TestCheckResourceAttr("lxd_network_lb.test", "backend.0.description", ""),
+					resource.TestCheckResourceAttr("lxd_network_lb.test", "backend.0.target_address", "10.0.0.2"),
+					resource.TestCheckNoResourceAttr("lxd_network_lb.test", "backend.0.target_port"),
+					resource.TestCheckResourceAttr("lxd_network_lb.test", "port.#", "1"),
+					resource.TestCheckResourceAttr("lxd_network_lb.test", "port.0.description", ""),
+					resource.TestCheckResourceAttr("lxd_network_lb.test", "port.0.listen_port", "8080"),
+					resource.TestCheckResourceAttr("lxd_network_lb.test", "port.0.target_backend.0", "backend"),
+					resource.TestCheckResourceAttr("lxd_network_lb.test", "port.0.protocol", "tcp"),
 				),
 			},
 		},
@@ -185,6 +278,34 @@ resource "lxd_network_lb" "test" {
   }
 }
 `, entries.String())
+
+	return fmt.Sprintf("%s\n%s", ovnNetworkResource(), lbRes)
+}
+
+func testAccNetworkLB_withBackend(backend api.NetworkLoadBalancerBackend) string {
+	targetPort := ""
+	if backend.TargetPort != "" {
+		targetPort = fmt.Sprintf("target_port = %q", backend.TargetPort)
+	}
+
+	args := []any{
+		backend.Name,          // 1
+		backend.TargetAddress, // 2
+		targetPort,            // 3
+	}
+
+	lbRes := fmt.Sprintf(`
+resource "lxd_network_lb" "test" {
+  network        = lxd_network.ovn.name
+  listen_address = "10.10.10.200"
+
+  backend {
+    name           = "%[1]s"
+    target_address = "%[2]s"
+    %[3]s
+  }
+}
+`, args...)
 
 	return fmt.Sprintf("%s\n%s", ovnNetworkResource(), lbRes)
 }
@@ -266,6 +387,33 @@ resource "lxd_network_lb" "test" {
   port {
     protocol       = "%[4]s"
     listen_port    = "%[5]s"
+    target_backend = ["%[1]s"]
+  }
+}
+`, args...)
+
+	return fmt.Sprintf("%s\n%s", ovnNetworkResource(), lbRes)
+}
+
+func testAccNetworkLB_withBackendAndPort_noTargetPort(backend api.NetworkLoadBalancerBackend, port api.NetworkLoadBalancerPort) string {
+	args := []any{
+		backend.Name,          // 1
+		backend.TargetAddress, // 2
+		port.ListenPort,       // 3
+	}
+
+	lbRes := fmt.Sprintf(`
+resource "lxd_network_lb" "test" {
+  network        = lxd_network.ovn.name
+  listen_address = "10.10.10.200"
+
+  backend {
+    name           = "%[1]s"
+    target_address = "%[2]s"
+  }
+
+  port {
+    listen_port    = "%[3]s"
     target_backend = ["%[1]s"]
   }
 }
