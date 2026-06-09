@@ -16,6 +16,9 @@ inputs:
   lxd-version:
     description: The version of LXD to install on each cluster member.
     default: latest/edge
+  enable-ovn:
+    description: Install and configure OVN on cluster members.
+    default: "false"
 
 runs:
   using: composite
@@ -52,3 +55,4 @@ runs:
         INSTANCE_TYPE: ${{ inputs.instance-type }}
         INSTANCE_IMAGE: ubuntu:24.04
         VERSION_LXD: ${{ inputs.lxd-version }}
+        OVN_ENABLED: ${{ inputs.enable-ovn }}

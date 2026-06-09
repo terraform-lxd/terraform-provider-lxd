@@ -18,6 +18,7 @@ INSTANCE_TYPE="${INSTANCE_TYPE:-container}"
 
 # Version of LXD to install.
 VERSION_LXD="${VERSION_LXD:-latest/edge}"
+OVN_ENABLED="${OVN_ENABLED:-false}"
 
 # MinIO configuration.
 MINIO_ENABLED="${MINIO_ENABLED:-true}"
@@ -61,6 +62,38 @@ waitInstance() {
         done
 }
 
+# waitOVNDB waits until the OVN databases are reachable on the given leader.
+waitOVNDB() {
+        local leader="$1"
+        local leaderIPv4="$2"
+        local timeout="${3:-60}"
+
+        if [ -z "${leader}" ] || [ -z "${leaderIPv4}" ]; then
+                echo "Error: waitOVNDB: missing leader name or IPv4 address"
+                return 1
+        fi
+
+        echo "Waiting for OVN databases on ${leader} (${leaderIPv4}) ..."
+        for j in $(seq 1 "${timeout}"); do
+                nbDBReady=$(lxc exec "${leader}" -- ovn-nbctl --timeout=2 --db "tcp:${leaderIPv4}:6641" show >/dev/null 2>&1 && echo "yes" || echo "no")
+                sbDBReady=$(lxc exec "${leader}" -- ovn-sbctl --timeout=2 --db "tcp:${leaderIPv4}:6642" show >/dev/null 2>&1 && echo "yes" || echo "no")
+
+                if [ "${nbDBReady}" = "yes" ] && [ "${sbDBReady}" = "yes" ]; then
+                        echo "OVN databases ready after ${j} seconds."
+                        return 0
+                fi
+
+                if [ "${j}" -ge "${timeout}" ]; then
+                        echo "Error: OVN databases on ${leaderIPv4} are not reachable after ${timeout} seconds"
+                        lxc exec "${leader}" -- systemctl status ovn-central --no-pager || true
+                        lxc exec "${leader}" -- journalctl -u ovn-central --no-pager -n 100 || true
+                        return 1
+                fi
+
+                sleep 1
+        done
+}
+
 # instanceIPv4 returns the IPv4 address of the instance with the given name.
 instanceIPv4() {
         instance="$1"
@@ -77,7 +110,6 @@ instanceIPv4() {
         echo "Error: Failed to obtain IPv4 address of instance ${instance}"
         return 1
 }
-
 
 #========================
 # Cluster setup
@@ -262,6 +294,8 @@ EOF
                 lxc exec "${LEADER}" -- lxc profile device add default eth0 nic nictype=bridged parent=lxdbr0
         fi
 
+        configure_ovn
+
         # Configure new cluster remote.
         token=$(lxc exec "${LEADER}" -- lxc config trust add --name host --quiet)
         ipv4=$(instanceIPv4 "${LEADER}")
@@ -274,6 +308,76 @@ EOF
         lxc cluster list "${CLUSTER_NAME}:"
 }
 
+# configure_ovn installs and configures OVN for clustered testing.
+#
+# This does not create any OVN networks in LXD.
+configure_ovn() {
+        if [ "${OVN_ENABLED}" != "true" ]; then
+                echo "OVN setup disabled."
+                return
+        fi
+
+        if [ "${INSTANCE_TYPE}" != "virtual-machine" ]; then
+                echo "Error: OVN setup requires virtual-machine cluster members."
+                exit 1
+        fi
+
+        echo "Installing and configuring OVN on cluster members ..."
+
+        leaderIPv4=$(instanceIPv4 "${LEADER}")
+        if [ "${leaderIPv4}" = "" ]; then
+                echo "Error: Failed to determine leader IPv4 address for OVN setup."
+                exit 1
+        fi
+
+        for i in $(seq 1 "${CLUSTER_SIZE}"); do
+                instance="${INSTANCE}-${i}"
+                memberIPv4=$(instanceIPv4 "${instance}")
+                if [ "${memberIPv4}" = "" ]; then
+                        echo "Error: Failed to determine IPv4 address for ${instance} during OVN setup."
+                        exit 1
+                fi
+
+                echo "Configuring OVN on ${instance} ..."
+
+                lxc exec "${instance}" --env=DEBIAN_FRONTEND=noninteractive -- apt-get update
+                lxc exec "${instance}" --env=DEBIAN_FRONTEND=noninteractive -- apt-get -y install --no-install-recommends \
+                        openvswitch-switch \
+                        ovn-host \
+                        bind9-dnsutils \
+                        jq
+
+                lxc exec "${instance}" -- systemctl enable openvswitch-switch
+                lxc exec "${instance}" -- systemctl restart openvswitch-switch
+
+                if [ "${instance}" = "${LEADER}" ]; then
+                        lxc exec "${instance}" --env=DEBIAN_FRONTEND=noninteractive -- apt-get -y install --no-install-recommends ovn-central
+
+                        ovn_ctl_opts="--db-nb-addr=0.0.0.0 --db-sb-addr=0.0.0.0 --db-nb-create-insecure-remote=yes --db-sb-create-insecure-remote=yes"
+                        lxc exec "${instance}" -- sh -c "sed -i '/^OVN_CTL_OPTS=/d' /etc/default/ovn-central"
+                        lxc exec "${instance}" -- sh -c "printf \"OVN_CTL_OPTS='%s'\n\" '${ovn_ctl_opts}' >> /etc/default/ovn-central"
+
+                        lxc exec "${instance}" -- systemctl enable ovn-central
+                        lxc exec "${instance}" -- systemctl restart ovn-central
+                fi
+
+                lxc exec "${instance}" -- ovs-vsctl set open_vswitch . \
+                        external_ids:ovn-remote="tcp:${leaderIPv4}:6642" \
+                        external_ids:ovn-encap-type=geneve \
+                        external_ids:ovn-encap-ip="${memberIPv4}"
+
+                lxc exec "${instance}" -- systemctl enable ovn-host
+                lxc exec "${instance}" -- systemctl restart ovn-host
+        done
+
+        waitOVNDB "${LEADER}" "${leaderIPv4}"
+
+        # Tell LXD to reach OVN NB via TCP on the leader, not via local Unix socket.
+        # Without this, LXD on non-leader members fails to connect since they do not
+        # have ovn-central installed and the Unix socket does not exist on them.
+        echo "Configuring LXD OVN northbound connection to tcp:${leaderIPv4}:6641"
+        lxc exec "${LEADER}" -- lxc config set network.ovn.northbound_connection "tcp:${leaderIPv4}:6641"
+}
 
 #================================================
 # Cleanup
