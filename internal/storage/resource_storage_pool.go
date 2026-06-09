@@ -239,8 +239,7 @@ func (r StoragePoolResource) Create(ctx context.Context, req resource.CreateRequ
 			Name:   poolName,
 			Driver: driver,
 			StoragePoolPut: api.StoragePoolPut{
-				Description: plan.Description.ValueString(),
-				Config:      memberPoolConfig,
+				Config: memberPoolConfig,
 			},
 		}
 
