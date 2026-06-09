@@ -269,6 +269,101 @@ func TestAccNetwork_clusterConfigEmptyMemberOverrides(t *testing.T) {
 	})
 }
 
+func TestAccNetwork_clusterConfigLifecycle(t *testing.T) {
+	targets := acctest.PreCheckClustering(t, 2)
+	networkName := acctest.GenerateName(2, "-")
+	overrideTarget := targets[0]
+	defaultTarget := targets[1]
+
+	// Use a node-specific bridge config key so the test does not depend on
+	// physical network interfaces being present on the cluster members.
+	networkType := "bridge"
+	configKey := "bridge.external_interfaces"
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { acctest.PreCheck(t) },
+		ProtoV6ProviderFactories: acctest.ProtoV6ProviderFactories,
+		Steps: []resource.TestStep{
+			{
+				// Set config key in global settings.
+				Config: acctest.Provider() + testAccNetwork_memberOverrides(networkName, networkType, map[string]string{configKey: "nosuchint0"}, nil),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr("lxd_network.network", "name", networkName),
+					resource.TestCheckResourceAttr("lxd_network.network", "type", networkType),
+					resource.TestCheckResourceAttr("lxd_network.network", "config."+configKey, "nosuchint0"),
+					resource.TestCheckResourceAttr("lxd_network.network", fmt.Sprintf("members.%s.config.%s", overrideTarget, configKey), "nosuchint0"),
+					resource.TestCheckResourceAttr("lxd_network.network", fmt.Sprintf("members.%s.config.%s", defaultTarget, configKey), "nosuchint0"),
+				),
+			},
+			{
+				// Set config key in global settings and one member override.
+				Config: acctest.Provider() + testAccNetwork_memberOverrides(networkName, networkType, map[string]string{configKey: "nosuchint0"}, map[string]map[string]string{overrideTarget: {configKey: "nosuchint1"}}),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr("lxd_network.network", "config."+configKey, "nosuchint0"),
+					resource.TestCheckResourceAttr("lxd_network.network", fmt.Sprintf("member_overrides.%s.config.%s", overrideTarget, configKey), "nosuchint1"),
+					resource.TestCheckResourceAttr("lxd_network.network", fmt.Sprintf("members.%s.config.%s", overrideTarget, configKey), "nosuchint1"),
+					resource.TestCheckResourceAttr("lxd_network.network", fmt.Sprintf("members.%s.config.%s", defaultTarget, configKey), "nosuchint0"),
+				),
+			},
+			{
+				// Change the value of one member override.
+				Config: acctest.Provider() + testAccNetwork_memberOverrides(networkName, networkType, map[string]string{configKey: "nosuchint0"}, map[string]map[string]string{overrideTarget: {configKey: "nosuchint2"}}),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr("lxd_network.network", "config."+configKey, "nosuchint0"),
+					resource.TestCheckResourceAttr("lxd_network.network", fmt.Sprintf("member_overrides.%s.config.%s", overrideTarget, configKey), "nosuchint2"),
+					resource.TestCheckResourceAttr("lxd_network.network", fmt.Sprintf("members.%s.config.%s", overrideTarget, configKey), "nosuchint2"),
+					resource.TestCheckResourceAttr("lxd_network.network", fmt.Sprintf("members.%s.config.%s", defaultTarget, configKey), "nosuchint0"),
+				),
+			},
+			{
+				// Change global config while keeping the member override.
+				Config: acctest.Provider() + testAccNetwork_memberOverrides(networkName, networkType, map[string]string{configKey: "nosuchint3"}, map[string]map[string]string{overrideTarget: {configKey: "nosuchint2"}}),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr("lxd_network.network", "config."+configKey, "nosuchint3"),
+					resource.TestCheckResourceAttr("lxd_network.network", fmt.Sprintf("member_overrides.%s.config.%s", overrideTarget, configKey), "nosuchint2"),
+					resource.TestCheckResourceAttr("lxd_network.network", fmt.Sprintf("members.%s.config.%s", overrideTarget, configKey), "nosuchint2"),
+					resource.TestCheckResourceAttr("lxd_network.network", fmt.Sprintf("members.%s.config.%s", defaultTarget, configKey), "nosuchint3"),
+				),
+			},
+			{
+				// Set different member override values for both members.
+				Config: acctest.Provider() + testAccNetwork_memberOverrides(networkName, networkType, map[string]string{configKey: "nosuchint3"}, map[string]map[string]string{overrideTarget: {configKey: "nosuchint1"}, defaultTarget: {configKey: "nosuchint2"}}),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr("lxd_network.network", "config."+configKey, "nosuchint3"),
+					resource.TestCheckResourceAttr("lxd_network.network", fmt.Sprintf("member_overrides.%s.config.%s", overrideTarget, configKey), "nosuchint1"),
+					resource.TestCheckResourceAttr("lxd_network.network", fmt.Sprintf("member_overrides.%s.config.%s", defaultTarget, configKey), "nosuchint2"),
+					resource.TestCheckResourceAttr("lxd_network.network", fmt.Sprintf("members.%s.config.%s", overrideTarget, configKey), "nosuchint1"),
+					resource.TestCheckResourceAttr("lxd_network.network", fmt.Sprintf("members.%s.config.%s", defaultTarget, configKey), "nosuchint2"),
+				),
+			},
+			{
+				// Remove the config key from member overrides and use the global value.
+				Config: acctest.Provider() + testAccNetwork_memberOverrides(networkName, networkType, map[string]string{configKey: "nosuchint3"}, nil),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckNoResourceAttr("lxd_network.network", fmt.Sprintf("member_overrides.%s", overrideTarget)),
+					resource.TestCheckNoResourceAttr("lxd_network.network", fmt.Sprintf("member_overrides.%s", defaultTarget)),
+					resource.TestCheckResourceAttr("lxd_network.network", "config."+configKey, "nosuchint3"),
+					resource.TestCheckResourceAttr("lxd_network.network", fmt.Sprintf("members.%s.config.%s", overrideTarget, configKey), "nosuchint3"),
+					resource.TestCheckResourceAttr("lxd_network.network", fmt.Sprintf("members.%s.config.%s", defaultTarget, configKey), "nosuchint3"),
+				),
+			},
+			{
+				// Remove the global config key and ensure it is no longer managed.
+				Config: acctest.Provider() + testAccNetwork_memberOverrides(networkName, networkType, map[string]string{}, nil),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckNoResourceAttr("lxd_network.network", "config."+configKey),
+					resource.TestCheckResourceAttr("lxd_network.network", fmt.Sprintf("members.%s.config.%%", overrideTarget), "0"),
+					resource.TestCheckResourceAttr("lxd_network.network", fmt.Sprintf("members.%s.config.%%", defaultTarget), "0"),
+				),
+			},
+			{
+				// Reapply final state to ensure no error and no drift.
+				Config: acctest.Provider() + testAccNetwork_memberOverrides(networkName, networkType, nil, nil),
+			},
+		},
+	})
+}
+
 func TestAccNetwork_project(t *testing.T) {
 	projectName := acctest.GenerateName(2, "-")
 	networkName := acctest.GenerateName(2, "-")
