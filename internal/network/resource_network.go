@@ -402,6 +402,30 @@ func (m NetworkModel) ComputedKeys() []string {
 	}
 }
 
+// MemberSpecificKeys returns list of member-specific config keys for the given network type.
+// For network types that do not have member-specific keys, nil is returned.
+//
+// This is mainly used for LXD servers that do not support the metadata configuration endpoint,
+// which allows determining member-specific config keys dynamically (LXD <= 5.0).
+func (m NetworkModel) MemberSpecificKeys(networkType string) []string {
+	switch networkType {
+	case "bridge":
+		return []string{
+			"bgp.ipv4.nexthop",
+			"bgp.ipv6.nexthop",
+			"bridge.external_interfaces",
+		}
+	case "macvlan":
+		return []string{"parent"}
+	case "physical":
+		return []string{"parent"}
+	case "sriov":
+		return []string{"parent"}
+	default:
+		return nil
+	}
+}
+
 // findGlobalCIDRs returns first global IPv4 and IPv6 network addresses (CIDRs)
 // of the provided network interface. If an IP address is not found, an empty
 // string is returned.
