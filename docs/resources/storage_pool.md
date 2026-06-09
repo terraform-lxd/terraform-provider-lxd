@@ -68,7 +68,7 @@ for more details on how to create a storage pool in clustered mode.
 
 * `name` - **Required** - Name of the storage pool.
 
-* `driver` - **Required** - Storage pool driver. Must be one of `dir`, `zfs`, `lvm`, `btrfs`, `ceph`, `cephfs`, or `cephobject`.
+* `driver` - **Required** - Storage pool driver. Must be one of `dir`, `zfs`, `lvm`, `btrfs`, `ceph`, `cephfs`, `cephobject`, `alletra`, `powerflex`, `powerstore`, or `pure`.
 
 * `description` - *Optional* - Description of the storage pool.
 
@@ -156,6 +156,15 @@ import {
     - driver == `cephobject`
       + `cephobject.cluster_name`
       + `cephobject.user.name`
+    - driver == `alletra`
+      + `alletra.mode`
+    - driver == `powerflex`
+      + `powerflex.mode`
+      + `powerflex.version`
+    - driver == `powerstore`
+      + `powerstore.mode`
+    - driver == `pure`
+      + `pure.mode`
 
 * The value of `config.source` may be changed by LXD after storage pool creation.
   Therefore, the provider ignores the live `config.source` value when refreshing state to avoid drift.
