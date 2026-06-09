@@ -626,10 +626,10 @@ func (m NetworkModel) ParseNetworkConfigs(ctx context.Context, server lxd.Instan
 
 	hasMemberOverrides := len(m.MemberOverrides.Elements()) > 0
 
-	// Return early if LXD is not clustered.
-	if !isServerClustered {
+	// Return early if LXD is not clustered or network type is OVN.
+	if !isServerClustered || networkType == "ovn" {
 		if hasMemberOverrides {
-			return nil, nil, fmt.Errorf("Network %q (%s) member-specific config overrides are allowed only when LXD is clustered", networkName, networkType)
+			return nil, nil, fmt.Errorf(`Network %q (%s) cannot use member-specific config overrides unless LXD is clustered and the network type is not "ovn"`, networkName, networkType)
 		}
 
 		// Return early with global network config.
