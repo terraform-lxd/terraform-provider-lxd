@@ -401,6 +401,42 @@ func (m NetworkModel) TaintState(ctx context.Context, tfState *tfsdk.State) diag
 	return diags
 }
 
+// networkConfigKeys retrieves a list of network configuration keys and their scope.
+func (m NetworkModel) networkConfigKeys(serverName string, server lxd.InstanceServer, networkType string) (allKeys []string, localKeys []string, err error) {
+	if server.CheckExtension("metadata_configuration") != nil {
+		localKeys = m.MemberSpecificKeys(networkType)
+		return nil, localKeys, nil
+	}
+
+	meta, err := common.ServerMetadataConfiguration(serverName, server)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	typeConfigKey := "network-" + networkType
+	typeConfig, ok := meta.Configs[typeConfigKey]
+	if !ok {
+		return nil, nil, fmt.Errorf("Metadata configuration %q not found", typeConfigKey)
+	}
+
+	networkConfigKey := "network-conf"
+	networkConfig, ok := typeConfig[networkConfigKey]
+	if !ok {
+		return nil, nil, fmt.Errorf("Metadata configuration %q does not contain %q keys", typeConfigKey, networkConfigKey)
+	}
+
+	for _, configKeys := range networkConfig.Keys {
+		for k, v := range configKeys {
+			allKeys = append(allKeys, k)
+			if v.Scope == "local" {
+				localKeys = append(localKeys, k)
+			}
+		}
+	}
+
+	return allKeys, localKeys, nil
+}
+
 // ComputedKeys returns list of computed LXD config keys.
 func (m NetworkModel) ComputedKeys() []string {
 	return []string{
