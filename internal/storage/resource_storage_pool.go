@@ -79,7 +79,11 @@ func (r StoragePoolResource) Schema(_ context.Context, _ resource.SchemaRequest,
 					stringplanmodifier.RequiresReplace(),
 				},
 				Validators: []validator.String{
-					stringvalidator.OneOf("dir", "zfs", "lvm", "btrfs", "ceph", "cephfs", "cephobject"),
+					stringvalidator.OneOf(
+						"dir", "zfs", "lvm", "btrfs",
+						"ceph", "cephfs", "cephobject",
+						"alletra", "powerflex", "powerstore", "pure",
+					),
 				},
 			},
 
