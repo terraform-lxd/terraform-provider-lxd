@@ -74,9 +74,9 @@ func (r NetworkResource) Schema(_ context.Context, _ resource.SchemaRequest, res
 			"type": schema.StringAttribute{
 				Optional: true,
 				Computed: true,
+				Default:  stringdefault.StaticString("bridge"),
 				PlanModifiers: []planmodifier.String{
 					stringplanmodifier.RequiresReplace(),
-					stringplanmodifier.UseStateForUnknown(),
 				},
 				Validators: []validator.String{
 					stringvalidator.OneOf("bridge", "macvlan", "sriov", "ovn", "physical"),
