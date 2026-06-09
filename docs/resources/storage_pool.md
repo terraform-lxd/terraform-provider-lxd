@@ -13,27 +13,20 @@ resource "lxd_storage_pool" "pool" {
 }
 ```
 
-### Pool with explicit config
+### Cluster Config Key Scopes
+
+When operating in clustered mode, LXD storage pool configuration differentiates between **global** keys (applied cluster-wide) and **local** keys (specific to individual members):
+
+* **Top-Level `config`:** You can specify global keys here. Any local keys defined here will be applied across all cluster members as a baseline default configuration.
+
+* **`member_overrides`:** Allows specifying variations for individual cluster members. This map only accepts local keys.
 
 ```hcl
 resource "lxd_storage_pool" "pool" {
   name   = "mypool"
   driver = "zfs"
-  config = {
-    size   = "100GiB"
-    source = "/dev/sdb"
-  }
-}
-```
 
-### Cluster Example
-
-A single `lxd_storage_pool` resource is enough to create a storage pool across all cluster members.
-
-```hcl
-resource "lxd_storage_pool" "pool" {
-  name   = "mypool"
-  driver = "zfs"
+  # Local key "size" is applied to all cluster members.
   config = {
     size = "100GiB"
   }
@@ -46,18 +39,20 @@ For clustered pools, per-member local config keys are extracted from `config` an
 resource "lxd_storage_pool" "pool" {
   name   = "mypool"
   driver = "zfs"
+
+  # Local key "source" is applied to all cluster members, unless overridden.
   config = {
-    size = "100GiB"
+    source = "/dev/sda"
   }
 
   member_overrides = {
-    node1 = {
+    "member-1" = {
       config = {
         source = "/dev/sdb"
       }
     }
 
-    node2 = {
+    "member-2" = {
       config = {
         source = "/dev/sdc"
       }
@@ -77,16 +72,15 @@ for more details on how to create a storage pool in clustered mode.
 
 * `description` - *Optional* - Description of the storage pool.
 
-* `config` - *Optional* - Map of key/value pairs of
-  [storage pool config settings](https://documentation.ubuntu.com/lxd/latest/reference/storage_drivers/).
-  Config settings vary from driver to driver.
+* `config` - *Optional* - Map of key/value pairs of [storage pool config settings](https://documentation.ubuntu.com/lxd/latest/reference/storage_drivers/).
+  Can contain both cluster-wide (**global**) configuration keys and default member-specific (**local**) keys.
 
 * `member_overrides` - *Optional* - Map of per-member local config overrides for clustered storage pools.
   Each key is a cluster member name. Each value is a map of local-scoped config keys to apply for that member.
   Values in `member_overrides` take precedence over values from `config`.
 
 * `members` - *Computed* - Map of resolved local config for every cluster member, populated after
-  apply. Used by the provider to detect out-of-band changes (drift) on individual cluster nodes.
+  apply. Used by the provider to detect out-of-band changes (drift) on individual cluster members.
 
 * `project` - *Optional* - Name of the project where the storage pool will be stored.
 
