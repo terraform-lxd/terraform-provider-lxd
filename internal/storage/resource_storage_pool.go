@@ -763,6 +763,23 @@ func (m StoragePoolModel) ComputedKeys(driver string) []string {
 			"cephobject.cluster_name",
 			"cephobject.user.name",
 		}
+	case "alletra":
+		keys = []string{
+			"alletra.mode",
+		}
+	case "powerflex":
+		keys = []string{
+			"powerflex.mode",
+			"powerflex.version",
+		}
+	case "powerstore":
+		keys = []string{
+			"powerstore.mode",
+		}
+	case "pure":
+		keys = []string{
+			"pure.mode",
+		}
 	}
 
 	return append(keys, "volatile.")
