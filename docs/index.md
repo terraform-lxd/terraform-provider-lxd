@@ -5,7 +5,7 @@ The LXD provider allows infrastructure as code tools to manage resources on [LXD
 LXD is a modern, secure, and powerful system container and virtual machine manager.
 If you are new to LXD, see the [Getting started guide](https://documentation.ubuntu.com/lxd/latest/tutorial/first_steps/) in the official documentation.
 
-Minimum supported LXD version is **4.0**.
+Minimum supported LXD version is **5.0**.
 
 ## Getting Started
 
