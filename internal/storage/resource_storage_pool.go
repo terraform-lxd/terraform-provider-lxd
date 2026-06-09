@@ -79,7 +79,11 @@ func (r StoragePoolResource) Schema(_ context.Context, _ resource.SchemaRequest,
 					stringplanmodifier.RequiresReplace(),
 				},
 				Validators: []validator.String{
-					stringvalidator.OneOf("dir", "zfs", "lvm", "btrfs", "ceph", "cephfs", "cephobject"),
+					stringvalidator.OneOf(
+						"dir", "zfs", "lvm", "btrfs",
+						"ceph", "cephfs", "cephobject",
+						"alletra", "powerflex", "powerstore", "pure",
+					),
 				},
 			},
 
@@ -762,6 +766,23 @@ func (m StoragePoolModel) ComputedKeys(driver string) []string {
 		keys = []string{
 			"cephobject.cluster_name",
 			"cephobject.user.name",
+		}
+	case "alletra":
+		keys = []string{
+			"alletra.mode",
+		}
+	case "powerflex":
+		keys = []string{
+			"powerflex.mode",
+			"powerflex.version",
+		}
+	case "powerstore":
+		keys = []string{
+			"powerstore.mode",
+		}
+	case "pure":
+		keys = []string{
+			"pure.mode",
 		}
 	}
 
