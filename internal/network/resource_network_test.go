@@ -2,8 +2,10 @@ package network_test
 
 import (
 	"fmt"
+	"maps"
 	"net"
-	"strconv"
+	"slices"
+	"sort"
 	"strings"
 	"testing"
 
@@ -197,7 +199,7 @@ func TestAccNetwork_typeMacvlan(t *testing.T) {
 	})
 }
 
-func TestAccNetwork_target(t *testing.T) {
+func TestAccNetwork_clusterConfigNoMemberOverrides(t *testing.T) {
 	targets := acctest.PreCheckClustering(t, 2)
 	networkName := acctest.GenerateName(2, "-")
 
@@ -206,18 +208,62 @@ func TestAccNetwork_target(t *testing.T) {
 		ProtoV6ProviderFactories: acctest.ProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
-				Config: acctest.Provider() + testAccNetwork_target(networkName, targets),
+				Config: acctest.Provider() + testAccNetwork_memberOverrides(networkName, "bridge", nil, nil),
 				Check: resource.ComposeTestCheckFunc(
-					resource.TestCheckResourceAttr("lxd_network.cluster_network_node1", "name", networkName),
-					resource.TestCheckResourceAttr("lxd_network.cluster_network_node1", "target", targets[0]),
-					resource.TestCheckResourceAttr("lxd_network.cluster_network_node1", "config.bridge.external_interfaces", "nosuchint"),
-					resource.TestCheckResourceAttr("lxd_network.cluster_network_node2", "name", networkName),
-					resource.TestCheckResourceAttr("lxd_network.cluster_network_node2", "target", targets[1]),
-					resource.TestCheckResourceAttr("lxd_network.cluster_network_node2", "config.bridge.external_interfaces", "nosuchint"),
-					resource.TestCheckResourceAttr("lxd_network.cluster_network", "name", networkName),
-					resource.TestCheckResourceAttr("lxd_network.cluster_network", "type", "bridge"),
-					resource.TestCheckResourceAttr("lxd_network.cluster_network", "config.ipv4.address", "10.150.50.1/24"),
+					resource.TestCheckResourceAttr("lxd_network.network", "name", networkName),
+					resource.TestCheckResourceAttr("lxd_network.network", "type", "bridge"),
+					resource.TestCheckResourceAttr("lxd_network.network", "members.%", fmt.Sprintf("%d", len(targets))),
+					resource.TestCheckResourceAttr("lxd_network.network", fmt.Sprintf("members.%s.config.%%", targets[0]), "0"),
+					resource.TestCheckResourceAttr("lxd_network.network", fmt.Sprintf("members.%s.config.%%", targets[1]), "0"),
 				),
+			},
+			{
+				Config: acctest.Provider() + testAccNetwork_memberOverrides(networkName, "bridge", nil, nil),
+			},
+		},
+	})
+}
+
+func TestAccNetwork_clusterConfigEmptyMemberOverrides(t *testing.T) {
+	targets := acctest.PreCheckClustering(t, 2)
+	networkName := acctest.GenerateName(2, "-")
+
+	step1Overrides := map[string]map[string]string{
+		targets[0]: {},
+	}
+
+	step2Overrides := map[string]map[string]string{}
+	for _, target := range targets[1:] {
+		step2Overrides[target] = map[string]string{}
+	}
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { acctest.PreCheck(t) },
+		ProtoV6ProviderFactories: acctest.ProtoV6ProviderFactories,
+		Steps: []resource.TestStep{
+			{
+				Config: acctest.Provider() + testAccNetwork_memberOverrides(networkName, "bridge", nil, step1Overrides),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr("lxd_network.network", "members.%", fmt.Sprintf("%d", len(targets))),
+					resource.TestCheckResourceAttr("lxd_network.network", "member_overrides.%", "1"),
+					resource.TestCheckResourceAttr("lxd_network.network", fmt.Sprintf("member_overrides.%s.config.%%", targets[0]), "0"),
+					resource.TestCheckResourceAttr("lxd_network.network", fmt.Sprintf("members.%s.config.%%", targets[0]), "0"),
+					resource.TestCheckResourceAttr("lxd_network.network", fmt.Sprintf("members.%s.config.%%", targets[1]), "0"),
+				),
+			},
+			{
+				Config: acctest.Provider() + testAccNetwork_memberOverrides(networkName, "bridge", nil, step2Overrides),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr("lxd_network.network", "members.%", fmt.Sprintf("%d", len(targets))),
+					resource.TestCheckResourceAttr("lxd_network.network", "member_overrides.%", fmt.Sprintf("%d", len(targets)-1)),
+					resource.TestCheckNoResourceAttr("lxd_network.network", fmt.Sprintf("member_overrides.%s", targets[0])),
+					resource.TestCheckResourceAttr("lxd_network.network", fmt.Sprintf("members.%s.config.%%", targets[0]), "0"),
+					resource.TestCheckResourceAttr("lxd_network.network", fmt.Sprintf("members.%s.config.%%", targets[1]), "0"),
+				),
+			},
+			{
+				// Reapply the same config to ensure there is no drift in terraform state.
+				Config: acctest.Provider() + testAccNetwork_memberOverrides(networkName, "bridge", nil, step2Overrides),
 			},
 		},
 	})
@@ -464,36 +510,51 @@ resource "lxd_network" "network" {
 `, networkName)
 }
 
-func testAccNetwork_target(networkName string, targets []string) string {
-	var config string
-	var deps []string
+func testAccNetwork_memberOverrides(name string, networkType string, config map[string]string, memberOverrides map[string]map[string]string) string {
+	var b strings.Builder
+	fmt.Fprintf(&b, `
+resource "lxd_network" "network" {
+  name = %q
+  type = %q
+`, name, networkType)
 
-	// Generate resources for pending networks.
-	for i, target := range targets {
-		deps = append(deps, `lxd_network.cluster_network_node`+strconv.Itoa(i+1))
-		config += fmt.Sprintf(`
-resource "lxd_network" "cluster_network_node%d" {
-  name   = "%s"
-  target = "%s"
+	// Config.
+	configKeys := slices.Collect(maps.Keys(config))
+	sort.Strings(configKeys)
 
-  config = {
-    "bridge.external_interfaces" = "nosuchint"
-  }
-}`, i+1, networkName, target)
+	b.WriteString("  config = {\n")
+
+	for _, key := range configKeys {
+		fmt.Fprintf(&b, "    %q = %q\n", key, config[key])
 	}
 
-	// Append main network resource.
-	config += fmt.Sprintf(`
-resource "lxd_network" "cluster_network" {
-  depends_on = [ %s ]
-  name       = %q
+	b.WriteString("  }\n")
 
-  config = {
-    "ipv4.address" = "10.150.50.1/24"
-  }
-}`, strings.Join(deps, ", "), networkName)
+	// Member overrides.
+	memberKeys := slices.Collect(maps.Keys(memberOverrides))
+	sort.Strings(memberKeys)
 
-	return config
+	b.WriteString("  member_overrides = {\n")
+	for _, member := range memberKeys {
+		overrideConfig := memberOverrides[member]
+		overrideKeys := slices.Collect(maps.Keys(overrideConfig))
+		sort.Strings(overrideKeys)
+
+		fmt.Fprintf(&b, "    %q = {\n", member)
+		b.WriteString("      config = {\n")
+
+		for _, key := range overrideKeys {
+			fmt.Fprintf(&b, "        %q = %q\n", key, overrideConfig[key])
+		}
+
+		b.WriteString("      }\n")
+		b.WriteString("    }\n")
+	}
+
+	b.WriteString("  }\n")
+	b.WriteString("}\n")
+
+	return b.String()
 }
 
 func testAccNetwork_project(networkName string, projectName string) string {
