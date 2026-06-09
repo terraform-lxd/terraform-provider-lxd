@@ -19,7 +19,7 @@ import (
 )
 
 // supportedLXDVersions defines LXD versions that are supported by the provider.
-const supportedLXDVersions = ">= 4.0.0"
+const supportedLXDVersions = ">= 5.0.0"
 
 // DefaultProject is the default LXD project used by the provider when no project is specified.
 const DefaultProject = "default"
