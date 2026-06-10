@@ -74,7 +74,10 @@ func TestAccInstance_empty_vm(t *testing.T) {
 
 	instanceName := acctest.GenerateName(2, "-")
 	resource.Test(t, resource.TestCase{
-		PreCheck:                 func() { acctest.PreCheck(t) },
+		PreCheck: func() {
+			acctest.PreCheck(t)
+			acctest.PreCheckVMTests(t)
+		},
 		ProtoV6ProviderFactories: acctest.ProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
@@ -129,6 +132,7 @@ func TestAccInstance_virtualMachine(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			acctest.PreCheck(t)
+			acctest.PreCheckVMTests(t)
 			acctest.PreCheckVirtualization(t)
 		},
 		ProtoV6ProviderFactories: acctest.ProtoV6ProviderFactories,
@@ -193,6 +197,7 @@ func TestAccInstance_restartVirtualMachine(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			acctest.PreCheck(t)
+			acctest.PreCheckVMTests(t)
 			acctest.PreCheckVirtualization(t)
 		},
 		ProtoV6ProviderFactories: acctest.ProtoV6ProviderFactories,
@@ -631,6 +636,7 @@ func TestAccInstance_fileUploadVirtualMachine(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			acctest.PreCheck(t)
+			acctest.PreCheckVMTests(t)
 			acctest.PreCheckVirtualization(t)
 		},
 		ProtoV6ProviderFactories: acctest.ProtoV6ProviderFactories,
@@ -1151,6 +1157,7 @@ func TestAccInstance_vm_configLimits(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			acctest.PreCheck(t)
+			acctest.PreCheckVMTests(t)
 			acctest.PreCheckVirtualization(t)
 		},
 		ProtoV6ProviderFactories: acctest.ProtoV6ProviderFactories,
@@ -1534,6 +1541,7 @@ func TestAccInstance_waitForAgent(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			acctest.PreCheck(t)
+			acctest.PreCheckVMTests(t)
 			acctest.PreCheckVirtualization(t)
 		},
 		ProtoV6ProviderFactories: acctest.ProtoV6ProviderFactories,

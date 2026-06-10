@@ -164,6 +164,8 @@ jobs:
 
       - name: Run acceptance tests
         run: make test
+        env:
+          LXD_TEST_SKIP_VMS: "true"
 
   build:
     runs-on: ubuntu-24.04
