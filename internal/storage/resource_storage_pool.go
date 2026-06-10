@@ -775,10 +775,12 @@ func (m StoragePoolModel) ComputedKeys(driver string) []string {
 		keys = []string{
 			"powerflex.mode",
 			"powerflex.version",
+			"powerflex.user.name",
 		}
 	case "powerstore":
 		keys = []string{
 			"powerstore.mode",
+			"powerstore.user.name",
 		}
 	case "pure":
 		keys = []string{
