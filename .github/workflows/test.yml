@@ -156,6 +156,7 @@ jobs:
           instance-type: virtual-machine
           lxd-version: ${{ matrix.channel }}
           enable-ovn: true
+          enable-ceph: true
 
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@dfe3c3f87815947d99a8997f908cb6525fc44e9e # v4.0.1

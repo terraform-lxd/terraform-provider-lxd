@@ -19,10 +19,13 @@ INSTANCE_TYPE="${INSTANCE_TYPE:-container}"
 # Component versions.
 VERSION_LXD="${VERSION_LXD:-latest/edge}"
 VERSION_MICROOVN="${VERSION_MICROOVN:-latest/edge}"
+VERSION_MICROCEPH="${VERSION_MICROCEPH:-latest/edge}"
 
 # MicroOVN configuration.
 MICROOVN_ENABLED="${MICROOVN_ENABLED:-false}"
 MICROOVN_PKI_DIR="/var/snap/microovn/common/data/pki"
+MICROCEPH_ENABLED="${MICROCEPH_ENABLED:-false}"
+MICROCEPH_INSTANCE="${CLUSTER_NAME}-ceph"
 
 # MinIO configuration.
 MINIO_ENABLED="${MINIO_ENABLED:-true}"
@@ -89,6 +92,11 @@ instanceIPv4() {
 
 # deploy deploys instances required for a LXD cluster.
 deploy() {
+        if [ "${MICROCEPH_ENABLED}" = "true" ] && [ "${INSTANCE_TYPE}" != "virtual-machine" ]; then
+                echo "Error: MicroCeph setup requires virtual-machine cluster members."
+                exit 1
+        fi
+
         # Create dedicated network.
         echo "Creating network ${NETWORK_NAME} ..."
         exists=$(lxc network list --format csv | awk -F, '{print $1}' | grep "${NETWORK_NAME}" || true)
@@ -137,12 +145,42 @@ deploy() {
                         $args
         done
 
+        # Setup dedicated MicroCeph instance.
+        if [ "${MICROCEPH_ENABLED}" = "true" ]; then
+                instance="${MICROCEPH_INSTANCE}"
+
+                state=$(lxc list --format csv --columns s "${instance}")
+                case "${state}" in
+                "RUNNING")
+                        echo "Instance ${instance} already running."
+                        ;;
+                "STOPPED")
+                        echo "Starting instance ${instance}..."
+                        lxc start "${instance}"
+                        ;;
+                *)
+                        echo "Creating instance ${instance} ..."
+                        lxc launch "${INSTANCE_IMAGE}" "${instance}" \
+                                --storage "${STORAGE_POOL}" \
+                                --network "${NETWORK_NAME}" \
+                                -c limits.cpu=2 \
+                                -c limits.memory=2GiB \
+                                --vm
+                        ;;
+                esac
+        fi
+
         # Wait for instances to become ready.
         for i in $(seq 1 "${CLUSTER_SIZE}"); do
                 instance="${INSTANCE}-${i}"
                 waitInstance "${instance}"
                 lxc exec "${instance}" -- systemctl is-system-running --wait
         done
+
+        if [ "${MICROCEPH_ENABLED}" = "true" ]; then
+                waitInstance "${MICROCEPH_INSTANCE}"
+                lxc exec "${MICROCEPH_INSTANCE}" -- systemctl is-system-running --wait
+        fi
 
         # Install LXD on VMs.
         for i in $(seq 1 "${CLUSTER_SIZE}"); do
@@ -267,6 +305,7 @@ EOF
         fi
 
         configure_ovn
+        configure_microceph
 
         # Configure new cluster remote.
         token=$(lxc exec "${LEADER}" -- lxc config trust add --name host --quiet)
@@ -277,6 +316,7 @@ EOF
         lxc remote switch "${CLUSTER_NAME}"
 
         # Show final cluster.
+        lxc list
         lxc cluster list "${CLUSTER_NAME}:"
 }
 
@@ -354,6 +394,103 @@ configure_ovn() {
         fi
 }
 
+# configure_microceph installs and bootstraps MicroCeph on a dedicated instance, then distributes
+# its client configuration and keyring to every cluster member so they can use Ceph-backed storage pools.
+configure_microceph() {
+        if [ "${MICROCEPH_ENABLED}" != "true" ]; then
+                echo "MicroCeph setup disabled."
+                return
+        fi
+
+        microceph="${MICROCEPH_INSTANCE}"
+
+        echo "Installing and configuring MicroCeph on ${microceph} ..."
+        lxc exec "${microceph}" -- snap install microceph --channel="${VERSION_MICROCEPH}"
+
+        # Create a loop device backed by a sparse file to use as the OSD disk.
+        loopDevice=$(lxc exec "${microceph}" -- sh -c '
+                truncate -s 10G /root/microceph.img
+                losetup --show -f /root/microceph.img
+        ')
+
+        if [ -z "${loopDevice}" ]; then
+                echo "Error: Failed to create loop device for MicroCeph OSD disk"
+                return 1
+        fi
+
+        lxc exec "${microceph}" -- microceph cluster bootstrap
+        lxc exec "${microceph}" -- microceph.ceph config set global mon_allow_pool_size_one true
+        lxc exec "${microceph}" -- microceph.ceph config set global mon_allow_pool_delete true
+        lxc exec "${microceph}" -- microceph.ceph config set global osd_pool_default_size 1
+        lxc exec "${microceph}" -- microceph.ceph config set global osd_memory_target 939524096 # 896MiB = 768MiB (osd_memory_base) + 128MiB (osd_memory_cache_min)
+        lxc exec "${microceph}" -- microceph.ceph osd crush rule rm replicated_rule
+        lxc exec "${microceph}" -- microceph.ceph osd crush rule create-replicated replicated default osd
+
+        for flag in nosnaptrim nobackfill norebalance norecover noscrub nodeep-scrub; do
+                lxc exec "${microceph}" -- microceph.ceph osd set "${flag}"
+        done
+
+        lxc exec "${microceph}" -- microceph disk add --wipe "${loopDevice}"
+
+        # Expose the MicroCeph configuration at the standard Ceph client path,
+        # which is where the LXD snap's ceph storage driver expects to find it.
+        lxc exec "${microceph}" -- sh -c "rm -rf /etc/ceph && ln -s /var/snap/microceph/current/conf /etc/ceph"
+
+        lxc exec "${microceph}" -- microceph enable rgw
+        lxc exec "${microceph}" -- microceph.ceph osd pool create cephfs_meta 32
+        lxc exec "${microceph}" -- microceph.ceph osd pool create cephfs_data 32
+        lxc exec "${microceph}" -- microceph.ceph fs new cephfs cephfs_meta cephfs_data
+
+        lxc exec "${microceph}" --env=DEBIAN_FRONTEND=noninteractive -- apt-get update
+        lxc exec "${microceph}" --env=DEBIAN_FRONTEND=noninteractive -- apt-get --no-install-recommends -qq -y install ceph-common
+
+        echo "Waiting for MicroCeph on ${microceph} to become ready ..."
+        for j in $(seq 1 60); do
+                if ! pgStat=$(lxc exec "${microceph}" -- microceph.ceph pg stat 2>/dev/null); then
+                        pgStat=""
+                fi
+
+                if [ -n "${pgStat}" ] && ! echo "${pgStat}" | grep -wq unknown; then
+                        echo "MicroCeph on ${microceph} ready after ${j} seconds."
+                        break
+                fi
+
+                if [ "${j}" -ge 60 ]; then
+                        echo "Error: MicroCeph on ${microceph} still has unknown placement groups after 60 seconds!"
+                        lxc exec "${microceph}" -- microceph.ceph status || true
+                        return 1
+                fi
+
+                sleep 1
+        done
+
+        lxc exec "${microceph}" -- microceph.ceph status
+
+        # Distribute the Ceph client configuration and keyring to every cluster member.
+        cephDir=$(mktemp -d)
+        lxc file pull "${microceph}/etc/ceph/ceph.conf" "${cephDir}/ceph.conf"
+        lxc file pull "${microceph}/etc/ceph/ceph.client.admin.keyring" "${cephDir}/ceph.client.admin.keyring"
+
+        for i in $(seq 1 "${CLUSTER_SIZE}"); do
+                instance="${INSTANCE}-${i}"
+
+                lxc exec "${instance}" --env=DEBIAN_FRONTEND=noninteractive -- apt-get -qq -y install ceph-common
+                lxc exec "${instance}" -- mkdir -p /etc/ceph
+                lxc file push --quiet "${cephDir}/ceph.conf" "${instance}/etc/ceph/ceph.conf"
+                lxc file push --quiet "${cephDir}/ceph.client.admin.keyring" "${instance}/etc/ceph/ceph.client.admin.keyring"
+        done
+
+        rm -rf "${cephDir}"
+
+        # Export environment variables consumed by acceptance test pre-checks.
+        cephIPv4=$(instanceIPv4 "${MICROCEPH_INSTANCE}")
+        {
+                echo "LXD_CEPH_CLUSTER=ceph"
+                echo "LXD_CEPH_CEPHFS=cephfs"
+                echo "LXD_CEPH_CEPHOBJECT_RADOSGW=http://${cephIPv4}"
+        } >> "${GITHUB_ENV}"
+}
+
 #================================================
 # Cleanup
 #================================================
@@ -367,6 +504,10 @@ cleanup() {
                 instance="${INSTANCE}-${i}"
                 lxc delete "${instance}" --force || true
         done
+
+        if [ "${MICROCEPH_ENABLED}" = "true" ]; then
+                lxc delete "${MICROCEPH_INSTANCE}" --force || true
+        fi
 
         # Remove storage pool.
         echo "Removing storage pool ${STORAGE_POOL} ..."
