@@ -7,8 +7,7 @@ Manages a locally-stored LXD image.
 ```hcl
 resource "lxd_image" "xenial" {
   source_image = {
-    remote = "ubuntu"
-    name   = "xenial/amd64"
+    image = "ubuntu:xenial/amd64"
   }
 }
 
@@ -35,9 +34,8 @@ resource "lxd_instance" "test1" {
 
 The `source_image` block supports:
 
-* `remote` - **Required** - Name of the remote from where the image will be pulled.
-
-* `name` - **Required** - Name of the source image.
+* `image` - **Required** - Name of the source image in the format `[<remote>:]<image>`.
+  If the remote is omitted, the provider's default remote is used.
 
 * `type` - *Optional* - Type of image to cache. Must be one of `container` or
   `virtual-machine`. Defaults to `container`.

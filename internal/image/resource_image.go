@@ -48,8 +48,7 @@ type ImageModel struct {
 }
 
 type SourceImageModel struct {
-	Remote       types.String `tfsdk:"remote"`
-	Name         types.String `tfsdk:"name"`
+	Image        types.String `tfsdk:"image"`
 	Type         types.String `tfsdk:"type"`
 	Architecture types.String `tfsdk:"architecture"`
 	CopyAliases  types.Bool   `tfsdk:"copy_aliases"`
@@ -80,10 +79,7 @@ func (r ImageResource) Schema(_ context.Context, _ resource.SchemaRequest, resp 
 			"source_image": schema.SingleNestedAttribute{
 				Optional: true,
 				Attributes: map[string]schema.Attribute{
-					"remote": schema.StringAttribute{
-						Required: true,
-					},
-					"name": schema.StringAttribute{
+					"image": schema.StringAttribute{
 						Required: true,
 					},
 					"type": schema.StringAttribute{
@@ -416,8 +412,7 @@ func (r ImageResource) SyncState(ctx context.Context, tfState *tfsdk.State, serv
 		if sourceImageModel.Architecture.IsNull() || sourceImageModel.Architecture.IsUnknown() {
 			sourceImageModel.Architecture = types.StringValue(image.Architecture)
 			m.SourceImage, respDiags = types.ObjectValue(m.SourceImage.AttributeTypes(ctx), map[string]attr.Value{
-				"remote":       sourceImageModel.Remote,
-				"name":         sourceImageModel.Name,
+				"image":        sourceImageModel.Image,
 				"type":         sourceImageModel.Type,
 				"architecture": sourceImageModel.Architecture,
 				"copy_aliases": sourceImageModel.CopyAliases,
@@ -474,9 +469,17 @@ func (r ImageResource) createImageFromSourceImage(ctx context.Context, resp *res
 		return
 	}
 
-	image := sourceImageModel.Name.ValueString()
 	imageType := sourceImageModel.Type.ValueString()
-	imageRemote := sourceImageModel.Remote.ValueString()
+
+	var imageRemote string
+
+	image := sourceImageModel.Image.ValueString()
+	imageParts := strings.SplitN(image, ":", 2)
+	if len(imageParts) == 2 {
+		imageRemote = imageParts[0]
+		image = imageParts[1]
+	}
+
 	imageServer, err := r.provider.ImageServer(imageRemote)
 	if err != nil {
 		resp.Diagnostics.Append(errors.NewImageServerError(err))
@@ -731,7 +734,7 @@ func createImageResourceID(remote string, fingerprint string) string {
 }
 
 // splitImageResourceID splits an image ID into remote and fingerprint strings.
-func splitImageResourceID(id string) (string, string) {
+func splitImageResourceID(id string) (remote string, fingerprint string) {
 	pieces := strings.SplitN(id, ":", 2)
 	if len(pieces) != 2 {
 		return "", id
