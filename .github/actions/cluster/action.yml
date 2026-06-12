@@ -55,4 +55,4 @@ runs:
         INSTANCE_TYPE: ${{ inputs.instance-type }}
         INSTANCE_IMAGE: ubuntu:24.04
         VERSION_LXD: ${{ inputs.lxd-version }}
-        OVN_ENABLED: ${{ inputs.enable-ovn }}
+        MICROOVN_ENABLED: ${{ inputs.enable-ovn }}
