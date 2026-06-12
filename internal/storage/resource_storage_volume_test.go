@@ -175,31 +175,6 @@ func TestAccStorageVolume_importBasic(t *testing.T) {
 	})
 }
 
-// Configuration used to verify that volume-level config overrides inherited pool-level config.
-func testAccStorageVolume_inheritedStoragePoolVolumeKeysOverride(poolName, volumeName string) string {
-	return fmt.Sprintf(`
-resource "lxd_storage_pool" "pool1" {
-  name   = "%s"
-  driver = "zfs"
-  config = {
-    "volume.zfs.remove_snapshots" = true
-    "volume.zfs.use_refquota"     = true
-  }
-}
-
-resource "lxd_storage_volume" "volume1" {
-  name         = "%s"
-  pool         = lxd_storage_pool.pool1.name
-  content_type = "block"
-
-  config = {
-    // Explicitly set size on the volume
-    size = "5GiB"
-  }
-}
-	`, poolName, volumeName)
-}
-
 func TestAccStorageVolume_importProject(t *testing.T) {
 	volName := acctest.GenerateName(2, "-")
 	projectName := acctest.GenerateName(2, "-")
@@ -383,6 +358,31 @@ resource "lxd_storage_volume" "volume1" {
   content_type = "block"
   config = {
     "size" = "1GiB"
+  }
+}
+	`, poolName, volumeName)
+}
+
+// Configuration used to verify that volume-level config overrides inherited pool-level config.
+func testAccStorageVolume_inheritedStoragePoolVolumeKeysOverride(poolName, volumeName string) string {
+	return fmt.Sprintf(`
+resource "lxd_storage_pool" "pool1" {
+  name   = "%s"
+  driver = "zfs"
+  config = {
+    "volume.zfs.remove_snapshots" = true
+    "volume.zfs.use_refquota"     = true
+  }
+}
+
+resource "lxd_storage_volume" "volume1" {
+  name         = "%s"
+  pool         = lxd_storage_pool.pool1.name
+  content_type = "block"
+
+  config = {
+    // Explicitly set size on the volume
+    size = "5GiB"
   }
 }
 	`, poolName, volumeName)
