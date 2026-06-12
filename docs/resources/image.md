@@ -6,8 +6,10 @@ Manages a locally-stored LXD image.
 
 ```hcl
 resource "lxd_image" "xenial" {
-  source_remote = "ubuntu"
-  source_image  = "xenial/amd64"
+  source_image = {
+    remote = "ubuntu"
+    name   = "xenial/amd64"
+  }
 }
 
 resource "lxd_instance" "test1" {
@@ -19,33 +21,43 @@ resource "lxd_instance" "test1" {
 
 ## Argument Reference
 
-* `source_image` - **Required** - Fingerprint or alias of image to pull.
+* `source_image` - *Optional* - The source image from which the image will be copied. See reference below.
 
-* `source_remote` - **Required** - Name of the LXD remote from where image will
-	be pulled.
-
-* `type` - *Optional* - Type of image to cache. Must be one of `container` or
-  `virtual-machine`. Defaults to `container`.
-
-* `architecture` - *Optional* - Architecture of the image to pull (e.g. `amd64`,
-	`arm64`). If not provided, the default architecture of `source_image` is used.
+* `source_instance` - *Optional* - The source instance from which the image will be created. See reference below.
 
 * `aliases` - *Optional* - A list of aliases to assign to the image after
 	pulling.
-
-* `copy_aliases` - *Optional* - Whether to copy the aliases of the image from
-	the remote. Valid values are `true` and `false`. Defaults to `false`.
 
 * `project` - *Optional* - Name of the project where the image will be stored.
 
 * `remote` - *Optional* - The remote in which the resource will be created. If
 	not provided, the provider's default remote will be used.
 
+The `source_image` block supports:
+
+* `remote` - **Required** - Name of the remote from where the image will be pulled.
+
+* `name` - **Required** - Name of the source image.
+
+* `type` - *Optional* - Type of image to cache. Must be one of `container` or
+  `virtual-machine`. Defaults to `container`.
+
+* `architecture` - *Optional* - Architecture of the image to pull (e.g.
+  `amd64`, `arm64`). If not provided, the default architecture of
+  `source_image` is used.
+
+* `copy_aliases` - *Optional* - Whether to copy the aliases of the image from
+  the remote. Valid values are `true` and `false`. Defaults to `false`.
+
+The `source_instance` block supports:
+
+* `name` - **Required** - Name of the source instance.
+
+* `snapshot` - *Optional* - Name of the snapshot of the source instance.
+
 ## Attribute Reference
 
 The following attributes are exported:
-
-* `architecture` - The image architecture (e.g. amd64, i386).
 
 * `created_at` - The datetime of image creation, in Unix time.
 
