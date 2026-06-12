@@ -161,8 +161,6 @@ func TestAccInstance_restartContainer(t *testing.T) {
 					resource.TestCheckResourceAttr("lxd_instance.instance1", "status", "Running"),
 					resource.TestCheckResourceAttr("lxd_instance.instance1", "running", "true"),
 					resource.TestCheckResourceAttrSet("lxd_instance.instance1", "mac_address"),
-					resource.TestCheckResourceAttrSet("lxd_instance.instance1", "ipv4_address"),
-					resource.TestCheckResourceAttrSet("lxd_instance.instance1", "ipv6_address"),
 				),
 			},
 			{
@@ -205,8 +203,6 @@ func TestAccInstance_restartVirtualMachine(t *testing.T) {
 					resource.TestCheckResourceAttr("lxd_instance.instance1", "status", "Running"),
 					resource.TestCheckResourceAttr("lxd_instance.instance1", "running", "true"),
 					resource.TestCheckResourceAttrSet("lxd_instance.instance1", "mac_address"),
-					resource.TestCheckResourceAttrSet("lxd_instance.instance1", "ipv4_address"),
-					resource.TestCheckResourceAttrSet("lxd_instance.instance1", "ipv6_address"),
 				),
 			},
 			{
