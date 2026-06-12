@@ -320,7 +320,6 @@ func (p *LxdProvider) Resources(_ context.Context) []func() resource.Resource {
 		auth.NewAuthGroupResource,
 		auth.NewAuthIdentityResource,
 		image.NewImageResource,
-		image.NewPublishImageResource,
 		instance.NewInstanceResource,
 		instance.NewInstanceFileResource,
 		instance.NewInstanceSnapshotResource,
