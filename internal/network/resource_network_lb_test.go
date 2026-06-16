@@ -14,7 +14,6 @@ func TestAccNetworkLB_basic(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			acctest.PreCheck(t)
-			acctest.PreCheckStandalone(t)
 			acctest.PreCheckAPIExtensions(t, "network_load_balancer")
 		},
 		ProtoV6ProviderFactories: acctest.ProtoV6ProviderFactories,
@@ -46,7 +45,6 @@ func TestAccNetworkLB_withConfig(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			acctest.PreCheck(t)
-			acctest.PreCheckStandalone(t)
 			acctest.PreCheckAPIExtensions(t, "network_load_balancer")
 		},
 		ProtoV6ProviderFactories: acctest.ProtoV6ProviderFactories,
@@ -139,7 +137,6 @@ func TestAccNetworkLB_withBackendAndPort(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			acctest.PreCheck(t)
-			acctest.PreCheckStandalone(t)
 			acctest.PreCheckAPIExtensions(t, "network_load_balancer")
 		},
 		ProtoV6ProviderFactories: acctest.ProtoV6ProviderFactories,
@@ -186,7 +183,6 @@ func TestAccNetworkLB_withBackendAndPort_noDescriptions(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			acctest.PreCheck(t)
-			acctest.PreCheckStandalone(t)
 			acctest.PreCheckAPIExtensions(t, "network_load_balancer")
 		},
 		ProtoV6ProviderFactories: acctest.ProtoV6ProviderFactories,

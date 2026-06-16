@@ -152,7 +152,10 @@ jobs:
         uses: ./.github/actions/cluster
         with:
           cluster-name: acctest
+          cluster-size: 2
+          instance-type: virtual-machine
           lxd-version: ${{ matrix.channel }}
+          enable-ovn: true
 
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@dfe3c3f87815947d99a8997f908cb6525fc44e9e # v4.0.1
@@ -161,6 +164,8 @@ jobs:
 
       - name: Run acceptance tests
         run: make test
+        env:
+          LXD_TEST_SKIP_VMS: "true"
 
   build:
     runs-on: ubuntu-24.04

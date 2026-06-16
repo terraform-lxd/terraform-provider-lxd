@@ -16,8 +16,13 @@ INSTANCE_IMAGE="${INSTANCE_IMAGE:-ubuntu:24.04}"
 # Type of cluster instances (container or virtual-machine).
 INSTANCE_TYPE="${INSTANCE_TYPE:-container}"
 
-# Version of LXD to install.
+# Component versions.
 VERSION_LXD="${VERSION_LXD:-latest/edge}"
+VERSION_MICROOVN="${VERSION_MICROOVN:-latest/edge}"
+
+# MicroOVN configuration.
+MICROOVN_ENABLED="${MICROOVN_ENABLED:-false}"
+MICROOVN_PKI_DIR="/var/snap/microovn/common/data/pki"
 
 # MinIO configuration.
 MINIO_ENABLED="${MINIO_ENABLED:-true}"
@@ -77,7 +82,6 @@ instanceIPv4() {
         echo "Error: Failed to obtain IPv4 address of instance ${instance}"
         return 1
 }
-
 
 #========================
 # Cluster setup
@@ -262,6 +266,8 @@ EOF
                 lxc exec "${LEADER}" -- lxc profile device add default eth0 nic nictype=bridged parent=lxdbr0
         fi
 
+        configure_ovn
+
         # Configure new cluster remote.
         token=$(lxc exec "${LEADER}" -- lxc config trust add --name host --quiet)
         ipv4=$(instanceIPv4 "${LEADER}")
@@ -274,6 +280,79 @@ EOF
         lxc cluster list "${CLUSTER_NAME}:"
 }
 
+# configure_ovn installs and configures MicroOVN on LXD cluster members.
+configure_ovn() {
+        if [ "${MICROOVN_ENABLED}" != "true" ]; then
+                echo "OVN setup disabled."
+                return
+        fi
+
+        if [ "${INSTANCE_TYPE}" != "virtual-machine" ]; then
+                echo "Error: OVN setup requires virtual-machine cluster members."
+                exit 1
+        fi
+
+        echo "Installing MicroOVN on cluster members ..."
+
+        for i in $(seq 1 "${CLUSTER_SIZE}"); do
+                instance="${INSTANCE}-${i}"
+                lxc exec "${instance}" -- snap install microovn --channel "${VERSION_MICROOVN}"
+
+                if lxc exec "${instance}" -- snap connections lxd | grep -qwF lxd:ovn-certificates; then
+                        lxc exec "${instance}" -- snap connect lxd:ovn-certificates microovn:ovn-certificates
+                        lxc exec "${instance}" -- snap connect lxd:ovn-chassis microovn:ovn-chassis
+                fi
+        done
+
+        echo "Forming MicroOVN cluster ..."
+
+        for i in $(seq 1 "${CLUSTER_SIZE}"); do
+                instance="${INSTANCE}-${i}"
+
+                # On the leader instance, bootstrap a new MicroOVN cluster and continue.
+                if [ "${instance}" = "${LEADER}" ]; then
+                        lxc exec "${instance}" -- microovn cluster bootstrap
+                        continue
+                fi
+
+                # Create and extract a join token for a new cluster member.
+                token=$(lxc exec "${LEADER}" -- microovn cluster add "${instance}")
+                if [ "${token}" = "" ]; then
+                        echo "Error: Failed retrieving MicroOVN join token for instance ${instance}"
+                        exit 1
+                fi
+
+                lxc exec "${instance}" -- microovn cluster join "${token}"
+        done
+
+        # Wait for MicroOVN to become ready on all members.
+        for i in $(seq 1 "${CLUSTER_SIZE}"); do
+                instance="${INSTANCE}-${i}"
+                lxc exec "${instance}" -- microovn waitready
+        done
+
+        if ! info=$(lxc exec "${LEADER}" -- lxc info); then
+                echo "Failed to get LXD info from ${LEADER}"
+                exit 1
+        fi
+
+        if ! echo "${info}" | grep -qxF -- "- ovn_dynamic_northbound_connection"; then
+                # LXD 5.0 resolves OVN southbound info through host ovs-vsctl and uses legacy OVN
+                # client cert paths.
+                for i in $(seq 1 "${CLUSTER_SIZE}"); do
+                        instance="${INSTANCE}-${i}"
+
+                        lxc exec "${instance}" -- mkdir -p /var/run/openvswitch /etc/ovn
+                        lxc exec "${instance}" -- ln -sf /var/snap/microovn/common/run/switch/db.sock /var/run/openvswitch/db.sock
+                        lxc exec "${instance}" -- ln -sf "${MICROOVN_PKI_DIR}/client-cert.pem" /etc/ovn/cert_host
+                        lxc exec "${instance}" -- ln -sf "${MICROOVN_PKI_DIR}/client-privkey.pem" /etc/ovn/key_host
+                        lxc exec "${instance}" -- ln -sf "${MICROOVN_PKI_DIR}/cacert.pem" /etc/ovn/ovn-central.crt
+                done
+
+                leaderIPv4=$(instanceIPv4 "${LEADER}")
+                lxc exec "${LEADER}" -- lxc config set network.ovn.northbound_connection="ssl:${leaderIPv4}:6641"
+        fi
+}
 
 #================================================
 # Cleanup

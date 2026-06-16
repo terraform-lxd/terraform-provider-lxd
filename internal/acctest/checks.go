@@ -28,6 +28,13 @@ func PreCheck(t *testing.T) {
 	// }
 }
 
+// PreCheckVMTests skips VM tests if the LXD_TEST_SKIP_VMS environment variable is set.
+func PreCheckVMTests(t *testing.T) {
+	if shared.IsTrue(os.Getenv("LXD_TEST_SKIP_VMS")) {
+		t.Skipf("Test %q skipped. VM tests are disabled because LXD_TEST_SKIP_VMS is set.", t.Name())
+	}
+}
+
 // PreCheckLxdVersion skips the test if the server's version does not satisfy
 // the provided version constraints. The version constraints are detailed at:
 // https://pkg.go.dev/github.com/hashicorp/go-version#readme-version-constraints
