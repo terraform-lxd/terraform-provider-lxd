@@ -109,15 +109,17 @@ data "lxd_image" "img" {
 
 func testAccImage_DS_cached(aliases ...string) string {
 	return fmt.Sprintf(`
-resource "lxd_cached_image" "img" {
-  source_remote = %q
-  source_image  = %q
-  copy_aliases  = false
-  aliases       = ["%s"]
+resource "lxd_image" "img" {
+  source_image = {
+    image         = "%s:%s"
+    copy_aliases  = false
+  }
+
+  aliases = ["%s"]
 }
 
 data "lxd_image" "img" {
-  fingerprint = lxd_cached_image.img.fingerprint
+  fingerprint = lxd_image.img.fingerprint
 }
 	`, acctest.TestCachedImageSourceRemote, acctest.TestCachedImageSourceImage, strings.Join(aliases, `","`))
 }
@@ -128,14 +130,16 @@ resource "lxd_project" "proj" {
   name = %q
 }
 
-resource "lxd_cached_image" "img" {
-  source_remote = %q
-  source_image  = %q
-  project       = lxd_project.proj.name
+resource "lxd_image" "img" {
+  project = lxd_project.proj.name
+
+  source_image = {
+    image = "%s:%s"
+  }
 }
 
 data "lxd_image" "img" {
-  fingerprint = lxd_cached_image.img.fingerprint
+  fingerprint = lxd_image.img.fingerprint
   project     = lxd_project.proj.name
 }
 	`, project, acctest.TestCachedImageSourceRemote, acctest.TestCachedImageSourceImage)
