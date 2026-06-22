@@ -74,7 +74,7 @@ make
 ```shell
 make testacc
 # or run an individual test
-TESTARGS="-run TestAccCachedImage_basicVM" make testacc
+TESTARGS="-run TestAccImage_basicVM" make testacc
 # increase test verbosity. options are trace, debug, info, warn, or error (default)
 TF_LOG=info make testacc
 ```

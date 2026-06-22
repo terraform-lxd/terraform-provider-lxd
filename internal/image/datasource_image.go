@@ -21,9 +21,8 @@ type ImageDataSourceModel struct {
 	Architecture types.String `tfsdk:"architecture"`
 	CreatedAt    types.Int64  `tfsdk:"created_at"`
 	Fingerprint  types.String `tfsdk:"fingerprint"`
-	Name         types.String `tfsdk:"name"`
+	Image        types.String `tfsdk:"image"`
 	Project      types.String `tfsdk:"project"`
-	Remote       types.String `tfsdk:"remote"`
 	Type         types.String `tfsdk:"type"`
 }
 
@@ -42,12 +41,12 @@ func (d *ImageDataSource) Metadata(_ context.Context, req datasource.MetadataReq
 func (d *ImageDataSource) Schema(_ context.Context, req datasource.SchemaRequest, resp *datasource.SchemaResponse) {
 	resp.Schema = schema.Schema{
 		Attributes: map[string]schema.Attribute{
-			"name": schema.StringAttribute{
-				Optional: true,
+			"image": schema.StringAttribute{
+				Required:    true,
+				Description: "Name or fingerprint of the image in the format `[<remote>:]<image>`. If the remote is omitted, the provider's default remote is used.",
 			},
 
 			"fingerprint": schema.StringAttribute{
-				Optional: true,
 				Computed: true,
 			},
 
@@ -68,10 +67,6 @@ func (d *ImageDataSource) Schema(_ context.Context, req datasource.SchemaRequest
 			},
 
 			"project": schema.StringAttribute{
-				Optional: true,
-			},
-
-			"remote": schema.StringAttribute{
 				Optional: true,
 			},
 
@@ -102,31 +97,6 @@ func (d *ImageDataSource) Configure(_ context.Context, req datasource.ConfigureR
 	d.provider = provider
 }
 
-func (d *ImageDataSource) ValidateConfig(ctx context.Context, req datasource.ValidateConfigRequest, resp *datasource.ValidateConfigResponse) {
-	var state ImageDataSourceModel
-
-	resp.Diagnostics.Append(req.Config.Get(ctx, &state)...)
-	if resp.Diagnostics.HasError() {
-		return
-	}
-
-	if state.Name.IsNull() && state.Fingerprint.IsNull() {
-		resp.Diagnostics.AddError(
-			"Invalid Configuration",
-			"Either name or fingerprint must be set.",
-		)
-		return
-	}
-
-	if !state.Name.IsNull() && !state.Fingerprint.IsNull() {
-		resp.Diagnostics.AddError(
-			"Invalid Configuration",
-			"Only name or fingerprint can be set.",
-		)
-		return
-	}
-}
-
 func (d *ImageDataSource) Read(ctx context.Context, req datasource.ReadRequest, resp *datasource.ReadResponse) {
 	var state ImageDataSourceModel
 
@@ -136,8 +106,21 @@ func (d *ImageDataSource) Read(ctx context.Context, req datasource.ReadRequest, 
 		return
 	}
 
-	remote := state.Remote.ValueString()
-	server, err := d.provider.ImageServer(remote)
+	imageRemote := ""
+	identifier := state.Image.ValueString()
+
+	imageParts := strings.SplitN(identifier, ":", 2)
+	if len(imageParts) == 2 {
+		imageRemote = imageParts[0]
+		identifier = imageParts[1]
+	}
+
+	imageType := state.Type.ValueString()
+	if imageType == "" {
+		imageType = "container"
+	}
+
+	server, err := d.provider.ImageServer(imageRemote)
 	if err != nil {
 		resp.Diagnostics.Append(errors.NewImageServerError(err))
 		return
@@ -150,18 +133,15 @@ func (d *ImageDataSource) Read(ctx context.Context, req datasource.ReadRequest, 
 	}
 
 	var fingerprint string
-	if state.Fingerprint.IsNull() {
-		imageName := state.Name.ValueString()
-		architecture := state.Architecture.ValueString()
 
-		if architecture != "" {
-			imageType := state.Type.ValueString()
-			availableArchitectures, err := server.GetImageAliasArchitectures(imageType, imageName)
-			if err != nil {
-				resp.Diagnostics.AddError("Failed to get image alias architectures", err.Error())
-				return
-			}
-
+	architecture := state.Architecture.ValueString()
+	if architecture != "" {
+		// If an architecture is specified, look for an alias matching the identifier
+		// and architecture.
+		availableArchitectures, err := server.GetImageAliasArchitectures(imageType, identifier)
+		if err == nil {
+			// Architecture aliases found.
+			// Find the alias matching the requested architecture.
 			found := false
 			for imageArchitecture, imageAlias := range availableArchitectures {
 				if imageArchitecture == architecture {
@@ -175,37 +155,42 @@ func (d *ImageDataSource) Read(ctx context.Context, req datasource.ReadRequest, 
 				for key := range availableArchitectures {
 					keys = append(keys, key)
 				}
-				keyList := strings.Join(keys, ", ")
 
-				resp.Diagnostics.AddError(fmt.Sprintf("No image alias found for architecture: %s. Available architectures: %s ", architecture, keyList), "")
+				keyList := strings.Join(keys, ", ")
+				resp.Diagnostics.AddError(fmt.Sprintf("No image alias found for architecture %q. Available architectures: %s ", architecture, keyList), "")
 				return
 			}
-		} else {
-			var imageAlias *api.ImageAliasesEntry
-			if state.Type.IsNull() {
-				imageAlias, _, err = server.GetImageAlias(imageName)
-				if err != nil {
-					resp.Diagnostics.AddError(fmt.Sprintf("Failed to retrieve image by alias %q", imageName), err.Error())
-					return
-				}
-			} else {
-				imageType := state.Type.ValueString()
-				imageAlias, _, err = server.GetImageAliasType(imageType, imageName)
-				if err != nil {
-					resp.Diagnostics.AddError(fmt.Sprintf("Failed to retrieve image by alias %q and type %q", imageName, imageType), err.Error())
-					return
-				}
-			}
-
-			fingerprint = imageAlias.Target
+		} else if !errors.IsNotFoundError(err) {
+			resp.Diagnostics.AddError(fmt.Sprintf("Failed to get image alias architectures for image %q", identifier), err.Error())
+			return
 		}
-	} else {
-		fingerprint = state.Fingerprint.ValueString()
+	}
+
+	if fingerprint == "" {
+		// Fingerprint not determined from architecture-specific alias.
+		// Look for a non-architecture-specific alias.
+		var imageAlias *api.ImageAliasesEntry
+		if state.Type.IsNull() {
+			imageAlias, _, err = server.GetImageAlias(identifier)
+		} else {
+			imageType := state.Type.ValueString()
+			imageAlias, _, err = server.GetImageAliasType(imageType, identifier)
+		}
+
+		if err == nil {
+			fingerprint = imageAlias.Target
+		} else if errors.IsNotFoundError(err) {
+			// Not a known alias, treat the identifier as a fingerprint.
+			fingerprint = identifier
+		} else {
+			resp.Diagnostics.AddError(fmt.Sprintf("Failed to get image alias %q", identifier), err.Error())
+			return
+		}
 	}
 
 	image, _, err := server.GetImage(fingerprint)
 	if err != nil {
-		resp.Diagnostics.AddError(fmt.Sprintf("Failed to retrieve image by fingerprint %q", fingerprint), err.Error())
+		resp.Diagnostics.AddError(fmt.Sprintf("Failed to retrieve image %q", identifier), err.Error())
 		return
 	}
 
