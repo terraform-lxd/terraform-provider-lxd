@@ -19,6 +19,9 @@ inputs:
   enable-ovn:
     description: Install and configure OVN on cluster members.
     default: "false"
+  enable-ceph:
+    description: Deploy a dedicated MicroCeph instance and configure cluster members to use it for Ceph-backed storage pools.
+    default: "false"
 
 runs:
   using: composite
@@ -56,3 +59,4 @@ runs:
         INSTANCE_IMAGE: ubuntu:24.04
         VERSION_LXD: ${{ inputs.lxd-version }}
         MICROOVN_ENABLED: ${{ inputs.enable-ovn }}
+        MICROCEPH_ENABLED: ${{ inputs.enable-ceph }}
