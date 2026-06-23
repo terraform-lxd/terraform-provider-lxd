@@ -13,10 +13,7 @@ func TestAccStorageVolume_basic(t *testing.T) {
 	volumeName := acctest.GenerateName(2, "-")
 
 	resource.Test(t, resource.TestCase{
-		PreCheck: func() {
-			acctest.PreCheck(t)
-			acctest.PreCheckStandalone(t)
-		},
+		PreCheck:                 func() { acctest.PreCheck(t) },
 		ProtoV6ProviderFactories: acctest.ProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
@@ -113,10 +110,7 @@ func TestAccStorageVolume_contentType(t *testing.T) {
 	volumeName := acctest.GenerateName(2, "-")
 
 	resource.Test(t, resource.TestCase{
-		PreCheck: func() {
-			acctest.PreCheck(t)
-			acctest.PreCheckStandalone(t)
-		},
+		PreCheck:                 func() { acctest.PreCheck(t) },
 		ProtoV6ProviderFactories: acctest.ProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
@@ -181,31 +175,6 @@ func TestAccStorageVolume_importBasic(t *testing.T) {
 	})
 }
 
-// Configuration used to verify that volume-level config overrides inherited pool-level config.
-func testAccStorageVolume_inheritedStoragePoolVolumeKeysOverride(poolName, volumeName string) string {
-	return fmt.Sprintf(`
-resource "lxd_storage_pool" "pool1" {
-  name   = "%s"
-  driver = "zfs"
-  config = {
-    "volume.zfs.remove_snapshots" = true
-    "volume.zfs.use_refquota"     = true
-  }
-}
-
-resource "lxd_storage_volume" "volume1" {
-  name         = "%s"
-  pool         = lxd_storage_pool.pool1.name
-  content_type = "block"
-
-  config = {
-    // Explicitly set size on the volume
-    size = "5GiB"
-  }
-}
-	`, poolName, volumeName)
-}
-
 func TestAccStorageVolume_importProject(t *testing.T) {
 	volName := acctest.GenerateName(2, "-")
 	projectName := acctest.GenerateName(2, "-")
@@ -237,10 +206,7 @@ func TestAccStorageVolume_inheritedStoragePoolKeys(t *testing.T) {
 	volumeName := acctest.GenerateName(2, "-")
 
 	resource.Test(t, resource.TestCase{
-		PreCheck: func() {
-			acctest.PreCheck(t)
-			acctest.PreCheckStandalone(t)
-		},
+		PreCheck:                 func() { acctest.PreCheck(t) },
 		ProtoV6ProviderFactories: acctest.ProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
@@ -392,6 +358,31 @@ resource "lxd_storage_volume" "volume1" {
   content_type = "block"
   config = {
     "size" = "1GiB"
+  }
+}
+	`, poolName, volumeName)
+}
+
+// Configuration used to verify that volume-level config overrides inherited pool-level config.
+func testAccStorageVolume_inheritedStoragePoolVolumeKeysOverride(poolName, volumeName string) string {
+	return fmt.Sprintf(`
+resource "lxd_storage_pool" "pool1" {
+  name   = "%s"
+  driver = "zfs"
+  config = {
+    "volume.zfs.remove_snapshots" = true
+    "volume.zfs.use_refquota"     = true
+  }
+}
+
+resource "lxd_storage_volume" "volume1" {
+  name         = "%s"
+  pool         = lxd_storage_pool.pool1.name
+  content_type = "block"
+
+  config = {
+    // Explicitly set size on the volume
+    size = "5GiB"
   }
 }
 	`, poolName, volumeName)
