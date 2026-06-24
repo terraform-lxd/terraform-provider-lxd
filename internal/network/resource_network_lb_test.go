@@ -11,6 +11,9 @@ import (
 )
 
 func TestAccNetworkLB_basic(t *testing.T) {
+	uplinkSubnet := acctest.GenerateSubnet()
+	ovnSubnet := acctest.GenerateSubnet()
+
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			acctest.PreCheck(t)
@@ -19,16 +22,16 @@ func TestAccNetworkLB_basic(t *testing.T) {
 		ProtoV6ProviderFactories: acctest.ProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
-				Config: acctest.Provider() + testAccNetworkLB_basic(),
+				Config: acctest.Provider() + testAccNetworkLB_basic(uplinkSubnet, ovnSubnet),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("lxd_network.ovnbr", "name", "ovnbr"),
 					resource.TestCheckResourceAttr("lxd_network.ovnbr", "type", "bridge"),
 					resource.TestCheckResourceAttr("lxd_network.ovn", "name", "ovn"),
 					resource.TestCheckResourceAttr("lxd_network.ovn", "type", "ovn"),
-					resource.TestCheckResourceAttr("lxd_network.ovn", "config.ipv4.address", "10.0.0.1/24"),
-					resource.TestCheckResourceAttr("lxd_network.ovn", "config.ipv6.address", "fd42::1/64"),
+					resource.TestCheckResourceAttr("lxd_network.ovn", "config.ipv4.address", ovnSubnet.GatewayCIDRv4()),
+					resource.TestCheckResourceAttr("lxd_network.ovn", "config.ipv6.address", ovnSubnet.GatewayCIDRv6()),
 					resource.TestCheckResourceAttr("lxd_network_lb.test", "description", "Load Balancer"),
-					resource.TestCheckResourceAttr("lxd_network_lb.test", "listen_address", "10.10.10.200"),
+					resource.TestCheckResourceAttr("lxd_network_lb.test", "listen_address", uplinkSubnet.HostIPv4(200)),
 					resource.TestCheckResourceAttr("lxd_network_lb.test", "network", "ovn"),
 					resource.TestCheckResourceAttr("lxd_network_lb.test", "config.%", "0"),
 				),
@@ -38,6 +41,9 @@ func TestAccNetworkLB_basic(t *testing.T) {
 }
 
 func TestAccNetworkLB_withConfig(t *testing.T) {
+	uplinkSubnet := acctest.GenerateSubnet()
+	ovnSubnet := acctest.GenerateSubnet()
+
 	lbConfig := map[string]string{
 		"user.test": "abcd",
 	}
@@ -50,12 +56,12 @@ func TestAccNetworkLB_withConfig(t *testing.T) {
 		ProtoV6ProviderFactories: acctest.ProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
-				Config: acctest.Provider() + testAccNetworkLB_withConfig(lbConfig),
+				Config: acctest.Provider() + testAccNetworkLB_withConfig(lbConfig, uplinkSubnet, ovnSubnet),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("lxd_network.ovnbr", "name", "ovnbr"),
 					resource.TestCheckResourceAttr("lxd_network.ovn", "name", "ovn"),
 					resource.TestCheckResourceAttr("lxd_network_lb.test", "network", "ovn"),
-					resource.TestCheckResourceAttr("lxd_network_lb.test", "listen_address", "10.10.10.200"),
+					resource.TestCheckResourceAttr("lxd_network_lb.test", "listen_address", uplinkSubnet.HostIPv4(200)),
 					resource.TestCheckResourceAttr("lxd_network_lb.test", "config.%", "1"),
 					resource.TestCheckResourceAttr("lxd_network_lb.test", "config.user.test", "abcd"),
 					resource.TestCheckResourceAttr("lxd_network_lb.test", "port.#", "0"),
@@ -67,17 +73,19 @@ func TestAccNetworkLB_withConfig(t *testing.T) {
 }
 
 func TestAccNetworkLB_withBackendOnly(t *testing.T) {
+	uplinkSubnet := acctest.GenerateSubnet()
+	ovnSubnet := acctest.GenerateSubnet()
 	backendName := acctest.GenerateName(2, "-")
 
 	backend1 := api.NetworkLoadBalancerBackend{
 		Name:          backendName,
-		TargetAddress: "10.0.0.2",
+		TargetAddress: ovnSubnet.HostIPv4(2),
 		TargetPort:    "80",
 	}
 
 	backend2 := api.NetworkLoadBalancerBackend{
 		Name:          backendName,
-		TargetAddress: "10.0.0.2",
+		TargetAddress: ovnSubnet.HostIPv4(2),
 	}
 
 	resource.Test(t, resource.TestCase{
@@ -89,7 +97,7 @@ func TestAccNetworkLB_withBackendOnly(t *testing.T) {
 		ProtoV6ProviderFactories: acctest.ProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
-				Config: acctest.Provider() + testAccNetworkLB_withBackend(backend1),
+				Config: acctest.Provider() + testAccNetworkLB_withBackend(backend1, uplinkSubnet, ovnSubnet),
 				Check: resource.ComposeTestCheckFunc(
 					acctest.PrintResourceState(t, "lxd_network_lb.test"),
 					resource.TestCheckResourceAttr("lxd_network.ovnbr", "name", "ovnbr"),
@@ -102,7 +110,7 @@ func TestAccNetworkLB_withBackendOnly(t *testing.T) {
 				),
 			},
 			{
-				Config: acctest.Provider() + testAccNetworkLB_withBackend(backend2),
+				Config: acctest.Provider() + testAccNetworkLB_withBackend(backend2, uplinkSubnet, ovnSubnet),
 				Check: resource.ComposeTestCheckFunc(
 					acctest.PrintResourceState(t, "lxd_network_lb.test"),
 					resource.TestCheckResourceAttr("lxd_network.ovnbr", "name", "ovnbr"),
@@ -119,12 +127,14 @@ func TestAccNetworkLB_withBackendOnly(t *testing.T) {
 }
 
 func TestAccNetworkLB_withBackendAndPort(t *testing.T) {
+	uplinkSubnet := acctest.GenerateSubnet()
+	ovnSubnet := acctest.GenerateSubnet()
 	instanceName := acctest.GenerateName(2, "")
 
 	backend := api.NetworkLoadBalancerBackend{
 		Name:          "backend",
 		Description:   "Backend",
-		TargetAddress: "10.0.0.2",
+		TargetAddress: ovnSubnet.HostIPv4(2),
 		TargetPort:    "80",
 	}
 
@@ -142,12 +152,12 @@ func TestAccNetworkLB_withBackendAndPort(t *testing.T) {
 		ProtoV6ProviderFactories: acctest.ProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
-				Config: acctest.Provider() + testAccNetworkLB_withBackendAndPort(instanceName, backend, port),
+				Config: acctest.Provider() + testAccNetworkLB_withBackendAndPort(instanceName, backend, port, uplinkSubnet, ovnSubnet),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("lxd_network.ovnbr", "name", "ovnbr"),
 					resource.TestCheckResourceAttr("lxd_network.ovn", "name", "ovn"),
 					resource.TestCheckResourceAttr("lxd_network_lb.test", "network", "ovn"),
-					resource.TestCheckResourceAttr("lxd_network_lb.test", "listen_address", "10.10.10.200"),
+					resource.TestCheckResourceAttr("lxd_network_lb.test", "listen_address", uplinkSubnet.HostIPv4(200)),
 					resource.TestCheckResourceAttr("lxd_network_lb.test", "backend.#", "1"),
 					resource.TestCheckResourceAttr("lxd_network_lb.test", "backend.0.name", backend.Name),
 					resource.TestCheckResourceAttr("lxd_network_lb.test", "backend.0.description", backend.Description),
@@ -169,9 +179,12 @@ func TestAccNetworkLB_withBackendAndPort(t *testing.T) {
 }
 
 func TestAccNetworkLB_withBackendAndPort_noDescriptions(t *testing.T) {
+	uplinkSubnet := acctest.GenerateSubnet()
+	ovnSubnet := acctest.GenerateSubnet()
+
 	backend := api.NetworkLoadBalancerBackend{
 		Name:          "backend",
-		TargetAddress: "10.0.0.2",
+		TargetAddress: ovnSubnet.HostIPv4(2),
 		TargetPort:    "80",
 	}
 
@@ -188,7 +201,7 @@ func TestAccNetworkLB_withBackendAndPort_noDescriptions(t *testing.T) {
 		ProtoV6ProviderFactories: acctest.ProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
-				Config: acctest.Provider() + testAccNetworkLB_withBackendAndPort_noDescription(backend, port),
+				Config: acctest.Provider() + testAccNetworkLB_withBackendAndPort_noDescription(backend, port, uplinkSubnet, ovnSubnet),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("lxd_network.ovnbr", "name", "ovnbr"),
 					resource.TestCheckResourceAttr("lxd_network.ovn", "name", "ovn"),
@@ -204,9 +217,12 @@ func TestAccNetworkLB_withBackendAndPort_noDescriptions(t *testing.T) {
 }
 
 func TestAccNetworkLB_withBackendAndPort_noTargetPort(t *testing.T) {
+	uplinkSubnet := acctest.GenerateSubnet()
+	ovnSubnet := acctest.GenerateSubnet()
+
 	backend := api.NetworkLoadBalancerBackend{
 		Name:          "backend",
-		TargetAddress: "10.0.0.2",
+		TargetAddress: ovnSubnet.HostIPv4(2),
 	}
 
 	port := api.NetworkLoadBalancerPort{
@@ -223,7 +239,7 @@ func TestAccNetworkLB_withBackendAndPort_noTargetPort(t *testing.T) {
 		ProtoV6ProviderFactories: acctest.ProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
-				Config: acctest.Provider() + testAccNetworkLB_withBackendAndPort_noTargetPort(backend, port),
+				Config: acctest.Provider() + testAccNetworkLB_withBackendAndPort_noTargetPort(backend, port, uplinkSubnet, ovnSubnet),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("lxd_network.ovnbr", "name", "ovnbr"),
 					resource.TestCheckResourceAttr("lxd_network.ovn", "name", "ovn"),
@@ -231,7 +247,7 @@ func TestAccNetworkLB_withBackendAndPort_noTargetPort(t *testing.T) {
 					resource.TestCheckResourceAttr("lxd_network_lb.test", "backend.#", "1"),
 					resource.TestCheckResourceAttr("lxd_network_lb.test", "backend.0.name", "backend"),
 					resource.TestCheckResourceAttr("lxd_network_lb.test", "backend.0.description", ""),
-					resource.TestCheckResourceAttr("lxd_network_lb.test", "backend.0.target_address", "10.0.0.2"),
+					resource.TestCheckResourceAttr("lxd_network_lb.test", "backend.0.target_address", backend.TargetAddress),
 					resource.TestCheckNoResourceAttr("lxd_network_lb.test", "backend.0.target_port"),
 					resource.TestCheckResourceAttr("lxd_network_lb.test", "port.#", "1"),
 					resource.TestCheckResourceAttr("lxd_network_lb.test", "port.0.description", ""),
@@ -244,19 +260,19 @@ func TestAccNetworkLB_withBackendAndPort_noTargetPort(t *testing.T) {
 	})
 }
 
-func testAccNetworkLB_basic() string {
-	lbRes := `
+func testAccNetworkLB_basic(uplinkSubnet acctest.Subnet, ovnSubnet acctest.Subnet) string {
+	lbRes := fmt.Sprintf(`
 resource "lxd_network_lb" "test" {
   network        = lxd_network.ovn.name
-  listen_address = "10.10.10.200"
+  listen_address = "%s"
   description    = "Load Balancer"
 }
-`
+`, uplinkSubnet.HostIPv4(200))
 
-	return fmt.Sprintf("%s\n%s", ovnNetworkResource(), lbRes)
+	return fmt.Sprintf("%s\n%s", ovnNetworkResource(uplinkSubnet, ovnSubnet), lbRes)
 }
 
-func testAccNetworkLB_withConfig(config map[string]string) string {
+func testAccNetworkLB_withConfig(config map[string]string, uplinkSubnet acctest.Subnet, ovnSubnet acctest.Subnet) string {
 	entries := strings.Builder{}
 	for k, v := range config {
 		entry := fmt.Sprintf("%q = %q\n", k, v)
@@ -266,57 +282,59 @@ func testAccNetworkLB_withConfig(config map[string]string) string {
 	lbRes := fmt.Sprintf(`
 resource "lxd_network_lb" "test" {
   network        = lxd_network.ovn.name
-  listen_address = "10.10.10.200"
+  listen_address = "%s"
   description    = "Load Balancer with Config"
 
   config = {
     %s
   }
 }
-`, entries.String())
+`, uplinkSubnet.HostIPv4(200), entries.String())
 
-	return fmt.Sprintf("%s\n%s", ovnNetworkResource(), lbRes)
+	return fmt.Sprintf("%s\n%s", ovnNetworkResource(uplinkSubnet, ovnSubnet), lbRes)
 }
 
-func testAccNetworkLB_withBackend(backend api.NetworkLoadBalancerBackend) string {
+func testAccNetworkLB_withBackend(backend api.NetworkLoadBalancerBackend, uplinkSubnet acctest.Subnet, ovnSubnet acctest.Subnet) string {
 	targetPort := ""
 	if backend.TargetPort != "" {
 		targetPort = fmt.Sprintf("target_port = %q", backend.TargetPort)
 	}
 
 	args := []any{
-		backend.Name,          // 1
-		backend.TargetAddress, // 2
-		targetPort,            // 3
+		uplinkSubnet.HostIPv4(200), // 1
+		backend.Name,               // 2
+		backend.TargetAddress,      // 3
+		targetPort,                 // 4
 	}
 
 	lbRes := fmt.Sprintf(`
 resource "lxd_network_lb" "test" {
   network        = lxd_network.ovn.name
-  listen_address = "10.10.10.200"
+  listen_address = "%[1]s"
 
   backend {
-    name           = "%[1]s"
-    target_address = "%[2]s"
-    %[3]s
+    name           = "%[2]s"
+    target_address = "%[3]s"
+    %[4]s
   }
 }
 `, args...)
 
-	return fmt.Sprintf("%s\n%s", ovnNetworkResource(), lbRes)
+	return fmt.Sprintf("%s\n%s", ovnNetworkResource(uplinkSubnet, ovnSubnet), lbRes)
 }
 
-func testAccNetworkLB_withBackendAndPort(instanceName string, backend api.NetworkLoadBalancerBackend, port api.NetworkLoadBalancerPort) string {
+func testAccNetworkLB_withBackendAndPort(instanceName string, backend api.NetworkLoadBalancerBackend, port api.NetworkLoadBalancerPort, uplinkSubnet acctest.Subnet, ovnSubnet acctest.Subnet) string {
 	args := []any{
-		instanceName,          // 1
-		acctest.TestImage,     // 2
-		backend.Name,          // 3
-		backend.Description,   // 4
-		backend.TargetAddress, // 5
-		backend.TargetPort,    // 6
-		port.Description,      // 7
-		port.Protocol,         // 8
-		port.ListenPort,       // 9
+		instanceName,               // 1
+		acctest.TestImage,          // 2
+		backend.Name,               // 3
+		backend.Description,        // 4
+		backend.TargetAddress,      // 5
+		backend.TargetPort,         // 6
+		port.Description,           // 7
+		port.Protocol,              // 8
+		port.ListenPort,            // 9
+		uplinkSubnet.HostIPv4(200), // 10
 	}
 
 	lbRes := fmt.Sprintf(`
@@ -337,7 +355,7 @@ resource "lxd_instance" "instance" {
 
 resource "lxd_network_lb" "test" {
   network        = lxd_network.ovn.name
-  listen_address = "10.10.10.200"
+  listen_address = "%[10]s"
   description    = "Load Balancer with Backend and Port"
 
   backend {
@@ -356,22 +374,23 @@ resource "lxd_network_lb" "test" {
 }
 `, args...)
 
-	return fmt.Sprintf("%s\n%s", ovnNetworkResource(), lbRes)
+	return fmt.Sprintf("%s\n%s", ovnNetworkResource(uplinkSubnet, ovnSubnet), lbRes)
 }
 
-func testAccNetworkLB_withBackendAndPort_noDescription(backend api.NetworkLoadBalancerBackend, port api.NetworkLoadBalancerPort) string {
+func testAccNetworkLB_withBackendAndPort_noDescription(backend api.NetworkLoadBalancerBackend, port api.NetworkLoadBalancerPort, uplinkSubnet acctest.Subnet, ovnSubnet acctest.Subnet) string {
 	args := []any{
-		backend.Name,          // 1
-		backend.TargetAddress, // 2
-		backend.TargetPort,    // 3
-		port.Protocol,         // 4
-		port.ListenPort,       // 5
+		backend.Name,               // 1
+		backend.TargetAddress,      // 2
+		backend.TargetPort,         // 3
+		port.Protocol,              // 4
+		port.ListenPort,            // 5
+		uplinkSubnet.HostIPv4(200), // 6
 	}
 
 	lbRes := fmt.Sprintf(`
 resource "lxd_network_lb" "test" {
   network        = lxd_network.ovn.name
-  listen_address = "10.10.10.200"
+  listen_address = "%[6]s"
   description    = "Load Balancer with Backend and Port"
 
   backend {
@@ -388,20 +407,21 @@ resource "lxd_network_lb" "test" {
 }
 `, args...)
 
-	return fmt.Sprintf("%s\n%s", ovnNetworkResource(), lbRes)
+	return fmt.Sprintf("%s\n%s", ovnNetworkResource(uplinkSubnet, ovnSubnet), lbRes)
 }
 
-func testAccNetworkLB_withBackendAndPort_noTargetPort(backend api.NetworkLoadBalancerBackend, port api.NetworkLoadBalancerPort) string {
+func testAccNetworkLB_withBackendAndPort_noTargetPort(backend api.NetworkLoadBalancerBackend, port api.NetworkLoadBalancerPort, uplinkSubnet acctest.Subnet, ovnSubnet acctest.Subnet) string {
 	args := []any{
-		backend.Name,          // 1
-		backend.TargetAddress, // 2
-		port.ListenPort,       // 3
+		backend.Name,               // 1
+		backend.TargetAddress,      // 2
+		port.ListenPort,            // 3
+		uplinkSubnet.HostIPv4(200), // 4
 	}
 
 	lbRes := fmt.Sprintf(`
 resource "lxd_network_lb" "test" {
   network        = lxd_network.ovn.name
-  listen_address = "10.10.10.200"
+  listen_address = "%[4]s"
 
   backend {
     name           = "%[1]s"
@@ -415,24 +435,23 @@ resource "lxd_network_lb" "test" {
 }
 `, args...)
 
-	return fmt.Sprintf("%s\n%s", ovnNetworkResource(), lbRes)
+	return fmt.Sprintf("%s\n%s", ovnNetworkResource(uplinkSubnet, ovnSubnet), lbRes)
 }
 
 // ovnNetworkPreset returns configuration for OVN network and its parent bridge.
-// Network resource "lxd_network.ovn" provides dhcp range "10.0.0.1/24".
-func ovnNetworkResource() string {
-	return `
+func ovnNetworkResource(uplinkSubnet acctest.Subnet, ovnSubnet acctest.Subnet) string {
+	return fmt.Sprintf(`
 resource "lxd_network" "ovnbr" {
   name = "ovnbr"
   type = "bridge"
   config = {
-    "ipv4.address"     = "10.10.10.1/24"
-    "ipv4.routes"      = "10.10.10.192/26"
-    "ipv4.ovn.ranges"  = "10.10.10.224-10.10.10.254"
-    "ipv4.dhcp.ranges" = "10.10.10.100-10.10.10.150"
-    "ipv6.address"     = "fd42:1000:1000:1000::1/64"
-    "ipv6.dhcp.ranges" = "fd42:1000:1000:1000:a::-fd42:1000:1000:1000:a::ffff"
-    "ipv6.ovn.ranges"  = "fd42:1000:1000:1000:b::-fd42:1000:1000:1000:b::ffff"
+    "ipv4.address"     = "%[1]s"
+    "ipv4.routes"      = "%[2]s/26"
+    "ipv4.ovn.ranges"  = "%[3]s"
+    "ipv4.dhcp.ranges" = "%[4]s"
+    "ipv6.address"     = "%[5]s"
+    "ipv6.dhcp.ranges" = "%[6]s"
+    "ipv6.ovn.ranges"  = "%[7]s"
   }
 }
 
@@ -441,11 +460,21 @@ resource "lxd_network" "ovn" {
   type = "ovn"
   config = {
     "network"      = lxd_network.ovnbr.name
-    "ipv4.address" = "10.0.0.1/24"
+    "ipv4.address" = "%[8]s"
     "ipv4.nat"     = "true"
-    "ipv6.address" = "fd42::1/64"
+    "ipv6.address" = "%[9]s"
     "ipv6.nat"     = "true"
   }
 }
-`
+`,
+		uplinkSubnet.GatewayCIDRv4(),
+		uplinkSubnet.HostIPv4(192),
+		uplinkSubnet.SubRangeV4(224, 254),
+		uplinkSubnet.SubRangeV4(100, 150),
+		uplinkSubnet.GatewayCIDRv6(),
+		uplinkSubnet.SubRangeV6(0xa),
+		uplinkSubnet.SubRangeV6(0xb),
+		ovnSubnet.GatewayCIDRv4(),
+		ovnSubnet.GatewayCIDRv6(),
+	)
 }

@@ -11,13 +11,14 @@ import (
 func TestAccNetworkPeer_basic(t *testing.T) {
 	srcNetwork := acctest.GenerateName(2, "-")
 	dstNetwork := acctest.GenerateName(2, "-")
+	subnet := acctest.GenerateSubnet()
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { acctest.PreCheck(t) },
 		ProtoV6ProviderFactories: acctest.ProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
-				Config: acctest.Provider() + testAccNetworkPeer_basic(srcNetwork, dstNetwork),
+				Config: acctest.Provider() + testAccNetworkPeer_basic(srcNetwork, dstNetwork, subnet),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("lxd_network.network_1", "name", srcNetwork),
 					resource.TestCheckResourceAttr("lxd_network.network_2", "name", dstNetwork),
@@ -43,13 +44,14 @@ func TestAccNetworkPeer_import(t *testing.T) {
 	resourceName := "lxd_network_peer.peer-1-2"
 	srcNetwork := acctest.GenerateName(2, "-")
 	dstNetwork := acctest.GenerateName(2, "-")
+	subnet := acctest.GenerateSubnet()
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { acctest.PreCheck(t) },
 		ProtoV6ProviderFactories: acctest.ProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
-				Config: acctest.Provider() + testAccNetworkPeer_basic(srcNetwork, dstNetwork),
+				Config: acctest.Provider() + testAccNetworkPeer_basic(srcNetwork, dstNetwork, subnet),
 			},
 			{
 				ResourceName:  resourceName,
@@ -66,7 +68,7 @@ func TestAccNetworkPeer_import(t *testing.T) {
 	})
 }
 
-func testAccNetworkPeer_basic(srcNetwork string, dstNetwork string) string {
+func testAccNetworkPeer_basic(srcNetwork string, dstNetwork string, subnet acctest.Subnet) string {
 	peerRes := fmt.Sprintf(`
 resource "lxd_network" "network_1" {
   name = "%s"
@@ -99,25 +101,33 @@ resource "lxd_network_peer" "peer-2-1" {
 }
 `, srcNetwork, dstNetwork)
 
-	return fmt.Sprintf("%s\n%s", ovnUplinkNetworkResource(), peerRes)
+	return fmt.Sprintf("%s\n%s", ovnUplinkNetworkResource(subnet), peerRes)
 }
 
-// ovnNetworkPreset returns configuration for OVN network and its parent bridge.
-// Network resource "lxd_network.ovn" provides dhcp range "10.0.0.1/24".
-func ovnUplinkNetworkResource() string {
-	return `
+// ovnUplinkNetworkResource returns configuration for an OVN uplink bridge network.
+// Addressing (routes/DHCP/OVN ranges) is derived from the provided subnet.
+func ovnUplinkNetworkResource(subnet acctest.Subnet) string {
+	return fmt.Sprintf(`
 resource "lxd_network" "ovnbr" {
   name = "ovn_uplink"
   type = "bridge"
   config = {
-    "ipv4.address"     = "10.11.10.1/24"
-    "ipv4.routes"      = "10.11.10.192/26"
-    "ipv4.ovn.ranges"  = "10.11.10.193-10.11.10.254"
-    "ipv4.dhcp.ranges" = "10.11.10.100-10.11.10.150"
-    "ipv6.address"     = "fd42:1100:1000:1000::1/64"
-    "ipv6.dhcp.ranges" = "fd42:1100:1000:1000:a::-fd42:1100:1000:1000:a::ffff"
-    "ipv6.ovn.ranges"  = "fd42:1100:1000:1000:b::-fd42:1100:1000:1000:b::ffff"
+    "ipv4.address"     = "%s"
+    "ipv4.routes"      = "%s/26"
+    "ipv4.ovn.ranges"  = "%s"
+    "ipv4.dhcp.ranges" = "%s"
+    "ipv6.address"     = "%s"
+    "ipv6.dhcp.ranges" = "%s"
+    "ipv6.ovn.ranges"  = "%s"
   }
 }
-`
+`,
+		subnet.GatewayCIDRv4(),
+		subnet.HostIPv4(192),
+		subnet.SubRangeV4(193, 254),
+		subnet.SubRangeV4(100, 150),
+		subnet.GatewayCIDRv6(),
+		subnet.SubRangeV6(0xa),
+		subnet.SubRangeV6(0xb),
+	)
 }
