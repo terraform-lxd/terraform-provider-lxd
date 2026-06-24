@@ -133,3 +133,18 @@ func (s Subnet) SubRangeV6(sub int) string {
 	prefix := fmt.Sprintf("%s:%x::", strings.TrimSuffix(s.ipv6, "::"), sub)
 	return fmt.Sprintf("%s-%sffff", prefix, prefix)
 }
+
+// GenerateMACAddress generates a random locally-administered MAC address.
+func GenerateMACAddress() string {
+	usedAddrsLock.Lock()
+	defer usedAddrsLock.Unlock()
+
+	for {
+		mac := fmt.Sprintf("02:16:3e:%02x:%02x:%02x", rand.IntN(256), rand.IntN(256), rand.IntN(256))
+		_, ok := usedAddrs[mac]
+		if !ok {
+			usedAddrs[mac] = struct{}{}
+			return mac
+		}
+	}
+}
