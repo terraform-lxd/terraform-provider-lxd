@@ -99,6 +99,9 @@ func TestAccInstance_DS_accessInterface(t *testing.T) {
 	networkName := acctest.GenerateName(2, "-")
 	instanceName := acctest.GenerateName(2, "-")
 
+	subnet := acctest.GenerateSubnet()
+	mac := acctest.GenerateMACAddress()
+
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			acctest.PreCheck(t)
@@ -108,7 +111,7 @@ func TestAccInstance_DS_accessInterface(t *testing.T) {
 		Steps: []resource.TestStep{
 			{
 				// Create stopped instance. No address should be available.
-				Config: acctest.Provider() + testAccInstance_DS_accessInterface(networkName, instanceName, false),
+				Config: acctest.Provider() + testAccInstance_DS_accessInterface(networkName, instanceName, subnet, mac, false),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("data.lxd_instance.inst", "name", instanceName),
 					resource.TestCheckResourceAttr("data.lxd_instance.inst", "status", "Stopped"),
@@ -117,8 +120,8 @@ func TestAccInstance_DS_accessInterface(t *testing.T) {
 					resource.TestCheckResourceAttr("data.lxd_instance.inst", "devices.eth0.type", "nic"),
 					resource.TestCheckResourceAttr("data.lxd_instance.inst", "devices.eth0.properties.nictype", "bridged"),
 					resource.TestCheckResourceAttr("data.lxd_instance.inst", "devices.eth0.properties.parent", networkName),
-					resource.TestCheckResourceAttr("data.lxd_instance.inst", "devices.eth0.properties.hwaddr", "00:16:3e:39:7f:36"),
-					resource.TestCheckResourceAttr("data.lxd_instance.inst", "devices.eth0.properties.ipv4.address", "10.151.19.200"),
+					resource.TestCheckResourceAttr("data.lxd_instance.inst", "devices.eth0.properties.hwaddr", mac),
+					resource.TestCheckResourceAttr("data.lxd_instance.inst", "devices.eth0.properties.ipv4.address", subnet.HostIPv4(200)),
 					resource.TestCheckNoResourceAttr("data.lxd_instance.inst", "mac_address"),
 					resource.TestCheckNoResourceAttr("data.lxd_instance.inst", "ipv4_address"),
 					resource.TestCheckNoResourceAttr("data.lxd_instance.inst", "ipv6_address"),
@@ -126,12 +129,12 @@ func TestAccInstance_DS_accessInterface(t *testing.T) {
 			},
 			{
 				// Start the instance to ensure the addresses get populated.
-				Config: acctest.Provider() + testAccInstance_DS_accessInterface(networkName, instanceName, true),
+				Config: acctest.Provider() + testAccInstance_DS_accessInterface(networkName, instanceName, subnet, mac, true),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("data.lxd_instance.inst", "name", instanceName),
 					resource.TestCheckResourceAttr("data.lxd_instance.inst", "status", "Running"),
-					resource.TestCheckResourceAttr("data.lxd_instance.inst", "mac_address", "00:16:3e:39:7f:36"),
-					resource.TestCheckResourceAttr("data.lxd_instance.inst", "ipv4_address", "10.151.19.200"),
+					resource.TestCheckResourceAttr("data.lxd_instance.inst", "mac_address", mac),
+					resource.TestCheckResourceAttr("data.lxd_instance.inst", "ipv4_address", subnet.HostIPv4(200)),
 					resource.TestCheckResourceAttrSet("data.lxd_instance.inst", "ipv6_address"),
 				),
 			},
@@ -227,13 +230,13 @@ data "lxd_instance" "inst" {
   `, name)
 }
 
-func testAccInstance_DS_accessInterface(networkName string, instanceName string, running bool) string {
+func testAccInstance_DS_accessInterface(networkName string, instanceName string, subnet acctest.Subnet, mac string, running bool) string {
 	return fmt.Sprintf(`
 resource "lxd_network" "net" {
   name = %q
 
   config = {
-    "ipv4.address" = "10.151.19.1/24"
+    "ipv4.address" = %q
   }
 }
 
@@ -253,8 +256,8 @@ resource "lxd_instance" "inst" {
     properties = {
       nictype        = "bridged"
       parent         = "${lxd_network.net.name}"
-      hwaddr         = "00:16:3e:39:7f:36"
-      "ipv4.address" = "10.151.19.200"
+      hwaddr         = %q
+      "ipv4.address" = %q
     }
   }
 }
@@ -262,7 +265,7 @@ resource "lxd_instance" "inst" {
 data "lxd_instance" "inst" {
   name = lxd_instance.inst.name
 }
-  `, networkName, instanceName, acctest.TestImage, running)
+  `, networkName, subnet.HostIPv4(1)+"/24", instanceName, acctest.TestImage, running, mac, subnet.HostIPv4(200))
 }
 
 func testAccInstance_DS_project(projectName string, instanceName string) string {

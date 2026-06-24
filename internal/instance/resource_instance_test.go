@@ -1210,6 +1210,8 @@ func TestAccInstance_vm_configLimits(t *testing.T) {
 func TestAccInstance_accessInterface(t *testing.T) {
 	networkName := acctest.GenerateName(2, "-")
 	instanceName := acctest.GenerateName(2, "-")
+	subnet := acctest.GenerateSubnet()
+	mac := acctest.GenerateMACAddress()
 
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
@@ -1219,10 +1221,10 @@ func TestAccInstance_accessInterface(t *testing.T) {
 		ProtoV6ProviderFactories: acctest.ProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
-				Config: acctest.Provider() + testAccInstance_accessInterface(networkName, instanceName),
+				Config: acctest.Provider() + testAccInstance_accessInterface(networkName, instanceName, subnet, mac),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("lxd_network.network1", "name", networkName),
-					resource.TestCheckResourceAttr("lxd_network.network1", "config.ipv4.address", "10.151.19.1/24"),
+					resource.TestCheckResourceAttr("lxd_network.network1", "config.ipv4.address", subnet.HostIPv4(1)+"/24"),
 					resource.TestCheckResourceAttr("lxd_instance.instance1", "name", instanceName),
 					resource.TestCheckResourceAttr("lxd_instance.instance1", "status", "Running"),
 					resource.TestCheckResourceAttr("lxd_instance.instance1", "config.%", "1"),
@@ -1232,10 +1234,10 @@ func TestAccInstance_accessInterface(t *testing.T) {
 					resource.TestCheckResourceAttr("lxd_instance.instance1", "device.0.type", "nic"),
 					resource.TestCheckResourceAttr("lxd_instance.instance1", "device.0.properties.nictype", "bridged"),
 					resource.TestCheckResourceAttr("lxd_instance.instance1", "device.0.properties.parent", networkName),
-					resource.TestCheckResourceAttr("lxd_instance.instance1", "device.0.properties.hwaddr", "00:16:3e:39:7f:36"),
-					resource.TestCheckResourceAttr("lxd_instance.instance1", "device.0.properties.ipv4.address", "10.151.19.200"),
-					resource.TestCheckResourceAttr("lxd_instance.instance1", "mac_address", "00:16:3e:39:7f:36"),
-					resource.TestCheckResourceAttr("lxd_instance.instance1", "ipv4_address", "10.151.19.200"),
+					resource.TestCheckResourceAttr("lxd_instance.instance1", "device.0.properties.hwaddr", mac),
+					resource.TestCheckResourceAttr("lxd_instance.instance1", "device.0.properties.ipv4.address", subnet.HostIPv4(200)),
+					resource.TestCheckResourceAttr("lxd_instance.instance1", "mac_address", mac),
+					resource.TestCheckResourceAttr("lxd_instance.instance1", "ipv4_address", subnet.HostIPv4(200)),
 					resource.TestCheckResourceAttrSet("lxd_instance.instance1", "ipv6_address"),
 				),
 			},
@@ -1247,6 +1249,8 @@ func TestAccInstance_accessInterfaceFromProfile(t *testing.T) {
 	instanceName := acctest.GenerateName(2, "-")
 	profileName := acctest.GenerateName(2, "-")
 	networkName := acctest.GenerateName(1, "-")
+	subnet0 := acctest.GenerateSubnet()
+	subnet1 := acctest.GenerateSubnet()
 
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
@@ -1257,7 +1261,7 @@ func TestAccInstance_accessInterfaceFromProfile(t *testing.T) {
 		Steps: []resource.TestStep{
 			{
 				// Start the instance and ensure address from eht0 is reported.
-				Config: acctest.Provider() + testAccInstance_accessInterfaceFromProfile(networkName, profileName, instanceName, "eth0"),
+				Config: acctest.Provider() + testAccInstance_accessInterfaceFromProfile(networkName, profileName, instanceName, "eth0", subnet0, subnet1),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("lxd_profile.profile", "name", profileName),
 					resource.TestCheckResourceAttr("lxd_profile.profile", "config.user.access_interface", "eth0"),
@@ -1267,12 +1271,12 @@ func TestAccInstance_accessInterfaceFromProfile(t *testing.T) {
 					resource.TestCheckResourceAttr("lxd_instance.instance1", "device.0.name", "eth0"),
 					resource.TestCheckResourceAttr("lxd_instance.instance1", "device.0.properties.parent", fmt.Sprintf("%s-0", networkName)),
 					resource.TestCheckResourceAttr("lxd_instance.instance1", "device.0.properties.hwaddr", "00:16:3e:39:7f:37"),
-					resource.TestCheckResourceAttr("lxd_instance.instance1", "device.0.properties.ipv4.address", "10.150.20.200"),
+					resource.TestCheckResourceAttr("lxd_instance.instance1", "device.0.properties.ipv4.address", subnet0.HostIPv4(200)),
 					resource.TestCheckResourceAttr("lxd_instance.instance1", "device.1.name", "eth1"),
 					resource.TestCheckResourceAttr("lxd_instance.instance1", "device.1.properties.parent", fmt.Sprintf("%s-1", networkName)),
 					resource.TestCheckResourceAttr("lxd_instance.instance1", "device.1.properties.hwaddr", "00:16:3e:39:7f:38"),
-					resource.TestCheckResourceAttr("lxd_instance.instance1", "device.1.properties.ipv4.address", "10.151.21.200"),
-					resource.TestCheckResourceAttr("lxd_instance.instance1", "ipv4_address", "10.150.20.200"),
+					resource.TestCheckResourceAttr("lxd_instance.instance1", "device.1.properties.ipv4.address", subnet1.HostIPv4(200)),
+					resource.TestCheckResourceAttr("lxd_instance.instance1", "ipv4_address", subnet0.HostIPv4(200)),
 					resource.TestCheckResourceAttr("lxd_instance.instance1", "mac_address", "00:16:3e:39:7f:37"),
 				),
 			},
@@ -1578,6 +1582,7 @@ func TestAccInstance_waitForDelay(t *testing.T) {
 func TestAccInstance_waitForIPv4(t *testing.T) {
 	networkName := acctest.GenerateName(1, "-")
 	instanceName := acctest.GenerateName(2, "-")
+	subnet := acctest.GenerateSubnet()
 
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
@@ -1587,7 +1592,7 @@ func TestAccInstance_waitForIPv4(t *testing.T) {
 		ProtoV6ProviderFactories: acctest.ProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
-				Config: acctest.Provider() + testAccInstance_waitForIPv4(networkName, instanceName),
+				Config: acctest.Provider() + testAccInstance_waitForIPv4(networkName, instanceName, subnet),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("lxd_instance.instance1", "name", instanceName),
 					resource.TestCheckResourceAttr("lxd_instance.instance1", "status", "Running"),
@@ -1602,6 +1607,7 @@ func TestAccInstance_waitForIPv4(t *testing.T) {
 func TestAccInstance_waitForIPv6(t *testing.T) {
 	networkName := acctest.GenerateName(1, "-")
 	instanceName := acctest.GenerateName(2, "-")
+	subnet := acctest.GenerateSubnet()
 
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
@@ -1611,7 +1617,7 @@ func TestAccInstance_waitForIPv6(t *testing.T) {
 		ProtoV6ProviderFactories: acctest.ProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
-				Config: acctest.Provider() + testAccInstance_waitForIPv6(networkName, instanceName),
+				Config: acctest.Provider() + testAccInstance_waitForIPv6(networkName, instanceName, subnet),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("lxd_instance.instance1", "name", instanceName),
 					resource.TestCheckResourceAttr("lxd_instance.instance1", "status", "Running"),
@@ -1626,6 +1632,7 @@ func TestAccInstance_waitForIPv6(t *testing.T) {
 func TestAccInstance_waitForIPv4AndIPv6(t *testing.T) {
 	networkName := acctest.GenerateName(1, "-")
 	instanceName := acctest.GenerateName(2, "-")
+	subnet := acctest.GenerateSubnet()
 
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
@@ -1635,7 +1642,7 @@ func TestAccInstance_waitForIPv4AndIPv6(t *testing.T) {
 		ProtoV6ProviderFactories: acctest.ProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
-				Config: acctest.Provider() + testAccInstance_waitForIPv4AndIPv6(networkName, instanceName),
+				Config: acctest.Provider() + testAccInstance_waitForIPv4AndIPv6(networkName, instanceName, subnet),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("lxd_instance.instance1", "name", instanceName),
 					resource.TestCheckResourceAttr("lxd_instance.instance1", "status", "Running"),
@@ -2383,13 +2390,13 @@ resource "lxd_instance" "instance1" {
 	`, name, acctest.TestImage, allowRestart, cpu, memory, acctest.DisableSecureBootConfigEntry())
 }
 
-func testAccInstance_accessInterface(networkName string, instanceName string) string {
+func testAccInstance_accessInterface(networkName string, instanceName string, subnet acctest.Subnet, mac string) string {
 	return fmt.Sprintf(`
 resource "lxd_network" "network1" {
   name = "%s"
 
   config = {
-    "ipv4.address" = "10.151.19.1/24"
+    "ipv4.address" = "%s"
   }
 }
 
@@ -2413,21 +2420,21 @@ resource "lxd_instance" "instance1" {
     properties = {
       nictype        = "bridged"
       parent         = "${lxd_network.network1.name}"
-      hwaddr         = "00:16:3e:39:7f:36"
-      "ipv4.address" = "10.151.19.200"
+      hwaddr         = "%s"
+      "ipv4.address" = "%s"
     }
   }
 }
-	`, networkName, instanceName, acctest.TestImage)
+	`, networkName, subnet.HostIPv4(1)+"/24", instanceName, acctest.TestImage, mac, subnet.HostIPv4(200))
 }
 
-func testAccInstance_accessInterfaceFromProfile(networkName string, profileName string, instanceName string, accInterface string) string {
+func testAccInstance_accessInterfaceFromProfile(networkName string, profileName string, instanceName string, accInterface string, subnet1 acctest.Subnet, subnet2 acctest.Subnet) string {
 	return fmt.Sprintf(`
 resource "lxd_network" "network0" {
   name = "%[1]s-0"
 
   config = {
-    "ipv4.address" = "10.150.20.1/24"
+    "ipv4.address" = "%[6]s"
   }
 }
 
@@ -2435,21 +2442,21 @@ resource "lxd_network" "network1" {
   name = "%[1]s-1"
 
   config = {
-    "ipv4.address" = "10.151.21.1/24"
+    "ipv4.address" = "%[7]s"
   }
 }
 
 resource "lxd_profile" "profile" {
-  name = "%s"
+  name = "%[2]s"
 
   config = {
-    "user.access_interface" = "%s"
+    "user.access_interface" = "%[3]s"
   }
 }
 
 resource "lxd_instance" "instance1" {
-  name     = "%s"
-  image    = "%s"
+  name     = "%[4]s"
+  image    = "%[5]s"
   profiles = ["default", lxd_profile.profile.name]
 
   device {
@@ -2460,7 +2467,7 @@ resource "lxd_instance" "instance1" {
       nictype        = "bridged"
       parent         = "${lxd_network.network0.name}"
       hwaddr         = "00:16:3e:39:7f:37"
-      "ipv4.address" = "10.150.20.200"
+      "ipv4.address" = "%[8]s"
     }
   }
 
@@ -2472,7 +2479,7 @@ resource "lxd_instance" "instance1" {
       nictype        = "bridged"
       parent         = "${lxd_network.network1.name}"
       hwaddr         = "00:16:3e:39:7f:38"
-      "ipv4.address" = "10.151.21.200"
+      "ipv4.address" = "%[9]s"
     }
   }
 
@@ -2487,7 +2494,17 @@ resource "lxd_instance" "instance1" {
     EOF
   }
 }
-	`, networkName, profileName, accInterface, instanceName, acctest.TestImage)
+	`,
+		networkName,
+		profileName,
+		accInterface,
+		instanceName,
+		acctest.TestImage,
+		subnet1.GatewayCIDRv4(),
+		subnet2.GatewayCIDRv4(),
+		subnet1.HostIPv4(200),
+		subnet2.HostIPv4(200),
+	)
 }
 
 func testAccInstance_target(name string, target string) string {
@@ -2635,13 +2652,13 @@ resource "lxd_instance" "instance1" {
 	`, name, acctest.TestImage, delay)
 }
 
-func testAccInstance_waitForIPv4(networkName, instanceName string) string {
+func testAccInstance_waitForIPv4(networkName, instanceName string, subnet acctest.Subnet) string {
 	return fmt.Sprintf(`
 resource "lxd_network" "network1" {
   name = "%s"
 
   config = {
-    "ipv4.address" = "10.150.18.1/24"
+    "ipv4.address" = "%s"
     "ipv6.address" = "none"
   }
 }
@@ -2666,21 +2683,21 @@ resource "lxd_instance" "instance1" {
     properties = {
       nictype        = "bridged"
       parent         = "${lxd_network.network1.name}"
-      "ipv4.address" = "10.150.18.200"
+      "ipv4.address" = "%s"
     }
   }
 }
-	`, networkName, instanceName, acctest.TestImage)
+	`, networkName, subnet.GatewayCIDRv4(), instanceName, acctest.TestImage, subnet.HostIPv4(200))
 }
 
-func testAccInstance_waitForIPv6(networkName, instanceName string) string {
+func testAccInstance_waitForIPv6(networkName, instanceName string, subnet acctest.Subnet) string {
 	return fmt.Sprintf(`
 resource "lxd_network" "network1" {
   name = "%s"
 
   config = {
     "ipv4.address" = "none"
-    "ipv6.address" = "fd42:1000:1000:1000::1/64"
+    "ipv6.address" = "%s"
   }
 }
 
@@ -2707,17 +2724,17 @@ resource "lxd_instance" "instance1" {
     }
   }
 }
-	`, networkName, instanceName, acctest.TestImage)
+	`, networkName, subnet.GatewayCIDRv6(), instanceName, acctest.TestImage)
 }
 
-func testAccInstance_waitForIPv4AndIPv6(networkName, instanceName string) string {
+func testAccInstance_waitForIPv4AndIPv6(networkName, instanceName string, subnet acctest.Subnet) string {
 	return fmt.Sprintf(`
 resource "lxd_network" "network1" {
   name = "%s"
 
   config = {
-    "ipv4.address" = "10.150.18.1/24"
-    "ipv6.address" = "fd42:1000:1000:1000::1/64"
+    "ipv4.address" = "%s"
+    "ipv6.address" = "%s"
   }
 }
 
@@ -2746,9 +2763,9 @@ resource "lxd_instance" "instance1" {
     properties = {
       nictype        = "bridged"
       parent         = "${lxd_network.network1.name}"
-      "ipv4.address" = "10.150.18.200"
+      "ipv4.address" = "%s"
     }
   }
 }
-	`, networkName, instanceName, acctest.TestImage)
+	`, networkName, subnet.GatewayCIDRv4(), subnet.GatewayCIDRv6(), instanceName, acctest.TestImage, subnet.HostIPv4(200))
 }
