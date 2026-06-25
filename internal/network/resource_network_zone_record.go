@@ -196,7 +196,7 @@ func (r NetworkZoneRecordResource) Create(ctx context.Context, req resource.Crea
 	}
 
 	// Update Terraform state.
-	diags = r.SyncState(ctx, &resp.State, server, plan)
+	diags = r.SyncState(ctx, &resp.State, server, plan, false)
 	resp.Diagnostics.Append(diags...)
 }
 
@@ -219,7 +219,7 @@ func (r NetworkZoneRecordResource) Read(ctx context.Context, req resource.ReadRe
 	}
 
 	// Update Terraform state.
-	diags = r.SyncState(ctx, &resp.State, server, state)
+	diags = r.SyncState(ctx, &resp.State, server, state, true)
 	resp.Diagnostics.Append(diags...)
 }
 
@@ -278,7 +278,7 @@ func (r NetworkZoneRecordResource) Update(ctx context.Context, req resource.Upda
 	}
 
 	// Update Terraform state.
-	diags = r.SyncState(ctx, &resp.State, server, plan)
+	diags = r.SyncState(ctx, &resp.State, server, plan, false)
 	resp.Diagnostics.Append(diags...)
 }
 
@@ -337,14 +337,14 @@ func (r NetworkZoneRecordResource) ImportState(ctx context.Context, req resource
 // SyncState fetches the server's current state for a network zone record and
 // updates the provided model. It then applies this updated model as the new
 // state in Terraform.
-func (r NetworkZoneRecordResource) SyncState(ctx context.Context, tfState *tfsdk.State, server lxd.InstanceServer, m NetworkZoneRecordModel) diag.Diagnostics {
+func (r NetworkZoneRecordResource) SyncState(ctx context.Context, tfState *tfsdk.State, server lxd.InstanceServer, m NetworkZoneRecordModel, forgetOnNotFound bool) diag.Diagnostics {
 	var respDiags diag.Diagnostics
 
 	zoneName := m.Zone.ValueString()
 	recordName := m.Name.ValueString()
 	record, _, err := server.GetNetworkZoneRecord(zoneName, recordName)
 	if err != nil {
-		if errors.IsNotFoundError(err) {
+		if forgetOnNotFound && errors.IsNotFoundError(err) {
 			tfState.RemoveResource(ctx)
 			return nil
 		}

@@ -214,7 +214,7 @@ func (r StorageVolumeResource) Create(ctx context.Context, req resource.CreateRe
 	}
 
 	// Update Terraform state.
-	diags = r.SyncState(ctx, &resp.State, server, plan)
+	diags = r.SyncState(ctx, &resp.State, server, plan, false)
 	resp.Diagnostics.Append(diags...)
 }
 
@@ -237,7 +237,7 @@ func (r StorageVolumeResource) Read(ctx context.Context, req resource.ReadReques
 	}
 
 	// Update Terraform state.
-	diags = r.SyncState(ctx, &resp.State, server, state)
+	diags = r.SyncState(ctx, &resp.State, server, state, true)
 	resp.Diagnostics.Append(diags...)
 }
 
@@ -294,7 +294,7 @@ func (r StorageVolumeResource) Update(ctx context.Context, req resource.UpdateRe
 	}
 
 	// Update Terraform state.
-	diags = r.SyncState(ctx, &resp.State, server, plan)
+	diags = r.SyncState(ctx, &resp.State, server, plan, false)
 	resp.Diagnostics.Append(diags...)
 }
 
@@ -357,7 +357,7 @@ func (r StorageVolumeResource) ImportState(ctx context.Context, req resource.Imp
 // SyncState fetches the server's current state for a storage volume and
 // updates the provided model. It then applies this updated model as the
 // new state in Terraform.
-func (r StorageVolumeResource) SyncState(ctx context.Context, tfState *tfsdk.State, server lxd.InstanceServer, m StorageVolumeModel) diag.Diagnostics {
+func (r StorageVolumeResource) SyncState(ctx context.Context, tfState *tfsdk.State, server lxd.InstanceServer, m StorageVolumeModel, forgetOnNotFound bool) diag.Diagnostics {
 	var respDiags diag.Diagnostics
 
 	poolName := m.Pool.ValueString()
@@ -365,7 +365,7 @@ func (r StorageVolumeResource) SyncState(ctx context.Context, tfState *tfsdk.Sta
 	volType := m.Type.ValueString()
 	vol, _, err := server.GetStoragePoolVolume(poolName, volType, volName)
 	if err != nil {
-		if errors.IsNotFoundError(err) {
+		if forgetOnNotFound && errors.IsNotFoundError(err) {
 			tfState.RemoveResource(ctx)
 			return nil
 		}

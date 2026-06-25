@@ -269,7 +269,7 @@ func (r ImageResource) Read(ctx context.Context, req resource.ReadRequest, resp 
 	}
 
 	// Update Terraform state.
-	diags = r.SyncState(ctx, &resp.State, server, state)
+	diags = r.SyncState(ctx, &resp.State, server, state, true)
 	resp.Diagnostics.Append(diags...)
 }
 
@@ -349,7 +349,7 @@ func (r ImageResource) Update(ctx context.Context, req resource.UpdateRequest, r
 	plan.Fingerprint = types.StringValue(imageFingerprint)
 
 	// Update Terraform state.
-	diags = r.SyncState(ctx, &resp.State, server, plan)
+	diags = r.SyncState(ctx, &resp.State, server, plan, false)
 	resp.Diagnostics.Append(diags...)
 }
 
@@ -385,14 +385,14 @@ func (r ImageResource) Delete(ctx context.Context, req resource.DeleteRequest, r
 
 // SyncState fetches the server's current state for an image and updates the provided model.
 // It then applies this updated model as the new state in Terraform.
-func (r ImageResource) SyncState(ctx context.Context, tfState *tfsdk.State, server lxd.InstanceServer, m ImageModel) diag.Diagnostics {
+func (r ImageResource) SyncState(ctx context.Context, tfState *tfsdk.State, server lxd.InstanceServer, m ImageModel, forgetOnNotFound bool) diag.Diagnostics {
 	var respDiags diag.Diagnostics
 
 	_, imageFingerprint := splitImageResourceID(m.ResourceID.ValueString())
 
 	image, _, err := server.GetImage(imageFingerprint)
 	if err != nil {
-		if errors.IsNotFoundError(err) {
+		if forgetOnNotFound && errors.IsNotFoundError(err) {
 			tfState.RemoveResource(ctx)
 			return nil
 		}
@@ -597,7 +597,7 @@ func (r ImageResource) createImageFromSourceImage(ctx context.Context, resp *res
 	plan.CopiedAliases = copiedAliases
 
 	// Update Terraform state.
-	diags = r.SyncState(ctx, &resp.State, server, *plan)
+	diags = r.SyncState(ctx, &resp.State, server, *plan, false)
 	resp.Diagnostics.Append(diags...)
 }
 
@@ -702,7 +702,7 @@ func (r ImageResource) createImageFromSourceInstance(ctx context.Context, resp *
 	plan.CopiedAliases = types.SetValueMust(types.StringType, []attr.Value{})
 
 	// Update Terraform state.
-	diags = r.SyncState(ctx, &resp.State, server, *plan)
+	diags = r.SyncState(ctx, &resp.State, server, *plan, false)
 	resp.Diagnostics.Append(diags...)
 }
 

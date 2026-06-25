@@ -161,7 +161,7 @@ func (r AuthIdentityResource) Create(ctx context.Context, req resource.CreateReq
 		return
 	}
 
-	diags := r.SyncState(ctx, &resp.State, server, plan)
+	diags := r.SyncState(ctx, &resp.State, server, plan, false)
 	resp.Diagnostics.Append(diags...)
 }
 
@@ -179,7 +179,7 @@ func (r AuthIdentityResource) Read(ctx context.Context, req resource.ReadRequest
 		return
 	}
 
-	diags := r.SyncState(ctx, &resp.State, server, state)
+	diags := r.SyncState(ctx, &resp.State, server, state, true)
 	resp.Diagnostics.Append(diags...)
 }
 
@@ -227,7 +227,7 @@ func (r AuthIdentityResource) Update(ctx context.Context, req resource.UpdateReq
 		return
 	}
 
-	diags := r.SyncState(ctx, &resp.State, server, plan)
+	diags := r.SyncState(ctx, &resp.State, server, plan, false)
 	resp.Diagnostics.Append(diags...)
 }
 
@@ -255,7 +255,7 @@ func (r AuthIdentityResource) Delete(ctx context.Context, req resource.DeleteReq
 	}
 }
 
-func (r AuthIdentityResource) SyncState(ctx context.Context, tfState *tfsdk.State, server lxd.InstanceServer, m AuthIdentityModel) diag.Diagnostics {
+func (r AuthIdentityResource) SyncState(ctx context.Context, tfState *tfsdk.State, server lxd.InstanceServer, m AuthIdentityModel, forgetOnNotFound bool) diag.Diagnostics {
 	var respDiags diag.Diagnostics
 
 	identityName := m.Name.ValueString()
@@ -263,7 +263,7 @@ func (r AuthIdentityResource) SyncState(ctx context.Context, tfState *tfsdk.Stat
 
 	identity, _, err := server.GetIdentity(identityAuthMethod, identityName)
 	if err != nil {
-		if errors.IsNotFoundError(err) {
+		if forgetOnNotFound && errors.IsNotFoundError(err) {
 			tfState.RemoveResource(ctx)
 			return nil
 		}

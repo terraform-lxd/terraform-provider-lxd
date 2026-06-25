@@ -232,7 +232,7 @@ func (r ProfileResource) Create(ctx context.Context, req resource.CreateRequest,
 	}
 
 	// Update Terraform state.
-	diags = r.SyncState(ctx, &resp.State, server, plan)
+	diags = r.SyncState(ctx, &resp.State, server, plan, false)
 	resp.Diagnostics.Append(diags...)
 }
 
@@ -254,7 +254,7 @@ func (r ProfileResource) Read(ctx context.Context, req resource.ReadRequest, res
 	}
 
 	// Update Terraform state.
-	diags = r.SyncState(ctx, &resp.State, server, state)
+	diags = r.SyncState(ctx, &resp.State, server, state, true)
 	resp.Diagnostics.Append(diags...)
 }
 
@@ -327,7 +327,7 @@ func (r ProfileResource) Update(ctx context.Context, req resource.UpdateRequest,
 	}
 
 	// Update Terraform state.
-	diags = r.SyncState(ctx, &resp.State, server, plan)
+	diags = r.SyncState(ctx, &resp.State, server, plan, false)
 	resp.Diagnostics.Append(diags...)
 }
 
@@ -408,13 +408,13 @@ func (r ProfileResource) ImportState(ctx context.Context, req resource.ImportSta
 // SyncState fetches the server's current state for a profile and updates
 // the provided model. It then applies this updated model as the new state
 // in Terraform.
-func (r ProfileResource) SyncState(ctx context.Context, tfState *tfsdk.State, server lxd.InstanceServer, m ProfileModel) diag.Diagnostics {
+func (r ProfileResource) SyncState(ctx context.Context, tfState *tfsdk.State, server lxd.InstanceServer, m ProfileModel, forgetOnNotFound bool) diag.Diagnostics {
 	var respDiags diag.Diagnostics
 
 	profileName := m.Name.ValueString()
 	profile, _, err := server.GetProfile(profileName)
 	if err != nil {
-		if errors.IsNotFoundError(err) {
+		if forgetOnNotFound && errors.IsNotFoundError(err) {
 			tfState.RemoveResource(ctx)
 			return nil
 		}

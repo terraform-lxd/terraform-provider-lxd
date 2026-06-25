@@ -250,7 +250,7 @@ func (r LxdNetworkLBResource) Create(ctx context.Context, req resource.CreateReq
 	}
 
 	// Update Terraform state.
-	diags = r.SyncState(ctx, &resp.State, server, plan)
+	diags = r.SyncState(ctx, &resp.State, server, plan, false)
 	resp.Diagnostics.Append(diags...)
 }
 
@@ -272,7 +272,7 @@ func (r LxdNetworkLBResource) Read(ctx context.Context, req resource.ReadRequest
 	}
 
 	// Update Terraform state.
-	diags = r.SyncState(ctx, &resp.State, server, state)
+	diags = r.SyncState(ctx, &resp.State, server, state, true)
 	resp.Diagnostics.Append(diags...)
 }
 
@@ -335,7 +335,7 @@ func (r LxdNetworkLBResource) Update(ctx context.Context, req resource.UpdateReq
 	}
 
 	// Update Terraform state.
-	diags = r.SyncState(ctx, &resp.State, server, plan)
+	diags = r.SyncState(ctx, &resp.State, server, plan, false)
 	resp.Diagnostics.Append(diags...)
 }
 
@@ -373,14 +373,14 @@ func (r LxdNetworkLBResource) Delete(ctx context.Context, req resource.DeleteReq
 // SyncState fetches the server's current state for an network load balancer
 // and updates the provided model. It then applies this updated model as the
 // new state in Terraform.
-func (r LxdNetworkLBResource) SyncState(ctx context.Context, tfState *tfsdk.State, server lxd.InstanceServer, m NetworkLBModel) diag.Diagnostics {
+func (r LxdNetworkLBResource) SyncState(ctx context.Context, tfState *tfsdk.State, server lxd.InstanceServer, m NetworkLBModel, forgetOnNotFound bool) diag.Diagnostics {
 	var respDiags diag.Diagnostics
 
 	networkName := m.Network.ValueString()
 	listenAddr := m.ListenAddress.ValueString()
 	lb, _, err := server.GetNetworkLoadBalancer(networkName, listenAddr)
 	if err != nil {
-		if errors.IsNotFoundError(err) {
+		if forgetOnNotFound && errors.IsNotFoundError(err) {
 			tfState.RemoveResource(ctx)
 			return nil
 		}

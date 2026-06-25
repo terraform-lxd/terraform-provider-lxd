@@ -258,7 +258,7 @@ func (r *NetworkAclResource) Create(ctx context.Context, req resource.CreateRequ
 		return
 	}
 
-	diags = r.SyncState(ctx, &resp.State, server, plan)
+	diags = r.SyncState(ctx, &resp.State, server, plan, false)
 	resp.Diagnostics.Append(diags...)
 }
 
@@ -279,7 +279,7 @@ func (r *NetworkAclResource) Read(ctx context.Context, req resource.ReadRequest,
 		return
 	}
 
-	diags = r.SyncState(ctx, &resp.State, server, state)
+	diags = r.SyncState(ctx, &resp.State, server, state, true)
 	resp.Diagnostics.Append(diags...)
 }
 
@@ -337,7 +337,7 @@ func (r *NetworkAclResource) Update(ctx context.Context, req resource.UpdateRequ
 		return
 	}
 
-	diags = r.SyncState(ctx, &resp.State, server, plan)
+	diags = r.SyncState(ctx, &resp.State, server, plan, false)
 	resp.Diagnostics.Append(diags...)
 }
 
@@ -387,11 +387,11 @@ func (r *NetworkAclResource) ImportState(ctx context.Context, req resource.Impor
 	}
 }
 
-func (r *NetworkAclResource) SyncState(ctx context.Context, tfState *tfsdk.State, server lxd.InstanceServer, m NetworkAclModel) diag.Diagnostics {
+func (r *NetworkAclResource) SyncState(ctx context.Context, tfState *tfsdk.State, server lxd.InstanceServer, m NetworkAclModel, forgetOnNotFound bool) diag.Diagnostics {
 	aclName := m.Name.ValueString()
 	acl, _, err := server.GetNetworkACL(aclName)
 	if err != nil {
-		if errors.IsNotFoundError(err) {
+		if forgetOnNotFound && errors.IsNotFoundError(err) {
 			tfState.RemoveResource(ctx)
 			return nil
 		}

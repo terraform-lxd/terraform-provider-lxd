@@ -221,7 +221,7 @@ func (r *NetworkForwardResource) Create(ctx context.Context, req resource.Create
 		return
 	}
 
-	diags = r.SyncState(ctx, &resp.State, server, plan)
+	diags = r.SyncState(ctx, &resp.State, server, plan, false)
 	resp.Diagnostics.Append(diags...)
 }
 
@@ -242,7 +242,7 @@ func (r *NetworkForwardResource) Read(ctx context.Context, req resource.ReadRequ
 		return
 	}
 
-	diags = r.SyncState(ctx, &resp.State, server, state)
+	diags = r.SyncState(ctx, &resp.State, server, state, true)
 	resp.Diagnostics.Append(diags...)
 }
 
@@ -297,7 +297,7 @@ func (r *NetworkForwardResource) Update(ctx context.Context, req resource.Update
 		return
 	}
 
-	diags = r.SyncState(ctx, &resp.State, server, plan)
+	diags = r.SyncState(ctx, &resp.State, server, plan, false)
 	resp.Diagnostics.Append(diags...)
 }
 
@@ -348,12 +348,12 @@ func (r *NetworkForwardResource) ImportState(ctx context.Context, req resource.I
 	}
 }
 
-func (r *NetworkForwardResource) SyncState(ctx context.Context, tfState *tfsdk.State, server lxd.InstanceServer, m NetworkForwardModel) diag.Diagnostics {
+func (r *NetworkForwardResource) SyncState(ctx context.Context, tfState *tfsdk.State, server lxd.InstanceServer, m NetworkForwardModel, forgetOnNotFound bool) diag.Diagnostics {
 	networkName := m.Network.ValueString()
 	listenAddress := m.ListenAddress.ValueString()
 	networkForward, _, err := server.GetNetworkForward(networkName, listenAddress)
 	if err != nil {
-		if errors.IsNotFoundError(err) {
+		if forgetOnNotFound && errors.IsNotFoundError(err) {
 			tfState.RemoveResource(ctx)
 			return nil
 		}

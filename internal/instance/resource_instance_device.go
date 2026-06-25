@@ -212,7 +212,7 @@ func (r InstanceDeviceResource) Create(ctx context.Context, req resource.CreateR
 	}
 
 	// Sync state after successfully attaching the device.
-	diags = r.SyncState(ctx, &resp.State, server, plan)
+	diags = r.SyncState(ctx, &resp.State, server, plan, false)
 	resp.Diagnostics.Append(diags...)
 }
 
@@ -234,7 +234,7 @@ func (r InstanceDeviceResource) Read(ctx context.Context, req resource.ReadReque
 		return
 	}
 
-	diags = r.SyncState(ctx, &resp.State, server, state)
+	diags = r.SyncState(ctx, &resp.State, server, state, true)
 	resp.Diagnostics.Append(diags...)
 }
 
@@ -311,7 +311,7 @@ func (r InstanceDeviceResource) Update(ctx context.Context, req resource.UpdateR
 	}
 
 	// Sync state after successfully updating the device properties.
-	diags = r.SyncState(ctx, &resp.State, server, plan)
+	diags = r.SyncState(ctx, &resp.State, server, plan, false)
 	resp.Diagnostics.Append(diags...)
 }
 
@@ -370,20 +370,20 @@ func (r InstanceDeviceResource) Delete(ctx context.Context, req resource.DeleteR
 	}
 
 	// Sync state after successfully removing the device.
-	diags = r.SyncState(ctx, &resp.State, server, state)
+	diags = r.SyncState(ctx, &resp.State, server, state, true)
 	resp.Diagnostics.Append(diags...)
 }
 
 // SyncState fetches the server's current state for the device and updates
 // the provided model. It then applies this updated model as the new state
 // in Terraform.
-func (r InstanceDeviceResource) SyncState(ctx context.Context, tfState *tfsdk.State, server lxd.InstanceServer, m InstanceDeviceModel) diag.Diagnostics {
+func (r InstanceDeviceResource) SyncState(ctx context.Context, tfState *tfsdk.State, server lxd.InstanceServer, m InstanceDeviceModel, forgetOnNotFound bool) diag.Diagnostics {
 	var respDiags diag.Diagnostics
 
 	instanceName := m.InstanceName.ValueString()
 	instance, _, err := server.GetInstance(instanceName)
 	if err != nil {
-		if errors.IsNotFoundError(err) {
+		if forgetOnNotFound && errors.IsNotFoundError(err) {
 			tfState.RemoveResource(ctx)
 			return nil
 		}
@@ -395,8 +395,13 @@ func (r InstanceDeviceResource) SyncState(ctx context.Context, tfState *tfsdk.St
 	deviceName := m.Name.ValueString()
 	deviceProps, ok := instance.Devices[deviceName]
 	if !ok || deviceProps == nil {
-		tfState.RemoveResource(ctx)
-		return nil
+		if forgetOnNotFound {
+			tfState.RemoveResource(ctx)
+			return nil
+		}
+
+		respDiags.AddError(fmt.Sprintf("Failed to retrieve device %q for instance %q", deviceName, instanceName), "Device not found")
+		return respDiags
 	}
 
 	deviceType, ok := deviceProps["type"]

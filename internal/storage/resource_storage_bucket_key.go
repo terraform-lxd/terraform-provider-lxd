@@ -187,7 +187,7 @@ func (r StorageBucketKeyResource) Create(ctx context.Context, req resource.Creat
 	}
 
 	// Update Terraform state.
-	diags = r.SyncState(ctx, &resp.State, server, plan)
+	diags = r.SyncState(ctx, &resp.State, server, plan, false)
 	resp.Diagnostics.Append(diags...)
 }
 
@@ -208,7 +208,7 @@ func (r StorageBucketKeyResource) Read(ctx context.Context, req resource.ReadReq
 		return
 	}
 
-	diags = r.SyncState(ctx, &resp.State, server, state)
+	diags = r.SyncState(ctx, &resp.State, server, state, true)
 	resp.Diagnostics.Append(diags...)
 }
 
@@ -264,7 +264,7 @@ func (r StorageBucketKeyResource) Update(ctx context.Context, req resource.Updat
 		return
 	}
 
-	diags = r.SyncState(ctx, &resp.State, server, plan)
+	diags = r.SyncState(ctx, &resp.State, server, plan, false)
 	resp.Diagnostics.Append(diags...)
 }
 
@@ -331,7 +331,7 @@ func (r StorageBucketKeyResource) ImportState(ctx context.Context, req resource.
 // SyncState fetches the server's current state for a storage bucket key and
 // updates the provided model. It then applies this updated model as the
 // new state in Terraform.
-func (r StorageBucketKeyResource) SyncState(ctx context.Context, tfState *tfsdk.State, server lxd.InstanceServer, m StorageBucketKeyModel) diag.Diagnostics {
+func (r StorageBucketKeyResource) SyncState(ctx context.Context, tfState *tfsdk.State, server lxd.InstanceServer, m StorageBucketKeyModel, forgetOnNotFound bool) diag.Diagnostics {
 	var respDiags diag.Diagnostics
 
 	poolName := m.Pool.ValueString()
@@ -340,7 +340,7 @@ func (r StorageBucketKeyResource) SyncState(ctx context.Context, tfState *tfsdk.
 
 	key, _, err := server.GetStoragePoolBucketKey(poolName, bucketName, keyName)
 	if err != nil {
-		if errors.IsNotFoundError(err) {
+		if forgetOnNotFound && errors.IsNotFoundError(err) {
 			tfState.RemoveResource(ctx)
 			return nil
 		}

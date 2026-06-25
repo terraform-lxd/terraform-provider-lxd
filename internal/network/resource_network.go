@@ -324,7 +324,7 @@ func (r NetworkResource) Create(ctx context.Context, req resource.CreateRequest,
 	}
 
 	// Update Terraform state.
-	diags = r.SyncState(ctx, &resp.State, server, plan)
+	diags = r.SyncState(ctx, &resp.State, server, plan, false)
 	resp.Diagnostics.Append(diags...)
 }
 
@@ -346,7 +346,7 @@ func (r NetworkResource) Read(ctx context.Context, req resource.ReadRequest, res
 		return
 	}
 
-	diags = r.SyncState(ctx, &resp.State, server, state)
+	diags = r.SyncState(ctx, &resp.State, server, state, true)
 	resp.Diagnostics.Append(diags...)
 }
 
@@ -435,7 +435,7 @@ func (r NetworkResource) Update(ctx context.Context, req resource.UpdateRequest,
 	}
 
 	// Update Terraform state.
-	diags := r.SyncState(ctx, &resp.State, server, plan)
+	diags := r.SyncState(ctx, &resp.State, server, plan, false)
 	resp.Diagnostics.Append(diags...)
 }
 
@@ -497,13 +497,13 @@ func (r NetworkResource) ImportState(ctx context.Context, req resource.ImportSta
 // SyncState fetches the server's current state for a network and updates
 // the provided model. It then applies this updated model as the new state
 // in Terraform.
-func (r NetworkResource) SyncState(ctx context.Context, tfState *tfsdk.State, server lxd.InstanceServer, m NetworkModel) diag.Diagnostics {
+func (r NetworkResource) SyncState(ctx context.Context, tfState *tfsdk.State, server lxd.InstanceServer, m NetworkModel, forgetOnNotFound bool) diag.Diagnostics {
 	var respDiags diag.Diagnostics
 
 	networkName := m.Name.ValueString()
 	network, _, err := server.GetNetwork(networkName)
 	if err != nil {
-		if errors.IsNotFoundError(err) {
+		if forgetOnNotFound && errors.IsNotFoundError(err) {
 			tfState.RemoveResource(ctx)
 			return nil
 		}

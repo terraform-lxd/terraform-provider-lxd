@@ -137,7 +137,7 @@ func (r AuthGroupResource) Create(ctx context.Context, req resource.CreateReques
 		return
 	}
 
-	diags := r.SyncState(ctx, &resp.State, server, plan)
+	diags := r.SyncState(ctx, &resp.State, server, plan, false)
 	resp.Diagnostics.Append(diags...)
 }
 
@@ -155,7 +155,7 @@ func (r AuthGroupResource) Read(ctx context.Context, req resource.ReadRequest, r
 		return
 	}
 
-	diags := r.SyncState(ctx, &resp.State, server, state)
+	diags := r.SyncState(ctx, &resp.State, server, state, true)
 	resp.Diagnostics.Append(diags...)
 }
 
@@ -200,7 +200,7 @@ func (r AuthGroupResource) Update(ctx context.Context, req resource.UpdateReques
 		return
 	}
 
-	diags := r.SyncState(ctx, &resp.State, server, plan)
+	diags := r.SyncState(ctx, &resp.State, server, plan, false)
 	resp.Diagnostics.Append(diags...)
 }
 
@@ -226,13 +226,13 @@ func (r AuthGroupResource) Delete(ctx context.Context, req resource.DeleteReques
 	}
 }
 
-func (r AuthGroupResource) SyncState(ctx context.Context, tfState *tfsdk.State, server lxd.InstanceServer, m AuthGroupModel) diag.Diagnostics {
+func (r AuthGroupResource) SyncState(ctx context.Context, tfState *tfsdk.State, server lxd.InstanceServer, m AuthGroupModel, forgetOnNotFound bool) diag.Diagnostics {
 	var respDiags diag.Diagnostics
 
 	authGroupName := m.Name.ValueString()
 	authGroup, _, err := server.GetAuthGroup(authGroupName)
 	if err != nil {
-		if errors.IsNotFoundError(err) {
+		if forgetOnNotFound && errors.IsNotFoundError(err) {
 			tfState.RemoveResource(ctx)
 			return nil
 		}

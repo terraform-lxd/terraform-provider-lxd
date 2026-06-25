@@ -244,7 +244,7 @@ func (r TrustCertificateResource) Create(ctx context.Context, req resource.Creat
 	}
 
 	// Update Terraform state.
-	diags = r.SyncState(ctx, &resp.State, server, plan)
+	diags = r.SyncState(ctx, &resp.State, server, plan, false)
 	resp.Diagnostics.Append(diags...)
 }
 
@@ -265,7 +265,7 @@ func (r TrustCertificateResource) Read(ctx context.Context, req resource.ReadReq
 	}
 
 	// Update Terraform state.
-	diags = r.SyncState(ctx, &resp.State, server, state)
+	diags = r.SyncState(ctx, &resp.State, server, state, true)
 	resp.Diagnostics.Append(diags...)
 }
 
@@ -319,7 +319,7 @@ func (r TrustCertificateResource) Update(ctx context.Context, req resource.Updat
 	plan.Fingerprint = state.Fingerprint
 
 	// Update Terraform state.
-	diags = r.SyncState(ctx, &resp.State, server, plan)
+	diags = r.SyncState(ctx, &resp.State, server, plan, false)
 	resp.Diagnostics.Append(diags...)
 }
 
@@ -354,14 +354,14 @@ func (r TrustCertificateResource) Delete(ctx context.Context, req resource.Delet
 // SyncState fetches the server's current state for a certificate and updates
 // the provided model. It then applies this updated model as the new state
 // in Terraform.
-func (r TrustCertificateResource) SyncState(ctx context.Context, tfState *tfsdk.State, server lxd.InstanceServer, m TrustCertificateModel) diag.Diagnostics {
+func (r TrustCertificateResource) SyncState(ctx context.Context, tfState *tfsdk.State, server lxd.InstanceServer, m TrustCertificateModel, forgetOnNotFound bool) diag.Diagnostics {
 	var respDiags diag.Diagnostics
 
 	certName := m.Name.ValueString()
 	certFingerprint := m.Fingerprint.ValueString()
 	cert, _, err := server.GetCertificate(certFingerprint)
 	if err != nil {
-		if errors.IsNotFoundError(err) {
+		if forgetOnNotFound && errors.IsNotFoundError(err) {
 			tfState.RemoveResource(ctx)
 			return nil
 		}

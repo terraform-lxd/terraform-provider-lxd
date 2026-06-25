@@ -871,7 +871,7 @@ func (r InstanceResource) Create(ctx context.Context, req resource.CreateRequest
 	}
 
 	// Update Terraform state.
-	diags = r.SyncState(ctx, &resp.State, server, plan)
+	diags = r.SyncState(ctx, &resp.State, server, plan, false)
 	resp.Diagnostics.Append(diags...)
 }
 
@@ -902,7 +902,7 @@ func (r InstanceResource) Read(ctx context.Context, req resource.ReadRequest, re
 	}
 
 	// Update Terraform state.
-	diags = r.SyncState(ctx, &resp.State, server, state)
+	diags = r.SyncState(ctx, &resp.State, server, state, true)
 	resp.Diagnostics.Append(diags...)
 }
 
@@ -1196,7 +1196,7 @@ func (r InstanceResource) Update(ctx context.Context, req resource.UpdateRequest
 	}
 
 	// Update Terraform state.
-	diags = r.SyncState(ctx, &resp.State, server, plan)
+	diags = r.SyncState(ctx, &resp.State, server, plan, false)
 	resp.Diagnostics.Append(diags...)
 }
 
@@ -1278,13 +1278,13 @@ func (r *InstanceResource) ImportState(ctx context.Context, req resource.ImportS
 // SyncState fetches the server's current state for an instance and updates
 // the provided model. It then applies this updated model as the new state
 // in Terraform.
-func (r InstanceResource) SyncState(ctx context.Context, tfState *tfsdk.State, server lxd.InstanceServer, m InstanceModel) diag.Diagnostics {
+func (r InstanceResource) SyncState(ctx context.Context, tfState *tfsdk.State, server lxd.InstanceServer, m InstanceModel, forgetOnNotFound bool) diag.Diagnostics {
 	var respDiags diag.Diagnostics
 
 	instanceName := m.Name.ValueString()
 	instance, _, err := server.GetInstance(instanceName)
 	if err != nil {
-		if errors.IsNotFoundError(err) {
+		if forgetOnNotFound && errors.IsNotFoundError(err) {
 			tfState.RemoveResource(ctx)
 			return nil
 		}

@@ -183,7 +183,7 @@ func (r InstanceSnapshotResource) Create(ctx context.Context, req resource.Creat
 	}
 
 	// Update Terraform state.
-	diags = r.SyncState(ctx, &resp.State, server, plan)
+	diags = r.SyncState(ctx, &resp.State, server, plan, false)
 	resp.Diagnostics.Append(diags...)
 }
 
@@ -206,7 +206,7 @@ func (r InstanceSnapshotResource) Read(ctx context.Context, req resource.ReadReq
 	}
 
 	// Update Terraform state.
-	diags = r.SyncState(ctx, &resp.State, server, state)
+	diags = r.SyncState(ctx, &resp.State, server, state, true)
 	resp.Diagnostics.Append(diags...)
 }
 
@@ -247,12 +247,12 @@ func (r InstanceSnapshotResource) Delete(ctx context.Context, req resource.Delet
 // SyncState fetches the server's current state for an instance snapshot and
 // updates the provided model. It then applies this updated model as the new
 // state in Terraform.
-func (r InstanceSnapshotResource) SyncState(ctx context.Context, tfState *tfsdk.State, server lxd.InstanceServer, m InstanceSnapshotModel) diag.Diagnostics {
+func (r InstanceSnapshotResource) SyncState(ctx context.Context, tfState *tfsdk.State, server lxd.InstanceServer, m InstanceSnapshotModel, forgetOnNotFound bool) diag.Diagnostics {
 	instanceName := m.Instance.ValueString()
 	snapshotName := m.Name.ValueString()
 	snapshot, _, err := server.GetInstanceSnapshot(instanceName, snapshotName)
 	if err != nil {
-		if errors.IsNotFoundError(err) {
+		if forgetOnNotFound && errors.IsNotFoundError(err) {
 			tfState.RemoveResource(ctx)
 			return nil
 		}
