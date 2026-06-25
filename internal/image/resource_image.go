@@ -383,6 +383,17 @@ func (r ImageResource) Delete(ctx context.Context, req resource.DeleteRequest, r
 	}
 }
 
+// TaintState marks the state with identity fields required to target the image.
+func (m ImageModel) TaintState(ctx context.Context, tfState *tfsdk.State) diag.Diagnostics {
+	var diags diag.Diagnostics
+
+	diags.Append(tfState.SetAttribute(ctx, path.Root("resource_id"), m.ResourceID.ValueString())...)
+	diags.Append(tfState.SetAttribute(ctx, path.Root("project"), m.Project.ValueString())...)
+	diags.Append(tfState.SetAttribute(ctx, path.Root("remote"), m.Remote.ValueString())...)
+
+	return diags
+}
+
 // SyncState fetches the server's current state for an image and updates the provided model.
 // It then applies this updated model as the new state in Terraform.
 func (r ImageResource) SyncState(ctx context.Context, tfState *tfsdk.State, server lxd.InstanceServer, m ImageModel, forgetOnNotFound bool) diag.Diagnostics {
@@ -596,6 +607,12 @@ func (r ImageResource) createImageFromSourceImage(ctx context.Context, resp *res
 
 	plan.CopiedAliases = copiedAliases
 
+	diags = plan.TaintState(ctx, &resp.State)
+	if diags.HasError() {
+		resp.Diagnostics.Append(diags...)
+		return
+	}
+
 	// Update Terraform state.
 	diags = r.SyncState(ctx, &resp.State, server, *plan, false)
 	resp.Diagnostics.Append(diags...)
@@ -700,6 +717,12 @@ func (r ImageResource) createImageFromSourceInstance(ctx context.Context, resp *
 	plan.Fingerprint = types.StringValue(imageFingerprint)
 	plan.ResourceID = types.StringValue(imageID)
 	plan.CopiedAliases = types.SetValueMust(types.StringType, []attr.Value{})
+
+	diags = plan.TaintState(ctx, &resp.State)
+	if diags.HasError() {
+		resp.Diagnostics.Append(diags...)
+		return
+	}
 
 	// Update Terraform state.
 	diags = r.SyncState(ctx, &resp.State, server, *plan, false)

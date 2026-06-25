@@ -144,11 +144,9 @@ func (r NetworkZoneResource) Create(ctx context.Context, req resource.CreateRequ
 		return
 	}
 
-	// Partially update state to make Terraform aware of the created resource.
-	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("name"), zoneName)...)
-	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("project"), project)...)
-	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("remote"), remote)...)
-	if resp.Diagnostics.HasError() {
+	diags = plan.TaintState(ctx, &resp.State)
+	if diags.HasError() {
+		resp.Diagnostics.Append(diags...)
 		return
 	}
 
@@ -278,6 +276,17 @@ func (r NetworkZoneResource) ImportState(ctx context.Context, req resource.Impor
 	for k, v := range fields {
 		resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root(k), v)...)
 	}
+}
+
+// TaintState marks the state with identity fields required to target the network zone.
+func (m NetworkZoneModel) TaintState(ctx context.Context, tfState *tfsdk.State) diag.Diagnostics {
+	var diags diag.Diagnostics
+
+	diags.Append(tfState.SetAttribute(ctx, path.Root("name"), m.Name.ValueString())...)
+	diags.Append(tfState.SetAttribute(ctx, path.Root("project"), m.Project.ValueString())...)
+	diags.Append(tfState.SetAttribute(ctx, path.Root("remote"), m.Remote.ValueString())...)
+
+	return diags
 }
 
 // SyncState fetches the server's current state for a network zone and

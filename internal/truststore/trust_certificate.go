@@ -243,6 +243,12 @@ func (r TrustCertificateResource) Create(ctx context.Context, req resource.Creat
 		return
 	}
 
+	diags = plan.TaintState(ctx, &resp.State)
+	if diags.HasError() {
+		resp.Diagnostics.Append(diags...)
+		return
+	}
+
 	// Update Terraform state.
 	diags = r.SyncState(ctx, &resp.State, server, plan, false)
 	resp.Diagnostics.Append(diags...)
@@ -349,6 +355,17 @@ func (r TrustCertificateResource) Delete(ctx context.Context, req resource.Delet
 		certName := state.Name.ValueString()
 		resp.Diagnostics.AddError(fmt.Sprintf("Failed to remove certificate %q", certName), err.Error())
 	}
+}
+
+// TaintState marks the state with identity fields required to target the certificate.
+func (m TrustCertificateModel) TaintState(ctx context.Context, tfState *tfsdk.State) diag.Diagnostics {
+	var diags diag.Diagnostics
+
+	diags.Append(tfState.SetAttribute(ctx, path.Root("name"), m.Name.ValueString())...)
+	diags.Append(tfState.SetAttribute(ctx, path.Root("fingerprint"), m.Fingerprint.ValueString())...)
+	diags.Append(tfState.SetAttribute(ctx, path.Root("remote"), m.Remote.ValueString())...)
+
+	return diags
 }
 
 // SyncState fetches the server's current state for a certificate and updates

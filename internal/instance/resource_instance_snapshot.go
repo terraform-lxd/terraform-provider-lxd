@@ -173,12 +173,9 @@ func (r InstanceSnapshotResource) Create(ctx context.Context, req resource.Creat
 		return
 	}
 
-	// Partially update state to make Terraform aware of the created resource.
-	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("name"), snapshotName)...)
-	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("instance"), instanceName)...)
-	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("project"), project)...)
-	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("remote"), remote)...)
-	if resp.Diagnostics.HasError() {
+	diags = plan.TaintState(ctx, &resp.State)
+	if diags.HasError() {
+		resp.Diagnostics.Append(diags...)
 		return
 	}
 
@@ -242,6 +239,18 @@ func (r InstanceSnapshotResource) Delete(ctx context.Context, req resource.Delet
 		resp.Diagnostics.AddError(fmt.Sprintf("Failed to remove snapshot %q for instance %q", snapshotName, instanceName), err.Error())
 		return
 	}
+}
+
+// TaintState marks the state with identity fields required to target the instance snapshot.
+func (m InstanceSnapshotModel) TaintState(ctx context.Context, tfState *tfsdk.State) diag.Diagnostics {
+	var diags diag.Diagnostics
+
+	diags.Append(tfState.SetAttribute(ctx, path.Root("name"), m.Name.ValueString())...)
+	diags.Append(tfState.SetAttribute(ctx, path.Root("instance"), m.Instance.ValueString())...)
+	diags.Append(tfState.SetAttribute(ctx, path.Root("project"), m.Project.ValueString())...)
+	diags.Append(tfState.SetAttribute(ctx, path.Root("remote"), m.Remote.ValueString())...)
+
+	return diags
 }
 
 // SyncState fetches the server's current state for an instance snapshot and

@@ -204,12 +204,9 @@ func (r StorageVolumeResource) Create(ctx context.Context, req resource.CreateRe
 		return
 	}
 
-	// Partially update state to make Terraform aware of the created resource.
-	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("name"), volName)...)
-	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("pool"), poolName)...)
-	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("project"), project)...)
-	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("remote"), remote)...)
-	if resp.Diagnostics.HasError() {
+	diags = plan.TaintState(ctx, &resp.State)
+	if diags.HasError() {
+		resp.Diagnostics.Append(diags...)
 		return
 	}
 
@@ -352,6 +349,20 @@ func (r StorageVolumeResource) ImportState(ctx context.Context, req resource.Imp
 
 	// Currently, only "custom" volumes can be imported.
 	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("type"), "custom")...)
+}
+
+// TaintState marks the state with identity fields required to target the storage volume.
+func (m StorageVolumeModel) TaintState(ctx context.Context, tfState *tfsdk.State) diag.Diagnostics {
+	var diags diag.Diagnostics
+
+	diags.Append(tfState.SetAttribute(ctx, path.Root("name"), m.Name.ValueString())...)
+	diags.Append(tfState.SetAttribute(ctx, path.Root("pool"), m.Pool.ValueString())...)
+	diags.Append(tfState.SetAttribute(ctx, path.Root("type"), m.Type.ValueString())...)
+	diags.Append(tfState.SetAttribute(ctx, path.Root("project"), m.Project.ValueString())...)
+	diags.Append(tfState.SetAttribute(ctx, path.Root("remote"), m.Remote.ValueString())...)
+	diags.Append(tfState.SetAttribute(ctx, path.Root("target"), m.Target.ValueString())...)
+
+	return diags
 }
 
 // SyncState fetches the server's current state for a storage volume and

@@ -258,6 +258,12 @@ func (r *NetworkAclResource) Create(ctx context.Context, req resource.CreateRequ
 		return
 	}
 
+	diags = plan.TaintState(ctx, &resp.State)
+	if diags.HasError() {
+		resp.Diagnostics.Append(diags...)
+		return
+	}
+
 	diags = r.SyncState(ctx, &resp.State, server, plan, false)
 	resp.Diagnostics.Append(diags...)
 }
@@ -385,6 +391,17 @@ func (r *NetworkAclResource) ImportState(ctx context.Context, req resource.Impor
 	for k, v := range fields {
 		resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root(k), v)...)
 	}
+}
+
+// TaintState marks the state with identity fields required to target the network ACL.
+func (m NetworkAclModel) TaintState(ctx context.Context, tfState *tfsdk.State) diag.Diagnostics {
+	var diags diag.Diagnostics
+
+	diags.Append(tfState.SetAttribute(ctx, path.Root("name"), m.Name.ValueString())...)
+	diags.Append(tfState.SetAttribute(ctx, path.Root("project"), m.Project.ValueString())...)
+	diags.Append(tfState.SetAttribute(ctx, path.Root("remote"), m.Remote.ValueString())...)
+
+	return diags
 }
 
 func (r *NetworkAclResource) SyncState(ctx context.Context, tfState *tfsdk.State, server lxd.InstanceServer, m NetworkAclModel, forgetOnNotFound bool) diag.Diagnostics {

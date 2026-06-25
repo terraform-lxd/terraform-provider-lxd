@@ -240,12 +240,9 @@ func (r LxdNetworkLBResource) Create(ctx context.Context, req resource.CreateReq
 		return
 	}
 
-	// Partially update state to make Terraform aware of the created resource.
-	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("network"), networkName)...)
-	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("listen_address"), listenAddr)...)
-	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("project"), project)...)
-	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("remote"), remote)...)
-	if resp.Diagnostics.HasError() {
+	diags = plan.TaintState(ctx, &resp.State)
+	if diags.HasError() {
+		resp.Diagnostics.Append(diags...)
 		return
 	}
 
@@ -368,6 +365,18 @@ func (r LxdNetworkLBResource) Delete(ctx context.Context, req resource.DeleteReq
 	if err != nil {
 		resp.Diagnostics.AddError(fmt.Sprintf("Failed to remove network load balancer %q", lbName), err.Error())
 	}
+}
+
+// TaintState marks the state with identity fields required to target the network load balancer.
+func (m NetworkLBModel) TaintState(ctx context.Context, tfState *tfsdk.State) diag.Diagnostics {
+	var diags diag.Diagnostics
+
+	diags.Append(tfState.SetAttribute(ctx, path.Root("network"), m.Network.ValueString())...)
+	diags.Append(tfState.SetAttribute(ctx, path.Root("listen_address"), m.ListenAddress.ValueString())...)
+	diags.Append(tfState.SetAttribute(ctx, path.Root("project"), m.Project.ValueString())...)
+	diags.Append(tfState.SetAttribute(ctx, path.Root("remote"), m.Remote.ValueString())...)
+
+	return diags
 }
 
 // SyncState fetches the server's current state for an network load balancer

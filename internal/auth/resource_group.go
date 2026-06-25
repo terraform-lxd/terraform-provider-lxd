@@ -137,7 +137,13 @@ func (r AuthGroupResource) Create(ctx context.Context, req resource.CreateReques
 		return
 	}
 
-	diags := r.SyncState(ctx, &resp.State, server, plan, false)
+	diags := plan.TaintState(ctx, &resp.State)
+	if diags.HasError() {
+		resp.Diagnostics.Append(diags...)
+		return
+	}
+
+	diags = r.SyncState(ctx, &resp.State, server, plan, false)
 	resp.Diagnostics.Append(diags...)
 }
 
@@ -224,6 +230,16 @@ func (r AuthGroupResource) Delete(ctx context.Context, req resource.DeleteReques
 		resp.Diagnostics.AddError(fmt.Sprintf("Failed to delete auth group %q", authGroupName), err.Error())
 		return
 	}
+}
+
+// TaintState marks the state with identity fields required to target the auth group.
+func (m AuthGroupModel) TaintState(ctx context.Context, tfState *tfsdk.State) diag.Diagnostics {
+	var diags diag.Diagnostics
+
+	diags.Append(tfState.SetAttribute(ctx, path.Root("name"), m.Name.ValueString())...)
+	diags.Append(tfState.SetAttribute(ctx, path.Root("remote"), m.Remote.ValueString())...)
+
+	return diags
 }
 
 func (r AuthGroupResource) SyncState(ctx context.Context, tfState *tfsdk.State, server lxd.InstanceServer, m AuthGroupModel, forgetOnNotFound bool) diag.Diagnostics {

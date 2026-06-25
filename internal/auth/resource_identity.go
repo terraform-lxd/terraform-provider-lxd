@@ -161,7 +161,13 @@ func (r AuthIdentityResource) Create(ctx context.Context, req resource.CreateReq
 		return
 	}
 
-	diags := r.SyncState(ctx, &resp.State, server, plan, false)
+	diags := plan.TaintState(ctx, &resp.State)
+	if diags.HasError() {
+		resp.Diagnostics.Append(diags...)
+		return
+	}
+
+	diags = r.SyncState(ctx, &resp.State, server, plan, false)
 	resp.Diagnostics.Append(diags...)
 }
 
@@ -253,6 +259,17 @@ func (r AuthIdentityResource) Delete(ctx context.Context, req resource.DeleteReq
 		resp.Diagnostics.AddError(fmt.Sprintf("Failed to delete %q identity %q", identityAuthMethod, identityName), err.Error())
 		return
 	}
+}
+
+// TaintState marks the state with identity fields required to target the identity.
+func (m AuthIdentityModel) TaintState(ctx context.Context, tfState *tfsdk.State) diag.Diagnostics {
+	var diags diag.Diagnostics
+
+	diags.Append(tfState.SetAttribute(ctx, path.Root("name"), m.Name.ValueString())...)
+	diags.Append(tfState.SetAttribute(ctx, path.Root("auth_method"), m.AuthMethod.ValueString())...)
+	diags.Append(tfState.SetAttribute(ctx, path.Root("remote"), m.Remote.ValueString())...)
+
+	return diags
 }
 
 func (r AuthIdentityResource) SyncState(ctx context.Context, tfState *tfsdk.State, server lxd.InstanceServer, m AuthIdentityModel, forgetOnNotFound bool) diag.Diagnostics {

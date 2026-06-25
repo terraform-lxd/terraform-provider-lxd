@@ -207,6 +207,12 @@ func (r NetworkPeerResource) Create(ctx context.Context, req resource.CreateRequ
 		return
 	}
 
+	diags = plan.TaintState(ctx, &resp.State)
+	if diags.HasError() {
+		resp.Diagnostics.Append(diags...)
+		return
+	}
+
 	diags = r.SyncState(ctx, &resp.State, server, plan, false)
 	resp.Diagnostics.Append(diags...)
 }
@@ -331,6 +337,20 @@ func (r NetworkPeerResource) Delete(ctx context.Context, req resource.DeleteRequ
 	if err != nil {
 		resp.Diagnostics.AddError(fmt.Sprintf("Failed to remove network peer %q", peerName), err.Error())
 	}
+}
+
+// TaintState marks the state with identity fields required to target the network peer.
+func (m NetworkPeerModel) TaintState(ctx context.Context, tfState *tfsdk.State) diag.Diagnostics {
+	var diags diag.Diagnostics
+
+	diags.Append(tfState.SetAttribute(ctx, path.Root("name"), m.Name.ValueString())...)
+	diags.Append(tfState.SetAttribute(ctx, path.Root("source_network"), m.SourceNetwork.ValueString())...)
+	diags.Append(tfState.SetAttribute(ctx, path.Root("source_project"), m.SourceProject.ValueString())...)
+	diags.Append(tfState.SetAttribute(ctx, path.Root("target_network"), m.TargetNetwork.ValueString())...)
+	diags.Append(tfState.SetAttribute(ctx, path.Root("target_project"), m.TargetProject.ValueString())...)
+	diags.Append(tfState.SetAttribute(ctx, path.Root("remote"), m.Remote.ValueString())...)
+
+	return diags
 }
 
 // SyncState fetches the server's current state for a network peer and updates
