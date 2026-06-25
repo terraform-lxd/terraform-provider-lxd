@@ -4,6 +4,7 @@
 
 ### Other Changes
 * Revert "github: stop using GPG signature for releases" by @MusicDin in https://github.com/terraform-lxd/terraform-provider-lxd/pull/746
+* Revert "goreleaser: remove now unused `signs` block" by @MusicDin in https://github.com/terraform-lxd/terraform-provider-lxd/pull/747
 
 ## 3.0.0 (June 25, 2026)
 
