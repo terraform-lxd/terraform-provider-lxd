@@ -1,3 +1,69 @@
+## 3.0.0 (June 25, 2026)
+
+## What's Changed
+
+### ⚠️ Breaking Changes ⚠️
+* Decouple provider from local LXD configuration by @MusicDin in https://github.com/terraform-lxd/terraform-provider-lxd/pull/676
+* internal: Prevent resource replace on remote change by @MusicDin in https://github.com/terraform-lxd/terraform-provider-lxd/pull/683
+* storage: Add storage prefix to volume resources by @MusicDin in https://github.com/terraform-lxd/terraform-provider-lxd/pull/684
+* Make project computed and default to 'default' by @MusicDin in https://github.com/terraform-lxd/terraform-provider-lxd/pull/682
+* instance: Replace wait_for_network with wait_for by @MusicDin in https://github.com/terraform-lxd/terraform-provider-lxd/pull/687
+* instance: Merge limits into config by @MusicDin in https://github.com/terraform-lxd/terraform-provider-lxd/pull/690
+* storage: Cluster aware storage pools by @MusicDin in https://github.com/terraform-lxd/terraform-provider-lxd/pull/723
+* Bump min LXD version to 5.0 by @MusicDin in https://github.com/terraform-lxd/terraform-provider-lxd/pull/726
+* Rename instance snapshot by @MusicDin in https://github.com/terraform-lxd/terraform-provider-lxd/pull/727
+* network: Cluster aware network resource by @MusicDin in https://github.com/terraform-lxd/terraform-provider-lxd/pull/724
+* image: Merge cached_image and publish_image into image by @MusicDin in https://github.com/terraform-lxd/terraform-provider-lxd/pull/739
+
+### New Features
+* storage: Support for Alletra, Powerflex, Powerstore, and PureStorage storage drivers by @MusicDin in https://github.com/terraform-lxd/terraform-provider-lxd/pull/730
+
+### Bug Fixes
+* network: Prevent state drift when LB target port is not configured by @MusicDin in https://github.com/terraform-lxd/terraform-provider-lxd/pull/731
+* internal: Error out if resource is not found after resource creation or update by @MusicDin in https://github.com/terraform-lxd/terraform-provider-lxd/pull/745
+
+### Maintenance
+* storage: Check for storage_buckets_local API extension in tests by @MusicDin in https://github.com/terraform-lxd/terraform-provider-lxd/pull/675
+* docs: Recommend using sensitive variables by @MusicDin in https://github.com/terraform-lxd/terraform-provider-lxd/pull/680
+* Apply code quality suggestion by @simondeziel in https://github.com/terraform-lxd/terraform-provider-lxd/pull/721
+
+### Dependency Updates
+* build(deps): bump actions/setup-go from 6.2.0 to 6.3.0 by @dependabot[bot] in https://github.com/terraform-lxd/terraform-provider-lxd/pull/670
+* build(deps): bump hashicorp/setup-terraform from 3.1.2 to 4.0.0 by @dependabot[bot] in https://github.com/terraform-lxd/terraform-provider-lxd/pull/671
+* build(deps): bump crazy-max/ghaction-import-gpg from 6.3.0 to 7.0.0 in the github-actions group by @dependabot[bot] in https://github.com/terraform-lxd/terraform-provider-lxd/pull/674
+* build(deps): bump google.golang.org/grpc from 1.79.1 to 1.79.3 by @dependabot[bot] in https://github.com/terraform-lxd/terraform-provider-lxd/pull/679
+* build(deps): bump the gomod group with 4 updates by @dependabot[bot] in https://github.com/terraform-lxd/terraform-provider-lxd/pull/681
+* build(deps): bump github.com/go-jose/go-jose/v4 from 4.1.3 to 4.1.4 by @dependabot[bot] in https://github.com/terraform-lxd/terraform-provider-lxd/pull/697
+* build(deps): bump actions/setup-go from 6.3.0 to 6.4.0 in the github-actions group by @dependabot[bot] in https://github.com/terraform-lxd/terraform-provider-lxd/pull/700
+* build(deps): bump github.com/hashicorp/go-version from 1.8.0 to 1.9.0 in the gomod group across 1 directory by @dependabot[bot] in https://github.com/terraform-lxd/terraform-provider-lxd/pull/706
+* build(deps): bump the github-actions group across 1 directory with 3 updates by @dependabot[bot] in https://github.com/terraform-lxd/terraform-provider-lxd/pull/711
+* build(deps): bump github.com/hashicorp/terraform-plugin-testing from 1.15.0 to 1.16.0 in the gomod group by @dependabot[bot] in https://github.com/terraform-lxd/terraform-provider-lxd/pull/712
+* build(deps): bump github.com/hashicorp/terraform-plugin-sdk/v2 from 2.40.0 to 2.40.1 in the gomod group by @dependabot[bot] in https://github.com/terraform-lxd/terraform-provider-lxd/pull/714
+* build(deps): bump the github-actions group with 2 updates by @dependabot[bot] in https://github.com/terraform-lxd/terraform-provider-lxd/pull/715
+* build(deps): bump canonical/lxd from 3ed66b1e950a831ca1ccda6a7b246d066d0555c1 to 885e72c3e3bf769c154101d9c21ceef634a1f62e in the github-actions group by @dependabot[bot] in https://github.com/terraform-lxd/terraform-provider-lxd/pull/718
+* build(deps): bump the github-actions group with 3 updates by @dependabot[bot] in https://github.com/terraform-lxd/terraform-provider-lxd/pull/719
+* build(deps): bump the github-actions group with 3 updates by @dependabot[bot] in https://github.com/terraform-lxd/terraform-provider-lxd/pull/720
+* build(deps): bump canonical/lxd from 943a5f1be3a193294e9f9a05a0fcce6a1a43d5e1 to 8a8e4c8ad05da9d5345e08a2821e530adff7b8a8 in the github-actions group by @dependabot[bot] in https://github.com/terraform-lxd/terraform-provider-lxd/pull/722
+* go: Update deps by @MusicDin in https://github.com/terraform-lxd/terraform-provider-lxd/pull/736
+* build(deps): bump the github-actions group with 2 updates by @dependabot[bot] in https://github.com/terraform-lxd/terraform-provider-lxd/pull/738
+
+### Other Changes
+* docs: Fix description of instance running attribute by @MusicDin in https://github.com/terraform-lxd/terraform-provider-lxd/pull/689
+* tests: Use stopped or empty instances where possible by @MusicDin in https://github.com/terraform-lxd/terraform-provider-lxd/pull/685
+* github: stop using GPG signature for releases by @simondeziel in https://github.com/terraform-lxd/terraform-provider-lxd/pull/693
+* CI maintenance by @simondeziel in https://github.com/terraform-lxd/terraform-provider-lxd/pull/705
+* Misc fixes by @simondeziel in https://github.com/terraform-lxd/terraform-provider-lxd/pull/707
+* Code quality by @simondeziel in https://github.com/terraform-lxd/terraform-provider-lxd/pull/709
+* storage: Minor storage pool fixes by @MusicDin in https://github.com/terraform-lxd/terraform-provider-lxd/pull/725
+* network/test: Fix flaky test by waiting for network by @MusicDin in https://github.com/terraform-lxd/terraform-provider-lxd/pull/734
+* storage: Add PowerStore and PowerFlex username as a computed key by @MusicDin in https://github.com/terraform-lxd/terraform-provider-lxd/pull/732
+* instance/test: Do not wait for ip addresses in restart test by @MusicDin in https://github.com/terraform-lxd/terraform-provider-lxd/pull/737
+* network: Fix OVN creation and add cluster tests by @MusicDin in https://github.com/terraform-lxd/terraform-provider-lxd/pull/733
+* docs: Add 3.0 migration guide by @MusicDin in https://github.com/terraform-lxd/terraform-provider-lxd/pull/728
+* storage: Test Ceph-based storage drivers in clustered tests by @MusicDin in https://github.com/terraform-lxd/terraform-provider-lxd/pull/740
+* storage: Enable cluster-wide storage tests by @MusicDin in https://github.com/terraform-lxd/terraform-provider-lxd/pull/741
+* tests: Wait for instance ipv4 in network LB test by @MusicDin in https://github.com/terraform-lxd/terraform-provider-lxd/pull/744
+
 ## 2.7.1 (May 12, 2026)
 
 ## What's Changed
