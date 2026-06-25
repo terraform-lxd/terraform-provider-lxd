@@ -370,7 +370,7 @@ func (r StorageVolumeResource) SyncState(ctx context.Context, tfState *tfsdk.Sta
 			return nil
 		}
 
-		respDiags.AddError(fmt.Sprintf("Failed to retrieve storage volume %q", volName), err.Error())
+		respDiags.AddError(fmt.Sprintf("Failed to sync state for storage volume %q", volName), err.Error())
 		return respDiags
 	}
 

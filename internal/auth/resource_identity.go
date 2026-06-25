@@ -268,7 +268,7 @@ func (r AuthIdentityResource) SyncState(ctx context.Context, tfState *tfsdk.Stat
 			return nil
 		}
 
-		respDiags.AddError(fmt.Sprintf("Failed to retrieve existing %q identity %q", identityAuthMethod, identityName), err.Error())
+		respDiags.AddError(fmt.Sprintf("Failed to sync state for %q identity %q", identityAuthMethod, identityName), err.Error())
 		return respDiags
 	}
 

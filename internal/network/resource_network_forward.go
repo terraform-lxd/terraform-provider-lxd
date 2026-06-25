@@ -359,7 +359,7 @@ func (r *NetworkForwardResource) SyncState(ctx context.Context, tfState *tfsdk.S
 		}
 
 		return diag.Diagnostics{diag.NewErrorDiagnostic(
-			fmt.Sprintf("Failed to retrieve network forward %q", listenAddress), err.Error(),
+			fmt.Sprintf("Failed to sync state for network forward %q", listenAddress), err.Error(),
 		)}
 	}
 

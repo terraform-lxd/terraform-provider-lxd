@@ -366,7 +366,7 @@ func (r TrustCertificateResource) SyncState(ctx context.Context, tfState *tfsdk.
 			return nil
 		}
 
-		respDiags.AddError(fmt.Sprintf("Failed to retrieve certificate %q", certName), err.Error())
+		respDiags.AddError(fmt.Sprintf("Failed to sync state for certificate %q", certName), err.Error())
 		return respDiags
 	}
 

@@ -258,7 +258,7 @@ func (r InstanceSnapshotResource) SyncState(ctx context.Context, tfState *tfsdk.
 		}
 
 		return diag.Diagnostics{diag.NewErrorDiagnostic(
-			fmt.Sprintf("Failed to retrieve snapshot %q for instance %q", snapshotName, instanceName),
+			fmt.Sprintf("Failed to sync state for snapshot %q for instance %q", snapshotName, instanceName),
 			err.Error(),
 		)}
 	}

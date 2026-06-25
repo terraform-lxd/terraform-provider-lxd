@@ -345,7 +345,7 @@ func (r StorageBucketKeyResource) SyncState(ctx context.Context, tfState *tfsdk.
 			return nil
 		}
 
-		respDiags.AddError(fmt.Sprintf("Failed to retrieve storage bucket key %q of bucket %q", keyName, bucketName), err.Error())
+		respDiags.AddError(fmt.Sprintf("Failed to sync state for storage bucket key %q of bucket %q", keyName, bucketName), err.Error())
 		return respDiags
 	}
 

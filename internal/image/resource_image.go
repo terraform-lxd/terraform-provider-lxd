@@ -397,7 +397,7 @@ func (r ImageResource) SyncState(ctx context.Context, tfState *tfsdk.State, serv
 			return nil
 		}
 
-		respDiags.AddError(fmt.Sprintf("Failed to retrieve image with fingerprint %q", imageFingerprint), err.Error())
+		respDiags.AddError(fmt.Sprintf("Failed to sync state for image with fingerprint %q", imageFingerprint), err.Error())
 		return respDiags
 	}
 

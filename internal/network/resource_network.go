@@ -508,7 +508,7 @@ func (r NetworkResource) SyncState(ctx context.Context, tfState *tfsdk.State, se
 			return nil
 		}
 
-		respDiags.AddError(fmt.Sprintf("Failed to retrieve network %q", networkName), err.Error())
+		respDiags.AddError(fmt.Sprintf("Failed to sync state for network %q", networkName), err.Error())
 		return respDiags
 	}
 

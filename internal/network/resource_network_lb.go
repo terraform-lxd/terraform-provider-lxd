@@ -386,7 +386,7 @@ func (r LxdNetworkLBResource) SyncState(ctx context.Context, tfState *tfsdk.Stat
 		}
 
 		lbName := toLBName(networkName, listenAddr)
-		respDiags.AddError(fmt.Sprintf("Failed to retrieve network load balancer %q", lbName), err.Error())
+		respDiags.AddError(fmt.Sprintf("Failed to sync state for network load balancer %q", lbName), err.Error())
 		return respDiags
 	}
 

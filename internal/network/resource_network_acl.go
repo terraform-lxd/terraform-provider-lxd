@@ -397,7 +397,7 @@ func (r *NetworkAclResource) SyncState(ctx context.Context, tfState *tfsdk.State
 		}
 
 		return diag.Diagnostics{diag.NewErrorDiagnostic(
-			fmt.Sprintf("Failed to retrieve network ACL %q", aclName), err.Error(),
+			fmt.Sprintf("Failed to sync state for network ACL %q", aclName), err.Error(),
 		)}
 	}
 

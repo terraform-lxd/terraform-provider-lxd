@@ -350,7 +350,7 @@ func (r NetworkPeerResource) SyncState(ctx context.Context, tfState *tfsdk.State
 		}
 
 		return diag.Diagnostics{
-			diag.NewErrorDiagnostic(fmt.Sprintf("Failed to retrieve network peer %q", peerName), err.Error()),
+			diag.NewErrorDiagnostic(fmt.Sprintf("Failed to sync state for network peer %q", peerName), err.Error()),
 		}
 	}
 

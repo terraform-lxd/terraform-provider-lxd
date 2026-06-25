@@ -349,7 +349,7 @@ func (r NetworkZoneRecordResource) SyncState(ctx context.Context, tfState *tfsdk
 			return nil
 		}
 
-		respDiags.AddError(fmt.Sprintf("Failed to retrieve network zone record %q", recordName), err.Error())
+		respDiags.AddError(fmt.Sprintf("Failed to sync state for network zone record %q", recordName), err.Error())
 		return respDiags
 	}
 

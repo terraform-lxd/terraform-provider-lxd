@@ -1289,7 +1289,7 @@ func (r InstanceResource) SyncState(ctx context.Context, tfState *tfsdk.State, s
 			return nil
 		}
 
-		respDiags.AddError(fmt.Sprintf("Failed to retrieve instance %q", instanceName), err.Error())
+		respDiags.AddError(fmt.Sprintf("Failed to sync state for instance %q", instanceName), err.Error())
 		return respDiags
 	}
 

@@ -419,7 +419,7 @@ func (r ProfileResource) SyncState(ctx context.Context, tfState *tfsdk.State, se
 			return nil
 		}
 
-		respDiags.AddError(fmt.Sprintf("Failed to retrieve profile %q", profileName), err.Error())
+		respDiags.AddError(fmt.Sprintf("Failed to sync state for profile %q", profileName), err.Error())
 		return respDiags
 	}
 

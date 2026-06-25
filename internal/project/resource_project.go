@@ -280,7 +280,7 @@ func (r ProjectResource) SyncState(ctx context.Context, tfState *tfsdk.State, se
 			return nil
 		}
 
-		respDiags.AddError(fmt.Sprintf("Failed to retrieve project %q", projectName), err.Error())
+		respDiags.AddError(fmt.Sprintf("Failed to sync state for project %q", projectName), err.Error())
 		return respDiags
 	}
 

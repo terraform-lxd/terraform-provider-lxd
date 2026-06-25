@@ -293,7 +293,7 @@ func (r NetworkZoneResource) SyncState(ctx context.Context, tfState *tfsdk.State
 		}
 
 		return diag.Diagnostics{diag.NewErrorDiagnostic(
-			fmt.Sprintf("Failed to retrieve network zone %q", zoneName), err.Error(),
+			fmt.Sprintf("Failed to sync state for network zone %q", zoneName), err.Error(),
 		)}
 	}
 

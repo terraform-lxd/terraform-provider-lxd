@@ -237,7 +237,7 @@ func (r AuthGroupResource) SyncState(ctx context.Context, tfState *tfsdk.State, 
 			return nil
 		}
 
-		respDiags.AddError(fmt.Sprintf("Failed to retrieve auth group %q", authGroupName), err.Error())
+		respDiags.AddError(fmt.Sprintf("Failed to sync state for auth group %q", authGroupName), err.Error())
 		return respDiags
 	}
 

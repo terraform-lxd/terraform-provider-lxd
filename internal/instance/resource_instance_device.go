@@ -388,7 +388,7 @@ func (r InstanceDeviceResource) SyncState(ctx context.Context, tfState *tfsdk.St
 			return nil
 		}
 
-		respDiags.AddError(fmt.Sprintf("Failed to retrieve instance %q", instanceName), err.Error())
+		respDiags.AddError(fmt.Sprintf("Failed to sync state for instance %q", instanceName), err.Error())
 		return respDiags
 	}
 
@@ -400,7 +400,7 @@ func (r InstanceDeviceResource) SyncState(ctx context.Context, tfState *tfsdk.St
 			return nil
 		}
 
-		respDiags.AddError(fmt.Sprintf("Failed to retrieve device %q for instance %q", deviceName, instanceName), "Device not found")
+		respDiags.AddError(fmt.Sprintf("Failed to sync state for device %q for instance %q", deviceName, instanceName), "Device not found")
 		return respDiags
 	}
 

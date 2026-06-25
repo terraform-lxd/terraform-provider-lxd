@@ -463,7 +463,7 @@ func (r StoragePoolResource) SyncState(ctx context.Context, tfState *tfsdk.State
 			return nil
 		}
 
-		respDiags.AddError(fmt.Sprintf("Failed to retrieve storage pool %q", poolName), err.Error())
+		respDiags.AddError(fmt.Sprintf("Failed to sync state for storage pool %q", poolName), err.Error())
 		return respDiags
 	}
 
