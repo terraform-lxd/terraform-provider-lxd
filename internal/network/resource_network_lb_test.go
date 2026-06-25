@@ -343,6 +343,10 @@ resource "lxd_instance" "instance" {
   image     = "%[2]s"
   ephemeral = false
 
+  wait_for {
+    type = "ipv4"
+  }
+
   device {
     name = "eth0"
     type = "nic"
