@@ -1,3 +1,10 @@
+## 3.0.1 (June 25, 2026)
+
+## What's Changed
+
+### Other Changes
+* Revert "github: stop using GPG signature for releases" by @MusicDin in https://github.com/terraform-lxd/terraform-provider-lxd/pull/746
+
 ## 3.0.0 (June 25, 2026)
 
 ## What's Changed
