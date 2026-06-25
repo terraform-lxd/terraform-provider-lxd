@@ -221,7 +221,13 @@ func (r *NetworkForwardResource) Create(ctx context.Context, req resource.Create
 		return
 	}
 
-	diags = r.SyncState(ctx, &resp.State, server, plan)
+	diags = plan.TaintState(ctx, &resp.State)
+	if diags.HasError() {
+		resp.Diagnostics.Append(diags...)
+		return
+	}
+
+	diags = r.SyncState(ctx, &resp.State, server, plan, false)
 	resp.Diagnostics.Append(diags...)
 }
 
@@ -242,7 +248,7 @@ func (r *NetworkForwardResource) Read(ctx context.Context, req resource.ReadRequ
 		return
 	}
 
-	diags = r.SyncState(ctx, &resp.State, server, state)
+	diags = r.SyncState(ctx, &resp.State, server, state, true)
 	resp.Diagnostics.Append(diags...)
 }
 
@@ -297,7 +303,7 @@ func (r *NetworkForwardResource) Update(ctx context.Context, req resource.Update
 		return
 	}
 
-	diags = r.SyncState(ctx, &resp.State, server, plan)
+	diags = r.SyncState(ctx, &resp.State, server, plan, false)
 	resp.Diagnostics.Append(diags...)
 }
 
@@ -348,18 +354,30 @@ func (r *NetworkForwardResource) ImportState(ctx context.Context, req resource.I
 	}
 }
 
-func (r *NetworkForwardResource) SyncState(ctx context.Context, tfState *tfsdk.State, server lxd.InstanceServer, m NetworkForwardModel) diag.Diagnostics {
+// TaintState marks the state with identity fields required to target the network forward.
+func (m NetworkForwardModel) TaintState(ctx context.Context, tfState *tfsdk.State) diag.Diagnostics {
+	var diags diag.Diagnostics
+
+	diags.Append(tfState.SetAttribute(ctx, path.Root("network"), m.Network.ValueString())...)
+	diags.Append(tfState.SetAttribute(ctx, path.Root("listen_address"), m.ListenAddress.ValueString())...)
+	diags.Append(tfState.SetAttribute(ctx, path.Root("project"), m.Project.ValueString())...)
+	diags.Append(tfState.SetAttribute(ctx, path.Root("remote"), m.Remote.ValueString())...)
+
+	return diags
+}
+
+func (r *NetworkForwardResource) SyncState(ctx context.Context, tfState *tfsdk.State, server lxd.InstanceServer, m NetworkForwardModel, forgetOnNotFound bool) diag.Diagnostics {
 	networkName := m.Network.ValueString()
 	listenAddress := m.ListenAddress.ValueString()
 	networkForward, _, err := server.GetNetworkForward(networkName, listenAddress)
 	if err != nil {
-		if errors.IsNotFoundError(err) {
+		if forgetOnNotFound && errors.IsNotFoundError(err) {
 			tfState.RemoveResource(ctx)
 			return nil
 		}
 
 		return diag.Diagnostics{diag.NewErrorDiagnostic(
-			fmt.Sprintf("Failed to retrieve network forward %q", listenAddress), err.Error(),
+			fmt.Sprintf("Failed to sync state for network forward %q", listenAddress), err.Error(),
 		)}
 	}
 

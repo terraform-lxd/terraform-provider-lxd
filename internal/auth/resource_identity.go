@@ -161,7 +161,13 @@ func (r AuthIdentityResource) Create(ctx context.Context, req resource.CreateReq
 		return
 	}
 
-	diags := r.SyncState(ctx, &resp.State, server, plan)
+	diags := plan.TaintState(ctx, &resp.State)
+	if diags.HasError() {
+		resp.Diagnostics.Append(diags...)
+		return
+	}
+
+	diags = r.SyncState(ctx, &resp.State, server, plan, false)
 	resp.Diagnostics.Append(diags...)
 }
 
@@ -179,7 +185,7 @@ func (r AuthIdentityResource) Read(ctx context.Context, req resource.ReadRequest
 		return
 	}
 
-	diags := r.SyncState(ctx, &resp.State, server, state)
+	diags := r.SyncState(ctx, &resp.State, server, state, true)
 	resp.Diagnostics.Append(diags...)
 }
 
@@ -227,7 +233,7 @@ func (r AuthIdentityResource) Update(ctx context.Context, req resource.UpdateReq
 		return
 	}
 
-	diags := r.SyncState(ctx, &resp.State, server, plan)
+	diags := r.SyncState(ctx, &resp.State, server, plan, false)
 	resp.Diagnostics.Append(diags...)
 }
 
@@ -255,7 +261,18 @@ func (r AuthIdentityResource) Delete(ctx context.Context, req resource.DeleteReq
 	}
 }
 
-func (r AuthIdentityResource) SyncState(ctx context.Context, tfState *tfsdk.State, server lxd.InstanceServer, m AuthIdentityModel) diag.Diagnostics {
+// TaintState marks the state with identity fields required to target the identity.
+func (m AuthIdentityModel) TaintState(ctx context.Context, tfState *tfsdk.State) diag.Diagnostics {
+	var diags diag.Diagnostics
+
+	diags.Append(tfState.SetAttribute(ctx, path.Root("name"), m.Name.ValueString())...)
+	diags.Append(tfState.SetAttribute(ctx, path.Root("auth_method"), m.AuthMethod.ValueString())...)
+	diags.Append(tfState.SetAttribute(ctx, path.Root("remote"), m.Remote.ValueString())...)
+
+	return diags
+}
+
+func (r AuthIdentityResource) SyncState(ctx context.Context, tfState *tfsdk.State, server lxd.InstanceServer, m AuthIdentityModel, forgetOnNotFound bool) diag.Diagnostics {
 	var respDiags diag.Diagnostics
 
 	identityName := m.Name.ValueString()
@@ -263,12 +280,12 @@ func (r AuthIdentityResource) SyncState(ctx context.Context, tfState *tfsdk.Stat
 
 	identity, _, err := server.GetIdentity(identityAuthMethod, identityName)
 	if err != nil {
-		if errors.IsNotFoundError(err) {
+		if forgetOnNotFound && errors.IsNotFoundError(err) {
 			tfState.RemoveResource(ctx)
 			return nil
 		}
 
-		respDiags.AddError(fmt.Sprintf("Failed to retrieve existing %q identity %q", identityAuthMethod, identityName), err.Error())
+		respDiags.AddError(fmt.Sprintf("Failed to sync state for %q identity %q", identityAuthMethod, identityName), err.Error())
 		return respDiags
 	}
 

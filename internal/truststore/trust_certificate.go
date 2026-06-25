@@ -243,8 +243,14 @@ func (r TrustCertificateResource) Create(ctx context.Context, req resource.Creat
 		return
 	}
 
+	diags = plan.TaintState(ctx, &resp.State)
+	if diags.HasError() {
+		resp.Diagnostics.Append(diags...)
+		return
+	}
+
 	// Update Terraform state.
-	diags = r.SyncState(ctx, &resp.State, server, plan)
+	diags = r.SyncState(ctx, &resp.State, server, plan, false)
 	resp.Diagnostics.Append(diags...)
 }
 
@@ -265,7 +271,7 @@ func (r TrustCertificateResource) Read(ctx context.Context, req resource.ReadReq
 	}
 
 	// Update Terraform state.
-	diags = r.SyncState(ctx, &resp.State, server, state)
+	diags = r.SyncState(ctx, &resp.State, server, state, true)
 	resp.Diagnostics.Append(diags...)
 }
 
@@ -319,7 +325,7 @@ func (r TrustCertificateResource) Update(ctx context.Context, req resource.Updat
 	plan.Fingerprint = state.Fingerprint
 
 	// Update Terraform state.
-	diags = r.SyncState(ctx, &resp.State, server, plan)
+	diags = r.SyncState(ctx, &resp.State, server, plan, false)
 	resp.Diagnostics.Append(diags...)
 }
 
@@ -351,22 +357,33 @@ func (r TrustCertificateResource) Delete(ctx context.Context, req resource.Delet
 	}
 }
 
+// TaintState marks the state with identity fields required to target the certificate.
+func (m TrustCertificateModel) TaintState(ctx context.Context, tfState *tfsdk.State) diag.Diagnostics {
+	var diags diag.Diagnostics
+
+	diags.Append(tfState.SetAttribute(ctx, path.Root("name"), m.Name.ValueString())...)
+	diags.Append(tfState.SetAttribute(ctx, path.Root("fingerprint"), m.Fingerprint.ValueString())...)
+	diags.Append(tfState.SetAttribute(ctx, path.Root("remote"), m.Remote.ValueString())...)
+
+	return diags
+}
+
 // SyncState fetches the server's current state for a certificate and updates
 // the provided model. It then applies this updated model as the new state
 // in Terraform.
-func (r TrustCertificateResource) SyncState(ctx context.Context, tfState *tfsdk.State, server lxd.InstanceServer, m TrustCertificateModel) diag.Diagnostics {
+func (r TrustCertificateResource) SyncState(ctx context.Context, tfState *tfsdk.State, server lxd.InstanceServer, m TrustCertificateModel, forgetOnNotFound bool) diag.Diagnostics {
 	var respDiags diag.Diagnostics
 
 	certName := m.Name.ValueString()
 	certFingerprint := m.Fingerprint.ValueString()
 	cert, _, err := server.GetCertificate(certFingerprint)
 	if err != nil {
-		if errors.IsNotFoundError(err) {
+		if forgetOnNotFound && errors.IsNotFoundError(err) {
 			tfState.RemoveResource(ctx)
 			return nil
 		}
 
-		respDiags.AddError(fmt.Sprintf("Failed to retrieve certificate %q", certName), err.Error())
+		respDiags.AddError(fmt.Sprintf("Failed to sync state for certificate %q", certName), err.Error())
 		return respDiags
 	}
 

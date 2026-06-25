@@ -291,7 +291,7 @@ func (r StoragePoolResource) Create(ctx context.Context, req resource.CreateRequ
 	}
 
 	// Update Terraform state.
-	diags = r.SyncState(ctx, &resp.State, server, plan)
+	diags = r.SyncState(ctx, &resp.State, server, plan, false)
 	resp.Diagnostics.Append(diags...)
 }
 
@@ -313,7 +313,7 @@ func (r StoragePoolResource) Read(ctx context.Context, req resource.ReadRequest,
 	}
 
 	// Update Terraform state.
-	diags = r.SyncState(ctx, &resp.State, server, state)
+	diags = r.SyncState(ctx, &resp.State, server, state, true)
 	resp.Diagnostics.Append(diags...)
 }
 
@@ -394,7 +394,7 @@ func (r StoragePoolResource) Update(ctx context.Context, req resource.UpdateRequ
 	}
 
 	// Update Terraform state.
-	diags := r.SyncState(ctx, &resp.State, server, plan)
+	diags := r.SyncState(ctx, &resp.State, server, plan, false)
 	resp.Diagnostics.Append(diags...)
 }
 
@@ -452,18 +452,18 @@ func (r StoragePoolResource) ImportState(ctx context.Context, req resource.Impor
 // SyncState fetches the server's current state for a storage pool and updates
 // the provided model. It then applies this updated model as the new state
 // in Terraform.
-func (r StoragePoolResource) SyncState(ctx context.Context, tfState *tfsdk.State, server lxd.InstanceServer, m StoragePoolModel) diag.Diagnostics {
+func (r StoragePoolResource) SyncState(ctx context.Context, tfState *tfsdk.State, server lxd.InstanceServer, m StoragePoolModel, forgetOnNotFound bool) diag.Diagnostics {
 	var respDiags diag.Diagnostics
 
 	poolName := m.Name.ValueString()
 	pool, _, err := server.GetStoragePool(poolName)
 	if err != nil {
-		if errors.IsNotFoundError(err) {
+		if forgetOnNotFound && errors.IsNotFoundError(err) {
 			tfState.RemoveResource(ctx)
 			return nil
 		}
 
-		respDiags.AddError(fmt.Sprintf("Failed to retrieve storage pool %q", poolName), err.Error())
+		respDiags.AddError(fmt.Sprintf("Failed to sync state for storage pool %q", poolName), err.Error())
 		return respDiags
 	}
 

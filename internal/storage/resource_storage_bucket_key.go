@@ -186,8 +186,14 @@ func (r StorageBucketKeyResource) Create(ctx context.Context, req resource.Creat
 		return
 	}
 
+	diags = plan.TaintState(ctx, &resp.State)
+	if diags.HasError() {
+		resp.Diagnostics.Append(diags...)
+		return
+	}
+
 	// Update Terraform state.
-	diags = r.SyncState(ctx, &resp.State, server, plan)
+	diags = r.SyncState(ctx, &resp.State, server, plan, false)
 	resp.Diagnostics.Append(diags...)
 }
 
@@ -208,7 +214,7 @@ func (r StorageBucketKeyResource) Read(ctx context.Context, req resource.ReadReq
 		return
 	}
 
-	diags = r.SyncState(ctx, &resp.State, server, state)
+	diags = r.SyncState(ctx, &resp.State, server, state, true)
 	resp.Diagnostics.Append(diags...)
 }
 
@@ -264,7 +270,7 @@ func (r StorageBucketKeyResource) Update(ctx context.Context, req resource.Updat
 		return
 	}
 
-	diags = r.SyncState(ctx, &resp.State, server, plan)
+	diags = r.SyncState(ctx, &resp.State, server, plan, false)
 	resp.Diagnostics.Append(diags...)
 }
 
@@ -328,10 +334,23 @@ func (r StorageBucketKeyResource) ImportState(ctx context.Context, req resource.
 	}
 }
 
+// TaintState marks the state with identity fields required to target the storage bucket key.
+func (m StorageBucketKeyModel) TaintState(ctx context.Context, tfState *tfsdk.State) diag.Diagnostics {
+	var diags diag.Diagnostics
+
+	diags.Append(tfState.SetAttribute(ctx, path.Root("name"), m.Name.ValueString())...)
+	diags.Append(tfState.SetAttribute(ctx, path.Root("pool"), m.Pool.ValueString())...)
+	diags.Append(tfState.SetAttribute(ctx, path.Root("bucket"), m.Bucket.ValueString())...)
+	diags.Append(tfState.SetAttribute(ctx, path.Root("project"), m.Project.ValueString())...)
+	diags.Append(tfState.SetAttribute(ctx, path.Root("remote"), m.Remote.ValueString())...)
+
+	return diags
+}
+
 // SyncState fetches the server's current state for a storage bucket key and
 // updates the provided model. It then applies this updated model as the
 // new state in Terraform.
-func (r StorageBucketKeyResource) SyncState(ctx context.Context, tfState *tfsdk.State, server lxd.InstanceServer, m StorageBucketKeyModel) diag.Diagnostics {
+func (r StorageBucketKeyResource) SyncState(ctx context.Context, tfState *tfsdk.State, server lxd.InstanceServer, m StorageBucketKeyModel, forgetOnNotFound bool) diag.Diagnostics {
 	var respDiags diag.Diagnostics
 
 	poolName := m.Pool.ValueString()
@@ -340,12 +359,12 @@ func (r StorageBucketKeyResource) SyncState(ctx context.Context, tfState *tfsdk.
 
 	key, _, err := server.GetStoragePoolBucketKey(poolName, bucketName, keyName)
 	if err != nil {
-		if errors.IsNotFoundError(err) {
+		if forgetOnNotFound && errors.IsNotFoundError(err) {
 			tfState.RemoveResource(ctx)
 			return nil
 		}
 
-		respDiags.AddError(fmt.Sprintf("Failed to retrieve storage bucket key %q of bucket %q", keyName, bucketName), err.Error())
+		respDiags.AddError(fmt.Sprintf("Failed to sync state for storage bucket key %q of bucket %q", keyName, bucketName), err.Error())
 		return respDiags
 	}
 

@@ -137,7 +137,13 @@ func (r AuthGroupResource) Create(ctx context.Context, req resource.CreateReques
 		return
 	}
 
-	diags := r.SyncState(ctx, &resp.State, server, plan)
+	diags := plan.TaintState(ctx, &resp.State)
+	if diags.HasError() {
+		resp.Diagnostics.Append(diags...)
+		return
+	}
+
+	diags = r.SyncState(ctx, &resp.State, server, plan, false)
 	resp.Diagnostics.Append(diags...)
 }
 
@@ -155,7 +161,7 @@ func (r AuthGroupResource) Read(ctx context.Context, req resource.ReadRequest, r
 		return
 	}
 
-	diags := r.SyncState(ctx, &resp.State, server, state)
+	diags := r.SyncState(ctx, &resp.State, server, state, true)
 	resp.Diagnostics.Append(diags...)
 }
 
@@ -200,7 +206,7 @@ func (r AuthGroupResource) Update(ctx context.Context, req resource.UpdateReques
 		return
 	}
 
-	diags := r.SyncState(ctx, &resp.State, server, plan)
+	diags := r.SyncState(ctx, &resp.State, server, plan, false)
 	resp.Diagnostics.Append(diags...)
 }
 
@@ -226,18 +232,28 @@ func (r AuthGroupResource) Delete(ctx context.Context, req resource.DeleteReques
 	}
 }
 
-func (r AuthGroupResource) SyncState(ctx context.Context, tfState *tfsdk.State, server lxd.InstanceServer, m AuthGroupModel) diag.Diagnostics {
+// TaintState marks the state with identity fields required to target the auth group.
+func (m AuthGroupModel) TaintState(ctx context.Context, tfState *tfsdk.State) diag.Diagnostics {
+	var diags diag.Diagnostics
+
+	diags.Append(tfState.SetAttribute(ctx, path.Root("name"), m.Name.ValueString())...)
+	diags.Append(tfState.SetAttribute(ctx, path.Root("remote"), m.Remote.ValueString())...)
+
+	return diags
+}
+
+func (r AuthGroupResource) SyncState(ctx context.Context, tfState *tfsdk.State, server lxd.InstanceServer, m AuthGroupModel, forgetOnNotFound bool) diag.Diagnostics {
 	var respDiags diag.Diagnostics
 
 	authGroupName := m.Name.ValueString()
 	authGroup, _, err := server.GetAuthGroup(authGroupName)
 	if err != nil {
-		if errors.IsNotFoundError(err) {
+		if forgetOnNotFound && errors.IsNotFoundError(err) {
 			tfState.RemoveResource(ctx)
 			return nil
 		}
 
-		respDiags.AddError(fmt.Sprintf("Failed to retrieve auth group %q", authGroupName), err.Error())
+		respDiags.AddError(fmt.Sprintf("Failed to sync state for auth group %q", authGroupName), err.Error())
 		return respDiags
 	}
 

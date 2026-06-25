@@ -195,8 +195,14 @@ func (r NetworkZoneRecordResource) Create(ctx context.Context, req resource.Crea
 		return
 	}
 
+	diags = plan.TaintState(ctx, &resp.State)
+	if diags.HasError() {
+		resp.Diagnostics.Append(diags...)
+		return
+	}
+
 	// Update Terraform state.
-	diags = r.SyncState(ctx, &resp.State, server, plan)
+	diags = r.SyncState(ctx, &resp.State, server, plan, false)
 	resp.Diagnostics.Append(diags...)
 }
 
@@ -219,7 +225,7 @@ func (r NetworkZoneRecordResource) Read(ctx context.Context, req resource.ReadRe
 	}
 
 	// Update Terraform state.
-	diags = r.SyncState(ctx, &resp.State, server, state)
+	diags = r.SyncState(ctx, &resp.State, server, state, true)
 	resp.Diagnostics.Append(diags...)
 }
 
@@ -278,7 +284,7 @@ func (r NetworkZoneRecordResource) Update(ctx context.Context, req resource.Upda
 	}
 
 	// Update Terraform state.
-	diags = r.SyncState(ctx, &resp.State, server, plan)
+	diags = r.SyncState(ctx, &resp.State, server, plan, false)
 	resp.Diagnostics.Append(diags...)
 }
 
@@ -334,22 +340,34 @@ func (r NetworkZoneRecordResource) ImportState(ctx context.Context, req resource
 	}
 }
 
+// TaintState marks the state with identity fields required to target the network zone record.
+func (m NetworkZoneRecordModel) TaintState(ctx context.Context, tfState *tfsdk.State) diag.Diagnostics {
+	var diags diag.Diagnostics
+
+	diags.Append(tfState.SetAttribute(ctx, path.Root("name"), m.Name.ValueString())...)
+	diags.Append(tfState.SetAttribute(ctx, path.Root("zone"), m.Zone.ValueString())...)
+	diags.Append(tfState.SetAttribute(ctx, path.Root("project"), m.Project.ValueString())...)
+	diags.Append(tfState.SetAttribute(ctx, path.Root("remote"), m.Remote.ValueString())...)
+
+	return diags
+}
+
 // SyncState fetches the server's current state for a network zone record and
 // updates the provided model. It then applies this updated model as the new
 // state in Terraform.
-func (r NetworkZoneRecordResource) SyncState(ctx context.Context, tfState *tfsdk.State, server lxd.InstanceServer, m NetworkZoneRecordModel) diag.Diagnostics {
+func (r NetworkZoneRecordResource) SyncState(ctx context.Context, tfState *tfsdk.State, server lxd.InstanceServer, m NetworkZoneRecordModel, forgetOnNotFound bool) diag.Diagnostics {
 	var respDiags diag.Diagnostics
 
 	zoneName := m.Zone.ValueString()
 	recordName := m.Name.ValueString()
 	record, _, err := server.GetNetworkZoneRecord(zoneName, recordName)
 	if err != nil {
-		if errors.IsNotFoundError(err) {
+		if forgetOnNotFound && errors.IsNotFoundError(err) {
 			tfState.RemoveResource(ctx)
 			return nil
 		}
 
-		respDiags.AddError(fmt.Sprintf("Failed to retrieve network zone record %q", recordName), err.Error())
+		respDiags.AddError(fmt.Sprintf("Failed to sync state for network zone record %q", recordName), err.Error())
 		return respDiags
 	}
 

@@ -207,7 +207,13 @@ func (r NetworkPeerResource) Create(ctx context.Context, req resource.CreateRequ
 		return
 	}
 
-	diags = r.SyncState(ctx, &resp.State, server, plan)
+	diags = plan.TaintState(ctx, &resp.State)
+	if diags.HasError() {
+		resp.Diagnostics.Append(diags...)
+		return
+	}
+
+	diags = r.SyncState(ctx, &resp.State, server, plan, false)
 	resp.Diagnostics.Append(diags...)
 }
 
@@ -229,7 +235,7 @@ func (r NetworkPeerResource) Read(ctx context.Context, req resource.ReadRequest,
 		return
 	}
 
-	diags = r.SyncState(ctx, &resp.State, server, state)
+	diags = r.SyncState(ctx, &resp.State, server, state, true)
 	resp.Diagnostics.Append(diags...)
 }
 
@@ -284,7 +290,7 @@ func (r NetworkPeerResource) Update(ctx context.Context, req resource.UpdateRequ
 	}
 
 	// Update Terraform state.
-	diags = r.SyncState(ctx, &resp.State, server, plan)
+	diags = r.SyncState(ctx, &resp.State, server, plan, false)
 	resp.Diagnostics.Append(diags...)
 }
 
@@ -333,10 +339,24 @@ func (r NetworkPeerResource) Delete(ctx context.Context, req resource.DeleteRequ
 	}
 }
 
+// TaintState marks the state with identity fields required to target the network peer.
+func (m NetworkPeerModel) TaintState(ctx context.Context, tfState *tfsdk.State) diag.Diagnostics {
+	var diags diag.Diagnostics
+
+	diags.Append(tfState.SetAttribute(ctx, path.Root("name"), m.Name.ValueString())...)
+	diags.Append(tfState.SetAttribute(ctx, path.Root("source_network"), m.SourceNetwork.ValueString())...)
+	diags.Append(tfState.SetAttribute(ctx, path.Root("source_project"), m.SourceProject.ValueString())...)
+	diags.Append(tfState.SetAttribute(ctx, path.Root("target_network"), m.TargetNetwork.ValueString())...)
+	diags.Append(tfState.SetAttribute(ctx, path.Root("target_project"), m.TargetProject.ValueString())...)
+	diags.Append(tfState.SetAttribute(ctx, path.Root("remote"), m.Remote.ValueString())...)
+
+	return diags
+}
+
 // SyncState fetches the server's current state for a network peer and updates
 // the provided model. It then applies this updated model as the new state
 // in Terraform.
-func (r NetworkPeerResource) SyncState(ctx context.Context, tfState *tfsdk.State, server lxd.InstanceServer, m NetworkPeerModel) diag.Diagnostics {
+func (r NetworkPeerResource) SyncState(ctx context.Context, tfState *tfsdk.State, server lxd.InstanceServer, m NetworkPeerModel, forgetOnNotFound bool) diag.Diagnostics {
 	var respDiags diag.Diagnostics
 
 	peerName := m.Name.ValueString()
@@ -344,13 +364,13 @@ func (r NetworkPeerResource) SyncState(ctx context.Context, tfState *tfsdk.State
 	srcNetwork := m.SourceNetwork.ValueString()
 	peer, _, err := server.GetNetworkPeer(srcNetwork, peerName)
 	if err != nil {
-		if errors.IsNotFoundError(err) {
+		if forgetOnNotFound && errors.IsNotFoundError(err) {
 			tfState.RemoveResource(ctx)
 			return nil
 		}
 
 		return diag.Diagnostics{
-			diag.NewErrorDiagnostic(fmt.Sprintf("Failed to retrieve network peer %q", peerName), err.Error()),
+			diag.NewErrorDiagnostic(fmt.Sprintf("Failed to sync state for network peer %q", peerName), err.Error()),
 		}
 	}
 

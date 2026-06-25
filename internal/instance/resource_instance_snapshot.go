@@ -173,17 +173,14 @@ func (r InstanceSnapshotResource) Create(ctx context.Context, req resource.Creat
 		return
 	}
 
-	// Partially update state to make Terraform aware of the created resource.
-	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("name"), snapshotName)...)
-	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("instance"), instanceName)...)
-	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("project"), project)...)
-	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("remote"), remote)...)
-	if resp.Diagnostics.HasError() {
+	diags = plan.TaintState(ctx, &resp.State)
+	if diags.HasError() {
+		resp.Diagnostics.Append(diags...)
 		return
 	}
 
 	// Update Terraform state.
-	diags = r.SyncState(ctx, &resp.State, server, plan)
+	diags = r.SyncState(ctx, &resp.State, server, plan, false)
 	resp.Diagnostics.Append(diags...)
 }
 
@@ -206,7 +203,7 @@ func (r InstanceSnapshotResource) Read(ctx context.Context, req resource.ReadReq
 	}
 
 	// Update Terraform state.
-	diags = r.SyncState(ctx, &resp.State, server, state)
+	diags = r.SyncState(ctx, &resp.State, server, state, true)
 	resp.Diagnostics.Append(diags...)
 }
 
@@ -244,21 +241,33 @@ func (r InstanceSnapshotResource) Delete(ctx context.Context, req resource.Delet
 	}
 }
 
+// TaintState marks the state with identity fields required to target the instance snapshot.
+func (m InstanceSnapshotModel) TaintState(ctx context.Context, tfState *tfsdk.State) diag.Diagnostics {
+	var diags diag.Diagnostics
+
+	diags.Append(tfState.SetAttribute(ctx, path.Root("name"), m.Name.ValueString())...)
+	diags.Append(tfState.SetAttribute(ctx, path.Root("instance"), m.Instance.ValueString())...)
+	diags.Append(tfState.SetAttribute(ctx, path.Root("project"), m.Project.ValueString())...)
+	diags.Append(tfState.SetAttribute(ctx, path.Root("remote"), m.Remote.ValueString())...)
+
+	return diags
+}
+
 // SyncState fetches the server's current state for an instance snapshot and
 // updates the provided model. It then applies this updated model as the new
 // state in Terraform.
-func (r InstanceSnapshotResource) SyncState(ctx context.Context, tfState *tfsdk.State, server lxd.InstanceServer, m InstanceSnapshotModel) diag.Diagnostics {
+func (r InstanceSnapshotResource) SyncState(ctx context.Context, tfState *tfsdk.State, server lxd.InstanceServer, m InstanceSnapshotModel, forgetOnNotFound bool) diag.Diagnostics {
 	instanceName := m.Instance.ValueString()
 	snapshotName := m.Name.ValueString()
 	snapshot, _, err := server.GetInstanceSnapshot(instanceName, snapshotName)
 	if err != nil {
-		if errors.IsNotFoundError(err) {
+		if forgetOnNotFound && errors.IsNotFoundError(err) {
 			tfState.RemoveResource(ctx)
 			return nil
 		}
 
 		return diag.Diagnostics{diag.NewErrorDiagnostic(
-			fmt.Sprintf("Failed to retrieve snapshot %q for instance %q", snapshotName, instanceName),
+			fmt.Sprintf("Failed to sync state for snapshot %q for instance %q", snapshotName, instanceName),
 			err.Error(),
 		)}
 	}

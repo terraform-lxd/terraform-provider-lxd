@@ -144,16 +144,14 @@ func (r NetworkZoneResource) Create(ctx context.Context, req resource.CreateRequ
 		return
 	}
 
-	// Partially update state to make Terraform aware of the created resource.
-	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("name"), zoneName)...)
-	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("project"), project)...)
-	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("remote"), remote)...)
-	if resp.Diagnostics.HasError() {
+	diags = plan.TaintState(ctx, &resp.State)
+	if diags.HasError() {
+		resp.Diagnostics.Append(diags...)
 		return
 	}
 
 	// Update Terraform state.
-	diags = r.SyncState(ctx, &resp.State, server, plan)
+	diags = r.SyncState(ctx, &resp.State, server, plan, false)
 	resp.Diagnostics.Append(diags...)
 }
 
@@ -175,7 +173,7 @@ func (r NetworkZoneResource) Read(ctx context.Context, req resource.ReadRequest,
 	}
 
 	// Update Terraform state.
-	diags = r.SyncState(ctx, &resp.State, server, state)
+	diags = r.SyncState(ctx, &resp.State, server, state, true)
 	resp.Diagnostics.Append(diags...)
 }
 
@@ -227,7 +225,7 @@ func (r NetworkZoneResource) Update(ctx context.Context, req resource.UpdateRequ
 	}
 
 	// Update Terraform state.
-	diags = r.SyncState(ctx, &resp.State, server, plan)
+	diags = r.SyncState(ctx, &resp.State, server, plan, false)
 	resp.Diagnostics.Append(diags...)
 }
 
@@ -280,20 +278,31 @@ func (r NetworkZoneResource) ImportState(ctx context.Context, req resource.Impor
 	}
 }
 
+// TaintState marks the state with identity fields required to target the network zone.
+func (m NetworkZoneModel) TaintState(ctx context.Context, tfState *tfsdk.State) diag.Diagnostics {
+	var diags diag.Diagnostics
+
+	diags.Append(tfState.SetAttribute(ctx, path.Root("name"), m.Name.ValueString())...)
+	diags.Append(tfState.SetAttribute(ctx, path.Root("project"), m.Project.ValueString())...)
+	diags.Append(tfState.SetAttribute(ctx, path.Root("remote"), m.Remote.ValueString())...)
+
+	return diags
+}
+
 // SyncState fetches the server's current state for a network zone and
 // updates the provided model. It then applies this updated model as the
 // new state in Terraform.
-func (r NetworkZoneResource) SyncState(ctx context.Context, tfState *tfsdk.State, server lxd.InstanceServer, m NetworkZoneModel) diag.Diagnostics {
+func (r NetworkZoneResource) SyncState(ctx context.Context, tfState *tfsdk.State, server lxd.InstanceServer, m NetworkZoneModel, forgetOnNotFound bool) diag.Diagnostics {
 	zoneName := m.Name.ValueString()
 	zone, _, err := server.GetNetworkZone(zoneName)
 	if err != nil {
-		if errors.IsNotFoundError(err) {
+		if forgetOnNotFound && errors.IsNotFoundError(err) {
 			tfState.RemoveResource(ctx)
 			return nil
 		}
 
 		return diag.Diagnostics{diag.NewErrorDiagnostic(
-			fmt.Sprintf("Failed to retrieve network zone %q", zoneName), err.Error(),
+			fmt.Sprintf("Failed to sync state for network zone %q", zoneName), err.Error(),
 		)}
 	}
 

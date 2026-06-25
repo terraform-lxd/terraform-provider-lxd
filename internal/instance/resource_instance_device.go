@@ -8,6 +8,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework-validators/mapvalidator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/diag"
+	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
@@ -211,8 +212,14 @@ func (r InstanceDeviceResource) Create(ctx context.Context, req resource.CreateR
 		return
 	}
 
+	diags = plan.TaintState(ctx, &resp.State)
+	if diags.HasError() {
+		resp.Diagnostics.Append(diags...)
+		return
+	}
+
 	// Sync state after successfully attaching the device.
-	diags = r.SyncState(ctx, &resp.State, server, plan)
+	diags = r.SyncState(ctx, &resp.State, server, plan, false)
 	resp.Diagnostics.Append(diags...)
 }
 
@@ -234,7 +241,7 @@ func (r InstanceDeviceResource) Read(ctx context.Context, req resource.ReadReque
 		return
 	}
 
-	diags = r.SyncState(ctx, &resp.State, server, state)
+	diags = r.SyncState(ctx, &resp.State, server, state, true)
 	resp.Diagnostics.Append(diags...)
 }
 
@@ -311,7 +318,7 @@ func (r InstanceDeviceResource) Update(ctx context.Context, req resource.UpdateR
 	}
 
 	// Sync state after successfully updating the device properties.
-	diags = r.SyncState(ctx, &resp.State, server, plan)
+	diags = r.SyncState(ctx, &resp.State, server, plan, false)
 	resp.Diagnostics.Append(diags...)
 }
 
@@ -370,33 +377,50 @@ func (r InstanceDeviceResource) Delete(ctx context.Context, req resource.DeleteR
 	}
 
 	// Sync state after successfully removing the device.
-	diags = r.SyncState(ctx, &resp.State, server, state)
+	diags = r.SyncState(ctx, &resp.State, server, state, true)
 	resp.Diagnostics.Append(diags...)
+}
+
+// TaintState marks the state with identity fields required to target the device.
+func (m InstanceDeviceModel) TaintState(ctx context.Context, tfState *tfsdk.State) diag.Diagnostics {
+	var diags diag.Diagnostics
+
+	diags.Append(tfState.SetAttribute(ctx, path.Root("name"), m.Name.ValueString())...)
+	diags.Append(tfState.SetAttribute(ctx, path.Root("instance_name"), m.InstanceName.ValueString())...)
+	diags.Append(tfState.SetAttribute(ctx, path.Root("project"), m.Project.ValueString())...)
+	diags.Append(tfState.SetAttribute(ctx, path.Root("remote"), m.Remote.ValueString())...)
+
+	return diags
 }
 
 // SyncState fetches the server's current state for the device and updates
 // the provided model. It then applies this updated model as the new state
 // in Terraform.
-func (r InstanceDeviceResource) SyncState(ctx context.Context, tfState *tfsdk.State, server lxd.InstanceServer, m InstanceDeviceModel) diag.Diagnostics {
+func (r InstanceDeviceResource) SyncState(ctx context.Context, tfState *tfsdk.State, server lxd.InstanceServer, m InstanceDeviceModel, forgetOnNotFound bool) diag.Diagnostics {
 	var respDiags diag.Diagnostics
 
 	instanceName := m.InstanceName.ValueString()
 	instance, _, err := server.GetInstance(instanceName)
 	if err != nil {
-		if errors.IsNotFoundError(err) {
+		if forgetOnNotFound && errors.IsNotFoundError(err) {
 			tfState.RemoveResource(ctx)
 			return nil
 		}
 
-		respDiags.AddError(fmt.Sprintf("Failed to retrieve instance %q", instanceName), err.Error())
+		respDiags.AddError(fmt.Sprintf("Failed to sync state for instance %q", instanceName), err.Error())
 		return respDiags
 	}
 
 	deviceName := m.Name.ValueString()
 	deviceProps, ok := instance.Devices[deviceName]
 	if !ok || deviceProps == nil {
-		tfState.RemoveResource(ctx)
-		return nil
+		if forgetOnNotFound {
+			tfState.RemoveResource(ctx)
+			return nil
+		}
+
+		respDiags.AddError(fmt.Sprintf("Failed to sync state for device %q for instance %q", deviceName, instanceName), "Device not found")
+		return respDiags
 	}
 
 	deviceType, ok := deviceProps["type"]

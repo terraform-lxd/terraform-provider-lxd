@@ -222,17 +222,15 @@ func (r ProfileResource) Create(ctx context.Context, req resource.CreateRequest,
 			return
 		}
 
-		// Partially update state to make Terraform aware of the created resource.
-		resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("name"), profile.Name)...)
-		resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("project"), project)...)
-		resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("remote"), remote)...)
-		if resp.Diagnostics.HasError() {
+		diags := plan.TaintState(ctx, &resp.State)
+		if diags.HasError() {
+			resp.Diagnostics.Append(diags...)
 			return
 		}
 	}
 
 	// Update Terraform state.
-	diags = r.SyncState(ctx, &resp.State, server, plan)
+	diags = r.SyncState(ctx, &resp.State, server, plan, false)
 	resp.Diagnostics.Append(diags...)
 }
 
@@ -254,7 +252,7 @@ func (r ProfileResource) Read(ctx context.Context, req resource.ReadRequest, res
 	}
 
 	// Update Terraform state.
-	diags = r.SyncState(ctx, &resp.State, server, state)
+	diags = r.SyncState(ctx, &resp.State, server, state, true)
 	resp.Diagnostics.Append(diags...)
 }
 
@@ -327,7 +325,7 @@ func (r ProfileResource) Update(ctx context.Context, req resource.UpdateRequest,
 	}
 
 	// Update Terraform state.
-	diags = r.SyncState(ctx, &resp.State, server, plan)
+	diags = r.SyncState(ctx, &resp.State, server, plan, false)
 	resp.Diagnostics.Append(diags...)
 }
 
@@ -405,21 +403,32 @@ func (r ProfileResource) ImportState(ctx context.Context, req resource.ImportSta
 	}
 }
 
+// TaintState marks the state with identity fields required to target the profile.
+func (m ProfileModel) TaintState(ctx context.Context, tfState *tfsdk.State) diag.Diagnostics {
+	var diags diag.Diagnostics
+
+	diags.Append(tfState.SetAttribute(ctx, path.Root("name"), m.Name.ValueString())...)
+	diags.Append(tfState.SetAttribute(ctx, path.Root("project"), m.Project.ValueString())...)
+	diags.Append(tfState.SetAttribute(ctx, path.Root("remote"), m.Remote.ValueString())...)
+
+	return diags
+}
+
 // SyncState fetches the server's current state for a profile and updates
 // the provided model. It then applies this updated model as the new state
 // in Terraform.
-func (r ProfileResource) SyncState(ctx context.Context, tfState *tfsdk.State, server lxd.InstanceServer, m ProfileModel) diag.Diagnostics {
+func (r ProfileResource) SyncState(ctx context.Context, tfState *tfsdk.State, server lxd.InstanceServer, m ProfileModel, forgetOnNotFound bool) diag.Diagnostics {
 	var respDiags diag.Diagnostics
 
 	profileName := m.Name.ValueString()
 	profile, _, err := server.GetProfile(profileName)
 	if err != nil {
-		if errors.IsNotFoundError(err) {
+		if forgetOnNotFound && errors.IsNotFoundError(err) {
 			tfState.RemoveResource(ctx)
 			return nil
 		}
 
-		respDiags.AddError(fmt.Sprintf("Failed to retrieve profile %q", profileName), err.Error())
+		respDiags.AddError(fmt.Sprintf("Failed to sync state for profile %q", profileName), err.Error())
 		return respDiags
 	}
 

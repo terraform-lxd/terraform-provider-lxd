@@ -240,17 +240,14 @@ func (r LxdNetworkLBResource) Create(ctx context.Context, req resource.CreateReq
 		return
 	}
 
-	// Partially update state to make Terraform aware of the created resource.
-	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("network"), networkName)...)
-	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("listen_address"), listenAddr)...)
-	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("project"), project)...)
-	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("remote"), remote)...)
-	if resp.Diagnostics.HasError() {
+	diags = plan.TaintState(ctx, &resp.State)
+	if diags.HasError() {
+		resp.Diagnostics.Append(diags...)
 		return
 	}
 
 	// Update Terraform state.
-	diags = r.SyncState(ctx, &resp.State, server, plan)
+	diags = r.SyncState(ctx, &resp.State, server, plan, false)
 	resp.Diagnostics.Append(diags...)
 }
 
@@ -272,7 +269,7 @@ func (r LxdNetworkLBResource) Read(ctx context.Context, req resource.ReadRequest
 	}
 
 	// Update Terraform state.
-	diags = r.SyncState(ctx, &resp.State, server, state)
+	diags = r.SyncState(ctx, &resp.State, server, state, true)
 	resp.Diagnostics.Append(diags...)
 }
 
@@ -335,7 +332,7 @@ func (r LxdNetworkLBResource) Update(ctx context.Context, req resource.UpdateReq
 	}
 
 	// Update Terraform state.
-	diags = r.SyncState(ctx, &resp.State, server, plan)
+	diags = r.SyncState(ctx, &resp.State, server, plan, false)
 	resp.Diagnostics.Append(diags...)
 }
 
@@ -370,23 +367,35 @@ func (r LxdNetworkLBResource) Delete(ctx context.Context, req resource.DeleteReq
 	}
 }
 
+// TaintState marks the state with identity fields required to target the network load balancer.
+func (m NetworkLBModel) TaintState(ctx context.Context, tfState *tfsdk.State) diag.Diagnostics {
+	var diags diag.Diagnostics
+
+	diags.Append(tfState.SetAttribute(ctx, path.Root("network"), m.Network.ValueString())...)
+	diags.Append(tfState.SetAttribute(ctx, path.Root("listen_address"), m.ListenAddress.ValueString())...)
+	diags.Append(tfState.SetAttribute(ctx, path.Root("project"), m.Project.ValueString())...)
+	diags.Append(tfState.SetAttribute(ctx, path.Root("remote"), m.Remote.ValueString())...)
+
+	return diags
+}
+
 // SyncState fetches the server's current state for an network load balancer
 // and updates the provided model. It then applies this updated model as the
 // new state in Terraform.
-func (r LxdNetworkLBResource) SyncState(ctx context.Context, tfState *tfsdk.State, server lxd.InstanceServer, m NetworkLBModel) diag.Diagnostics {
+func (r LxdNetworkLBResource) SyncState(ctx context.Context, tfState *tfsdk.State, server lxd.InstanceServer, m NetworkLBModel, forgetOnNotFound bool) diag.Diagnostics {
 	var respDiags diag.Diagnostics
 
 	networkName := m.Network.ValueString()
 	listenAddr := m.ListenAddress.ValueString()
 	lb, _, err := server.GetNetworkLoadBalancer(networkName, listenAddr)
 	if err != nil {
-		if errors.IsNotFoundError(err) {
+		if forgetOnNotFound && errors.IsNotFoundError(err) {
 			tfState.RemoveResource(ctx)
 			return nil
 		}
 
 		lbName := toLBName(networkName, listenAddr)
-		respDiags.AddError(fmt.Sprintf("Failed to retrieve network load balancer %q", lbName), err.Error())
+		respDiags.AddError(fmt.Sprintf("Failed to sync state for network load balancer %q", lbName), err.Error())
 		return respDiags
 	}
 

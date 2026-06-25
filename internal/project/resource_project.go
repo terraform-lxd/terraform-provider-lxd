@@ -129,15 +129,14 @@ func (r ProjectResource) Create(ctx context.Context, req resource.CreateRequest,
 		return
 	}
 
-	// Partially update state to make Terraform aware of the created resource.
-	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("name"), projectName)...)
-	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("remote"), remote)...)
-	if resp.Diagnostics.HasError() {
+	diags = plan.TaintState(ctx, &resp.State)
+	if diags.HasError() {
+		resp.Diagnostics.Append(diags...)
 		return
 	}
 
 	// Update Terraform state.
-	diags = r.SyncState(ctx, &resp.State, server, plan)
+	diags = r.SyncState(ctx, &resp.State, server, plan, false)
 	resp.Diagnostics.Append(diags...)
 }
 
@@ -159,7 +158,7 @@ func (r ProjectResource) Read(ctx context.Context, req resource.ReadRequest, res
 	}
 
 	// Update Terraform state.
-	diags = r.SyncState(ctx, &resp.State, server, state)
+	diags = r.SyncState(ctx, &resp.State, server, state, true)
 	resp.Diagnostics.Append(diags...)
 }
 
@@ -208,7 +207,7 @@ func (r ProjectResource) Update(ctx context.Context, req resource.UpdateRequest,
 	}
 
 	// Update Terraform state.
-	diags = r.SyncState(ctx, &resp.State, server, plan)
+	diags = r.SyncState(ctx, &resp.State, server, plan, false)
 	resp.Diagnostics.Append(diags...)
 }
 
@@ -266,21 +265,31 @@ func (r *ProjectResource) ImportState(ctx context.Context, req resource.ImportSt
 	}
 }
 
+// TaintState marks the state with identity fields required to target the project.
+func (m ProjectModel) TaintState(ctx context.Context, tfState *tfsdk.State) diag.Diagnostics {
+	var diags diag.Diagnostics
+
+	diags.Append(tfState.SetAttribute(ctx, path.Root("name"), m.Name.ValueString())...)
+	diags.Append(tfState.SetAttribute(ctx, path.Root("remote"), m.Remote.ValueString())...)
+
+	return diags
+}
+
 // SyncState fetches the server's current state for a project and updates
 // the provided model. It then applies this updated model as the new state
 // in Terraform.
-func (r ProjectResource) SyncState(ctx context.Context, tfState *tfsdk.State, server lxd.InstanceServer, m ProjectModel) diag.Diagnostics {
+func (r ProjectResource) SyncState(ctx context.Context, tfState *tfsdk.State, server lxd.InstanceServer, m ProjectModel, forgetOnNotFound bool) diag.Diagnostics {
 	var respDiags diag.Diagnostics
 
 	projectName := m.Name.ValueString()
 	project, _, err := server.GetProject(projectName)
 	if err != nil {
-		if errors.IsNotFoundError(err) {
+		if forgetOnNotFound && errors.IsNotFoundError(err) {
 			tfState.RemoveResource(ctx)
 			return nil
 		}
 
-		respDiags.AddError(fmt.Sprintf("Failed to retrieve project %q", projectName), err.Error())
+		respDiags.AddError(fmt.Sprintf("Failed to sync state for project %q", projectName), err.Error())
 		return respDiags
 	}
 
