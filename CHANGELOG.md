@@ -1,3 +1,16 @@
+## 3.0.2 (June 29, 2026)
+
+## What's Changed
+
+### Bug Fixes
+* instance: Allow container creation with unknown image by @MusicDin in https://github.com/terraform-lxd/terraform-provider-lxd/pull/750
+
+### Dependency Updates
+* build(deps): bump actions/checkout from 6.0.3 to 7.0.0 in the github-actions group by @dependabot[bot] in https://github.com/terraform-lxd/terraform-provider-lxd/pull/749
+
+### Other Changes
+* docs: Fix file names for volume and volume copy by @MusicDin in https://github.com/terraform-lxd/terraform-provider-lxd/pull/748
+
 ## 3.0.1 (June 25, 2026)
 
 ## What's Changed
