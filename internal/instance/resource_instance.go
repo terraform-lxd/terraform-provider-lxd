@@ -572,7 +572,7 @@ func (r InstanceResource) ValidateConfig(ctx context.Context, req resource.Valid
 	}
 
 	// Ensure empty container cannot be started.
-	if running && (config.Image.IsNull() || config.Image.ValueString() == "") && config.Type.ValueString() == "container" {
+	if running && !config.Image.IsUnknown() && config.Image.ValueString() == "" && config.Type.ValueString() == "container" {
 		resp.Diagnostics.AddAttributeError(
 			path.Root("image"),
 			fmt.Sprintf("Instance %q is a container and requires image", config.Name.ValueString()),
