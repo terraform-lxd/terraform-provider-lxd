@@ -126,6 +126,26 @@ func TestAccInstance_container(t *testing.T) {
 	})
 }
 
+func TestAccInstance_container_with_cached_image(t *testing.T) {
+	instanceName := acctest.GenerateName(2, "-")
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { acctest.PreCheck(t) },
+		ProtoV6ProviderFactories: acctest.ProtoV6ProviderFactories,
+		Steps: []resource.TestStep{
+			{
+				Config: acctest.Provider() + testAccInstance_container_with_cached_image(instanceName),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr("lxd_instance.instance1", "name", instanceName),
+					resource.TestCheckResourceAttr("lxd_instance.instance1", "type", "container"),
+					resource.TestCheckResourceAttr("lxd_instance.instance1", "status", "Running"),
+					resource.TestCheckResourceAttr("lxd_instance.instance1", "running", "true"),
+				),
+			},
+		},
+	})
+}
+
 func TestAccInstance_virtualMachine(t *testing.T) {
 	instanceName := acctest.GenerateName(2, "-")
 
@@ -1693,6 +1713,25 @@ resource "lxd_instance" "instance1" {
   running = false
 }
 	`, name)
+}
+
+func testAccInstance_container_with_cached_image(name string) string {
+	return fmt.Sprintf(`
+resource "lxd_image" "img" {
+  project      = "default"
+  source_image = {
+    image = %q
+    type  = "container"
+  }
+}
+
+resource "lxd_instance" "instance1" {
+  name    = %q
+  type    = "container"
+  image   = lxd_image.img.fingerprint
+  running = true
+}
+	`, acctest.TestImage, name)
 }
 
 func testAccInstance_virtualMachine(name string) string {
