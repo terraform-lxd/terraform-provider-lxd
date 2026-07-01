@@ -357,6 +357,7 @@ func (p *LxdProvider) DataSources(_ context.Context) []func() datasource.DataSou
 		image.NewImageDataSource,
 		instance.NewInstanceDataSource,
 		network.NewNetworkDataSource,
+		network.NewNetworkAclDataSource,
 		profile.NewProfileDataSource,
 		project.NewProjectDataSource,
 		server.NewInfoDataSource,
