@@ -73,12 +73,12 @@ jobs:
           lxc remote add localhost "$(lxc config trust add --name lxd-terraform-provider --quiet)"
 
       - name: Setup MicroCeph
-        uses: canonical/lxd/.github/actions/setup-microceph@0c43c3ca5859deefa9b90577d046eccef8a480a6 # stable-5.21
+        uses: canonical/lxd/.github/actions/setup-microceph@c5184be310b13a8be5d9a5f286bfa1c0c286716e # lxd-5.21.5
         with:
           osd-count: "1"
 
       - name: Download minio/mc
-        uses: canonical/lxd/.github/actions/download-minio@0c43c3ca5859deefa9b90577d046eccef8a480a6 # stable-5.21
+        uses: canonical/lxd/.github/actions/download-minio@c5184be310b13a8be5d9a5f286bfa1c0c286716e # lxd-5.21.5
         if: ${{ startsWith(matrix.channel, '5.21/') || matrix.channel == '6/stable' }}
 
       - name: Configure MinIO

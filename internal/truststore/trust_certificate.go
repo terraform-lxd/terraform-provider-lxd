@@ -146,7 +146,7 @@ func (r *TrustCertificateResource) ModifyPlan(ctx context.Context, req resource.
 		return
 	}
 
-	// We need to parse the certificate ahead of time, and evaluate it's fingerprint.
+	// We need to parse the certificate ahead of time, and evaluate its fingerprint.
 	// If fingerprint has changed, it will force recreation of the certificate.
 	certName := plan.Name.ValueString()
 	certPath := plan.Path.ValueString()
@@ -418,7 +418,7 @@ func ToProjectListType[T string](ctx context.Context, projects []string) (types.
 func ParseCertX509(bytes []byte) (*x509.Certificate, error) {
 	certBlock, _ := pem.Decode(bytes)
 	if certBlock == nil {
-		return nil, fmt.Errorf("Invalid certificate file")
+		return nil, fmt.Errorf("Failed decoding PEM certificate: certificate is not in PEM format")
 	}
 
 	return x509.ParseCertificate(certBlock.Bytes)
