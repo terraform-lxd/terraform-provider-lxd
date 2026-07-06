@@ -146,7 +146,7 @@ func (r *TrustCertificateResource) ModifyPlan(ctx context.Context, req resource.
 		return
 	}
 
-	// We need to parse the certificate ahead of time, and evaluate it's fingerprint.
+	// We need to parse the certificate ahead of time, and evaluate its fingerprint.
 	// If fingerprint has changed, it will force recreation of the certificate.
 	certName := plan.Name.ValueString()
 	certPath := plan.Path.ValueString()
