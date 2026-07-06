@@ -418,14 +418,15 @@ func testAccNetworkLB_withBackendAndPort_noTargetPort(backend api.NetworkLoadBal
 	args := []any{
 		backend.Name,               // 1
 		backend.TargetAddress,      // 2
-		port.ListenPort,            // 3
-		uplinkSubnet.HostIPv4(200), // 4
+		port.Protocol,              // 3
+		port.ListenPort,            // 4
+		uplinkSubnet.HostIPv4(200), // 5
 	}
 
 	lbRes := fmt.Sprintf(`
 resource "lxd_network_lb" "test" {
   network        = lxd_network.ovn.name
-  listen_address = "%[4]s"
+  listen_address = "%[5]s"
 
   backend {
     name           = "%[1]s"
@@ -433,7 +434,8 @@ resource "lxd_network_lb" "test" {
   }
 
   port {
-    listen_port    = "%[3]s"
+    protocol       = "%[3]s"
+    listen_port    = "%[4]s"
     target_backend = ["%[1]s"]
   }
 }
