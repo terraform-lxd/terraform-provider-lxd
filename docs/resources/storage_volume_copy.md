@@ -27,7 +27,7 @@ resource "lxd_storage_volume_copy" "volume1_copy" {
 
 * `name` - **Required** - Name of the storage volume.
 
-* `pool` - **Required** - The storage pool that will receive the copy of the volume copy.
+* `pool` - **Required** - The storage pool that will receive the volume copy.
 
 * `source_pool` - **Required** - The storage pool that hosts the existing volume to use as the source.
 
