@@ -260,6 +260,9 @@ func TestAccNetwork_clusterConfigEmptyMemberOverrides(t *testing.T) {
 	})
 }
 
+// TestAccNetwork_clusterConfigLifecycle verifies member override lifecycle behavior
+// for a clustered network, ensuring override and default member config transitions
+// are applied and tracked correctly across test steps.
 func TestAccNetwork_clusterConfigLifecycle(t *testing.T) {
 	targets := acctest.PreCheckClustering(t, 2)
 	networkName := acctest.GenerateName(2, "-")
@@ -567,6 +570,18 @@ resource "lxd_network" "network" {
 `, networkName)
 }
 
+// testAccNetwork_memberOverrides returns a Terraform configuration for an
+// lxd_network resource with top-level config and per-member overrides.
+//
+// Parameters:
+//   - name: network name for the lxd_network resource.
+//   - networkType: LXD network type (for example "bridge" or "ovn").
+//   - config: top-level network config as key/value pairs.
+//   - memberOverrides: per-cluster-member overrides, keyed by member name,
+//     where each value is a config key/value map for that member.
+//
+// The returned string is deterministic: config keys and member keys are sorted
+// to keep test output stable.
 func testAccNetwork_memberOverrides(name string, networkType string, config map[string]string, memberOverrides map[string]map[string]string) string {
 	var b strings.Builder
 	fmt.Fprintf(&b, `
