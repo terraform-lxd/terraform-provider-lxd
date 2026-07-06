@@ -418,7 +418,7 @@ func ToProjectListType[T string](ctx context.Context, projects []string) (types.
 func ParseCertX509(bytes []byte) (*x509.Certificate, error) {
 	certBlock, _ := pem.Decode(bytes)
 	if certBlock == nil {
-		return nil, fmt.Errorf("Invalid certificate file")
+		return nil, fmt.Errorf("Failed decoding PEM certificate: certificate is not in PEM format")
 	}
 
 	return x509.ParseCertificate(certBlock.Bytes)
