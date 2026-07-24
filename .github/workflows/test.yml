@@ -16,8 +16,7 @@ permissions:
 env:
   TF_ACC: "1"
   GO111MODULE: "on"
-  LXD_GENERATE_CLIENT_CERTS: "true"
-  LXD_ACCEPT_SERVER_CERTIFICATE: "true"
+  LXD_TEST_SERVER: "true"
 
 name: Test
 jobs:
