@@ -3,6 +3,7 @@ package auth
 import (
 	"context"
 	"fmt"
+	"time"
 
 	lxd "github.com/canonical/lxd/client"
 	"github.com/canonical/lxd/shared/api"
@@ -29,6 +30,10 @@ type AuthIdentityModel struct {
 	AuthMethod  types.String `tfsdk:"auth_method"`
 	Certificate types.String `tfsdk:"tls_certificate"`
 	Remote      types.String `tfsdk:"remote"`
+
+	// Computed.
+	TrustToken types.String `tfsdk:"trust_token"`
+	ExpiresAt  types.String `tfsdk:"expires_at"`
 }
 
 // AuthIdentityResource manages LXD identity entries.
@@ -72,13 +77,30 @@ func (r AuthIdentityResource) Schema(_ context.Context, _ resource.SchemaRequest
 				},
 			},
 
+			// Computed, because a pending TLS identity receives its certificate when an untrusted client
+			// redeems the issued trust token.
 			"tls_certificate": schema.StringAttribute{
 				Optional:  true,
+				Computed:  true,
 				Sensitive: true,
+				Validators: []validator.String{
+					stringvalidator.LengthAtLeast(1),
+				},
 			},
 
 			"remote": schema.StringAttribute{
 				Optional: true,
+			},
+
+			// Computed.
+
+			"trust_token": schema.StringAttribute{
+				Computed:  true,
+				Sensitive: true,
+			},
+
+			"expires_at": schema.StringAttribute{
+				Computed: true,
 			},
 		},
 	}
@@ -123,17 +145,52 @@ func (r AuthIdentityResource) Create(ctx context.Context, req resource.CreateReq
 		return
 	}
 
+	// Whether the certificate is set must be determined from the configuration, because the
+	// attribute is computed and therefore indistinguishable from an empty value in the plan.
+	var configTLSCertificate types.String
+
+	resp.Diagnostics.Append(req.Config.GetAttribute(ctx, path.Root("tls_certificate"), &configTLSCertificate)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	hasTLSCertificate := !configTLSCertificate.IsNull()
+
+	// A trust token is issued only when creating a pending TLS identity.
+	plan.TrustToken = types.StringNull()
+	plan.ExpiresAt = types.StringNull()
+
 	switch identityAuthMethod {
 	case "tls":
-		req := api.IdentitiesTLSPost{
-			Name:        identityName,
-			Groups:      identityGroupNames,
-			Certificate: identityTLSCertificate,
-		}
+		if hasTLSCertificate {
+			req := api.IdentitiesTLSPost{
+				Name:        identityName,
+				Groups:      identityGroupNames,
+				Certificate: identityTLSCertificate,
+			}
 
-		err = server.CreateIdentityTLS(req)
+			err = server.CreateIdentityTLS(req)
+		} else {
+			// Without a certificate, LXD creates the identity in a pending state and issues a trust token.
+			// The token is returned only here and can never be retrieved from the server afterwards.
+			// An untrusted client redeems it to enroll its own certificate, which moves the identity out of
+			// the pending state.
+			req := api.IdentitiesTLSPost{
+				Name:   identityName,
+				Groups: identityGroupNames,
+				Token:  true,
+			}
+
+			var token *api.CertificateAddToken
+
+			token, err = server.CreateIdentityTLSToken(req)
+			if err == nil {
+				plan.TrustToken = types.StringValue(token.String())
+				plan.ExpiresAt = tokenExpiry(token.ExpiresAt)
+			}
+		}
 	case "bearer":
-		if identityTLSCertificate != "" {
+		if hasTLSCertificate {
 			resp.Diagnostics.AddError(
 				fmt.Sprintf("Invalid %q identity %q", identityName, identityAuthMethod),
 				"Certificate must not be set for identities with authentication method bearer",
@@ -216,10 +273,26 @@ func (r AuthIdentityResource) Update(ctx context.Context, req resource.UpdateReq
 		return
 	}
 
-	_, etag, err := server.GetIdentity(identityAuthMethod, identityName)
+	// Whether the certificate is set must be determined from the configuration, because the
+	// attribute is computed and therefore indistinguishable from an empty value in the plan.
+	var configTLSCertificate types.String
+
+	resp.Diagnostics.Append(req.Config.GetAttribute(ctx, path.Root("tls_certificate"), &configTLSCertificate)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	identity, etag, err := server.GetIdentity(identityAuthMethod, identityName)
 	if err != nil {
 		resp.Diagnostics.AddError(fmt.Sprintf("Failed to retrieve existing %q identity %q", identityAuthMethod, identityName), err.Error())
 		return
+	}
+
+	if configTLSCertificate.IsNull() {
+		// Carry over the certificate that is stored on the server.
+		// Without this, an update that touches only the groups would clear the certificate of an identity
+		// that obtained it by redeeming a trust token.
+		identityTLSCertificate = identity.TLSCertificate
 	}
 
 	identityUpdateReq := api.IdentityPut{
@@ -232,6 +305,13 @@ func (r AuthIdentityResource) Update(ctx context.Context, req resource.UpdateReq
 		resp.Diagnostics.AddError(fmt.Sprintf("Failed to update %q identity %q", identityAuthMethod, identityName), err.Error())
 		return
 	}
+
+	// The trust token is returned only on creation and cannot be retrieved from the server, so the
+	// prior state holds the only copy.
+	// Both attributes are computed and therefore unknown in the plan, which would discard the token
+	// of an identity that is still pending.
+	plan.TrustToken = state.TrustToken
+	plan.ExpiresAt = state.ExpiresAt
 
 	diags := r.SyncState(ctx, &resp.State, server, plan, false)
 	resp.Diagnostics.Append(diags...)
@@ -261,6 +341,54 @@ func (r AuthIdentityResource) Delete(ctx context.Context, req resource.DeleteReq
 	}
 }
 
+// ModifyPlan forces replacement of a pending TLS identity in two cases: its trust token has
+// expired, or a certificate has been configured for it.
+// LXD has no endpoint to reissue a token for an existing identity, and it refuses to set a
+// certificate on an identity that is still pending.
+// Either way the only way forward is to delete the identity and create it again.
+func (r AuthIdentityResource) ModifyPlan(ctx context.Context, req resource.ModifyPlanRequest, resp *resource.ModifyPlanResponse) {
+	// Skip on create (no prior state) and destroy (no plan).
+	if req.State.Raw.IsNull() || req.Plan.Raw.IsNull() {
+		return
+	}
+
+	var state AuthIdentityModel
+	var config AuthIdentityModel
+
+	resp.Diagnostics.Append(req.State.Get(ctx, &state)...)
+	resp.Diagnostics.Append(req.Config.Get(ctx, &config)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	// A pending identity is the only TLS identity that LXD reports without a certificate.
+	isPending := state.AuthMethod.ValueString() == "tls" && state.Certificate.IsNull()
+
+	// The attribute that is reported as forcing the replacement.
+	var replaceOn path.Path
+
+	switch {
+	case isTrustTokenExpired(isPending, state.ExpiresAt, time.Now()):
+		replaceOn = path.Root("trust_token")
+		resp.Diagnostics.AddWarning(
+			"Trust token expired",
+			fmt.Sprintf("The trust token for pending TLS identity %q has expired, so Terraform must replace the identity to issue a new token.", state.Name.ValueString()),
+		)
+	case isCertificateSetOnPending(isPending, config.Certificate):
+		replaceOn = path.Root("tls_certificate")
+	default:
+		return
+	}
+
+	// The replacement is created from scratch, so no computed attribute can be carried over from the
+	// prior state.
+	// An identity created with a certificate is active and has no trust token, one created without is
+	// pending and has a new one, and neither is known before apply.
+	resp.RequiresReplace = append(resp.RequiresReplace, replaceOn)
+	resp.Diagnostics.Append(resp.Plan.SetAttribute(ctx, path.Root("trust_token"), types.StringUnknown())...)
+	resp.Diagnostics.Append(resp.Plan.SetAttribute(ctx, path.Root("expires_at"), types.StringUnknown())...)
+}
+
 // TaintState marks the state with identity fields required to target the identity.
 func (m AuthIdentityModel) TaintState(ctx context.Context, tfState *tfsdk.State) diag.Diagnostics {
 	var diags diag.Diagnostics
@@ -268,6 +396,11 @@ func (m AuthIdentityModel) TaintState(ctx context.Context, tfState *tfsdk.State)
 	diags.Append(tfState.SetAttribute(ctx, path.Root("name"), m.Name.ValueString())...)
 	diags.Append(tfState.SetAttribute(ctx, path.Root("auth_method"), m.AuthMethod.ValueString())...)
 	diags.Append(tfState.SetAttribute(ctx, path.Root("remote"), m.Remote.ValueString())...)
+
+	// The trust token is returned only on creation and cannot be retrieved from the server.
+	// Persist it before the remaining state is synced, so that it is not lost if syncing fails.
+	diags.Append(tfState.SetAttribute(ctx, path.Root("trust_token"), m.TrustToken)...)
+	diags.Append(tfState.SetAttribute(ctx, path.Root("expires_at"), m.ExpiresAt)...)
 
 	return diags
 }
@@ -291,8 +424,19 @@ func (r AuthIdentityResource) SyncState(ctx context.Context, tfState *tfsdk.Stat
 
 	m.Name = types.StringValue(identity.Name)
 	m.AuthMethod = types.StringValue(identityAuthMethod)
+
 	if identity.TLSCertificate != "" {
 		m.Certificate = types.StringValue(identity.TLSCertificate)
+	} else {
+		m.Certificate = types.StringNull()
+	}
+
+	// The trust token is single use.
+	// Once the identity leaves the pending state the token has been consumed and no longer refers to
+	// anything.
+	if identity.Type != api.IdentityTypeCertificateClientPending {
+		m.TrustToken = types.StringNull()
+		m.ExpiresAt = types.StringNull()
 	}
 
 	groups, diags := common.ToStringSetType(ctx, identity.Groups)
@@ -331,4 +475,55 @@ func (r *AuthIdentityResource) ImportState(ctx context.Context, req resource.Imp
 
 		resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root(k), v)...)
 	}
+}
+
+// tokenExpiry converts a trust token expiry into a Terraform value.
+// LXD returns a zero time when core.remote_token_expiry is disabled, which means the issued token
+// does not expire.
+func tokenExpiry(expiresAt time.Time) types.String {
+	if expiresAt.IsZero() {
+		return types.StringNull()
+	}
+
+	return types.StringValue(expiresAt.UTC().Format(time.RFC3339))
+}
+
+// isTrustTokenExpired reports whether an identity is still pending and its trust token can no
+// longer be redeemed.
+// Such an identity is unusable, and because LXD cannot reissue a token, it has to be replaced.
+func isTrustTokenExpired(isPending bool, expiresAt types.String, now time.Time) bool {
+	if !isPending {
+		return false
+	}
+
+	// A token without an expiry remains valid indefinitely.
+	if expiresAt.IsNull() || expiresAt.IsUnknown() {
+		return false
+	}
+
+	parsed, err := time.Parse(time.RFC3339, expiresAt.ValueString())
+	if err != nil {
+		return false
+	}
+
+	return now.After(parsed)
+}
+
+// isCertificateSetOnPending reports whether a certificate is configured for an identity that is
+// still pending.
+// LXD rejects such an update, so the identity has to be replaced, which also invalidates the
+// outstanding trust token.
+//
+// The certificate is taken from the configuration rather than the plan.
+// While the identity is pending its certificate is null in state, and because the attribute is
+// computed the framework marks it unknown in the plan whether or not one was configured, which
+// makes the two cases indistinguishable there.
+func isCertificateSetOnPending(isPending bool, configCertificate types.String) bool {
+	if !isPending {
+		return false
+	}
+
+	// An unknown certificate is one that is configured but not yet computed.
+	// It still means the identity is about to receive one.
+	return !configCertificate.IsNull()
 }
