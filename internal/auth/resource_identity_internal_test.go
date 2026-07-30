@@ -109,3 +109,30 @@ func TestIsCertificateSetOnPending(t *testing.T) {
 		})
 	}
 }
+
+func TestExpiryPattern(t *testing.T) {
+	tests := []struct {
+		expiry   string
+		expected bool
+	}{
+		{"30d", true},
+		{"1H 30M", true},
+		{"0H 5M", true},
+		{"0S", false},
+		{"0H 0M", false},
+		{"00S", false},
+		{"", false},
+		{"1H30M", false},
+		{"30x", false},
+	}
+
+	for _, test := range tests {
+		t.Run(test.expiry, func(t *testing.T) {
+			t.Parallel()
+			// The schema applies both validators, so an expiry is accepted only
+			// when it is a valid duration list and is greater than zero.
+			valid := expiryPattern.MatchString(test.expiry) && expiryNonZeroPattern.MatchString(test.expiry)
+			require.Equal(t, test.expected, valid)
+		})
+	}
+}
