@@ -12,6 +12,7 @@ import (
 	"testing"
 	"time"
 
+	lxd "github.com/canonical/lxd/client"
 	"github.com/canonical/lxd/shared"
 	"github.com/canonical/lxd/shared/api"
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
@@ -186,15 +187,23 @@ func PreCheckRoot(t *testing.T) {
 	}
 }
 
-// PreCheckLocalServerHTTPS skips the test if the server is not exposed on the localhost
-// over port 8443. This is required for remote provider tests.
-func PreCheckLocalServerHTTPS(t *testing.T) {
-	conn, err := net.DialTimeout("tcp", "127.0.0.1:8443", 1*time.Second)
+// PreCheckLocalServerHTTPS skips the test if the LXD server is not reachable over HTTPS.
+// Additionally, it returns the server's HTTPS address. If the test remote is a unix
+// socket, the local HTTPS address is used instead.
+func PreCheckLocalServerHTTPS(t *testing.T) string {
+	address := testRemotes()[testProviderRemoteName].Address
+	if strings.HasPrefix(address, "unix://") {
+		address = "https://127.0.0.1:8443"
+	}
+
+	conn, err := net.DialTimeout("tcp", strings.TrimPrefix(address, "https://"), 1*time.Second)
 	if err != nil {
-		t.Skip(`Skipping remote provider test. LXD is not available on "https://127.0.0.1:8443"`)
+		t.Skipf("Test %q skipped. LXD server is not available on %q.", t.Name(), address)
 	}
 
 	_ = conn.Close()
+
+	return address
 }
 
 // ConfigureTrustPassword sets and returns the trust password. If the server
@@ -303,6 +312,38 @@ func GenerateClientCertificate(t *testing.T) (clientCert string, clientKey strin
 	}
 
 	return clientCert, clientKey, cleanup
+}
+
+// RedeemTrustToken redeems a trust token that was issued for a pending TLS identity.
+// It connects to the LXD server as an untrusted client and enrolls the given client certificate,
+// which moves the identity out of the pending state.
+func RedeemTrustToken(t *testing.T, token string, clientCert string, clientKey string) {
+	// The token can only be redeemed on the server that issued it.
+	address := PreCheckLocalServerHTTPS(t)
+
+	// The client is not trusted yet, so the server certificate cannot be verified against a previously
+	// accepted fingerprint.
+	args := &lxd.ConnectionArgs{
+		TLSClientCert:      clientCert,
+		TLSClientKey:       clientKey,
+		InsecureSkipVerify: true,
+	}
+
+	untrustedServer, err := lxd.ConnectLXD(address, args)
+	if err != nil {
+		t.Fatalf("Failed to connect to LXD server as an untrusted client: %v", err)
+	}
+
+	// Only the trust token may be provided.
+	// LXD enrolls the client certificate that was presented during the TLS handshake.
+	identityPost := api.IdentitiesTLSPost{
+		TrustToken: token,
+	}
+
+	err = untrustedServer.CreateIdentityTLS(identityPost)
+	if err != nil {
+		t.Fatalf("Failed to redeem trust token: %v", err)
+	}
 }
 
 // ConfigureMutualTLS generates a new client certificate and key, adds the
