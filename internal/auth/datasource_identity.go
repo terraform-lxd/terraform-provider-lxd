@@ -3,6 +3,7 @@ package auth
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
@@ -23,6 +24,7 @@ type AuthIdentityDataSourceModel struct {
 	Identifier  types.String `tfsdk:"identifier"`
 	Groups      types.Set    `tfsdk:"groups"`
 	Certificate types.String `tfsdk:"tls_certificate"`
+	ExpiresAt   types.String `tfsdk:"expires_at"`
 }
 
 // AuthIdentityDataSource reads LXD identities.
@@ -71,6 +73,11 @@ func (r AuthIdentityDataSource) Schema(_ context.Context, _ datasource.SchemaReq
 
 			"identifier": schema.StringAttribute{
 				Computed: true,
+			},
+
+			"expires_at": schema.StringAttribute{
+				Computed:    true,
+				Description: "Expiry of the identity's credential, in RFC3339 format. For bearer identities this is the expiry of the token that the identity currently bears.",
 			},
 		},
 	}
@@ -124,6 +131,12 @@ func (r *AuthIdentityDataSource) Read(ctx context.Context, req datasource.ReadRe
 	config.Identifier = types.StringValue(identity.Identifier)
 	config.Certificate = types.StringValue(identity.TLSCertificate)
 	config.Groups = groups
+
+	// The expiry is reported only for identities whose credential expires.
+	config.ExpiresAt = types.StringNull()
+	if identity.ExpiresAt != nil {
+		config.ExpiresAt = types.StringValue(identity.ExpiresAt.UTC().Format(time.RFC3339))
+	}
 
 	resp.Diagnostics.Append(resp.State.Set(ctx, &config)...)
 }
