@@ -99,7 +99,6 @@ func TestAccNetworkLB_withBackendOnly(t *testing.T) {
 			{
 				Config: acctest.Provider() + testAccNetworkLB_withBackend(backend1, uplinkSubnet, ovnSubnet),
 				Check: resource.ComposeTestCheckFunc(
-					acctest.PrintResourceState(t, "lxd_network_lb.test"),
 					resource.TestCheckResourceAttr("lxd_network.ovnbr", "name", "ovnbr"),
 					resource.TestCheckResourceAttr("lxd_network.ovn", "name", "ovn"),
 					resource.TestCheckResourceAttr("lxd_network_lb.test", "network", "ovn"),
@@ -112,7 +111,6 @@ func TestAccNetworkLB_withBackendOnly(t *testing.T) {
 			{
 				Config: acctest.Provider() + testAccNetworkLB_withBackend(backend2, uplinkSubnet, ovnSubnet),
 				Check: resource.ComposeTestCheckFunc(
-					acctest.PrintResourceState(t, "lxd_network_lb.test"),
 					resource.TestCheckResourceAttr("lxd_network.ovnbr", "name", "ovnbr"),
 					resource.TestCheckResourceAttr("lxd_network.ovn", "name", "ovn"),
 					resource.TestCheckResourceAttr("lxd_network_lb.test", "network", "ovn"),
