@@ -47,6 +47,29 @@ func TestAccNetwork_basic(t *testing.T) {
 	})
 }
 
+// TestAccNetwork_unknownConfigValue verifies that a network can be created
+// with a config value that is only known after apply (e.g. sourced from
+// another resource applied in the same plan). Regression test for the
+// ModifyPlan config parsing failing on unknown values within an otherwise
+// known config map.
+func TestAccNetwork_unknownConfigValue(t *testing.T) {
+	networkName := acctest.GenerateName(2, "-")
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { acctest.PreCheck(t) },
+		ProtoV6ProviderFactories: acctest.ProtoV6ProviderFactories,
+		Steps: []resource.TestStep{
+			{
+				Config: acctest.Provider() + testAccNetwork_unknownConfigValue(networkName),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr("lxd_network.network", "name", networkName),
+					resource.TestCheckResourceAttrWith("lxd_network.network", "config.ipv4.address", isCIDR),
+				),
+			},
+		},
+	})
+}
+
 func TestAccNetwork_description(t *testing.T) {
 	networkName := acctest.GenerateName(2, "-")
 	subnet := acctest.GenerateSubnet()
@@ -453,6 +476,28 @@ func testAccNetwork_basic(networkName string) string {
 	return fmt.Sprintf(`
 resource "lxd_network" "network" {
   name = "%s"
+}
+`, networkName)
+}
+
+func testAccNetwork_unknownConfigValue(networkName string) string {
+	return fmt.Sprintf(`
+resource "terraform_data" "unknown_value" {}
+
+locals {
+  # A value only known after apply (terraform_data.id is a random UUID
+  # assigned on create), simulating e.g. an externally allocated subnet
+  # resolved via a depends_on chain.
+  unknown_octet = parseint(substr(replace(terraform_data.unknown_value.id, "-", ""), 0, 1), 16)
+}
+
+resource "lxd_network" "network" {
+  name = "%s"
+  type = "bridge"
+
+  config = {
+    "ipv4.address" = "10.201.${local.unknown_octet}.1/24"
+  }
 }
 `, networkName)
 }
