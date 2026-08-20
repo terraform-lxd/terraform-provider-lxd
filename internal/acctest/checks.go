@@ -150,6 +150,15 @@ func PreCheckStandalone(t *testing.T) {
 	}
 }
 
+// PreCheckServerTests skips the test unless the LXD_TEST_SERVER environment
+// variable is set to a truthy value. Server tests modify global LXD server
+// configuration and are therefore opt-in.
+func PreCheckServerTests(t *testing.T) {
+	if !shared.IsTrue(os.Getenv("LXD_TEST_SERVER")) {
+		t.Skipf("Test %q skipped. LXD_TEST_SERVER is not set to %q.", t.Name(), "true")
+	}
+}
+
 // PreCheckCeph skips the test unless a Ceph cluster is available for acceptance
 // testing. It returns the Ceph cluster name, the CephFS file system name, and
 // the Ceph Object Gateway endpoint, all read from the LXD_CEPH_CLUSTER,
