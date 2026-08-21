@@ -2,6 +2,7 @@ package auth_test
 
 import (
 	"fmt"
+	"regexp"
 	"testing"
 	"time"
 
@@ -73,25 +74,51 @@ func TestAccIdentityToken_devlxdSocket(t *testing.T) {
 	instance := acctest.GenerateName(2, "-")
 	pool := acctest.GenerateName(2, "-")
 	network := acctest.GenerateName(2, "-")
+	volume := acctest.GenerateName(2, "-")
+
+	instanceName := "lxd_instance.instance"
 
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			acctest.PreCheck(t)
-			acctest.PreCheckAPIExtensions(t, "auth_bearer_devlxd", "access_management_expiry")
+			acctest.PreCheckAPIExtensions(t, "auth_bearer_devlxd", "access_management_expiry", "devlxd_volume_management")
 		},
 		ProtoV6ProviderFactories: acctest.ProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
 				// The token of a devlxd identity must be accepted by the DevLXD
 				// API, which is verified by listing the volumes of an empty
-				// storage pool from within the instance.
-				Config: acctest.Provider() + testAccIdentityToken_devlxdSocket(identity, group, instance, pool, network),
+				// storage pool and creating one from within the instance. The
+				// created volume is owned by the identity that created it.
+				Config: acctest.Provider() + testAccIdentityToken_devlxdSocket(identity, group, instance, pool, network, volume, false),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttrSet("lxd_auth_identity_token.token", "token"),
-					resource.TestCheckResourceAttr("lxd_instance.instance", "status", "Running"),
-					resource.TestCheckResourceAttr("lxd_instance.instance", "execs.01-install-curl.exit_code", "0"),
-					resource.TestCheckResourceAttr("lxd_instance.instance", "execs.02-list-volumes.exit_code", "0"),
-					resource.TestCheckResourceAttr("lxd_instance.instance", "execs.02-list-volumes.stdout", "200 []"),
+					resource.TestCheckResourceAttr(instanceName, "status", "Running"),
+					resource.TestCheckResourceAttr(instanceName, "execs.01-install-curl.exit_code", "0"),
+					resource.TestCheckResourceAttr(instanceName, "execs.02-list-volumes.exit_code", "0"),
+					resource.TestCheckResourceAttr(instanceName, "execs.02-list-volumes.stdout", "200 []"),
+					resource.TestCheckResourceAttr(instanceName, "execs.03-create-volume.exit_code", "0"),
+					resource.TestMatchResourceAttr(instanceName, "execs.03-create-volume.stdout", regexp.MustCompile(`"name":"`+volume+`"`)),
+					resource.TestMatchResourceAttr(instanceName, "execs.03-create-volume.stdout", regexp.MustCompile(`"volatile\.devlxd\.owner":`)),
+				),
+			},
+			{
+				// The volume is not managed by Terraform, therefore it produces
+				// no drift.
+				Config: acctest.Provider() + testAccIdentityToken_devlxdSocket(identity, group, instance, pool, network, volume, false),
+				ConfigPlanChecks: resource.ConfigPlanChecks{
+					PreApply: []plancheck.PlanCheck{
+						plancheck.ExpectEmptyPlan(),
+					},
+				},
+			},
+			{
+				// Terraform cannot remove a volume it does not manage, and the
+				// storage pool cannot be destroyed while the volume exists, so
+				// the volume is removed over the DevLXD socket.
+				Config: acctest.Provider() + testAccIdentityToken_devlxdSocket(identity, group, instance, pool, network, volume, true),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr(instanceName, "execs.04-delete-volume.exit_code", "0"),
 				),
 			},
 		},
@@ -307,7 +334,75 @@ printf '%s %s' "$status" "$(cat /tmp/volumes)"
 test "$status" = "200"
 `
 
-func testAccIdentityToken_devlxdSocket(name string, group string, instance string, pool string, network string) string {
+// devlxdCreateVolume creates a custom storage volume over the DevLXD socket and
+// prints the volumes that the identity owns in the pool. Volume creation is
+// asynchronous, therefore the volumes are polled for until the new one appears.
+const devlxdCreateVolume = `
+curl \
+  -s \
+  -f \
+  -o /dev/null \
+  --unix-socket /dev/lxd/sock \
+  -H "Authorization: Bearer $TOKEN" \
+  -X POST \
+  --data "{\"name\": \"$VOLUME\", \"type\": \"custom\", \"content_type\": \"filesystem\"}" \
+  "http://localhost/1.0/storage-pools/$POOL/volumes"
+
+for _ in $(seq 10); do
+  volumes=$(curl -s --unix-socket /dev/lxd/sock -H "Authorization: Bearer $TOKEN" \
+    "http://localhost/1.0/storage-pools/$POOL/volumes?recursion=1")
+
+  echo "$volumes" | grep -q "\"name\":\"$VOLUME\"" && break
+  sleep 1
+done
+
+printf '%s' "$volumes"
+echo "$volumes" | grep -q "\"name\":\"$VOLUME\""
+`
+
+// devlxdDeleteVolume removes the storage volume over the DevLXD socket. Volume
+// deletion is asynchronous, therefore the volumes are polled for until the
+// removed one is gone.
+const devlxdDeleteVolume = `
+curl \
+  -s \
+  -f \
+  -o /dev/null \
+  --unix-socket /dev/lxd/sock \
+  -H "Authorization: Bearer $TOKEN" \
+  -X DELETE \
+  "http://localhost/1.0/storage-pools/$POOL/volumes/custom/$VOLUME"
+
+for _ in $(seq 10); do
+  volumes=$(curl -s --unix-socket /dev/lxd/sock -H "Authorization: Bearer $TOKEN" \
+    "http://localhost/1.0/storage-pools/$POOL/volumes?recursion=1")
+
+  echo "$volumes" | grep -q "\"name\":\"$VOLUME\"" || exit 0
+  sleep 1
+done
+
+exit 1
+`
+
+func testAccIdentityToken_devlxdSocket(name string, group string, instance string, pool string, network string, volume string, deleteVolume bool) string {
+	deleteExec := ""
+	if deleteVolume {
+		deleteExec = fmt.Sprintf(`
+		    "04-delete-volume" = {
+		      command       = ["sh", "-c", %q]
+		      trigger       = "once"
+		      fail_on_error = true
+		      record_output = true
+
+		      environment = {
+		        TOKEN  = lxd_auth_identity_token.token.token
+		        POOL   = lxd_storage_pool.pool.name
+		        VOLUME = %q
+		      }
+		    }
+		`, devlxdDeleteVolume, volume)
+	}
+
 	return fmt.Sprintf(`
 		resource "lxd_storage_pool" "pool" {
 		  name   = %q
@@ -399,6 +494,20 @@ func testAccIdentityToken_devlxdSocket(name string, group string, instance strin
 		        POOL  = lxd_storage_pool.pool.name
 		      }
 		    }
+
+		    "03-create-volume" = {
+		      command       = ["sh", "-c", %q]
+		      trigger       = "once"
+		      fail_on_error = true
+		      record_output = true
+
+		      environment = {
+		        TOKEN  = lxd_auth_identity_token.token.token
+		        POOL   = lxd_storage_pool.pool.name
+		        VOLUME = %q
+		      }
+		    }
+		    %s
 		  }
 		}
 	`,
@@ -409,6 +518,9 @@ func testAccIdentityToken_devlxdSocket(name string, group string, instance strin
 		instance,
 		acctest.TestImage,
 		devlxdListVolumes,
+		devlxdCreateVolume,
+		volume,
+		deleteExec,
 	)
 }
 
