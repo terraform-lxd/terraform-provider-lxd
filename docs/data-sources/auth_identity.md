@@ -15,7 +15,7 @@ data "lxd_auth_identity" "id" {
 
 * `name` - **Required** - Name of the identity.
 
-* `type` - **Required** - Identity type, can be `tls`, `bearer`, or `oidc`.
+* `type` - **Required** - Identity type, can be `tls`, `bearer`, `devlxd`, or `oidc`.
   See [Note on `auth_method`](#note-on-auth_method).
 
 * `remote` - *Optional* - The remote in which the resource will be created. If
