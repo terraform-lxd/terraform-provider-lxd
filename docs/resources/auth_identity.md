@@ -13,6 +13,14 @@ resource "lxd_auth_identity" "bearer-identity" {
 ```
 
 ```hcl
+resource "lxd_auth_identity" "devlxd-identity" {
+  type   = "devlxd"
+  name   = "devlxd-server-admin"
+  groups = ["admins"]
+}
+```
+
+```hcl
 resource "lxd_auth_identity" "tls-identity" {
   type            = "tls"
   name            = "tls-server-admin"
@@ -48,7 +56,7 @@ Requires the `access_management_tls` API extension.
 
 * `name` - **Required** - Name of the identity.
 
-* `type` - **Required** - Identity type, can be `tls` or `bearer`.
+* `type` - **Required** - Identity type, can be `tls`, `bearer`, or `devlxd`.
 
 * `groups` - *Optional* - List of group names to add this identity to.
 
@@ -78,8 +86,10 @@ This resource exports the following attributes in addition to the arguments abov
 `tls_certificate` attribute. If the certificate is omitted, the identity is created in a
 pending state and a trust token is issued instead.
 
-`bearer` identities authenticate using a token, which is issued with the
-[`lxd_auth_identity_token`](auth_identity_token.md) resource and is accepted by the LXD API.
+`bearer` and `devlxd` identities authenticate using a token, which is issued with the
+[`lxd_auth_identity_token`](auth_identity_token.md) resource. Both use the LXD `bearer`
+authentication method and differ only in where their tokens are accepted. A `bearer` token is
+accepted by the LXD API, and a `devlxd` token is accepted by the DevLXD API within an instance.
 
 ## Pending TLS trust token lifecycle
 
@@ -107,12 +117,16 @@ Import ID syntax: `[<remote>:]/<type>/<name>`
 * `<type>` - **Required** - Identity type.
 * `<name>` - **Required** - Identity name.
 
+An identity can also be imported through its authentication method, `bearer` or `tls`. The read that
+follows the import records the identity type reported by the server, so a `devlxd` identity imported
+as `bearer/<name>` ends up with `type = "devlxd"`.
+
 ### Import example
 
 Example using terraform import command:
 
 ```shell
-$ terraform import lxd_auth_identity.myidentity /bearer/identity1
+$ terraform import lxd_auth_identity.myidentity /devlxd/identity1
 ```
 
 Example using the import block:
@@ -120,12 +134,12 @@ Example using the import block:
 ```hcl
 resource "lxd_auth_identity" "myidentity" {
   name = "identity1"
-  type = "bearer"
+  type = "devlxd"
 }
 
 import {
   to = lxd_auth_identity.myidentity
-  id = "/bearer/identity1"
+  id = "/devlxd/identity1"
 }
 ```
 
