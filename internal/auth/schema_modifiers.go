@@ -39,10 +39,13 @@ func (m authMethodModifier) PlanModifyString(ctx context.Context, req planmodifi
 		return
 	}
 
-	// Every identity type is also an authentication method, so the value is
-	// taken as it is. An unknown identity type makes the authentication method
-	// unknown.
-	resp.PlanValue = identityType
+	// An unknown identity type makes the authentication method unknown.
+	if identityType.IsUnknown() {
+		resp.PlanValue = types.StringUnknown()
+		return
+	}
+
+	resp.PlanValue = types.StringValue(toAuthMethod(identityType.ValueString()))
 }
 
 // identityTypeModifier derives the planned type from the configured auth_method.
@@ -73,9 +76,9 @@ func (m identityTypeModifier) PlanModifyString(ctx context.Context, req planmodi
 		return
 	}
 
-	// Every authentication method is also an identity type, so the value is
-	// taken as it is. An unknown authentication method makes the identity type
-	// unknown.
+	// Attribute auth_method cannot hold devlxd, and every authentication method
+	// it can hold is also an identity type, so the value is taken as it is. An
+	// unknown authentication method makes the identity type unknown.
 	resp.PlanValue = authMethod
 }
 
