@@ -1,14 +1,15 @@
 # lxd_auth_identity_token
 
 The `lxd_auth_identity_token` resource allows you to issue a token for an LXD
-identity of type `bearer`.
+identity of type `bearer` or `devlxd`.
 
 ## Required API extensions
 
 The target LXD server must support the following API extensions:
 
 * `access_management_expiry`
-* `auth_bearer`
+* `auth_bearer` - For identities of type `bearer`.
+* `auth_bearer_devlxd` - For identities of type `devlxd`.
 
 ~> **Warning:** The issued token is stored in the Terraform state in plain text.
   Anyone who can read the state can authenticate against the LXD server as the
