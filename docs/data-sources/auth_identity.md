@@ -6,7 +6,7 @@ Provides information about an existing LXD identity.
 
 ```hcl
 data "lxd_auth_identity" "id" {
-  type = "bearer"
+  type = "devlxd"
   name = "my-identity"
 }
 ```
@@ -15,8 +15,9 @@ data "lxd_auth_identity" "id" {
 
 * `name` - **Required** - Name of the identity.
 
-* `type` - *Optional* - Identity type, can be `tls`, `bearer`, or `oidc`. Exactly one of `type` and
-  `auth_method` must be set.
+* `type` - *Optional* - Identity type, can be `tls`, `bearer`, `devlxd`, or `oidc`. The lookup fails
+  if the identity that is found is of another type. Exactly one of `type` and `auth_method` must be
+  set.
 
 * `auth_method` - *Optional* - Authentication method, can be `tls`, `bearer`, or `oidc`. Exactly one
   of `type` and `auth_method` must be set.
