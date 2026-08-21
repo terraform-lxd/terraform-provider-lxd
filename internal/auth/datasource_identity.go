@@ -17,6 +17,7 @@ import (
 
 type AuthIdentityDataSourceModel struct {
 	Name       types.String `tfsdk:"name"`
+	Type       types.String `tfsdk:"type"`
 	AuthMethod types.String `tfsdk:"auth_method"`
 	Remote     types.String `tfsdk:"remote"`
 
@@ -48,8 +49,17 @@ func (r AuthIdentityDataSource) Schema(_ context.Context, _ datasource.SchemaReq
 				Required: true,
 			},
 
+			"type": schema.StringAttribute{
+				Optional: true,
+				Computed: true,
+				Validators: []validator.String{
+					stringvalidator.OneOf("tls", "bearer", "oidc"),
+				},
+			},
+
 			"auth_method": schema.StringAttribute{
-				Required: true,
+				Optional: true,
+				Computed: true,
 				Validators: []validator.String{
 					stringvalidator.OneOf("tls", "bearer", "oidc"),
 				},
@@ -98,6 +108,12 @@ func (r *AuthIdentityDataSource) Configure(_ context.Context, req datasource.Con
 	r.provider = provider
 }
 
+func (r AuthIdentityDataSource) ConfigValidators(_ context.Context) []datasource.ConfigValidator {
+	return []datasource.ConfigValidator{
+		identityTypeValidator{warnOnAuthMethod: false},
+	}
+}
+
 func (r *AuthIdentityDataSource) Read(ctx context.Context, req datasource.ReadRequest, resp *datasource.ReadResponse) {
 	var config AuthIdentityDataSourceModel
 	resp.Diagnostics.Append(req.Config.Get(ctx, &config)...)
@@ -113,11 +129,28 @@ func (r *AuthIdentityDataSource) Read(ctx context.Context, req datasource.ReadRe
 	}
 
 	identityName := config.Name.ValueString()
+	identityType := config.Type.ValueString()
 	identityAuthMethod := config.AuthMethod.ValueString()
+
+	// Exactly one of the two is configured, and each derives the other. Every
+	// authentication method is also an identity type.
+	if identityAuthMethod == "" {
+		identityAuthMethod = identityType
+	} else {
+		identityType = identityAuthMethod
+	}
+
 	identity, _, err := server.GetIdentity(identityAuthMethod, identityName)
 	if err != nil {
-		resp.Diagnostics.AddError(fmt.Sprintf("Failed to retrieve %q identity %q", identityAuthMethod, identityName), err.Error())
+		resp.Diagnostics.AddError(fmt.Sprintf("Failed to retrieve %q identity %q", identityType, identityName), err.Error())
 		return
+	}
+
+	// The identity type is taken from the server. LXD identity types that the
+	// provider cannot name keep the identity type that was asked for.
+	serverType := toType(identity.Type)
+	if serverType != "" {
+		identityType = serverType
 	}
 
 	groups, diags := common.ToStringSetType(ctx, identity.Groups)
@@ -127,6 +160,7 @@ func (r *AuthIdentityDataSource) Read(ctx context.Context, req datasource.ReadRe
 	}
 
 	config.Name = types.StringValue(identity.Name)
+	config.Type = types.StringValue(identityType)
 	config.AuthMethod = types.StringValue(identity.AuthenticationMethod)
 	config.Identifier = types.StringValue(identity.Identifier)
 	config.Certificate = types.StringValue(identity.TLSCertificate)
