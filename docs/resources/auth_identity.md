@@ -6,15 +6,15 @@ Manages LXD identities.
 
 ```hcl
 resource "lxd_auth_identity" "bearer-identity" {
-  auth_method = "bearer"
-  name        = "bearer-server-admin"
-  groups      = ["admins"]
+  type   = "bearer"
+  name   = "bearer-server-admin"
+  groups = ["admins"]
 }
 ```
 
 ```hcl
 resource "lxd_auth_identity" "tls-identity" {
-  auth_method     = "tls"
+  type            = "tls"
   name            = "tls-server-admin"
   groups          = ["admins"]
   tls_certificate = file("client.cert")
@@ -29,9 +29,9 @@ which redeems it to enroll its own certificate:
 
 ```hcl
 resource "lxd_auth_identity" "pending-identity" {
-  auth_method = "tls"
-  name        = "jane"
-  groups      = ["admins"]
+  type   = "tls"
+  name   = "jane"
+  groups = ["admins"]
 }
 
 output "trust_token" {
@@ -48,7 +48,7 @@ Requires the `access_management_tls` API extension.
 
 * `name` - **Required** - Name of the identity.
 
-* `auth_method` - **Required** - Authentication method, can be either `tls` or `bearer`.
+* `type` - **Required** - Identity type, can be `tls` or `bearer`.
 
 * `groups` - *Optional* - List of group names to add this identity to.
 
@@ -64,11 +64,22 @@ Requires the `access_management_tls` API extension.
 
 This resource exports the following attributes in addition to the arguments above:
 
+* `auth_method` - Authentication method of the identity, either `tls` or `bearer`.
+
 * `trust_token` - Trust token that an untrusted client uses to enroll its certificate. It is
   set only for a pending TLS identity, and is cleared once the token has been redeemed.
 
 * `expires_at` - Time at which the trust token expires, in RFC 3339 format and UTC. It is null when
   the server config `core.remote_token_expiry` is not set, which means the token does not expire.
+
+## Identity types
+
+`tls` identities authenticate using a client certificate, provided through the
+`tls_certificate` attribute. If the certificate is omitted, the identity is created in a
+pending state and a trust token is issued instead.
+
+`bearer` identities authenticate using a token, which is issued with the
+[`lxd_auth_identity_token`](auth_identity_token.md) resource and is accepted by the LXD API.
 
 ## Pending TLS trust token lifecycle
 
@@ -90,10 +101,10 @@ from the server.
 
 ## Importing
 
-Import ID syntax: `[<remote>:]/<auth_method>/<name>`
+Import ID syntax: `[<remote>:]/<type>/<name>`
 
 * `<remote>` - *Optional* - Remote name.
-* `<auth_method>` - **Required** - Authentication method.
+* `<type>` - **Required** - Identity type.
 * `<name>` - **Required** - Identity name.
 
 ### Import example
@@ -108,8 +119,8 @@ Example using the import block:
 
 ```hcl
 resource "lxd_auth_identity" "myidentity" {
-  name        = "identity1"
-  auth_method = "bearer"
+  name = "identity1"
+  type = "bearer"
 }
 
 import {
@@ -117,3 +128,13 @@ import {
   id = "/bearer/identity1"
 }
 ```
+
+## Note on `auth_method`
+
+The `auth_method` represents the authentication method and `type` represents the type of identity.
+Before argument `type` was introduced, the `auth_method` was a required field.
+A single `auth_method`, such as `bearer`, represents multiple identity types.
+
+To prevent breaking changes, the shift from `auth_method` to `type` was handled gracefully allowing
+any of the two values to be provided. However, in the future releases, the `auth_method` will become
+a computed field and `type` required.
