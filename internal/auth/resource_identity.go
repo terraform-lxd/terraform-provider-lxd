@@ -27,6 +27,7 @@ import (
 type AuthIdentityModel struct {
 	Name        types.String `tfsdk:"name"`
 	Groups      types.Set    `tfsdk:"groups"`
+	Type        types.String `tfsdk:"type"`
 	AuthMethod  types.String `tfsdk:"auth_method"`
 	Certificate types.String `tfsdk:"tls_certificate"`
 	Remote      types.String `tfsdk:"remote"`
@@ -67,12 +68,32 @@ func (r AuthIdentityResource) Schema(_ context.Context, _ resource.SchemaRequest
 				Default:     setdefault.StaticValue(types.SetValueMust(types.StringType, nil)),
 			},
 
-			"auth_method": schema.StringAttribute{
-				Required: true,
+			"type": schema.StringAttribute{
+				Optional: true,
+				Computed: true,
 				Validators: []validator.String{
 					stringvalidator.OneOf("tls", "bearer"),
 				},
 				PlanModifiers: []planmodifier.String{
+					// Derivation must run before the replacement condition.
+					identityTypeModifier{},
+					stringplanmodifier.RequiresReplaceIf(
+						requiresReplaceIdentityType,
+						requiresReplaceIdentityTypeDescription,
+						requiresReplaceIdentityTypeDescription,
+					),
+				},
+			},
+
+			"auth_method": schema.StringAttribute{
+				Optional: true,
+				Computed: true,
+				Validators: []validator.String{
+					stringvalidator.OneOf("tls", "bearer"),
+				},
+				PlanModifiers: []planmodifier.String{
+					// Derivation must run before the replacement modifier.
+					authMethodModifier{},
 					stringplanmodifier.RequiresReplace(),
 				},
 			},
@@ -121,6 +142,12 @@ func (r *AuthIdentityResource) Configure(_ context.Context, req resource.Configu
 	r.provider = provider
 }
 
+func (r AuthIdentityResource) ConfigValidators(_ context.Context) []resource.ConfigValidator {
+	return []resource.ConfigValidator{
+		identityTypeValidator{warnOnAuthMethod: true},
+	}
+}
+
 func (r AuthIdentityResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
 	var plan AuthIdentityModel
 	resp.Diagnostics.Append(req.Plan.Get(ctx, &plan)...)
@@ -136,7 +163,7 @@ func (r AuthIdentityResource) Create(ctx context.Context, req resource.CreateReq
 	}
 
 	identityName := plan.Name.ValueString()
-	identityAuthMethod := plan.AuthMethod.ValueString()
+	identityType := plan.Type.ValueString()
 	identityTLSCertificate := plan.Certificate.ValueString()
 	identityGroupNames := []string{}
 
@@ -160,7 +187,7 @@ func (r AuthIdentityResource) Create(ctx context.Context, req resource.CreateReq
 	plan.TrustToken = types.StringNull()
 	plan.ExpiresAt = types.StringNull()
 
-	switch identityAuthMethod {
+	switch identityType {
 	case "tls":
 		if hasTLSCertificate {
 			req := api.IdentitiesTLSPost{
@@ -192,8 +219,8 @@ func (r AuthIdentityResource) Create(ctx context.Context, req resource.CreateReq
 	case "bearer":
 		if hasTLSCertificate {
 			resp.Diagnostics.AddError(
-				fmt.Sprintf("Invalid %q identity %q", identityName, identityAuthMethod),
-				"Certificate must not be set for identities with authentication method bearer",
+				fmt.Sprintf("Invalid %q identity %q", identityType, identityName),
+				fmt.Sprintf("Certificate must not be set for identities of type %q", identityType),
 			)
 			return
 		}
@@ -207,14 +234,14 @@ func (r AuthIdentityResource) Create(ctx context.Context, req resource.CreateReq
 		err = server.CreateIdentityBearer(req)
 	default:
 		resp.Diagnostics.AddError(
-			fmt.Sprintf("Invalid %q identity %q", identityName, identityAuthMethod),
-			fmt.Sprintf("Authentication method %q is not supported", identityAuthMethod),
+			fmt.Sprintf("Invalid %q identity %q", identityType, identityName),
+			fmt.Sprintf("Identity type %q is not supported", identityType),
 		)
 		return
 	}
 
 	if err != nil {
-		resp.Diagnostics.AddError(fmt.Sprintf("Failed to create %q identity %q", identityAuthMethod, identityName), err.Error())
+		resp.Diagnostics.AddError(fmt.Sprintf("Failed to create %q identity %q", identityType, identityName), err.Error())
 		return
 	}
 
@@ -264,6 +291,7 @@ func (r AuthIdentityResource) Update(ctx context.Context, req resource.UpdateReq
 	}
 
 	identityName := plan.Name.ValueString()
+	identityType := plan.Type.ValueString()
 	identityAuthMethod := plan.AuthMethod.ValueString()
 	identityTLSCertificate := plan.Certificate.ValueString()
 	identityGroupNames := []string{}
@@ -284,7 +312,7 @@ func (r AuthIdentityResource) Update(ctx context.Context, req resource.UpdateReq
 
 	identity, etag, err := server.GetIdentity(identityAuthMethod, identityName)
 	if err != nil {
-		resp.Diagnostics.AddError(fmt.Sprintf("Failed to retrieve existing %q identity %q", identityAuthMethod, identityName), err.Error())
+		resp.Diagnostics.AddError(fmt.Sprintf("Failed to retrieve existing %q identity %q", identityType, identityName), err.Error())
 		return
 	}
 
@@ -302,7 +330,7 @@ func (r AuthIdentityResource) Update(ctx context.Context, req resource.UpdateReq
 
 	err = server.UpdateIdentity(identityAuthMethod, identityName, identityUpdateReq, etag)
 	if err != nil {
-		resp.Diagnostics.AddError(fmt.Sprintf("Failed to update %q identity %q", identityAuthMethod, identityName), err.Error())
+		resp.Diagnostics.AddError(fmt.Sprintf("Failed to update %q identity %q", identityType, identityName), err.Error())
 		return
 	}
 
@@ -332,11 +360,11 @@ func (r AuthIdentityResource) Delete(ctx context.Context, req resource.DeleteReq
 	}
 
 	identityName := state.Name.ValueString()
-	identityAuthMethod := state.AuthMethod.ValueString()
+	identityType := state.identityType()
 
-	err = server.DeleteIdentity(identityAuthMethod, identityName)
+	err = server.DeleteIdentity(identityType, identityName)
 	if err != nil && !errors.IsNotFoundError(err) {
-		resp.Diagnostics.AddError(fmt.Sprintf("Failed to delete %q identity %q", identityAuthMethod, identityName), err.Error())
+		resp.Diagnostics.AddError(fmt.Sprintf("Failed to delete %q identity %q", identityType, identityName), err.Error())
 		return
 	}
 }
@@ -362,7 +390,7 @@ func (r AuthIdentityResource) ModifyPlan(ctx context.Context, req resource.Modif
 	}
 
 	// A pending identity is the only TLS identity that LXD reports without a certificate.
-	isPending := state.AuthMethod.ValueString() == "tls" && state.Certificate.IsNull()
+	isPending := state.identityType() == "tls" && state.Certificate.IsNull()
 
 	// The attribute that is reported as forcing the replacement.
 	var replaceOn path.Path
@@ -389,11 +417,24 @@ func (r AuthIdentityResource) ModifyPlan(ctx context.Context, req resource.Modif
 	resp.Diagnostics.Append(resp.Plan.SetAttribute(ctx, path.Root("expires_at"), types.StringUnknown())...)
 }
 
+// identityType returns the identity type recorded in the state. State written
+// before the type attribute existed has only the authentication method, which
+// is also an identity type. An imported identity has only the type, until the
+// read that follows the import fills the authentication method.
+func (m AuthIdentityModel) identityType() string {
+	if m.Type.IsNull() {
+		return m.AuthMethod.ValueString()
+	}
+
+	return m.Type.ValueString()
+}
+
 // TaintState marks the state with identity fields required to target the identity.
 func (m AuthIdentityModel) TaintState(ctx context.Context, tfState *tfsdk.State) diag.Diagnostics {
 	var diags diag.Diagnostics
 
 	diags.Append(tfState.SetAttribute(ctx, path.Root("name"), m.Name.ValueString())...)
+	diags.Append(tfState.SetAttribute(ctx, path.Root("type"), m.Type.ValueString())...)
 	diags.Append(tfState.SetAttribute(ctx, path.Root("auth_method"), m.AuthMethod.ValueString())...)
 	diags.Append(tfState.SetAttribute(ctx, path.Root("remote"), m.Remote.ValueString())...)
 
@@ -409,21 +450,29 @@ func (r AuthIdentityResource) SyncState(ctx context.Context, tfState *tfsdk.Stat
 	var respDiags diag.Diagnostics
 
 	identityName := m.Name.ValueString()
-	identityAuthMethod := m.AuthMethod.ValueString()
+	identityType := m.identityType()
 
-	identity, _, err := server.GetIdentity(identityAuthMethod, identityName)
+	identity, _, err := server.GetIdentity(identityType, identityName)
 	if err != nil {
 		if forgetOnNotFound && errors.IsNotFoundError(err) {
 			tfState.RemoveResource(ctx)
 			return nil
 		}
 
-		respDiags.AddError(fmt.Sprintf("Failed to sync state for %q identity %q", identityAuthMethod, identityName), err.Error())
+		respDiags.AddError(fmt.Sprintf("Failed to sync state for %q identity %q", identityType, identityName), err.Error())
 		return respDiags
 	}
 
+	// The identity type is taken from the server. LXD identity types that the
+	// provider cannot name keep the identity type already in state.
+	serverType := toType(identity.Type)
+	if serverType != "" {
+		identityType = serverType
+	}
+
 	m.Name = types.StringValue(identity.Name)
-	m.AuthMethod = types.StringValue(identityAuthMethod)
+	m.Type = types.StringValue(identityType)
+	m.AuthMethod = types.StringValue(identity.AuthenticationMethod)
 
 	if identity.TLSCertificate != "" {
 		m.Certificate = types.StringValue(identity.TLSCertificate)
@@ -454,7 +503,7 @@ func (r AuthIdentityResource) SyncState(ctx context.Context, tfState *tfsdk.Stat
 func (r *AuthIdentityResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
 	meta := common.ImportMetadata{
 		ResourceName:   "auth_identity",
-		RequiredFields: []string{"auth_method", "name"},
+		RequiredFields: []string{"type", "name"},
 	}
 
 	fields, diag := meta.ParseImportID(req.ID)
@@ -468,7 +517,7 @@ func (r *AuthIdentityResource) ImportState(ctx context.Context, req resource.Imp
 		if k == "project" {
 			resp.Diagnostics.AddError(
 				fmt.Sprintf("Invalid import ID %q", req.ID),
-				"Valid import format:\nimport lxd_auth_identity.<resource> [remote:]<auth_method>/<name>",
+				"Valid import format:\nimport lxd_auth_identity.<resource> [remote:]/<type>/<name>",
 			)
 			break
 		}
