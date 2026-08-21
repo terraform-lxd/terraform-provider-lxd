@@ -7,6 +7,25 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+func TestToAuthMethod(t *testing.T) {
+	var tests = []struct {
+		IdentityType string
+		Expect       string
+	}{
+		{IdentityType: "tls", Expect: "tls"},
+		{IdentityType: "bearer", Expect: "bearer"},
+		{IdentityType: "devlxd", Expect: "bearer"},
+		{IdentityType: "oidc", Expect: "oidc"},
+		{IdentityType: "", Expect: ""},
+	}
+
+	for _, test := range tests {
+		t.Run(test.IdentityType, func(t *testing.T) {
+			assert.Equal(t, test.Expect, toAuthMethod(test.IdentityType))
+		})
+	}
+}
+
 func TestToType(t *testing.T) {
 	var tests = []struct {
 		LXDIdentityType string
@@ -17,7 +36,7 @@ func TestToType(t *testing.T) {
 		{LXDIdentityType: api.IdentityTypeCertificateClientUnrestricted, Expect: "tls"},
 		{LXDIdentityType: api.IdentityTypeCertificateClientPending, Expect: "tls"},
 		{LXDIdentityType: api.IdentityTypeBearerTokenClient, Expect: "bearer"},
-		{LXDIdentityType: api.IdentityTypeBearerTokenDevLXD, Expect: ""},
+		{LXDIdentityType: api.IdentityTypeBearerTokenDevLXD, Expect: "devlxd"},
 		{LXDIdentityType: api.IdentityTypeOIDCClient, Expect: "oidc"},
 		{LXDIdentityType: api.IdentityTypeCertificateServer, Expect: ""},
 		{LXDIdentityType: api.IdentityTypeCertificateMetricsRestricted, Expect: ""},
