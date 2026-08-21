@@ -39,6 +39,11 @@ func TestAccIdentity_DS_bearer(t *testing.T) {
 					resource.TestCheckResourceAttr("data.lxd_auth_identity.identity", "groups.0", "admins"),
 				),
 			},
+			{
+				// Look up a client bearer identity as a devlxd identity.
+				Config:      acctest.Provider() + testAccIdentity_DS_bearerAsDevlxd(identity, []string{"admins"}),
+				ExpectError: regexp.MustCompile(`LXD identity type "Client token bearer"`),
+			},
 		},
 	})
 }
@@ -111,6 +116,45 @@ func TestAccIdentity_DS_tlsPending(t *testing.T) {
 	})
 }
 
+func TestAccIdentity_DS_devlxd(t *testing.T) {
+	identity := acctest.GenerateName(2, "-")
+	dataSourceName := "data.lxd_auth_identity.identity"
+
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			acctest.PreCheck(t)
+			acctest.PreCheckAPIExtensions(t, "access_management", "auth_bearer_devlxd")
+		},
+		ProtoV6ProviderFactories: acctest.ProtoV6ProviderFactories,
+		Steps: []resource.TestStep{
+			{
+				// Look up by identity type.
+				Config: acctest.Provider() + testAccIdentity_DS_devlxdByType(identity),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr(dataSourceName, "name", identity),
+					resource.TestCheckResourceAttr(dataSourceName, "type", "devlxd"),
+					resource.TestCheckResourceAttr(dataSourceName, "auth_method", "bearer"),
+				),
+			},
+			{
+				// Look up by authentication method, which does not distinguish
+				// client bearer identities from devlxd ones.
+				Config: acctest.Provider() + testAccIdentity_DS_devlxdByAuthMethod(identity),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr(dataSourceName, "name", identity),
+					resource.TestCheckResourceAttr(dataSourceName, "type", "devlxd"),
+					resource.TestCheckResourceAttr(dataSourceName, "auth_method", "bearer"),
+				),
+			},
+			{
+				// Look up a devlxd identity as a client bearer identity.
+				Config:      acctest.Provider() + testAccIdentity_DS_devlxdAsBearer(identity),
+				ExpectError: regexp.MustCompile(`LXD identity type "DevLXD token bearer"`),
+			},
+		},
+	})
+}
+
 func TestAccIdentity_DS_typeValidation(t *testing.T) {
 	identity := acctest.GenerateName(2, "-")
 
@@ -158,6 +202,42 @@ func testAccIdentity_DS_tlsPending(name string) string {
 		  name        = lxd_auth_identity.identity.name
 		}
 	`
+}
+
+func testAccIdentity_DS_devlxdByType(name string) string {
+	return testAccIdentity_type(name, "devlxd", []string{}) + `
+                data "lxd_auth_identity" "identity" {
+                  type = "devlxd"
+                  name = lxd_auth_identity.identity.name
+                }
+        `
+}
+
+func testAccIdentity_DS_devlxdByAuthMethod(name string) string {
+	return testAccIdentity_type(name, "devlxd", []string{}) + `
+                data "lxd_auth_identity" "identity" {
+                  auth_method = "bearer"
+                  name        = lxd_auth_identity.identity.name
+                }
+        `
+}
+
+func testAccIdentity_DS_devlxdAsBearer(name string) string {
+	return testAccIdentity_type(name, "devlxd", []string{}) + `
+                data "lxd_auth_identity" "identity" {
+                  type = "bearer"
+                  name = lxd_auth_identity.identity.name
+                }
+        `
+}
+
+func testAccIdentity_DS_bearerAsDevlxd(name string, groups []string) string {
+	return testAccIdentity_type(name, "bearer", groups) + `
+                data "lxd_auth_identity" "identity" {
+                  type = "devlxd"
+                  name = lxd_auth_identity.identity.name
+                }
+        `
 }
 
 func testAccIdentity_DS_noAttributes(name string) string {
