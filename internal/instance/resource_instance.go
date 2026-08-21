@@ -967,6 +967,13 @@ func (r InstanceResource) Update(ctx context.Context, req resource.UpdateRequest
 		return
 	}
 
+	// Cancel the update before the instance is changed if a configured device is owned by an identity.
+	diag := checkOwnedDevices(instanceName, instance.Config, devices)
+	if diag != nil {
+		resp.Diagnostics.Append(diag)
+		return
+	}
+
 	// Indicates if the instance has been just started.
 	instanceStarted := false
 	instanceStopped := isInstanceStopped(*instanceState)
@@ -1041,6 +1048,15 @@ func (r InstanceResource) Update(ctx context.Context, req resource.UpdateRequest
 				return
 			}
 
+			config = common.MergeConfig(instance.Config, userConfig, plan.ComputedKeys())
+
+			// Cancel the update if a configured device became owned during the stop.
+			diag = checkOwnedDevices(instanceName, instance.Config, devices)
+			if diag != nil {
+				resp.Diagnostics.Append(diag)
+				return
+			}
+
 			instanceStopped = true
 		}
 	}
@@ -1051,10 +1067,11 @@ func (r InstanceResource) Update(ctx context.Context, req resource.UpdateRequest
 		device[common.UserManagedBy] = common.DeviceManagedByTerraform
 	}
 
-	// Ensure that devices managed by the InstanceDeviceResource are not removed.
+	// Keep devices managed by the [InstanceDeviceResource] and devices owned by an identity.
 	for deviceName, device := range instance.Devices {
+		isOwned := isOwnedDevice(instance.Config, deviceName)
 		managedBy := device[common.UserManagedBy]
-		if managedBy != common.DeviceManagedByTerraform {
+		if managedBy != common.DeviceManagedByTerraform && !isOwned {
 			continue
 		}
 
@@ -1371,6 +1388,14 @@ func (r InstanceResource) SyncState(ctx context.Context, tfState *tfsdk.State, s
 	var syncDevices = make(map[string]map[string]string)
 
 	for deviceName, device := range instance.Devices {
+		// Leave owned devices out of the state to prevent provider from deleting them.
+		if isOwnedDevice(instance.Config, deviceName) {
+			// Remove owned device from the configured devices to prevent it from being
+			// added back into managed in the loop below.
+			delete(configuredDevices, deviceName)
+			continue
+		}
+
 		managedBy := device[common.UserManagedBy]
 
 		// Add non-managed devices for deletion by terraform plan.
@@ -1792,6 +1817,28 @@ func isInstanceRunning(s api.InstanceState) bool {
 // isInstanceReady returns true if its status is "Ready".
 func isInstanceReady(s api.InstanceState) bool {
 	return s.StatusCode == api.Ready
+}
+
+// isOwnedDevice reports whether the named device is owned by an identity.
+// LXD records the owner of a device in the instance configuration.
+func isOwnedDevice(instanceConfig map[string]string, deviceName string) bool {
+	_, ok := instanceConfig["volatile."+deviceName+".devlxd.owner"]
+	return ok
+}
+
+// checkOwnedDevices returns an error diagnostic if any of the configured devices is
+// owned by an identity. Such devices must not be modified by the provider.
+func checkOwnedDevices(instanceName string, instanceConfig map[string]string, devices map[string]map[string]string) diag.Diagnostic {
+	for deviceName := range devices {
+		if isOwnedDevice(instanceConfig, deviceName) {
+			return diag.NewErrorDiagnostic(
+				"Cannot modify an owned device",
+				fmt.Sprintf("Device %q on instance %q is owned by an identity", deviceName, instanceName),
+			)
+		}
+	}
+
+	return nil
 }
 
 // isInstanceStopped returns true if instance's status "Stopped".
