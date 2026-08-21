@@ -43,6 +43,61 @@ func TestAccIdentityToken_bearer(t *testing.T) {
 	})
 }
 
+func TestAccIdentityToken_devlxd(t *testing.T) {
+	identity := acctest.GenerateName(2, "-")
+
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			acctest.PreCheck(t)
+			acctest.PreCheckAPIExtensions(t, "auth_bearer_devlxd", "access_management_expiry")
+		},
+		ProtoV6ProviderFactories: acctest.ProtoV6ProviderFactories,
+		Steps: []resource.TestStep{
+			{
+				// Issue token.
+				Config: acctest.Provider() + testAccIdentityToken(identity, "devlxd", "30d"),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr("lxd_auth_identity_token.token", "identity", identity),
+					resource.TestCheckResourceAttr("lxd_auth_identity_token.token", "expiry", "30d"),
+					resource.TestCheckResourceAttrSet("lxd_auth_identity_token.token", "token"),
+					resource.TestCheckResourceAttrWith("lxd_auth_identity_token.token", "expires_at", checkExpiresInFuture),
+				),
+			},
+		},
+	})
+}
+
+func TestAccIdentityToken_devlxdSocket(t *testing.T) {
+	identity := acctest.GenerateName(2, "-")
+	group := acctest.GenerateName(2, "-")
+	instance := acctest.GenerateName(2, "-")
+	pool := acctest.GenerateName(2, "-")
+	network := acctest.GenerateName(2, "-")
+
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			acctest.PreCheck(t)
+			acctest.PreCheckAPIExtensions(t, "auth_bearer_devlxd", "access_management_expiry")
+		},
+		ProtoV6ProviderFactories: acctest.ProtoV6ProviderFactories,
+		Steps: []resource.TestStep{
+			{
+				// The token of a devlxd identity must be accepted by the DevLXD
+				// API, which is verified by listing the volumes of an empty
+				// storage pool from within the instance.
+				Config: acctest.Provider() + testAccIdentityToken_devlxdSocket(identity, group, instance, pool, network),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttrSet("lxd_auth_identity_token.token", "token"),
+					resource.TestCheckResourceAttr("lxd_instance.instance", "status", "Running"),
+					resource.TestCheckResourceAttr("lxd_instance.instance", "execs.01-install-curl.exit_code", "0"),
+					resource.TestCheckResourceAttr("lxd_instance.instance", "execs.02-list-volumes.exit_code", "0"),
+					resource.TestCheckResourceAttr("lxd_instance.instance", "execs.02-list-volumes.stdout", "200 []"),
+				),
+			},
+		},
+	})
+}
+
 func TestAccIdentityToken_revoked(t *testing.T) {
 	identity := acctest.GenerateName(2, "-")
 
@@ -230,6 +285,131 @@ func checkExpiresInFuture(value string) error {
 	}
 
 	return nil
+}
+
+// devlxdListVolumes queries the volumes of the given storage pool over the
+// DevLXD socket using the token from the TOKEN environment variable. It prints
+// the response status with the response body, and fails if the status is not
+// 200. An authorization failure is therefore reported as a failed exec.
+//
+// The curl write-out format is escaped as "%%{" because HCL would otherwise
+// interpret "%{" as a template directive.
+const devlxdListVolumes = `
+status=$(curl \
+  -s \
+  -o /tmp/volumes \
+  -w '%%{http_code}' \
+  --unix-socket /dev/lxd/sock \
+  -H "Authorization: Bearer $TOKEN" \
+  "http://localhost/1.0/storage-pools/$POOL/volumes?recursion=1")
+
+printf '%s %s' "$status" "$(cat /tmp/volumes)"
+test "$status" = "200"
+`
+
+func testAccIdentityToken_devlxdSocket(name string, group string, instance string, pool string, network string) string {
+	return fmt.Sprintf(`
+		resource "lxd_storage_pool" "pool" {
+		  name   = %q
+		  driver = "dir"
+		}
+
+		# The instance needs egress to install a client that can talk to the
+		# DevLXD socket, therefore a network is created for it. The IPv4 subnet
+		# is left to the server, which assigns a free one with NAT enabled.
+		resource "lxd_network" "network" {
+		  name = %q
+
+		  config = {
+		    "ipv6.address" = "none"
+		  }
+		}
+
+		resource "lxd_auth_group" "group" {
+		  name = %q
+
+		  # Volume management is granted at the project level, because the
+		  # storage pool entity type provides no volume related entitlements.
+		  permissions = [
+		    {
+		      entitlement = "can_view"
+		      entity_type = "project"
+		      entity_args = {
+		        name = "default"
+		      }
+		    },
+		    {
+		      entitlement = "storage_volume_manager"
+		      entity_type = "project"
+		      entity_args = {
+		        name = "default"
+		      }
+		    },
+		  ]
+		}
+
+		resource "lxd_auth_identity" "identity" {
+		  type   = "devlxd"
+		  name   = %q
+		  groups = [lxd_auth_group.group.name]
+		}
+
+		resource "lxd_auth_identity_token" "token" {
+		  identity = lxd_auth_identity.identity.name
+		  expiry   = "1H"
+		}
+
+		resource "lxd_instance" "instance" {
+		  name  = %q
+		  image = %q
+
+		  config = {
+		    "security.devlxd.management.volumes" = "true"
+		  }
+
+		  device {
+		    name = "eth0"
+		    type = "nic"
+		    properties = {
+		      nictype = "bridged"
+		      parent  = lxd_network.network.name
+		    }
+		  }
+
+		  # Execs must not run before the instance can reach the network.
+		  wait_for {
+		    type = "ipv4"
+		  }
+
+		  execs = {
+		    "01-install-curl" = {
+		      command       = ["apk", "add", "--no-cache", "curl"]
+		      trigger       = "once"
+		      fail_on_error = true
+		    }
+
+		    "02-list-volumes" = {
+		      command       = ["sh", "-c", %q]
+		      trigger       = "once"
+		      fail_on_error = true
+		      record_output = true
+
+		      environment = {
+		        TOKEN = lxd_auth_identity_token.token.token
+		        POOL  = lxd_storage_pool.pool.name
+		      }
+		    }
+		  }
+		}
+	`,
+		pool,
+		network,
+		group,
+		name,
+		instance,
+		acctest.TestImage,
+		devlxdListVolumes,
+	)
 }
 
 func testAccIdentityToken_identityDataSource(name string, withToken bool) string {
