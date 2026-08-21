@@ -88,8 +88,9 @@ func TestAccIdentityToken_devlxdSocket(t *testing.T) {
 			{
 				// The token of a devlxd identity must be accepted by the DevLXD
 				// API, which is verified by listing the volumes of an empty
-				// storage pool and creating one from within the instance. The
-				// created volume is owned by the identity that created it.
+				// storage pool, creating one from within the instance, and
+				// attaching it to that same instance. Both the volume and the
+				// device are owned by the identity that created them.
 				Config: acctest.Provider() + testAccIdentityToken_devlxdSocket(identity, group, instance, pool, network, volume, false),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttrSet("lxd_auth_identity_token.token", "token"),
@@ -100,11 +101,19 @@ func TestAccIdentityToken_devlxdSocket(t *testing.T) {
 					resource.TestCheckResourceAttr(instanceName, "execs.03-create-volume.exit_code", "0"),
 					resource.TestMatchResourceAttr(instanceName, "execs.03-create-volume.stdout", regexp.MustCompile(`"name":"`+volume+`"`)),
 					resource.TestMatchResourceAttr(instanceName, "execs.03-create-volume.stdout", regexp.MustCompile(`"volatile\.devlxd\.owner":`)),
+					resource.TestCheckResourceAttr(instanceName, "execs.04-attach-volume.exit_code", "0"),
+					resource.TestMatchResourceAttr(instanceName, "execs.04-attach-volume.stdout", regexp.MustCompile(`"source":"`+volume+`"`)),
+
+					// The attached device is owned by the devlxd identity, so it
+					// is not recorded in the instance state.
+					resource.TestCheckResourceAttr(instanceName, "device.#", "1"),
+					resource.TestCheckResourceAttr(instanceName, "device.0.name", "eth0"),
 				),
 			},
 			{
-				// The volume is not managed by Terraform, therefore it produces
-				// no drift.
+				// Neither the volume nor the device that attaches it to the
+				// instance is managed by Terraform, therefore they produce no
+				// drift.
 				Config: acctest.Provider() + testAccIdentityToken_devlxdSocket(identity, group, instance, pool, network, volume, false),
 				ConfigPlanChecks: resource.ConfigPlanChecks{
 					PreApply: []plancheck.PlanCheck{
@@ -115,10 +124,11 @@ func TestAccIdentityToken_devlxdSocket(t *testing.T) {
 			{
 				// Terraform cannot remove a volume it does not manage, and the
 				// storage pool cannot be destroyed while the volume exists, so
-				// the volume is removed over the DevLXD socket.
+				// the volume is detached and removed over the DevLXD socket.
 				Config: acctest.Provider() + testAccIdentityToken_devlxdSocket(identity, group, instance, pool, network, volume, true),
 				Check: resource.ComposeTestCheckFunc(
-					resource.TestCheckResourceAttr(instanceName, "execs.04-delete-volume.exit_code", "0"),
+					resource.TestCheckResourceAttr(instanceName, "execs.05-detach-volume.exit_code", "0"),
+					resource.TestCheckResourceAttr(instanceName, "execs.06-delete-volume.exit_code", "0"),
 				),
 			},
 		},
@@ -360,6 +370,58 @@ printf '%s' "$volumes"
 echo "$volumes" | grep -q "\"name\":\"$VOLUME\""
 `
 
+// devlxdAttachVolume attaches the storage volume to the instance it was created
+// from over the DevLXD socket, and prints the instance devices that the identity
+// owns. Device attachment is asynchronous, therefore the devices are polled for
+// until the new one appears.
+const devlxdAttachVolume = `
+curl \
+  -s \
+  -f \
+  -o /dev/null \
+  --unix-socket /dev/lxd/sock \
+  -H "Authorization: Bearer $TOKEN" \
+  -X PATCH \
+  --data "{\"devices\": {\"$VOLUME\": {\"type\": \"disk\", \"pool\": \"$POOL\", \"source\": \"$VOLUME\", \"path\": \"/mnt/$VOLUME\"}}}" \
+  "http://localhost/1.0/instances/$INSTANCE"
+
+for _ in $(seq 10); do
+  instance=$(curl -s --unix-socket /dev/lxd/sock -H "Authorization: Bearer $TOKEN" \
+    "http://localhost/1.0/instances/$INSTANCE")
+
+  echo "$instance" | grep -q "\"source\":\"$VOLUME\"" && break
+  sleep 1
+done
+
+printf '%s' "$instance"
+echo "$instance" | grep -q "\"source\":\"$VOLUME\""
+`
+
+// devlxdDetachVolume detaches the storage volume from the instance over the
+// DevLXD socket. Device detachment is asynchronous, therefore the devices are
+// polled for until the removed one is gone.
+const devlxdDetachVolume = `
+curl \
+  -s \
+  -f \
+  -o /dev/null \
+  --unix-socket /dev/lxd/sock \
+  -H "Authorization: Bearer $TOKEN" \
+  -X PATCH \
+  --data "{\"devices\": {\"$VOLUME\": null}}" \
+  "http://localhost/1.0/instances/$INSTANCE"
+
+for _ in $(seq 10); do
+  instance=$(curl -s --unix-socket /dev/lxd/sock -H "Authorization: Bearer $TOKEN" \
+    "http://localhost/1.0/instances/$INSTANCE")
+
+  echo "$instance" | grep -q "\"source\":\"$VOLUME\"" || exit 0
+  sleep 1
+done
+
+exit 1
+`
+
 // devlxdDeleteVolume removes the storage volume over the DevLXD socket. Volume
 // deletion is asynchronous, therefore the volumes are polled for until the
 // removed one is gone.
@@ -384,11 +446,24 @@ done
 exit 1
 `
 
-func testAccIdentityToken_devlxdSocket(name string, group string, instance string, pool string, network string, volume string, deleteVolume bool) string {
-	deleteExec := ""
-	if deleteVolume {
-		deleteExec = fmt.Sprintf(`
-		    "04-delete-volume" = {
+func testAccIdentityToken_devlxdSocket(name string, group string, instance string, pool string, network string, volume string, removeVolume bool) string {
+	removeExecs := ""
+	if removeVolume {
+		removeExecs = fmt.Sprintf(`
+		    "05-detach-volume" = {
+		      command       = ["sh", "-c", %q]
+		      trigger       = "once"
+		      fail_on_error = true
+		      record_output = true
+
+		      environment = {
+		        TOKEN    = lxd_auth_identity_token.token.token
+		        INSTANCE = %q
+		        VOLUME   = %q
+		      }
+		    }
+
+		    "06-delete-volume" = {
 		      command       = ["sh", "-c", %q]
 		      trigger       = "once"
 		      fail_on_error = true
@@ -400,7 +475,7 @@ func testAccIdentityToken_devlxdSocket(name string, group string, instance strin
 		        VOLUME = %q
 		      }
 		    }
-		`, devlxdDeleteVolume, volume)
+		`, devlxdDetachVolume, instance, volume, devlxdDeleteVolume, volume)
 	}
 
 	return fmt.Sprintf(`
@@ -423,8 +498,10 @@ func testAccIdentityToken_devlxdSocket(name string, group string, instance strin
 		resource "lxd_auth_group" "group" {
 		  name = %q
 
-		  # Volume management is granted at the project level, because the
-		  # storage pool entity type provides no volume related entitlements.
+		  # Volume management and instance editing are granted at the project
+		  # level, because the storage pool entity type provides no volume
+		  # related entitlements, and the instance does not exist yet when the
+		  # group is created.
 		  permissions = [
 		    {
 		      entitlement = "can_view"
@@ -435,6 +512,13 @@ func testAccIdentityToken_devlxdSocket(name string, group string, instance strin
 		    },
 		    {
 		      entitlement = "storage_volume_manager"
+		      entity_type = "project"
+		      entity_args = {
+		        name = "default"
+		      }
+		    },
+		    {
+		      entitlement = "can_edit_instances"
 		      entity_type = "project"
 		      entity_args = {
 		        name = "default"
@@ -507,6 +591,20 @@ func testAccIdentityToken_devlxdSocket(name string, group string, instance strin
 		        VOLUME = %q
 		      }
 		    }
+
+		    "04-attach-volume" = {
+		      command       = ["sh", "-c", %q]
+		      trigger       = "once"
+		      fail_on_error = true
+		      record_output = true
+
+		      environment = {
+		        TOKEN    = lxd_auth_identity_token.token.token
+		        INSTANCE = %q
+		        POOL     = lxd_storage_pool.pool.name
+		        VOLUME   = %q
+		      }
+		    }
 		    %s
 		  }
 		}
@@ -520,7 +618,10 @@ func testAccIdentityToken_devlxdSocket(name string, group string, instance strin
 		devlxdListVolumes,
 		devlxdCreateVolume,
 		volume,
-		deleteExec,
+		devlxdAttachVolume,
+		instance,
+		volume,
+		removeExecs,
 	)
 }
 
