@@ -1,6 +1,8 @@
 package auth_test
 
 import (
+	"fmt"
+	"regexp"
 	"testing"
 
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
@@ -109,13 +111,26 @@ func TestAccIdentity_DS_tlsPending(t *testing.T) {
 	})
 }
 
-func testAccIdentity_DS_tlsPending(name string) string {
-	return testAccIdentity_tlsPending(name, []string{}) + `
-		data "lxd_auth_identity" "identity" {
-		  auth_method = "tls"
-		  name        = lxd_auth_identity.identity.name
-		}
-	`
+func TestAccIdentity_DS_typeValidation(t *testing.T) {
+	identity := acctest.GenerateName(2, "-")
+
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			acctest.PreCheck(t)
+			acctest.PreCheckAPIExtensions(t, "access_management")
+		},
+		ProtoV6ProviderFactories: acctest.ProtoV6ProviderFactories,
+		Steps: []resource.TestStep{
+			{
+				Config:      acctest.Provider() + testAccIdentity_DS_noAttributes(identity),
+				ExpectError: regexp.MustCompile(`Attribute "type" must be set`),
+			},
+			{
+				Config:      acctest.Provider() + testAccIdentity_DS_bothAttributes(identity),
+				ExpectError: regexp.MustCompile(`cannot both be set`),
+			},
+		},
+	})
 }
 
 func testAccIdentity_DS_bearer(name string, groups []string) string {
@@ -134,4 +149,35 @@ func testAccIdentity_DS_tls(name string, groups []string) string {
                   name        = lxd_auth_identity.identity.name
                 }
         `
+}
+
+func testAccIdentity_DS_tlsPending(name string) string {
+	return testAccIdentity_tlsPending(name, []string{}) + `
+		data "lxd_auth_identity" "identity" {
+		  auth_method = "tls"
+		  name        = lxd_auth_identity.identity.name
+		}
+	`
+}
+
+func testAccIdentity_DS_noAttributes(name string) string {
+	return fmt.Sprintf(`
+                data "lxd_auth_identity" "identity" {
+                  name = %q
+                }
+        `,
+		name,
+	)
+}
+
+func testAccIdentity_DS_bothAttributes(name string) string {
+	return fmt.Sprintf(`
+                data "lxd_auth_identity" "identity" {
+		  auth_method = "bearer"
+		  type        = "bearer"
+                  name        = %q
+                }
+        `,
+		name,
+	)
 }
