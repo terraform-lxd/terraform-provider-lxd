@@ -85,6 +85,65 @@ func TestAccIdentity_tls(t *testing.T) {
 	})
 }
 
+func TestAccIdentity_devlxd(t *testing.T) {
+	identity := acctest.GenerateName(2, "-")
+	resourceName := "lxd_auth_identity.identity"
+
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			acctest.PreCheck(t)
+			acctest.PreCheckAPIExtensions(t, "access_management", "auth_bearer_devlxd")
+		},
+		ProtoV6ProviderFactories: acctest.ProtoV6ProviderFactories,
+		Steps: []resource.TestStep{
+			{
+				// Create identity.
+				Config: acctest.Provider() + testAccIdentity_type(identity, "devlxd", []string{}),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr(resourceName, "name", identity),
+					resource.TestCheckResourceAttr(resourceName, "type", "devlxd"),
+					resource.TestCheckResourceAttr(resourceName, "auth_method", "bearer"),
+					resource.TestCheckResourceAttr(resourceName, "groups.#", "0"),
+				),
+			},
+			{
+				// Update groups.
+				Config: acctest.Provider() + testAccIdentity_type(identity, "devlxd", []string{"admins"}),
+				ConfigPlanChecks: resource.ConfigPlanChecks{
+					PreApply: []plancheck.PlanCheck{
+						plancheck.ExpectResourceAction(resourceName, plancheck.ResourceActionUpdate),
+					},
+				},
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr(resourceName, "name", identity),
+					resource.TestCheckResourceAttr(resourceName, "type", "devlxd"),
+					resource.TestCheckResourceAttr(resourceName, "auth_method", "bearer"),
+					resource.TestCheckResourceAttr(resourceName, "groups.#", "1"),
+					resource.TestCheckResourceAttr(resourceName, "groups.0", "admins"),
+				),
+			},
+			{
+				// Import by identity type.
+				ResourceName:                         resourceName,
+				ImportStateId:                        fmt.Sprintf("/devlxd/%s", identity),
+				ImportState:                          true,
+				ImportStateVerify:                    true,
+				ImportStateVerifyIdentifierAttribute: "name",
+			},
+			{
+				// Import by authentication method. The read that follows the import
+				// records the identity type the server reports, which the verification
+				// against the prior state asserts is devlxd.
+				ResourceName:                         resourceName,
+				ImportStateId:                        fmt.Sprintf("/bearer/%s", identity),
+				ImportState:                          true,
+				ImportStateVerify:                    true,
+				ImportStateVerifyIdentifierAttribute: "name",
+			},
+		},
+	})
+}
+
 func TestAccIdentity_tlsPending(t *testing.T) {
 	identity := acctest.GenerateName(2, "-")
 	resourceName := "lxd_auth_identity.identity"
@@ -208,10 +267,16 @@ func TestAccIdentity_typeTransitions(t *testing.T) {
 		},
 	}
 
+	expectReplace := resource.ConfigPlanChecks{
+		PreApply: []plancheck.PlanCheck{
+			plancheck.ExpectResourceAction(resourceName, plancheck.ResourceActionReplace),
+		},
+	}
+
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			acctest.PreCheck(t)
-			acctest.PreCheckAPIExtensions(t, "access_management", "auth_bearer")
+			acctest.PreCheckAPIExtensions(t, "access_management", "auth_bearer_devlxd")
 		},
 		ProtoV6ProviderFactories: acctest.ProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
@@ -232,6 +297,29 @@ func TestAccIdentity_typeTransitions(t *testing.T) {
 				// State bearer/bearer, configured type bearer.
 				Config:           acctest.Provider() + testAccIdentity_type(identity, "bearer", []string{}),
 				ConfigPlanChecks: expectEmptyPlan,
+			},
+			{
+				// State bearer/bearer, configured type devlxd.
+				Config:           acctest.Provider() + testAccIdentity_type(identity, "devlxd", []string{}),
+				ConfigPlanChecks: expectReplace,
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr(resourceName, "type", "devlxd"),
+					resource.TestCheckResourceAttr(resourceName, "auth_method", "bearer"),
+				),
+			},
+			{
+				// State bearer/devlxd, configured type devlxd.
+				Config:           acctest.Provider() + testAccIdentity_type(identity, "devlxd", []string{}),
+				ConfigPlanChecks: expectEmptyPlan,
+			},
+			{
+				// State bearer/devlxd, configured auth_method bearer.
+				Config:           acctest.Provider() + testAccIdentity_bearer(identity, []string{}),
+				ConfigPlanChecks: expectReplace,
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr(resourceName, "type", "bearer"),
+					resource.TestCheckResourceAttr(resourceName, "auth_method", "bearer"),
+				),
 			},
 		},
 	})
