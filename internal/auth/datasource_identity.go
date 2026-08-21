@@ -53,7 +53,7 @@ func (r AuthIdentityDataSource) Schema(_ context.Context, _ datasource.SchemaReq
 				Optional: true,
 				Computed: true,
 				Validators: []validator.String{
-					stringvalidator.OneOf("tls", "bearer", "oidc"),
+					stringvalidator.OneOf("tls", "bearer", "devlxd", "oidc"),
 				},
 			},
 
@@ -135,7 +135,7 @@ func (r *AuthIdentityDataSource) Read(ctx context.Context, req datasource.ReadRe
 	// Exactly one of the two is configured, and each derives the other. Every
 	// authentication method is also an identity type.
 	if identityAuthMethod == "" {
-		identityAuthMethod = identityType
+		identityAuthMethod = toAuthMethod(identityType)
 	} else {
 		identityType = identityAuthMethod
 	}
@@ -146,10 +146,20 @@ func (r *AuthIdentityDataSource) Read(ctx context.Context, req datasource.ReadRe
 		return
 	}
 
-	// The identity type is taken from the server. LXD identity types that the
-	// provider cannot name keep the identity type that was asked for.
+	// The bearer authentication method returns client and devlxd identities
+	// alike, so a lookup by identity type must reject an identity of another
+	// type. LXD identity types that the provider cannot name keep the identity
+	// type that was asked for.
 	serverType := toType(identity.Type)
 	if serverType != "" {
+		if !config.Type.IsNull() && serverType != identityType {
+			resp.Diagnostics.AddError(
+				fmt.Sprintf("Identity %q is not of type %q", identityName, identityType),
+				fmt.Sprintf("LXD identity type %q corresponds to type %q", identity.Type, serverType),
+			)
+			return
+		}
+
 		identityType = serverType
 	}
 
