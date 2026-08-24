@@ -14,7 +14,7 @@ require (
 	github.com/hashicorp/terraform-plugin-sdk/v2 v2.40.1
 	github.com/hashicorp/terraform-plugin-testing v1.16.0
 	github.com/mitchellh/go-homedir v1.1.0
-	github.com/stretchr/testify v1.11.1
+	github.com/stretchr/testify v1.12.0
 	golang.org/x/sync v0.22.0
 )
 
@@ -24,7 +24,6 @@ require (
 	github.com/apparentlymart/go-textseg/v15 v15.0.0 // indirect
 	github.com/cespare/xxhash/v2 v2.3.0 // indirect
 	github.com/cloudflare/circl v1.6.3 // indirect
-	github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc // indirect
 	github.com/fatih/color v1.19.0 // indirect
 	github.com/flosch/pongo2 v0.0.0-20200913210552-0d938eb266f3 // indirect
 	github.com/go-jose/go-jose/v4 v4.1.4 // indirect
@@ -65,7 +64,6 @@ require (
 	github.com/oklog/run v1.2.0 // indirect
 	github.com/pkg/sftp v1.13.10 // indirect
 	github.com/pkg/xattr v0.4.12 // indirect
-	github.com/pmezard/go-difflib v1.0.1-0.20181226105442-5d4384ee4fb2 // indirect
 	github.com/sirupsen/logrus v1.9.4 // indirect
 	github.com/vmihailenco/msgpack v4.0.4+incompatible // indirect
 	github.com/vmihailenco/msgpack/v5 v5.4.1 // indirect
