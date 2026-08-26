@@ -26,6 +26,7 @@ type AuthIdentityDataSourceModel struct {
 	Groups      types.Set    `tfsdk:"groups"`
 	Certificate types.String `tfsdk:"tls_certificate"`
 	ExpiresAt   types.String `tfsdk:"expires_at"`
+	Pending     types.Bool   `tfsdk:"pending"`
 }
 
 // AuthIdentityDataSource reads LXD identities.
@@ -88,6 +89,11 @@ func (r AuthIdentityDataSource) Schema(_ context.Context, _ datasource.SchemaReq
 			"expires_at": schema.StringAttribute{
 				Computed:    true,
 				Description: "Expiry of the identity's credential, in RFC3339 format. For bearer identities this is the expiry of the token that the identity currently bears.",
+			},
+
+			"pending": schema.BoolAttribute{
+				Computed:    true,
+				Description: "Whether the identity has no credential, because none was issued yet or the issued one was revoked.",
 			},
 		},
 	}
@@ -175,6 +181,7 @@ func (r *AuthIdentityDataSource) Read(ctx context.Context, req datasource.ReadRe
 	config.Identifier = types.StringValue(identity.Identifier)
 	config.Certificate = types.StringValue(identity.TLSCertificate)
 	config.Groups = groups
+	config.Pending = types.BoolValue(isPending(identity.Type))
 
 	// The expiry is reported only for identities whose credential expires.
 	config.ExpiresAt = types.StringNull()
