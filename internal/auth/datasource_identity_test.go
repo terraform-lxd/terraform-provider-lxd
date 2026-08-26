@@ -73,6 +73,7 @@ func TestAccIdentity_DS_tls(t *testing.T) {
 					resource.TestCheckResourceAttr("data.lxd_auth_identity.identity", "groups.#", "0"),
 					resource.TestCheckResourceAttrSet("data.lxd_auth_identity.identity", "tls_certificate"),
 					resource.TestCheckResourceAttrSet("data.lxd_auth_identity.identity", "identifier"),
+					resource.TestCheckResourceAttr("data.lxd_auth_identity.identity", "pending", "false"),
 				),
 			},
 			{
@@ -84,6 +85,7 @@ func TestAccIdentity_DS_tls(t *testing.T) {
 					resource.TestCheckResourceAttr("data.lxd_auth_identity.identity", "groups.#", "1"),
 					resource.TestCheckResourceAttr("data.lxd_auth_identity.identity", "groups.0", "admins"),
 					resource.TestCheckResourceAttrSet("data.lxd_auth_identity.identity", "tls_certificate"),
+					resource.TestCheckResourceAttr("data.lxd_auth_identity.identity", "pending", "false"),
 				),
 			},
 		},
@@ -150,6 +152,49 @@ func TestAccIdentity_DS_devlxd(t *testing.T) {
 				// Look up a devlxd identity as a client bearer identity.
 				Config:      acctest.Provider() + testAccIdentity_DS_devlxdAsBearer(identity),
 				ExpectError: regexp.MustCompile(`LXD identity type "DevLXD token bearer"`),
+			},
+		},
+	})
+}
+
+func TestAccIdentity_DS_pending(t *testing.T) {
+	identity := acctest.GenerateName(2, "-")
+	dataSourceName := "data.lxd_auth_identity.identity"
+
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			acctest.PreCheck(t)
+			acctest.PreCheckAPIExtensions(t, "access_management_bearer_pending")
+		},
+		ProtoV6ProviderFactories: acctest.ProtoV6ProviderFactories,
+		Steps: []resource.TestStep{
+			{
+				// A bearer identity is pending until a token is issued for it.
+				Config: acctest.Provider() + testAccIdentityToken_identityDataSource(identity, false),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr(dataSourceName, "name", identity),
+					resource.TestCheckResourceAttr(dataSourceName, "pending", "true"),
+				),
+			},
+			{
+				Config: acctest.Provider() + testAccIdentityToken_identityDataSource(identity, true),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr(dataSourceName, "name", identity),
+					resource.TestCheckResourceAttr(dataSourceName, "pending", "false"),
+				),
+			},
+			{
+				// Revoking the token makes the identity pending again. The
+				// identity is read once more so that the read follows the
+				// revocation.
+				Config: acctest.Provider() + testAccIdentityToken_identityDataSource(identity, false),
+			},
+			{
+				Config: acctest.Provider() + testAccIdentityToken_identityDataSource(identity, false),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr(dataSourceName, "name", identity),
+					resource.TestCheckResourceAttr(dataSourceName, "pending", "true"),
+				),
 			},
 		},
 	})
