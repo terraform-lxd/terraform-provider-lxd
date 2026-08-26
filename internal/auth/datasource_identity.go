@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/canonical/lxd/shared/api"
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/datasource/schema"
@@ -26,6 +27,7 @@ type AuthIdentityDataSourceModel struct {
 	Groups      types.Set    `tfsdk:"groups"`
 	Certificate types.String `tfsdk:"tls_certificate"`
 	ExpiresAt   types.String `tfsdk:"expires_at"`
+	Pending     types.Bool   `tfsdk:"pending"`
 }
 
 // AuthIdentityDataSource reads LXD identities.
@@ -88,6 +90,11 @@ func (r AuthIdentityDataSource) Schema(_ context.Context, _ datasource.SchemaReq
 			"expires_at": schema.StringAttribute{
 				Computed:    true,
 				Description: "Expiry of the identity's credential, in RFC3339 format. For bearer identities this is the expiry of the token that the identity currently bears.",
+			},
+
+			"pending": schema.BoolAttribute{
+				Computed:    true,
+				Description: "Whether no credential is issued for the identity. Null for a bearer or devlxd identity on a server without the access_management_bearer_pending API extension.",
 			},
 		},
 	}
@@ -175,6 +182,12 @@ func (r *AuthIdentityDataSource) Read(ctx context.Context, req datasource.ReadRe
 	config.Identifier = types.StringValue(identity.Identifier)
 	config.Certificate = types.StringValue(identity.TLSCertificate)
 	config.Groups = groups
+
+	// Only a server with the access_management_bearer_pending extension reports whether a bearer identity bears a token.
+	config.Pending = types.BoolValue(isPending(identity.Type))
+	if identityAuthMethod == api.AuthenticationMethodBearer && !server.HasExtension("access_management_bearer_pending") {
+		config.Pending = types.BoolNull()
+	}
 
 	// The expiry is reported only for identities whose credential expires.
 	config.ExpiresAt = types.StringNull()
