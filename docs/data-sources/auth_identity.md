@@ -43,4 +43,10 @@ This data source exports the following attributes in addition to the arguments a
 	it is empty once the identity bears no token. Requires the `access_management_expiry`
 	API extension.
 
+* `pending` - Whether the identity has no credential, because none was issued yet or the
+	issued one was revoked. A TLS identity is pending until its token is used. A bearer or
+	`devlxd` identity is pending until a token is issued for it, and again once that token is
+	revoked. Bearer identities require the `access_management_bearer_pending` API extension to
+	report pending, and read as not pending without it.
+
 Both `type` and `auth_method` are populated on every read.
