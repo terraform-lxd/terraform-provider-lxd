@@ -4,6 +4,14 @@ import (
 	"github.com/canonical/lxd/shared/api"
 )
 
+// Pending bearer identity types, reported by LXD with the
+// access_management_bearer_pending API extension. The LXD api package used by
+// the provider does not export them yet.
+const (
+	identityTypeBearerTokenClientPending = "Client token bearer (pending)"
+	identityTypeBearerTokenDevLXDPending = "DevLXD token bearer (pending)"
+)
+
 // toAuthMethod returns the authentication method for the given identity type.
 // The authentication method is the path segment of every identity endpoint,
 // and a devlxd identity is reached through the bearer method. Every other
@@ -25,9 +33,11 @@ func toType(lxdIdentityType string) string {
 		api.IdentityTypeCertificateClientUnrestricted,
 		api.IdentityTypeCertificateClientPending:
 		return "tls"
-	case api.IdentityTypeBearerTokenClient:
+	case api.IdentityTypeBearerTokenClient,
+		identityTypeBearerTokenClientPending:
 		return "bearer"
-	case api.IdentityTypeBearerTokenDevLXD:
+	case api.IdentityTypeBearerTokenDevLXD,
+		identityTypeBearerTokenDevLXDPending:
 		return "devlxd"
 	case api.IdentityTypeOIDCClient:
 		// Only the data source accepts oidc.
@@ -35,4 +45,19 @@ func toType(lxdIdentityType string) string {
 	}
 
 	return ""
+}
+
+// isPending reports whether the given LXD identity type is a pending one. A
+// pending identity has no credential, because none was issued yet or the
+// issued one was revoked.
+func isPending(lxdIdentityType string) bool {
+	switch lxdIdentityType {
+	case api.IdentityTypeCertificateClientPending,
+		api.IdentityTypeCertificateClusterLinkPending,
+		identityTypeBearerTokenClientPending,
+		identityTypeBearerTokenDevLXDPending:
+		return true
+	}
+
+	return false
 }
