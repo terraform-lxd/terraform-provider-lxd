@@ -27,5 +27,8 @@ This data source exports the following attributes in addition to the arguments a
 * `groups` - List of group names the identity is part of.
 
 * `tls_certificate` - PEM encoded x509 certificate. Populated only for TLS identities.
+	It is empty for a pending TLS identity that has not yet redeemed its trust token.
 
-* `identifier` - Identity ID.
+* `identifier` - Identity ID. For a pending TLS identity this is a UUID, which LXD replaces
+	with the certificate fingerprint once the trust token is redeemed. Use `name` instead if
+	you need a value that is stable across that transition.

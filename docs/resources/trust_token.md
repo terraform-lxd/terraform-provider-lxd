@@ -1,6 +1,14 @@
 # lxd_trust_token
 
-The `lxd_trust_token` resource allows you to request a new trust token.
+The `lxd_trust_token` resource allows you to request a new legacy trust token.
+
+If the LXD server supports the `access_management_tls` API extension, use a
+[pending TLS identity](https://registry.terraform.io/providers/terraform-lxd/lxd/latest/docs/resources/auth_identity#pending-tls-identity)
+instead of the legacy trust token that this resource provides.
+
+~> **Warning:** Since LXD 5.21.5, client TLS identities must have unique names.
+  Once a TLS identity with a given name exists, the server rejects any token issued for that
+  name when it is consumed.
 
 ~> **Note:** The LXD trust token resource cannot be used for the initial authentication
   with the LXD server because LXD Terraform provider needs to be authenticated in order
