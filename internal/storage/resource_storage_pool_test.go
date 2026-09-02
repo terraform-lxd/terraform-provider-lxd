@@ -304,6 +304,36 @@ func TestAccStoragePool_configSource(t *testing.T) {
 	}
 }
 
+// TestAccStoragePool_unknownConfigValue verifies that a storage pool can be
+// created with a config value that is only known after apply (e.g. sourced
+// from another resource applied in the same plan). Regression test for the
+// ModifyPlan config parsing failing on unknown values within an otherwise
+// known config map.
+func TestAccStoragePool_unknownConfigValue(t *testing.T) {
+	poolName := acctest.GenerateName(2, "-")
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { acctest.PreCheck(t) },
+		ProtoV6ProviderFactories: acctest.ProtoV6ProviderFactories,
+		Steps: []resource.TestStep{
+			{
+				Config: acctest.Provider() + testAccStoragePool_unknownConfigValue(poolName),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr("lxd_storage_pool.storage_pool1", "name", poolName),
+					resource.TestCheckResourceAttr("lxd_storage_pool.storage_pool1", "driver", "zfs"),
+					resource.TestCheckResourceAttrWith("lxd_storage_pool.storage_pool1", "config.size", func(value string) error {
+						if !strings.HasSuffix(value, "MiB") {
+							return fmt.Errorf("expected config.size to have suffix %q, got %q", "MiB", value)
+						}
+
+						return nil
+					}),
+				),
+			},
+		},
+	})
+}
+
 func TestAccStoragePool_project(t *testing.T) {
 	poolName := acctest.GenerateName(2, "-")
 	projectName := acctest.GenerateName(2, "-")
@@ -498,6 +528,42 @@ func TestAccStoragePool_clusterConfigLifecycle(t *testing.T) {
 	})
 }
 
+// TestAccStoragePool_clusterMemberOverrideUnknownConfigValue verifies that a
+// clustered storage pool can be created with a member_overrides config
+// value that is only known after apply. Regression test for the ModifyPlan
+// config parsing failing on unknown values nested within an otherwise known
+// member_overrides map: the outer map (and each override's own config map)
+// were both known, but a value within a nested override config map was not.
+func TestAccStoragePool_clusterMemberOverrideUnknownConfigValue(t *testing.T) {
+	targets := acctest.PreCheckClustering(t, 2)
+	poolName := acctest.GenerateName(2, "-")
+
+	// Use the "dir" driver with the "source.recover" key (a node-specific boolean key) so the
+	// test does not depend on loop devices or kernel storage modules, which are unavailable
+	// when LXD runs nested in a container, as is the case in the cluster test environment.
+	driverName := "dir"
+	configKey := "source.recover"
+	overrideTarget := targets[0]
+
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			acctest.PreCheck(t)
+			acctest.PreCheckAPIExtensions(t, "storage_source_recover")
+		},
+		ProtoV6ProviderFactories: acctest.ProtoV6ProviderFactories,
+		Steps: []resource.TestStep{
+			{
+				Config: acctest.Provider() + testAccStoragePool_clusterMemberOverrideUnknownConfigValue(poolName, driverName, overrideTarget, configKey),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr("lxd_storage_pool.pool", "name", poolName),
+					resource.TestCheckResourceAttr("lxd_storage_pool.pool", fmt.Sprintf("member_overrides.%s.config.%s", overrideTarget, configKey), "false"),
+					resource.TestCheckResourceAttr("lxd_storage_pool.pool", fmt.Sprintf("members.%s.config.%s", overrideTarget, configKey), "false"),
+				),
+			},
+		},
+	})
+}
+
 func TestAccStoragePool_importBasic(t *testing.T) {
 	poolName := acctest.GenerateName(2, "-")
 	driverName := "zfs"
@@ -684,6 +750,57 @@ resource "lxd_storage_pool" "pool" {
 
 	b.WriteString("}\n")
 	return b.String()
+}
+
+func testAccStoragePool_unknownConfigValue(poolName string) string {
+	return fmt.Sprintf(`
+resource "terraform_data" "unknown_value" {}
+
+locals {
+  # A value only known after apply (terraform_data.id is a random UUID
+  # assigned on create), simulating e.g. an externally allocated size
+  # resolved via a depends_on chain.
+  unknown_octet = parseint(substr(replace(terraform_data.unknown_value.id, "-", ""), 0, 1), 16)
+}
+
+resource "lxd_storage_pool" "storage_pool1" {
+  name   = "%s"
+  driver = "zfs"
+
+  config = {
+    size = "${128 + local.unknown_octet}MiB"
+  }
+}
+`, poolName)
+}
+
+func testAccStoragePool_clusterMemberOverrideUnknownConfigValue(poolName string, driver string, target string, configKey string) string {
+	return fmt.Sprintf(`
+resource "terraform_data" "unknown_value" {}
+
+locals {
+  # A value only known after apply (terraform_data.id is a random UUID
+  # assigned on create), nested within member_overrides, simulating e.g. an
+  # externally allocated value resolved via a depends_on chain. The
+  # condition is unknown during plan, but both branches agree, so the
+  # resolved value is always "false".
+  unknown_octet = parseint(substr(replace(terraform_data.unknown_value.id, "-", ""), 0, 1), 16)
+  unknown_bool  = local.unknown_octet >= 0 ? "false" : "false"
+}
+
+resource "lxd_storage_pool" "pool" {
+  name   = %q
+  driver = %q
+
+  member_overrides = {
+    %q = {
+      config = {
+        %q = local.unknown_bool
+      }
+    }
+  }
+}
+`, poolName, driver, target, configKey)
 }
 
 // ensureSource ensures temporary storage pool source is created based on the provided
