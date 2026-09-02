@@ -381,6 +381,49 @@ func TestAccNetwork_clusterConfigLifecycle(t *testing.T) {
 	})
 }
 
+// TestAccNetwork_clusterMemberOverrideUnknownConfigValue verifies that a
+// clustered network can be created with a member_overrides config value
+// that is only known after apply. Regression test for the ModifyPlan config
+// parsing failing on unknown values nested within an otherwise known
+// member_overrides map: the outer map (and each override's own config map)
+// were both known, but a value within a nested override config map was not.
+func TestAccNetwork_clusterMemberOverrideUnknownConfigValue(t *testing.T) {
+	targets := acctest.PreCheckClustering(t, 2)
+	networkName := acctest.GenerateName(2, "-")
+
+	// Use a node-specific bridge config key so the test does not depend on
+	// physical network interfaces being present on the cluster members.
+	configKey := "bridge.external_interfaces"
+	overrideTarget := targets[0]
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { acctest.PreCheck(t) },
+		ProtoV6ProviderFactories: acctest.ProtoV6ProviderFactories,
+		Steps: []resource.TestStep{
+			{
+				Config: acctest.Provider() + testAccNetwork_clusterMemberOverrideUnknownConfigValue(networkName, overrideTarget, configKey),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr("lxd_network.network", "name", networkName),
+					resource.TestCheckResourceAttrWith("lxd_network.network", fmt.Sprintf("member_overrides.%s.config.%s", overrideTarget, configKey), func(value string) error {
+						if !strings.HasPrefix(value, "nosuchint-") {
+							return fmt.Errorf("expected member override config value to have prefix %q, got %q", "nosuchint-", value)
+						}
+
+						return nil
+					}),
+					resource.TestCheckResourceAttrWith("lxd_network.network", fmt.Sprintf("members.%s.config.%s", overrideTarget, configKey), func(value string) error {
+						if !strings.HasPrefix(value, "nosuchint-") {
+							return fmt.Errorf("expected member config value to have prefix %q, got %q", "nosuchint-", value)
+						}
+
+						return nil
+					}),
+				),
+			},
+		},
+	})
+}
+
 func TestAccNetwork_project(t *testing.T) {
 	projectName := acctest.GenerateName(2, "-")
 	networkName := acctest.GenerateName(2, "-")
@@ -672,6 +715,32 @@ resource "lxd_network" "network" {
 	b.WriteString("}\n")
 
 	return b.String()
+}
+
+func testAccNetwork_clusterMemberOverrideUnknownConfigValue(networkName string, target string, configKey string) string {
+	return fmt.Sprintf(`
+resource "terraform_data" "unknown_value" {}
+
+locals {
+  # A value only known after apply (terraform_data.id is a random UUID
+  # assigned on create), nested within member_overrides, simulating e.g. an
+  # externally allocated value resolved via a depends_on chain.
+  unknown_suffix = substr(replace(terraform_data.unknown_value.id, "-", ""), 0, 6)
+}
+
+resource "lxd_network" "network" {
+  name = %q
+  type = "bridge"
+
+  member_overrides = {
+    %q = {
+      config = {
+        %q = "nosuchint-${local.unknown_suffix}"
+      }
+    }
+  }
+}
+`, networkName, target, configKey)
 }
 
 func testAccNetwork_project(networkName string, projectName string) string {
