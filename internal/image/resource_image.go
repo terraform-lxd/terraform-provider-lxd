@@ -301,28 +301,44 @@ func (r ImageResource) Update(ctx context.Context, req resource.UpdateRequest, r
 		return
 	}
 
-	// Parse current (old) image aliases.
-	oldAliases := make([]string, len(image.Aliases))
+	// Get aliases currently present on the image, including any created outside the provider.
+	serverAliases := make([]string, len(image.Aliases))
 	for i, alias := range image.Aliases {
-		oldAliases[i] = alias.Name
+		serverAliases[i] = alias.Name
 	}
 
-	// Parse expected (new) image aliases.
-	copiedAliases := make([]string, 0, len(plan.CopiedAliases.Elements()))
-	diags := req.State.GetAttribute(ctx, path.Root("copied_aliases"), &copiedAliases)
+	// Get aliases copied from the source image. Tracked to ensure they are preserved.
+	copiedAliases, diags := ToAliasList(ctx, state.CopiedAliases)
 	resp.Diagnostics.Append(diags...)
 
-	newAliases, diags := ToAliasList(ctx, plan.Aliases)
+	// Aliases previously configured by the user.
+	prevAliases, diags := ToAliasList(ctx, state.Aliases)
 	resp.Diagnostics.Append(diags...)
 
-	newAliases = slices.Compact(append(newAliases, copiedAliases...))
+	// Aliases desired by the current configuration.
+	desiredAliases, diags := ToAliasList(ctx, plan.Aliases)
+	resp.Diagnostics.Append(diags...)
 
 	if resp.Diagnostics.HasError() {
 		return
 	}
 
-	// Extract removed and added image aliases.
-	removed, added := utils.DiffSlices(oldAliases, newAliases)
+	// Aliases managed by the provider are the previously configured ones plus the copied ones.
+	// An image is a singleton keyed by fingerprint, so its alias set is shared.
+	// Aliases created outside the provider are not managed and must be left untouched.
+	managedAliases := slices.Compact(append(prevAliases, copiedAliases...))
+	desiredAliases = slices.Compact(append(desiredAliases, copiedAliases...))
+
+	// Restrict deletions to managed aliases that are still present on the image.
+	var managedOnServer []string
+	for _, alias := range serverAliases {
+		if utils.ValueInSlice(alias, managedAliases) {
+			managedOnServer = append(managedOnServer, alias)
+		}
+	}
+
+	removed, _ := utils.DiffSlices(managedOnServer, desiredAliases)
+	_, added := utils.DiffSlices(serverAliases, desiredAliases)
 
 	// Delete removed aliases.
 	for _, alias := range removed {
@@ -437,14 +453,10 @@ func (r ImageResource) SyncState(ctx context.Context, tfState *tfsdk.State, serv
 	configAliases, diags := ToAliasList(ctx, m.Aliases)
 	respDiags.Append(diags...)
 
-	copiedAliases, diags := ToAliasList(ctx, m.CopiedAliases)
-	respDiags.Append(diags...)
-
-	// Extract aliases from image that are either present in user defined
-	// config or are not copied from initial remote image.
+	// Report only aliases declared in config.
 	var aliases []string
 	for _, a := range image.Aliases {
-		if utils.ValueInSlice(a.Name, configAliases) || !utils.ValueInSlice(a.Name, copiedAliases) {
+		if utils.ValueInSlice(a.Name, configAliases) {
 			aliases = append(aliases, a.Name)
 		}
 	}
