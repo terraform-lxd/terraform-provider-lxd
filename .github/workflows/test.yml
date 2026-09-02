@@ -110,6 +110,14 @@ jobs:
         with:
           terraform_wrapper: false
 
+      # Fetch the test images so each instance is created from a locally cached image,
+      # keeping the image download out of the per-resource create timeout.
+      # Must match acctest.TestImage.
+      - name: Cache test image
+        run: |
+          lxc image copy images:alpine/edge local: --alias test-image
+          lxc image copy images:alpine/edge local: --vm --alias test-image-vm
+
       - name: Run acceptance tests
         run: make test
 
@@ -161,6 +169,15 @@ jobs:
         uses: hashicorp/setup-terraform@dfe3c3f87815947d99a8997f908cb6525fc44e9e # v4.0.1
         with:
           terraform_wrapper: false
+
+      # Fetch the test image so each instance is created from a locally cached image.
+      # This prevents image cache to be included in instance timeout (in case image downloads are slow)
+      # as well as a race when caching an image, since image operation lock is per-member.
+      # Must match acctest.TestImage.
+      - name: Cache test image
+        run: |
+          lxc image copy images:alpine/edge acctest: --alias test-image
+          lxc image copy images:alpine/edge acctest: --vm --alias test-image-vm
 
       - name: Run acceptance tests
         run: make test
