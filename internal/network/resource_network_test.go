@@ -724,8 +724,10 @@ resource "terraform_data" "unknown_value" {}
 locals {
   # A value only known after apply (terraform_data.id is a random UUID
   # assigned on create), nested within member_overrides, simulating e.g. an
-  # externally allocated value resolved via a depends_on chain.
-  unknown_suffix = substr(replace(terraform_data.unknown_value.id, "-", ""), 0, 6)
+  # externally allocated value resolved via a depends_on chain. Kept short
+  # since the resulting string is used as a Linux interface name, which is
+  # limited to 15 characters.
+  unknown_suffix = substr(replace(terraform_data.unknown_value.id, "-", ""), 0, 4)
 }
 
 resource "lxd_network" "network" {
