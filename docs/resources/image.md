@@ -24,8 +24,10 @@ resource "lxd_instance" "test1" {
 
 * `source_instance` - *Optional* - The source instance from which the image will be created. See reference below.
 
-* `aliases` - *Optional* - A list of aliases to assign to the image after
-	pulling.
+* `aliases` - *Optional* - A list of aliases to assign to the image.
+  An image is a singleton identified by its fingerprint, so its aliases are a shared set.
+  The provider manages only the aliases listed here (and those from `copied_aliases`).
+  Aliases created outside the provider are left untouched and are not reported in state.
 
 * `project` - *Optional* - Name of the project where the image will be stored.
 
