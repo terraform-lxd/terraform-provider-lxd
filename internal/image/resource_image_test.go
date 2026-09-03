@@ -6,7 +6,9 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/canonical/lxd/shared/api"
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
+	"github.com/hashicorp/terraform-plugin-testing/terraform"
 	"github.com/terraform-lxd/terraform-provider-lxd/internal/acctest"
 	provider_config "github.com/terraform-lxd/terraform-provider-lxd/internal/provider-config"
 )
@@ -174,6 +176,121 @@ func TestAccImage_addRemoveAlias(t *testing.T) {
 					resource.TestCheckResourceAttr("lxd_image.img2", "aliases.#", "1"),
 					resource.TestCheckResourceAttr("lxd_image.img2", "aliases.0", alias2),
 					resource.TestCheckResourceAttr("lxd_image.img2", "copied_aliases.#", "0"),
+				),
+			},
+		},
+	})
+}
+
+func TestAccImage_manualAliasPreserved(t *testing.T) {
+	alias1 := acctest.GenerateName(2, "-")
+	alias2 := acctest.GenerateName(2, "-")
+	manualAlias := acctest.GenerateName(2, "-")
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { acctest.PreCheck(t) },
+		ProtoV6ProviderFactories: acctest.ProtoV6ProviderFactories,
+		Steps: []resource.TestStep{
+			{
+				Config: acctest.Provider() + testAccImage_aliases(alias1),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr("lxd_image.img2", "aliases.#", "1"),
+					resource.TestCheckResourceAttr("lxd_image.img2", "aliases.0", alias1),
+				),
+			},
+			{
+				// Create an alias outside the provider, then trigger an update by
+				// adding a config alias. The manually created alias must survive
+				// and must not appear in state.
+				PreConfig: func() {
+					server := acctest.InstanceServer(t)
+
+					target, _, err := server.GetImageAlias(alias1)
+					if err != nil {
+						t.Fatalf("Failed to resolve image alias %q: %v", alias1, err)
+					}
+
+					req := api.ImageAliasesPost{}
+					req.Name = manualAlias
+					req.Target = target.Target
+
+					err = server.CreateImageAlias(req)
+					if err != nil {
+						t.Fatalf("Failed to create image alias %q: %v", manualAlias, err)
+					}
+				},
+				Config: acctest.Provider() + testAccImage_aliases(alias1, alias2),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr("lxd_image.img2", "aliases.#", "2"),
+					resource.TestCheckTypeSetElemAttr("lxd_image.img2", "aliases.*", alias1),
+					resource.TestCheckTypeSetElemAttr("lxd_image.img2", "aliases.*", alias2),
+					func(_ *terraform.State) error {
+						server := acctest.InstanceServer(t)
+
+						_, _, err := server.GetImageAlias(manualAlias)
+						if err != nil {
+							return fmt.Errorf("Image alias %q not found: %w", manualAlias, err)
+						}
+
+						return nil
+					},
+				),
+			},
+		},
+	})
+}
+
+func TestAccImage_configAliasAdopted(t *testing.T) {
+	alias := acctest.GenerateName(2, "-")
+	manualAlias := acctest.GenerateName(2, "-")
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { acctest.PreCheck(t) },
+		ProtoV6ProviderFactories: acctest.ProtoV6ProviderFactories,
+		CheckDestroy: func(_ *terraform.State) error {
+			server := acctest.InstanceServer(t)
+
+			_, _, err := server.GetImageAlias(manualAlias)
+			if err == nil {
+				return fmt.Errorf("Image alias %q was not deleted", manualAlias)
+			}
+
+			return nil
+		},
+		Steps: []resource.TestStep{
+			{
+				Config: acctest.Provider() + testAccImage_aliases(alias),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr("lxd_image.img2", "aliases.#", "1"),
+					resource.TestCheckResourceAttr("lxd_image.img2", "aliases.0", alias),
+				),
+			},
+			{
+				// Create an alias outside the provider, then declare that same alias
+				// in config. The provider must adopt the existing alias and apply
+				// cleanly rather than failing because it already exists.
+				PreConfig: func() {
+					server := acctest.InstanceServer(t)
+
+					target, _, err := server.GetImageAlias(alias)
+					if err != nil {
+						t.Fatalf("Failed to resolve image alias %q: %v", alias, err)
+					}
+
+					req := api.ImageAliasesPost{}
+					req.Name = manualAlias
+					req.Target = target.Target
+
+					err = server.CreateImageAlias(req)
+					if err != nil {
+						t.Fatalf("Failed to create image alias %q: %v", manualAlias, err)
+					}
+				},
+				Config: acctest.Provider() + testAccImage_aliases(alias, manualAlias),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr("lxd_image.img2", "aliases.#", "2"),
+					resource.TestCheckTypeSetElemAttr("lxd_image.img2", "aliases.*", alias),
+					resource.TestCheckTypeSetElemAttr("lxd_image.img2", "aliases.*", manualAlias),
 				),
 			},
 		},

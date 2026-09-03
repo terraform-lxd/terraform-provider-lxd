@@ -434,3 +434,15 @@ func PrintResourceState(t *testing.T, resName string) resource.TestCheckFunc {
 		return nil
 	}
 }
+
+// InstanceServer returns an LXD instance server connected to the default test
+// remote and project. Use it when a test needs to interact with the cluster
+// directly, for example to set up or verify state outside the provider.
+func InstanceServer(t *testing.T) lxd.InstanceServer {
+	server, err := testProvider().InstanceServer("", "", "")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	return server
+}
