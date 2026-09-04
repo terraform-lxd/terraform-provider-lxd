@@ -3,6 +3,7 @@ package auth
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
@@ -16,6 +17,7 @@ import (
 
 type AuthIdentityDataSourceModel struct {
 	Name       types.String `tfsdk:"name"`
+	Type       types.String `tfsdk:"type"`
 	AuthMethod types.String `tfsdk:"auth_method"`
 	Remote     types.String `tfsdk:"remote"`
 
@@ -23,6 +25,8 @@ type AuthIdentityDataSourceModel struct {
 	Identifier  types.String `tfsdk:"identifier"`
 	Groups      types.Set    `tfsdk:"groups"`
 	Certificate types.String `tfsdk:"tls_certificate"`
+	ExpiresAt   types.String `tfsdk:"expires_at"`
+	Pending     types.Bool   `tfsdk:"pending"`
 }
 
 // AuthIdentityDataSource reads LXD identities.
@@ -46,8 +50,17 @@ func (r AuthIdentityDataSource) Schema(_ context.Context, _ datasource.SchemaReq
 				Required: true,
 			},
 
+			"type": schema.StringAttribute{
+				Optional: true,
+				Computed: true,
+				Validators: []validator.String{
+					stringvalidator.OneOf("tls", "bearer", "devlxd", "oidc"),
+				},
+			},
+
 			"auth_method": schema.StringAttribute{
-				Required: true,
+				Optional: true,
+				Computed: true,
 				Validators: []validator.String{
 					stringvalidator.OneOf("tls", "bearer", "oidc"),
 				},
@@ -72,6 +85,16 @@ func (r AuthIdentityDataSource) Schema(_ context.Context, _ datasource.SchemaReq
 			"identifier": schema.StringAttribute{
 				Computed: true,
 			},
+
+			"expires_at": schema.StringAttribute{
+				Computed:    true,
+				Description: "Expiry of the identity's credential, in RFC3339 format. For bearer identities this is the expiry of the token that the identity currently bears.",
+			},
+
+			"pending": schema.BoolAttribute{
+				Computed:    true,
+				Description: "Whether the identity has no credential, because none was issued yet or the issued one was revoked.",
+			},
 		},
 	}
 }
@@ -91,6 +114,12 @@ func (r *AuthIdentityDataSource) Configure(_ context.Context, req datasource.Con
 	r.provider = provider
 }
 
+func (r AuthIdentityDataSource) ConfigValidators(_ context.Context) []datasource.ConfigValidator {
+	return []datasource.ConfigValidator{
+		identityTypeValidator{warnOnAuthMethod: false},
+	}
+}
+
 func (r *AuthIdentityDataSource) Read(ctx context.Context, req datasource.ReadRequest, resp *datasource.ReadResponse) {
 	var config AuthIdentityDataSourceModel
 	resp.Diagnostics.Append(req.Config.Get(ctx, &config)...)
@@ -106,11 +135,38 @@ func (r *AuthIdentityDataSource) Read(ctx context.Context, req datasource.ReadRe
 	}
 
 	identityName := config.Name.ValueString()
+	identityType := config.Type.ValueString()
 	identityAuthMethod := config.AuthMethod.ValueString()
+
+	// Exactly one of the two is configured, and each derives the other. Every
+	// authentication method is also an identity type.
+	if identityAuthMethod == "" {
+		identityAuthMethod = toAuthMethod(identityType)
+	} else {
+		identityType = identityAuthMethod
+	}
+
 	identity, _, err := server.GetIdentity(identityAuthMethod, identityName)
 	if err != nil {
-		resp.Diagnostics.AddError(fmt.Sprintf("Failed to retrieve %q identity %q", identityAuthMethod, identityName), err.Error())
+		resp.Diagnostics.AddError(fmt.Sprintf("Failed to retrieve %q identity %q", identityType, identityName), err.Error())
 		return
+	}
+
+	// The bearer authentication method returns client and devlxd identities
+	// alike, so a lookup by identity type must reject an identity of another
+	// type. LXD identity types that the provider cannot name keep the identity
+	// type that was asked for.
+	serverType := toType(identity.Type)
+	if serverType != "" {
+		if !config.Type.IsNull() && serverType != identityType {
+			resp.Diagnostics.AddError(
+				fmt.Sprintf("Identity %q is not of type %q", identityName, identityType),
+				fmt.Sprintf("LXD identity type %q corresponds to type %q", identity.Type, serverType),
+			)
+			return
+		}
+
+		identityType = serverType
 	}
 
 	groups, diags := common.ToStringSetType(ctx, identity.Groups)
@@ -120,10 +176,18 @@ func (r *AuthIdentityDataSource) Read(ctx context.Context, req datasource.ReadRe
 	}
 
 	config.Name = types.StringValue(identity.Name)
+	config.Type = types.StringValue(identityType)
 	config.AuthMethod = types.StringValue(identity.AuthenticationMethod)
 	config.Identifier = types.StringValue(identity.Identifier)
 	config.Certificate = types.StringValue(identity.TLSCertificate)
 	config.Groups = groups
+	config.Pending = types.BoolValue(isPending(identity.Type))
+
+	// The expiry is reported only for identities whose credential expires.
+	config.ExpiresAt = types.StringNull()
+	if identity.ExpiresAt != nil {
+		config.ExpiresAt = types.StringValue(identity.ExpiresAt.UTC().Format(time.RFC3339))
+	}
 
 	resp.Diagnostics.Append(resp.State.Set(ctx, &config)...)
 }

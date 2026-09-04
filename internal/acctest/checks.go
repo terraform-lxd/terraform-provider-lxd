@@ -279,6 +279,19 @@ func ConfigureBearerToken(t *testing.T) (token string, cleanup func()) {
 	return bearerToken.Token, cleanup
 }
 
+// RevokeIdentityToken revokes the current token of the given bearer identity.
+func RevokeIdentityToken(t *testing.T, identityName string) {
+	server, err := testProvider().InstanceServer("", "", "")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	err = server.RevokeBearerIdentityToken(identityName)
+	if err != nil {
+		t.Fatal(fmt.Errorf("Failed to revoke token of identity %q: %w", identityName, err))
+	}
+}
+
 // GenerateClientCertificate generates a new client certificate and key pair
 // without adding the certificate to the server's trust store. Returns both
 // PEM-encoded, along with a cleanup function that removes the certificate

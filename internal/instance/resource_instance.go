@@ -1051,10 +1051,11 @@ func (r InstanceResource) Update(ctx context.Context, req resource.UpdateRequest
 		device[common.UserManagedBy] = common.DeviceManagedByTerraform
 	}
 
-	// Ensure that devices managed by the InstanceDeviceResource are not removed.
+	// Ensure that devices managed by the InstanceDeviceResource and devices
+	// attached over the DevLXD API are not removed.
 	for deviceName, device := range instance.Devices {
 		managedBy := device[common.UserManagedBy]
-		if managedBy != common.DeviceManagedByTerraform {
+		if managedBy != common.DeviceManagedByTerraform && !isDevLXDOwnedDevice(instance.Config, deviceName) {
 			continue
 		}
 
@@ -1371,6 +1372,12 @@ func (r InstanceResource) SyncState(ctx context.Context, tfState *tfsdk.State, s
 	var syncDevices = make(map[string]map[string]string)
 
 	for deviceName, device := range instance.Devices {
+		// Devices attached over the DevLXD API belong to a DevLXD identity,
+		// which manages their lifecycle.
+		if isDevLXDOwnedDevice(instance.Config, deviceName) {
+			continue
+		}
+
 		managedBy := device[common.UserManagedBy]
 
 		// Add non-managed devices for deletion by terraform plan.
@@ -1792,6 +1799,14 @@ func isInstanceRunning(s api.InstanceState) bool {
 // isInstanceReady returns true if its status is "Ready".
 func isInstanceReady(s api.InstanceState) bool {
 	return s.StatusCode == api.Ready
+}
+
+// isDevLXDOwnedDevice reports whether the named device was attached to the
+// instance over the DevLXD API. LXD records the owner of such a device in the
+// instance configuration.
+func isDevLXDOwnedDevice(instanceConfig map[string]string, deviceName string) bool {
+	_, ok := instanceConfig["volatile."+deviceName+".devlxd.owner"]
+	return ok
 }
 
 // isInstanceStopped returns true if instance's status "Stopped".
