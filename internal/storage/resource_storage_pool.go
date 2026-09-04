@@ -151,6 +151,31 @@ func (r *StoragePoolResource) Configure(_ context.Context, req resource.Configur
 	r.provider = provider
 }
 
+// memberOverridesHaveUnknownConfig reports whether any entry of an otherwise
+// known member_overrides map contains a config value that is only known
+// after apply. The outer map can be fully known (all member keys present)
+// while a nested override's "config" attribute, or a value within it,
+// remains unknown, which ToConfigMap cannot convert.
+func memberOverridesHaveUnknownConfig(ctx context.Context, memberOverrides types.Map) bool {
+	if memberOverrides.IsNull() || memberOverrides.IsUnknown() {
+		return false
+	}
+
+	overrides := map[string]StoragePoolMemberModel{}
+	diags := memberOverrides.ElementsAs(ctx, &overrides, true)
+	if diags.HasError() {
+		return false
+	}
+
+	for _, override := range overrides {
+		if common.ConfigHasUnknownValue(override.Config) {
+			return true
+		}
+	}
+
+	return false
+}
+
 func (r *StoragePoolResource) ModifyPlan(ctx context.Context, req resource.ModifyPlanRequest, resp *resource.ModifyPlanResponse) {
 	if req.Plan.Raw.IsNull() {
 		// Nothing to do on destroy.
@@ -164,8 +189,11 @@ func (r *StoragePoolResource) ModifyPlan(ctx context.Context, req resource.Modif
 		return
 	}
 
-	// Cannot expand members if driver or member_overrides are not yet known.
-	if plan.Driver.IsUnknown() || plan.MemberOverrides.IsUnknown() {
+	// Cannot expand members if driver or member_overrides are not yet known,
+	// or if config (global or within a member override) contains a value
+	// that is only known after apply (e.g. sourced from a resource applied
+	// later in the same plan).
+	if plan.Driver.IsUnknown() || plan.MemberOverrides.IsUnknown() || common.ConfigHasUnknownValue(plan.Config) || memberOverridesHaveUnknownConfig(ctx, plan.MemberOverrides) {
 		return
 	}
 

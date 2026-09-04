@@ -38,6 +38,24 @@ func ToConfigMap(ctx context.Context, configMap types.Map) (map[string]string, d
 	return config, nil
 }
 
+// ConfigHasUnknownValue reports whether configMap, or any value within it,
+// is not yet known. A map can be fully known while still containing
+// individual unknown values (e.g. a value sourced from a resource that has
+// not been applied yet), which ToConfigMap cannot convert.
+func ConfigHasUnknownValue(configMap types.Map) bool {
+	if configMap.IsUnknown() {
+		return true
+	}
+
+	for _, v := range configMap.Elements() {
+		if v.IsUnknown() {
+			return true
+		}
+	}
+
+	return false
+}
+
 // ToConfigMapType converts map[string]string into config of type types.Map.
 func ToConfigMapType(ctx context.Context, config map[string]*string, modelConfig types.Map) (types.Map, diag.Diagnostics) {
 	// Add any missing nil values.
