@@ -1,35 +1,133 @@
-# This GitHub action can publish assets for release when a tag is created.
-# Currently its setup to run on any tag that matches the pattern "v*" (ie. v0.1.0).
-#
-# This uses an action (paultyng/ghaction-import-gpg) that assumes you set your
-# private key in the `GPG_PRIVATE_KEY` secret and passphrase in the `PASSPHRASE`
-# secret. If you would rather own your own GPG handling, please fork this action
-# or use an alternative one for key handling.
-#
-# You will need to pass the `--batch` flag to `gpg` in your signing step
-# in `goreleaser` to indicate this is being used in a non-interactive mode.
-#
-name: Release
+name: Test and Release
 on:
   push:
-    tags:
-      - "v*"
+    branches:
+      - main
+  workflow_dispatch: {}
 
 permissions:
   contents: read
 
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+defaults:
+  run:
+    shell: bash
+
 jobs:
-  goreleaser:
-    permissions:
-      contents: write
+  # Decide whether a release is needed.
+  # A release is needed when the semver in the VERSION file has no matching published GitHub release.
+  precheck:
+    if: github.repository == 'terraform-lxd/terraform-provider-lxd' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+    outputs:
+      tag: ${{ steps.release.outputs.tag }}
+      is_latest: ${{ steps.release.outputs.is_latest }}
     steps:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          # A non-shallow clone is needed for GoReleaser
+          persist-credentials: false
+
+      - name: Determine whether a release is needed
+        id: release
+        env:
+          GH_SHA: ${{ github.sha }}
+          GH_TOKEN: ${{ github.token }}
+          GH_REPOSITORY: ${{ github.repository }}
+        run: |
+          set -e
+
+          version=$(cat VERSION)
+          if [[ ! "${version}" =~ ^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$ ]]; then
+            echo "Error: Invalid version '${version}' in VERSION file. Expected MAJOR.MINOR.PATCH without a 'v' prefix."
+            exit 1
+          fi
+
+          # Only a published release counts as released.
+          tag="v${version}"
+          if resp=$(gh api "repos/${GH_REPOSITORY}/releases/tags/${tag}" 2>&1); then
+            echo "Release '${tag}' already exists."
+            echo "tag=" >> "$GITHUB_OUTPUT"
+            exit 0
+          elif ! echo "${resp}" | grep -q 'HTTP 404'; then
+            echo "${resp}" >&2
+            exit 1
+          fi
+
+          # Fail if the tag already exists at a different commit than this release.
+          if resp=$(gh api "repos/${GH_REPOSITORY}/commits/${tag}" 2>&1); then
+            tag_sha=$(echo "${resp}" | jq -r '.sha')
+            if [ "${tag_sha}" != "${GH_SHA}" ]; then
+              echo "Error: Tag '${tag}' already exists at ${tag_sha} without a release."
+              exit 1
+            fi
+          elif ! echo "${resp}" | grep -qE 'HTTP (404|422)'; then
+            echo "${resp}" >&2
+            exit 1
+          fi
+
+          # Mark this version as latest unless a newer one is already published.
+          current_latest=""
+          if resp=$(gh api "repos/${GH_REPOSITORY}/releases/latest" 2>&1); then
+            current_latest=$(echo "${resp}" | jq -r '.tag_name' | sed 's/^v//')
+          elif ! echo "${resp}" | grep -q 'HTTP 404'; then
+            echo "${resp}" >&2
+            exit 1
+          fi
+
+          is_latest=true
+          if [ -n "${current_latest}" ]; then
+            highest=$(echo -e "${current_latest}\n${version}" | sort -V | tail -n1)
+            if [ "${highest}" != "${version}" ]; then
+              is_latest=false
+            fi
+          fi
+
+          echo "tag=${tag}" >> "$GITHUB_OUTPUT"
+          echo "is_latest=${is_latest}" >> "$GITHUB_OUTPUT"
+
+          echo "version=${version} tag=${tag} is_latest=${is_latest}"
+
+  # Run the tests before the release.
+  tests:
+    needs: precheck
+    permissions:
+      contents: read
+    uses: ./.github/workflows/test.yml
+
+  # Build, sign, and publish the release.
+  # Runs only when precheck found a version without a published release and the tests passed.
+  release:
+    needs:
+      - precheck
+      - tests
+    if: ${{ needs.precheck.outputs.tag != '' }}
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+    env:
+      RELEASE_TAG: ${{ needs.precheck.outputs.tag }}
+      RELEASE_IS_LATEST: ${{ needs.precheck.outputs.is_latest }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.sha }}
           fetch-depth: 0
           persist-credentials: false
+
+        # GoReleaser reads a local tag to determine the version.
+        # GoReleaser creates only a draft, so no remote tag is created here.
+        # The publish flip creates the remote tag at the released commit.
+      - name: Create local release tag
+        run: |
+          set -e
+          git tag -f "${RELEASE_TAG}" "${{ github.sha }}"
 
       - name: Install Go
         uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
@@ -51,3 +149,14 @@ jobs:
         env:
           GPG_FINGERPRINT: ${{ steps.import_gpg.outputs.fingerprint }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      # Publish the draft release by creating the tag at the released commit.
+      - name: Publish the release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -e
+          gh release edit "${RELEASE_TAG}" -R "${{ github.repository }}" \
+            --draft=false \
+            --target "${{ github.sha }}" \
+            --latest="${RELEASE_IS_LATEST}"
