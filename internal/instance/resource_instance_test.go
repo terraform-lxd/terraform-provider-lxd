@@ -1731,7 +1731,7 @@ resource "lxd_instance" "instance1" {
   image   = lxd_image.img.fingerprint
   running = true
 }
-	`, acctest.TestImage, name)
+	`, "images:openwrt/snapshot", name) // Do NOT use acctest.TestImage here because it will remove (pre-)cached image.
 }
 
 func testAccInstance_virtualMachine(name string) string {
