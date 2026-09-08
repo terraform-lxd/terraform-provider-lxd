@@ -3,14 +3,12 @@ package network
 import (
 	"context"
 	"fmt"
-	"maps"
-	"slices"
+	"strings"
 	"time"
 
 	lxd "github.com/canonical/lxd/client"
 	"github.com/canonical/lxd/shared/api"
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
-	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
@@ -42,11 +40,6 @@ type NetworkModel struct {
 	Managed types.Bool   `tfsdk:"managed"`
 	IPv4    types.String `tfsdk:"ipv4_address"`
 	IPv6    types.String `tfsdk:"ipv6_address"`
-}
-
-// NetworkMemberModel represents a per-member network configuration override.
-type NetworkMemberModel struct {
-	Config types.Map `tfsdk:"config"`
 }
 
 // NetworkResource represent LXD network resource.
@@ -176,31 +169,6 @@ func (r *NetworkResource) Configure(_ context.Context, req resource.ConfigureReq
 	r.provider = provider
 }
 
-// memberOverridesHaveUnknownConfig reports whether any entry of an otherwise
-// known member_overrides map contains a config value that is only known
-// after apply. The outer map can be fully known (all member keys present)
-// while a nested override's "config" attribute, or a value within it,
-// remains unknown, which ToConfigMap cannot convert.
-func memberOverridesHaveUnknownConfig(ctx context.Context, memberOverrides types.Map) bool {
-	if memberOverrides.IsNull() || memberOverrides.IsUnknown() {
-		return false
-	}
-
-	overrides := map[string]NetworkMemberModel{}
-	diags := memberOverrides.ElementsAs(ctx, &overrides, true)
-	if diags.HasError() {
-		return false
-	}
-
-	for _, override := range overrides {
-		if common.ConfigHasUnknownValue(override.Config) {
-			return true
-		}
-	}
-
-	return false
-}
-
 func (r *NetworkResource) ModifyPlan(ctx context.Context, req resource.ModifyPlanRequest, resp *resource.ModifyPlanResponse) {
 	if req.Plan.Raw.IsNull() {
 		// Nothing to do on destroy.
@@ -218,7 +186,7 @@ func (r *NetworkResource) ModifyPlan(ctx context.Context, req resource.ModifyPla
 	// or if config (global or within a member override) contains a value
 	// that is only known after apply (e.g. sourced from a resource applied
 	// later in the same plan).
-	if plan.Type.IsUnknown() || plan.MemberOverrides.IsUnknown() || common.ConfigHasUnknownValue(plan.Config) || memberOverridesHaveUnknownConfig(ctx, plan.MemberOverrides) {
+	if plan.Type.IsUnknown() || plan.MemberOverrides.IsUnknown() || common.ConfigHasUnknownValue(plan.Config) || common.MemberOverridesHaveUnknownConfig(ctx, plan.MemberOverrides) {
 		return
 	}
 
@@ -238,22 +206,7 @@ func (r *NetworkResource) ModifyPlan(ctx context.Context, req resource.ModifyPla
 		return
 	}
 
-	members := make(map[string]NetworkMemberModel, len(memberNetworkConfigs))
-	for memberName, memberConfig := range memberNetworkConfigs {
-		memberConfigType, diags := types.MapValueFrom(ctx, types.StringType, common.ToNullableConfig(memberConfig))
-		if diags.HasError() {
-			resp.Diagnostics.Append(diags...)
-			return
-		}
-
-		members[memberName] = NetworkMemberModel{Config: memberConfigType}
-	}
-
-	memberObjType := types.ObjectType{AttrTypes: map[string]attr.Type{
-		"config": types.MapType{ElemType: types.StringType},
-	}}
-
-	membersValue, diags := types.MapValueFrom(ctx, memberObjType, members)
+	membersValue, diags := common.ToMembersMapType(ctx, memberNetworkConfigs)
 	if diags.HasError() {
 		resp.Diagnostics.Append(diags...)
 		return
@@ -558,7 +511,6 @@ func (r NetworkResource) SyncState(ctx context.Context, tfState *tfsdk.State, se
 		return respDiags
 	}
 
-	members := make(map[string]NetworkMemberModel, len(memberNetworkConfigs))
 	for memberName, memberConfig := range memberNetworkConfigs {
 		memberServer := server.UseTarget(memberName)
 
@@ -575,13 +527,6 @@ func (r NetworkResource) SyncState(ctx context.Context, tfState *tfsdk.State, se
 				memberConfig[k] = v
 			}
 		}
-
-		memberConfigType, diags := types.MapValueFrom(ctx, types.StringType, common.ToNullableConfig(memberConfig))
-		if diags.HasError() {
-			return diags
-		}
-
-		members[memberName] = NetworkMemberModel{Config: memberConfigType}
 	}
 
 	// Merge current network configuration with user provided configuration, stripping away
@@ -592,13 +537,7 @@ func (r NetworkResource) SyncState(ctx context.Context, tfState *tfsdk.State, se
 		return diags
 	}
 
-	memberObjType := types.ObjectType{
-		AttrTypes: map[string]attr.Type{
-			"config": types.MapType{ElemType: types.StringType},
-		},
-	}
-
-	membersValue, diags := types.MapValueFrom(ctx, memberObjType, members)
+	membersValue, diags := common.ToMembersMapType(ctx, memberNetworkConfigs)
 	if diags.HasError() {
 		return diags
 	}
@@ -636,7 +575,7 @@ func (m NetworkModel) TaintState(ctx context.Context, tfState *tfsdk.State) diag
 // containing local network configuration for each member (merged with default local
 // configuration from field "config").
 func (m NetworkModel) ParseNetworkConfigs(ctx context.Context, server lxd.InstanceServer, networkType string) (networkConfig map[string]string, memberConfigs map[string]map[string]string, err error) {
-	networkName := m.Name.ValueString()
+	networkEntity := fmt.Sprintf("Network %q (%s)", m.Name.ValueString(), networkType)
 
 	// Convert base network config to map.
 	networkConfig, diags := common.ToConfigMap(ctx, m.Config)
@@ -656,15 +595,16 @@ func (m NetworkModel) ParseNetworkConfigs(ctx context.Context, server lxd.Instan
 	// Extract member-specific config keys from server metadata.
 	// Use server version as metadata configuration cache key, as metadata configuration is the
 	// same across LXD servers with the same version.
-	allNetworkKeys, localNetworkKeys, err := m.networkConfigKeys(serverVersion, server, networkType)
+	configKeys, err := m.networkConfigKeys(serverVersion, server, networkType)
 	if err != nil {
 		return nil, nil, err
 	}
 
-	if len(allNetworkKeys) > 0 {
-		for k := range networkConfig {
-			if !slices.Contains(allNetworkKeys, k) {
-				return nil, nil, fmt.Errorf("Network %q (%s) does not support config key %q", networkName, networkType, k)
+	if server.CheckExtension("metadata_configuration") == nil {
+		for key := range networkConfig {
+			_, ok := configKeys.Lookup(key)
+			if !ok && !strings.HasPrefix(key, "user.") {
+				return nil, nil, fmt.Errorf("%s does not support config key %q", networkEntity, key)
 			}
 		}
 	}
@@ -674,7 +614,7 @@ func (m NetworkModel) ParseNetworkConfigs(ctx context.Context, server lxd.Instan
 	// Return early if LXD is not clustered or network type is OVN.
 	if !isServerClustered || networkType == "ovn" {
 		if hasMemberOverrides {
-			return nil, nil, fmt.Errorf(`Network %q (%s) cannot use member-specific config overrides unless LXD is clustered and the network type is not "ovn"`, networkName, networkType)
+			return nil, nil, fmt.Errorf(`%s cannot use member-specific config overrides unless LXD is clustered and the network type is not "ovn"`, networkEntity)
 		}
 
 		// Return early with global network config.
@@ -686,91 +626,33 @@ func (m NetworkModel) ParseNetworkConfigs(ctx context.Context, server lxd.Instan
 		return nil, nil, err
 	}
 
-	// Separate global and member-specific network configuration.
-	memberNetworkConfig := make(map[string]string)
-	for k, v := range networkConfig {
-		if slices.Contains(localNetworkKeys, k) {
-			memberNetworkConfig[k] = v
-			delete(networkConfig, k)
-		}
-	}
-
-	// Set member-specific config from global config to all members by default.
-	memberNetworkConfigs := make(map[string]map[string]string)
-	for _, memberName := range memberNames {
-		memberNetworkConfigs[memberName] = maps.Clone(memberNetworkConfig)
-	}
-
-	// Extract member-specific config overrides.
-	memberOverrides := map[string]NetworkMemberModel{}
-	err = errors.FromDiagnostics(m.MemberOverrides.ElementsAs(ctx, &memberOverrides, true))
-	if err != nil {
-		return nil, nil, fmt.Errorf("Unable to extract member-specific config overrides: %v", err)
-	}
-
-	for memberName, override := range memberOverrides {
-		memberNetworkConfig, ok := memberNetworkConfigs[memberName]
-		if !ok {
-			return nil, nil, fmt.Errorf("Network %q (%s) contains member-specific config override for a non-existent cluster member %q!", networkName, networkType, memberName)
-		}
-
-		// Parse and apply member-specific override.
-		configMap, diags := common.ToConfigMap(ctx, override.Config)
-		err := errors.FromDiagnostics(diags)
-		if err != nil {
-			return nil, nil, fmt.Errorf("Unable to convert member-specific config override to map: %v", err)
-		}
-
-		maps.Copy(memberNetworkConfig, configMap)
-
-		// Ensure member-specific config does not contain global keys.
-		for k := range memberNetworkConfig {
-			if !slices.Contains(localNetworkKeys, k) {
-				return nil, nil, fmt.Errorf("Invalid config key %q for network member %q: Only member-specific keys are allowed in per-member configuration", k, memberName)
-			}
-		}
-
-		// Store resolved config.
-		memberNetworkConfigs[memberName] = memberNetworkConfig
-	}
-
-	return networkConfig, memberNetworkConfigs, nil
+	return common.ResolveMemberConfigs(ctx, networkEntity, networkConfig, m.MemberOverrides, memberNames, configKeys)
 }
 
-// networkConfigKeys retrieves a list of network configuration keys and their scope.
-func (m NetworkModel) networkConfigKeys(serverName string, server lxd.InstanceServer, networkType string) (allKeys []string, localKeys []string, err error) {
+// networkConfigKeys retrieves network configuration keys and their scope.
+func (m NetworkModel) networkConfigKeys(serverName string, server lxd.InstanceServer, networkType string) (common.MetadataConfigKeys, error) {
 	if server.CheckExtension("metadata_configuration") != nil {
-		localKeys = m.MemberSpecificKeys(networkType)
-		return nil, localKeys, nil
+		return common.NewLocalMetadataConfigKeys(m.MemberSpecificKeys(networkType)), nil
 	}
 
 	meta, err := common.ServerMetadataConfiguration(serverName, server)
 	if err != nil {
-		return nil, nil, err
+		return common.MetadataConfigKeys{}, err
 	}
 
 	typeConfigKey := "network-" + networkType
 	typeConfig, ok := meta.Configs[typeConfigKey]
 	if !ok {
-		return nil, nil, fmt.Errorf("Metadata configuration %q not found", typeConfigKey)
+		return common.MetadataConfigKeys{}, fmt.Errorf("Metadata configuration %q not found", typeConfigKey)
 	}
 
 	networkConfigKey := "network-conf"
 	networkConfig, ok := typeConfig[networkConfigKey]
 	if !ok {
-		return nil, nil, fmt.Errorf("Metadata configuration %q does not contain %q key", typeConfigKey, networkConfigKey)
+		return common.MetadataConfigKeys{}, fmt.Errorf("Metadata configuration %q does not contain %q key", typeConfigKey, networkConfigKey)
 	}
 
-	for _, configKeys := range networkConfig.Keys {
-		for k, v := range configKeys {
-			allKeys = append(allKeys, k)
-			if v.Scope == "local" {
-				localKeys = append(localKeys, k)
-			}
-		}
-	}
-
-	return allKeys, localKeys, nil
+	return common.NewMetadataConfigKeys(common.MetadataConfigKeySource{Keys: networkConfig}), nil
 }
 
 // ComputedKeys returns list of computed LXD config keys.
