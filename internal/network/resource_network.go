@@ -109,32 +109,9 @@ func (r NetworkResource) Schema(_ context.Context, _ resource.SchemaRequest, res
 				ElementType: types.StringType,
 			},
 
-			// Contains only local (member-specific) network configuration that
-			// overrides the default values defined in "config".
-			"member_overrides": schema.MapNestedAttribute{
-				Optional: true,
-				NestedObject: schema.NestedAttributeObject{
-					Attributes: map[string]schema.Attribute{
-						"config": schema.MapAttribute{
-							Optional:    true,
-							ElementType: types.StringType,
-						},
-					},
-				},
-			},
+			"member_overrides": common.MemberOverridesAttribute(),
 
-			// Contains the resolved local (member-specific) config for all cluster members.
-			"members": schema.MapNestedAttribute{
-				Computed: true,
-				NestedObject: schema.NestedAttributeObject{
-					Attributes: map[string]schema.Attribute{
-						"config": schema.MapAttribute{
-							Computed:    true,
-							ElementType: types.StringType,
-						},
-					},
-				},
-			},
+			"members": common.MembersAttribute(),
 
 			"managed": schema.BoolAttribute{
 				Computed: true,
