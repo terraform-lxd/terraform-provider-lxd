@@ -7,6 +7,7 @@ import (
 
 	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/diag"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/terraform-lxd/terraform-provider-lxd/internal/errors"
 )
@@ -22,6 +23,39 @@ var memberObjectType = types.ObjectType{
 	AttrTypes: map[string]attr.Type{
 		"config": types.MapType{ElemType: types.StringType},
 	},
+}
+
+// MemberOverridesAttribute returns the schema of the "member_overrides" attribute, which
+// contains only local (member-specific) configuration that overrides the default values
+// defined in "config".
+func MemberOverridesAttribute() schema.MapNestedAttribute {
+	return schema.MapNestedAttribute{
+		Optional: true,
+		NestedObject: schema.NestedAttributeObject{
+			Attributes: map[string]schema.Attribute{
+				"config": schema.MapAttribute{
+					Optional:    true,
+					ElementType: types.StringType,
+				},
+			},
+		},
+	}
+}
+
+// MembersAttribute returns the schema of the "members" attribute, which contains the
+// resolved local (member-specific) config for all cluster members.
+func MembersAttribute() schema.MapNestedAttribute {
+	return schema.MapNestedAttribute{
+		Computed: true,
+		NestedObject: schema.NestedAttributeObject{
+			Attributes: map[string]schema.Attribute{
+				"config": schema.MapAttribute{
+					Computed:    true,
+					ElementType: types.StringType,
+				},
+			},
+		},
+	}
 }
 
 // MemberOverridesHaveUnknownConfig reports whether any entry of an otherwise
