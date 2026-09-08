@@ -47,6 +47,47 @@ func TestAccNetwork_basic(t *testing.T) {
 	})
 }
 
+func TestAccNetwork_userConfig(t *testing.T) {
+	networkName := acctest.GenerateName(2, "-")
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { acctest.PreCheck(t) },
+		ProtoV6ProviderFactories: acctest.ProtoV6ProviderFactories,
+		Steps: []resource.TestStep{
+			{
+				Config: acctest.Provider() + testAccNetwork_memberOverrides(networkName, "bridge", map[string]string{
+					"user.terraform-provider-test": "value",
+				}, nil),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr("lxd_network.network", "config.user.terraform-provider-test", "value"),
+				),
+			},
+		},
+	})
+}
+
+func TestAccNetwork_bgpPeers(t *testing.T) {
+	networkName := acctest.GenerateName(2, "-")
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { acctest.PreCheck(t) },
+		ProtoV6ProviderFactories: acctest.ProtoV6ProviderFactories,
+		Steps: []resource.TestStep{
+			{
+				// The peer name is a key segment, matched against the "bgp.peers.NAME" metadata keys.
+				Config: acctest.Provider() + testAccNetwork_memberOverrides(networkName, "bridge", map[string]string{
+					"bgp.peers.peer1.address": "192.0.2.1",
+					"bgp.peers.peer1.asn":     "65000",
+				}, nil),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr("lxd_network.network", "config.bgp.peers.peer1.address", "192.0.2.1"),
+					resource.TestCheckResourceAttr("lxd_network.network", "config.bgp.peers.peer1.asn", "65000"),
+				),
+			},
+		},
+	})
+}
+
 // TestAccNetwork_unknownConfigValue verifies that a network can be created
 // with a config value that is only known after apply (e.g. sourced from
 // another resource applied in the same plan). Regression test for the
