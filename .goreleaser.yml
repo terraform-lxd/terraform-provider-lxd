@@ -51,4 +51,8 @@ signs:
       - "--detach-sign"
       - "${artifact}"
 changelog:
-  disable: true
+  use: github-native
+
+release:
+  draft: true
+  replace_existing_draft: true
