@@ -107,6 +107,11 @@ func TestAccIdentity_devlxd(t *testing.T) {
 				),
 			},
 			{
+				// Setting a certificate on an existing identity is rejected before the update.
+				Config:      acctest.Provider() + testAccIdentity_typeWithCertificate(identity, "devlxd"),
+				ExpectError: regexp.MustCompile(`Certificate must not be set for identities of type "devlxd"`),
+			},
+			{
 				// Update groups.
 				Config: acctest.Provider() + testAccIdentity_type(identity, "devlxd", []string{"admins"}),
 				ConfigPlanChecks: resource.ConfigPlanChecks{
@@ -399,7 +404,7 @@ func TestAccIdentity_typeValidation(t *testing.T) {
 				ExpectError: regexp.MustCompile(`value must be one of`),
 			},
 			{
-				Config:      acctest.Provider() + testAccIdentity_bearerWithCertificate(identity),
+				Config:      acctest.Provider() + testAccIdentity_typeWithCertificate(identity, "bearer"),
 				ExpectError: regexp.MustCompile(`Certificate must not be set for identities of type "bearer"`),
 			},
 		},
@@ -608,16 +613,16 @@ func testAccIdentity_noAttributes(name string) string {
 	)
 }
 
-// testAccIdentity_bearerWithCertificate is rejected before the identity is
-// created, so the certificate does not have to be a valid one.
-func testAccIdentity_bearerWithCertificate(name string) string {
+// testAccIdentity_typeWithCertificate is rejected before the certificate
+// reaches the server, so it does not have to be a valid one.
+func testAccIdentity_typeWithCertificate(name string, identityType string) string {
 	return fmt.Sprintf(`
                 resource "lxd_auth_identity" "identity" {
-		  type            = "bearer"
+                  type            = %q
                   name            = %q
                   tls_certificate = "not-a-certificate"
                 }
         `,
-		name,
+		identityType, name,
 	)
 }
