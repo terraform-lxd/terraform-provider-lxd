@@ -8,6 +8,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/tfsdk"
+	"github.com/hashicorp/terraform-plugin-go/tftypes"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -97,6 +98,94 @@ func TestIdentityTypeValidator(t *testing.T) {
 			require.Len(t, dataSourceResp.Diagnostics.Warnings(), 1)
 			assert.Contains(t, resourceResp.Diagnostics.Warnings()[0].Detail(), test.ExpectWarn)
 			assert.Contains(t, dataSourceResp.Diagnostics.Warnings()[0].Detail(), test.ExpectWarn)
+		})
+	}
+}
+
+func TestIdentityCertificateValidator(t *testing.T) {
+	var tests = []struct {
+		Name         string
+		AuthMethod   any
+		IdentityType any
+		Certificate  any
+		ExpectError  string
+	}{
+		{
+			Name:         "No certificate",
+			IdentityType: "bearer",
+		},
+		{
+			Name:         "Certificate on tls type",
+			IdentityType: "tls",
+			Certificate:  "cert",
+		},
+		{
+			Name:        "Certificate on tls auth method",
+			AuthMethod:  "tls",
+			Certificate: "cert",
+		},
+		{
+			Name:         "Certificate on unknown type",
+			IdentityType: tftypes.UnknownValue,
+			Certificate:  "cert",
+		},
+		{
+			Name:         "Unknown certificate on bearer type",
+			IdentityType: "bearer",
+			Certificate:  tftypes.UnknownValue,
+		},
+		{
+			Name:         "Certificate on devlxd type",
+			IdentityType: "devlxd",
+			Certificate:  "cert",
+			ExpectError:  `Certificate must not be set for identities of type "devlxd"`,
+		},
+		{
+			Name:        "Certificate on bearer auth method",
+			AuthMethod:  "bearer",
+			Certificate: "cert",
+			ExpectError: `Certificate must not be set for identities of type "bearer"`,
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.Name, func(t *testing.T) {
+			raw := tftypes.NewValue(
+				tftypes.Object{
+					AttributeTypes: map[string]tftypes.Type{
+						"auth_method":     tftypes.String,
+						"type":            tftypes.String,
+						"tls_certificate": tftypes.String,
+					},
+				},
+				map[string]tftypes.Value{
+					"auth_method":     tftypes.NewValue(tftypes.String, test.AuthMethod),
+					"type":            tftypes.NewValue(tftypes.String, test.IdentityType),
+					"tls_certificate": tftypes.NewValue(tftypes.String, test.Certificate),
+				},
+			)
+
+			resp := &resource.ValidateConfigResponse{}
+			identityCertificateValidator{}.ValidateResource(t.Context(), resource.ValidateConfigRequest{
+				Config: tfsdk.Config{
+					Raw: raw,
+					Schema: schema.Schema{
+						Attributes: map[string]schema.Attribute{
+							"auth_method":     schema.StringAttribute{Optional: true, Computed: true},
+							"type":            schema.StringAttribute{Optional: true, Computed: true},
+							"tls_certificate": schema.StringAttribute{Optional: true, Computed: true},
+						},
+					},
+				},
+			}, resp)
+
+			if test.ExpectError == "" {
+				require.False(t, resp.Diagnostics.HasError())
+				return
+			}
+
+			require.True(t, resp.Diagnostics.HasError())
+			assert.Contains(t, resp.Diagnostics.Errors()[0].Detail(), test.ExpectError)
 		})
 	}
 }
