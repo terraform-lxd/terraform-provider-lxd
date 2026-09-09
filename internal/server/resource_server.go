@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"maps"
-	"slices"
 	"strings"
 	"sync"
 
@@ -12,6 +11,7 @@ import (
 	"github.com/canonical/lxd/shared/api"
 	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/diag"
+	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/mapdefault"
@@ -36,8 +36,10 @@ var serverConfigMutex sync.Mutex
 
 // ServerModel represents LXD server resource.
 type ServerModel struct {
-	Remote types.String `tfsdk:"remote"`
-	Config types.Map    `tfsdk:"config"`
+	Remote          types.String `tfsdk:"remote"`
+	Config          types.Map    `tfsdk:"config"`
+	MemberOverrides types.Map    `tfsdk:"member_overrides"`
+	Members         types.Map    `tfsdk:"members"`
 }
 
 // ServerResource represents LXD server resource.
@@ -64,14 +66,17 @@ func (r ServerResource) Schema(_ context.Context, _ resource.SchemaRequest, resp
 				},
 			},
 
-			// Contains global server configuration keys. On a clustered server,
-			// local keys are applied to every cluster member with the same value.
+			// Contains global and default local (member-specific) server configuration.
 			"config": schema.MapAttribute{
 				Optional:    true,
 				Computed:    true,
 				ElementType: types.StringType,
 				Default:     mapdefault.StaticValue(types.MapValueMust(types.StringType, map[string]attr.Value{})),
 			},
+
+			"member_overrides": common.MemberOverridesAttribute(),
+
+			"members": common.MembersAttribute(),
 		},
 	}
 }
@@ -89,6 +94,47 @@ func (r *ServerResource) Configure(_ context.Context, req resource.ConfigureRequ
 	}
 
 	r.provider = provider
+}
+
+func (r *ServerResource) ModifyPlan(ctx context.Context, req resource.ModifyPlanRequest, resp *resource.ModifyPlanResponse) {
+	if req.Plan.Raw.IsNull() {
+		// Nothing to do on destroy.
+		return
+	}
+
+	var plan ServerModel
+
+	resp.Diagnostics.Append(req.Plan.Get(ctx, &plan)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	// Cannot expand members if remote or member_overrides are not yet known, or if config
+	// (global or within a member override) contains a value that is only known
+	// after apply (e.g. sourced from a resource applied later in the same plan).
+	if plan.Remote.IsUnknown() || plan.MemberOverrides.IsUnknown() || common.ConfigHasUnknownValue(plan.Config) || common.MemberOverridesHaveUnknownConfig(ctx, plan.MemberOverrides) {
+		return
+	}
+
+	server, err := r.provider.InstanceServer(plan.Remote.ValueString(), "", "")
+	if err != nil {
+		resp.Diagnostics.Append(errors.NewInstanceServerError(err))
+		return
+	}
+
+	_, memberConfigs, _, err := plan.ParseServerConfigs(ctx, server)
+	if err != nil {
+		resp.Diagnostics.AddError("Failed to parse LXD server configuration", err.Error())
+		return
+	}
+
+	membersValue, diags := common.ToMembersMapType(ctx, memberConfigs)
+	if diags.HasError() {
+		resp.Diagnostics.Append(diags...)
+		return
+	}
+
+	resp.Plan.SetAttribute(ctx, path.Root("members"), membersValue)
 }
 
 func (r ServerResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
@@ -167,7 +213,9 @@ func (r ServerResource) Delete(_ context.Context, _ resource.DeleteRequest, _ *r
 }
 
 // SyncState fetches the LXD server's current configuration and updates the model, keeping only
-// the keys tracked via "config". The updated model is then set as the new Terraform state.
+// the keys tracked via "config" and "member_overrides". On a clustered server, local keys are
+// read back from every cluster member into "members". The updated model is then set as the new
+// Terraform state.
 func (r ServerResource) SyncState(ctx context.Context, tfState *tfsdk.State, server lxd.InstanceServer, m ServerModel) diag.Diagnostics {
 	var respDiags diag.Diagnostics
 
@@ -177,7 +225,7 @@ func (r ServerResource) SyncState(ctx context.Context, tfState *tfsdk.State, ser
 		return respDiags
 	}
 
-	_, localKeys, err := serverConfigKeys(apiServer, server)
+	configKeys, err := serverConfigKeys(apiServer, server)
 	if err != nil {
 		respDiags.AddError("Failed to retrieve LXD server configuration metadata", err.Error())
 		return respDiags
@@ -189,46 +237,39 @@ func (r ServerResource) SyncState(ctx context.Context, tfState *tfsdk.State, ser
 		return respDiags
 	}
 
-	baseLive := serverConfigToStringMap(apiServer.Config)
+	// Extract server member-specific configs.
+	_, memberConfigs, clustered, err := m.ParseServerConfigs(ctx, server)
+	if err != nil {
+		respDiags.AddError("Failed to parse LXD server configuration", err.Error())
+		return respDiags
+	}
 
-	// On a clustered server, local keys are stored per cluster member. They are read back from
-	// every member, because a divergence on any single member has to be detected as a drift.
-	var memberLive []map[string]string
-	if apiServer.Environment.ServerClustered {
-		memberNames, err := server.GetClusterMemberNames()
+	for memberName, memberConfig := range memberConfigs {
+		memberAPIServer, _, err := server.UseTarget(memberName).GetServer()
 		if err != nil {
-			respDiags.AddError("Failed to retrieve LXD cluster member names", err.Error())
+			respDiags.AddError(fmt.Sprintf("Failed to retrieve LXD server configuration for member %q", memberName), err.Error())
 			return respDiags
 		}
 
-		for _, name := range memberNames {
-			memberAPIServer, _, err := server.UseTarget(name).GetServer()
-			if err != nil {
-				respDiags.AddError(fmt.Sprintf("Failed to retrieve LXD server configuration for member %q", name), err.Error())
-				return respDiags
-			}
-
-			memberLive = append(memberLive, serverConfigToStringMap(memberAPIServer.Config))
+		// Apply live values for each managed key.
+		memberLive := serverConfigToStringMap(memberAPIServer.Config)
+		for k := range memberConfig {
+			memberConfig[k] = memberLive[k]
 		}
 	}
 
+	// An untargeted request reports the global config merged with the local config of the
+	// member that answered it, so local keys are read per member instead of from here.
+	baseLive := serverConfigToStringMap(apiServer.Config)
+
 	config := make(map[string]string, len(trackedConfig))
 	for k, v := range trackedConfig {
-		if len(memberLive) == 0 || !slices.Contains(localKeys, k) {
-			config[k] = baseLive[k]
+		if clustered && configKeys.IsLocal(k) {
+			config[k] = v
 			continue
 		}
 
-		// A local key is in sync only if every cluster member holds the tracked value.
-		// If any member diverges, its value is recorded in the state, which makes the
-		// difference visible in the plan and reapplies the key to all members.
-		config[k] = v
-		for _, live := range memberLive {
-			if live[k] != v {
-				config[k] = live[k]
-				break
-			}
-		}
+		config[k] = baseLive[k]
 	}
 
 	configValue, diags := types.MapValueFrom(ctx, types.StringType, config)
@@ -237,13 +278,20 @@ func (r ServerResource) SyncState(ctx context.Context, tfState *tfsdk.State, ser
 		return respDiags
 	}
 
+	membersValue, diags := common.ToMembersMapType(ctx, memberConfigs)
+	respDiags.Append(diags...)
+	if respDiags.HasError() {
+		return respDiags
+	}
+
 	m.Config = configValue
+	m.Members = membersValue
 
 	return tfState.Set(ctx, &m)
 }
 
 // apply writes the tracked configuration keys to the server. Global keys are set on the server
-// directly, while local keys are set on every cluster member when the server is clustered.
+// directly, while local keys are set on each cluster member with that member's resolved config.
 // Keys absent from the model are left untouched.
 func (r ServerResource) apply(ctx context.Context, server lxd.InstanceServer, m ServerModel) error {
 	err := requireMetadataConfigExtension(server)
@@ -251,7 +299,7 @@ func (r ServerResource) apply(ctx context.Context, server lxd.InstanceServer, m 
 		return err
 	}
 
-	globalConfig, localConfig, clustered, err := m.splitConfig(ctx, server)
+	globalConfig, memberConfigs, _, err := m.ParseServerConfigs(ctx, server)
 	if err != nil {
 		return err
 	}
@@ -259,30 +307,13 @@ func (r ServerResource) apply(ctx context.Context, server lxd.InstanceServer, m 
 	serverConfigMutex.Lock()
 	defer serverConfigMutex.Unlock()
 
-	if !clustered {
-		merged := maps.Clone(globalConfig)
-		maps.Copy(merged, localConfig)
-
-		err := applyServerConfig(server, merged)
-		if err != nil {
-			return err
-		}
-
-		return nil
-	}
-
 	err = applyServerConfig(server, globalConfig)
 	if err != nil {
 		return err
 	}
 
-	memberNames, err := server.GetClusterMemberNames()
-	if err != nil {
-		return err
-	}
-
-	for _, name := range memberNames {
-		err := applyServerConfig(server.UseTarget(name), localConfig)
+	for memberName, memberConfig := range memberConfigs {
+		err := applyServerConfig(server.UseTarget(memberName), memberConfig)
 		if err != nil {
 			return err
 		}
@@ -291,10 +322,12 @@ func (r ServerResource) apply(ctx context.Context, server lxd.InstanceServer, m 
 	return nil
 }
 
-// splitConfig classifies the model's "config" into global and local (member-specific) configuration
-// and reports whether the server is clustered. It returns an error if any key is not a valid server
-// configuration key.
-func (m ServerModel) splitConfig(ctx context.Context, server lxd.InstanceServer) (globalConfig map[string]string, localConfig map[string]string, clustered bool, err error) {
+// ParseServerConfigs separates global and member-specific server configuration based on the
+// server metadata, and reports whether the server is clustered. It returns a map of global
+// server configuration and a map containing local server configuration for each member (merged
+// with default local configuration from field "config"). On a non-clustered server all keys are
+// returned as global configuration.
+func (m ServerModel) ParseServerConfigs(ctx context.Context, server lxd.InstanceServer) (globalConfig map[string]string, memberConfigs map[string]map[string]string, clustered bool, err error) {
 	config, diags := common.ToConfigMap(ctx, m.Config)
 
 	err = errors.FromDiagnostics(diags)
@@ -307,29 +340,42 @@ func (m ServerModel) splitConfig(ctx context.Context, server lxd.InstanceServer)
 		return nil, nil, false, err
 	}
 
-	globalKeys, localKeys, err := serverConfigKeys(apiServer, server)
+	configKeys, err := serverConfigKeys(apiServer, server)
 	if err != nil {
 		return nil, nil, false, err
 	}
 
-	globalConfig = make(map[string]string)
-	localConfig = make(map[string]string)
-	for k, v := range config {
-		switch {
-		case slices.Contains(localKeys, k):
-			localConfig[k] = v
-		case slices.Contains(globalKeys, k):
-			globalConfig[k] = v
-		case strings.HasPrefix(k, "user."):
-			// Free-form "user." keys are accepted by LXD but are not
-			// enumerated in the metadata configuration. They are global.
-			globalConfig[k] = v
-		default:
-			return nil, nil, false, fmt.Errorf("Config key %q is not a valid server configuration key", k)
+	for key := range config {
+		_, ok := configKeys.Lookup(key)
+		if !ok && !strings.HasPrefix(key, "user.") {
+			return nil, nil, false, fmt.Errorf("Config key %q is not a valid server configuration key", key)
 		}
 	}
 
-	return globalConfig, localConfig, apiServer.Environment.ServerClustered, nil
+	clustered = apiServer.Environment.ServerClustered
+	hasMemberOverrides := len(m.MemberOverrides.Elements()) > 0
+
+	// Return early if LXD is not clustered. Local keys then apply to the single
+	// server and are set together with the global ones.
+	if !clustered {
+		if hasMemberOverrides {
+			return nil, nil, false, fmt.Errorf("LXD server member-specific config overrides are allowed only when LXD is clustered")
+		}
+
+		return config, nil, false, nil
+	}
+
+	memberNames, err := server.GetClusterMemberNames()
+	if err != nil {
+		return nil, nil, false, err
+	}
+
+	globalConfig, memberConfigs, err = common.ResolveMemberConfigs(ctx, "LXD server", config, m.MemberOverrides, memberNames, configKeys)
+	if err != nil {
+		return nil, nil, false, err
+	}
+
+	return globalConfig, memberConfigs, true, nil
 }
 
 // requireMetadataConfigExtension returns an error if the LXD server does not support the metadata
@@ -343,38 +389,37 @@ func requireMetadataConfigExtension(server lxd.InstanceServer) error {
 	return nil
 }
 
-// serverConfigKeys returns the list of global (cluster-wide) and member-specific (local) server
-// configuration keys, derived from the LXD server's metadata configuration.
-// Read-only "volatile." keys are excluded from both lists.
-func serverConfigKeys(apiServer *api.Server, server lxd.InstanceServer) (globalKeys []string, localKeys []string, err error) {
+// serverConfigKeys returns writable server configuration keys and their scope.
+func serverConfigKeys(apiServer *api.Server, server lxd.InstanceServer) (common.MetadataConfigKeys, error) {
 	meta, err := common.ServerMetadataConfiguration(apiServer.Environment.ServerVersion, server)
 	if err != nil {
-		return nil, nil, err
+		return common.MetadataConfigKeys{}, err
 	}
 
 	serverConfigs, ok := meta.Configs["server"]
 	if !ok {
-		return nil, nil, fmt.Errorf("Metadata configuration does not contain a %q section", "server")
+		return common.MetadataConfigKeys{}, fmt.Errorf("Metadata configuration does not contain a %q section", "server")
 	}
 
+	keys := api.MetadataConfigurationConfigKeys{}
 	for _, group := range serverConfigs {
-		for _, keys := range group.Keys {
-			for k, v := range keys {
+		for _, groupKeys := range group.Keys {
+			writableKeys := make(map[string]api.MetadataConfigurationConfigKey, len(groupKeys))
+			for k, v := range groupKeys {
 				if strings.HasPrefix(k, "volatile.") {
 					continue
 				}
 
-				if v.Scope == "local" {
-					localKeys = append(localKeys, k)
-					continue
-				}
+				writableKeys[k] = v
+			}
 
-				globalKeys = append(globalKeys, k)
+			if len(writableKeys) > 0 {
+				keys.Keys = append(keys.Keys, writableKeys)
 			}
 		}
 	}
 
-	return globalKeys, localKeys, nil
+	return common.NewMetadataConfigKeys(common.MetadataConfigKeySource{Keys: keys}), nil
 }
 
 // applyServerConfig overlays config on top of the server's current configuration and applies
