@@ -538,6 +538,7 @@ func (m StoragePoolModel) ParsePoolConfigs(ctx context.Context, server lxd.Insta
 
 	if server.CheckExtension("metadata_configuration") == nil {
 		for key := range poolConfig {
+			// LXD accepts "user.*" keys on storage pools, but does not list them in the pool metadata.
 			_, ok := configKeys.Lookup(key)
 			if !ok && !strings.HasPrefix(key, "user.") {
 				return nil, nil, fmt.Errorf("%s does not support config key %q", poolEntity, key)
