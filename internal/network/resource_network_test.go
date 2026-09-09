@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"maps"
 	"net"
+	"regexp"
 	"slices"
 	"sort"
 	"strings"
@@ -83,6 +84,27 @@ func TestAccNetwork_bgpPeers(t *testing.T) {
 					resource.TestCheckResourceAttr("lxd_network.network", "config.bgp.peers.peer1.address", "192.0.2.1"),
 					resource.TestCheckResourceAttr("lxd_network.network", "config.bgp.peers.peer1.asn", "65000"),
 				),
+			},
+		},
+	})
+}
+
+func TestAccNetwork_unsupportedConfigKey(t *testing.T) {
+	networkName := acctest.GenerateName(2, "-")
+
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			acctest.PreCheck(t)
+			acctest.PreCheckAPIExtensions(t, "metadata_configuration")
+		},
+		ProtoV6ProviderFactories: acctest.ProtoV6ProviderFactories,
+		Steps: []resource.TestStep{
+			{
+				// A NAME placeholder matches exactly one segment.
+				Config: acctest.Provider() + testAccNetwork_memberOverrides(networkName, "bridge", map[string]string{
+					"bgp.peers.site.peer1.address": "192.0.2.1",
+				}, nil),
+				ExpectError: regexp.MustCompile(`does not support config key`),
 			},
 		},
 	})
