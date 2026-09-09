@@ -145,6 +145,7 @@ func (r *AuthIdentityResource) Configure(_ context.Context, req resource.Configu
 func (r AuthIdentityResource) ConfigValidators(_ context.Context) []resource.ConfigValidator {
 	return []resource.ConfigValidator{
 		identityTypeValidator{},
+		identityCertificateValidator{},
 	}
 }
 
@@ -312,6 +313,16 @@ func (r AuthIdentityResource) Update(ctx context.Context, req resource.UpdateReq
 
 	resp.Diagnostics.Append(req.Config.GetAttribute(ctx, path.Root("tls_certificate"), &configTLSCertificate)...)
 	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	// Checked again here, because the configuration validator skips an identity type that is
+	// unknown until apply.
+	if !configTLSCertificate.IsNull() && identityType != "tls" {
+		resp.Diagnostics.AddError(
+			fmt.Sprintf("Invalid %q identity %q", identityType, identityName),
+			fmt.Sprintf("Certificate must not be set for identities of type %q", identityType),
+		)
 		return
 	}
 
