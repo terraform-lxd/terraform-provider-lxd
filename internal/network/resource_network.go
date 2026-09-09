@@ -159,11 +159,11 @@ func (r *NetworkResource) ModifyPlan(ctx context.Context, req resource.ModifyPla
 		return
 	}
 
-	// Cannot expand members if type or member_overrides are not yet known,
+	// Cannot expand members if remote, type or member_overrides are not yet known,
 	// or if config (global or within a member override) contains a value
 	// that is only known after apply (e.g. sourced from a resource applied
 	// later in the same plan).
-	if plan.Type.IsUnknown() || plan.MemberOverrides.IsUnknown() || common.ConfigHasUnknownValue(plan.Config) || common.MemberOverridesHaveUnknownConfig(ctx, plan.MemberOverrides) {
+	if plan.Remote.IsUnknown() || plan.Type.IsUnknown() || plan.MemberOverrides.IsUnknown() || common.ConfigHasUnknownValue(plan.Config) || common.MemberOverridesHaveUnknownConfig(ctx, plan.MemberOverrides) {
 		return
 	}
 
