@@ -79,13 +79,17 @@ for more details on how to create a storage pool in clustered mode.
   Each key is a cluster member name. Each value is a map of local-scoped config keys to apply for that member.
   Values in `member_overrides` take precedence over values from `config`.
 
-* `members` - *Computed* - Map of resolved local config for every cluster member, populated after
-  apply. Used by the provider to detect out-of-band changes (drift) on individual cluster members.
-
 * `project` - *Optional* - Name of the project where the storage pool will be stored.
 
 * `remote` - *Optional* - The remote in which the resource will be created. If
 	not provided, the provider's default remote will be used.
+
+## Attribute Reference
+
+The following attributes are exported:
+
+* `members` - Map of resolved local config for every cluster member. Used by the provider to
+  detect out-of-band changes (drift) on individual cluster members.
 
 ## Importing
 

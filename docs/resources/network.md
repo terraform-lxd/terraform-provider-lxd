@@ -204,9 +204,6 @@ for more details on how to create a network in clustered mode.
   Each value is an object with a config map of local-scoped keys to apply for that member.
   Values in `member_overrides` take precedence over values from `config`.
 
-* `members` - *Computed* - Map of resolved local config for every cluster member, populated
-  after apply. Used by the provider to detect out-of-band changes (drift) on individual cluster members.
-
 * `project` - *Optional* - Name of the project where the network will be created.
 
 * `remote` - *Optional* - The remote in which the resource will be created. If
@@ -224,6 +221,9 @@ The following attributes are exported:
 * `ipv4_address` - The network's global IPv4 address in CIDR notation. For example `10.0.190.1/24`. When no such address exists, an empty string is set.
 
 * `ipv6_address` - The network's global IPv6 address in CIDR notation. For example `fd42:b40e:534a:b208::1/64`. When no such address exists, an empty string is set.
+
+* `members` - Map of resolved local config for every cluster member. Used by the provider to
+  detect out-of-band changes (drift) on individual cluster members.
 
 ## Importing
 

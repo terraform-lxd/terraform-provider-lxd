@@ -3,8 +3,7 @@ package storage
 import (
 	"context"
 	"fmt"
-	"maps"
-	"slices"
+	"strings"
 
 	lxd "github.com/canonical/lxd/client"
 	"github.com/canonical/lxd/shared/api"
@@ -36,11 +35,6 @@ type StoragePoolModel struct {
 	Config          types.Map    `tfsdk:"config"`
 	MemberOverrides types.Map    `tfsdk:"member_overrides"`
 	Members         types.Map    `tfsdk:"members"`
-}
-
-// StoragePoolMemberModel represents a per-member storage pool configuration override.
-type StoragePoolMemberModel struct {
-	Config types.Map `tfsdk:"config"`
 }
 
 // StoragePoolResource represents LXD storage pool resource.
@@ -106,32 +100,9 @@ func (r StoragePoolResource) Schema(_ context.Context, _ resource.SchemaRequest,
 				Default:     mapdefault.StaticValue(types.MapValueMust(types.StringType, map[string]attr.Value{})),
 			},
 
-			// Contains only local (member-specific) storage pool configuration that
-			// overrides the default values defined in "config".
-			"member_overrides": schema.MapNestedAttribute{
-				Optional: true,
-				NestedObject: schema.NestedAttributeObject{
-					Attributes: map[string]schema.Attribute{
-						"config": schema.MapAttribute{
-							Optional:    true,
-							ElementType: types.StringType,
-						},
-					},
-				},
-			},
+			"member_overrides": common.MemberOverridesAttribute(),
 
-			// Contains the resolved local (member-specific) config for all cluster members.
-			"members": schema.MapNestedAttribute{
-				Computed: true,
-				NestedObject: schema.NestedAttributeObject{
-					Attributes: map[string]schema.Attribute{
-						"config": schema.MapAttribute{
-							Computed:    true,
-							ElementType: types.StringType,
-						},
-					},
-				},
-			},
+			"members": common.MembersAttribute(),
 		},
 	}
 }
@@ -151,31 +122,6 @@ func (r *StoragePoolResource) Configure(_ context.Context, req resource.Configur
 	r.provider = provider
 }
 
-// memberOverridesHaveUnknownConfig reports whether any entry of an otherwise
-// known member_overrides map contains a config value that is only known
-// after apply. The outer map can be fully known (all member keys present)
-// while a nested override's "config" attribute, or a value within it,
-// remains unknown, which ToConfigMap cannot convert.
-func memberOverridesHaveUnknownConfig(ctx context.Context, memberOverrides types.Map) bool {
-	if memberOverrides.IsNull() || memberOverrides.IsUnknown() {
-		return false
-	}
-
-	overrides := map[string]StoragePoolMemberModel{}
-	diags := memberOverrides.ElementsAs(ctx, &overrides, true)
-	if diags.HasError() {
-		return false
-	}
-
-	for _, override := range overrides {
-		if common.ConfigHasUnknownValue(override.Config) {
-			return true
-		}
-	}
-
-	return false
-}
-
 func (r *StoragePoolResource) ModifyPlan(ctx context.Context, req resource.ModifyPlanRequest, resp *resource.ModifyPlanResponse) {
 	if req.Plan.Raw.IsNull() {
 		// Nothing to do on destroy.
@@ -193,7 +139,7 @@ func (r *StoragePoolResource) ModifyPlan(ctx context.Context, req resource.Modif
 	// or if config (global or within a member override) contains a value
 	// that is only known after apply (e.g. sourced from a resource applied
 	// later in the same plan).
-	if plan.Driver.IsUnknown() || plan.MemberOverrides.IsUnknown() || common.ConfigHasUnknownValue(plan.Config) || memberOverridesHaveUnknownConfig(ctx, plan.MemberOverrides) {
+	if plan.Driver.IsUnknown() || plan.MemberOverrides.IsUnknown() || common.ConfigHasUnknownValue(plan.Config) || common.MemberOverridesHaveUnknownConfig(ctx, plan.MemberOverrides) {
 		return
 	}
 
@@ -213,22 +159,7 @@ func (r *StoragePoolResource) ModifyPlan(ctx context.Context, req resource.Modif
 		return
 	}
 
-	members := make(map[string]StoragePoolMemberModel, len(memberPoolConfigs))
-	for memberName, memberConfig := range memberPoolConfigs {
-		memberConfigType, diags := types.MapValueFrom(ctx, types.StringType, common.ToNullableConfig(memberConfig))
-		if diags.HasError() {
-			resp.Diagnostics.Append(diags...)
-			return
-		}
-
-		members[memberName] = StoragePoolMemberModel{Config: memberConfigType}
-	}
-
-	memberObjType := types.ObjectType{AttrTypes: map[string]attr.Type{
-		"config": types.MapType{ElemType: types.StringType},
-	}}
-
-	membersValue, diags := types.MapValueFrom(ctx, memberObjType, members)
+	membersValue, diags := common.ToMembersMapType(ctx, memberPoolConfigs)
 	if diags.HasError() {
 		resp.Diagnostics.Append(diags...)
 		return
@@ -502,7 +433,6 @@ func (r StoragePoolResource) SyncState(ctx context.Context, tfState *tfsdk.State
 		return respDiags
 	}
 
-	members := make(map[string]StoragePoolMemberModel, len(memberPoolConfigs))
 	for memberName, memberConfig := range memberPoolConfigs {
 		memberServer := server.UseTarget(memberName)
 
@@ -520,13 +450,6 @@ func (r StoragePoolResource) SyncState(ctx context.Context, tfState *tfsdk.State
 				memberConfig[k] = v
 			}
 		}
-
-		memberConfigType, diags := types.MapValueFrom(ctx, types.StringType, common.ToNullableConfig(memberConfig))
-		if diags.HasError() {
-			return diags
-		}
-
-		members[memberName] = StoragePoolMemberModel{Config: memberConfigType}
 	}
 
 	// LXD can modify the "source" config key, even if user provided the value.
@@ -542,11 +465,7 @@ func (r StoragePoolResource) SyncState(ctx context.Context, tfState *tfsdk.State
 		return diags
 	}
 
-	memberObjType := types.ObjectType{AttrTypes: map[string]attr.Type{
-		"config": types.MapType{ElemType: types.StringType},
-	}}
-
-	membersValue, diags := types.MapValueFrom(ctx, memberObjType, members)
+	membersValue, diags := common.ToMembersMapType(ctx, memberPoolConfigs)
 	if diags.HasError() {
 		return diags
 	}
@@ -580,7 +499,7 @@ func (m StoragePoolModel) TaintState(ctx context.Context, tfState *tfsdk.State) 
 // containing local storage pool configuration for each member (merged with default local
 // configuration from field "config").
 func (m StoragePoolModel) ParsePoolConfigs(ctx context.Context, server lxd.InstanceServer, driver string) (poolConfig map[string]string, memberConfigs map[string]map[string]string, err error) {
-	poolName := m.Name.ValueString()
+	poolEntity := fmt.Sprintf("Storage pool %q (%s)", m.Name.ValueString(), driver)
 
 	// Convert base pool config to map.
 	poolConfig, diags := common.ToConfigMap(ctx, m.Config)
@@ -612,15 +531,16 @@ func (m StoragePoolModel) ParsePoolConfigs(ctx context.Context, server lxd.Insta
 	// Extract member-specific config keys from server metadata.
 	// Use server version as metadata configuration cache key, as metadata configuration is the
 	// same across LXD servers with the same version.
-	allPoolKeys, localPoolKeys, err := m.storagePoolConfigKeys(serverVersion, server, driver)
+	configKeys, err := m.storagePoolConfigKeys(serverVersion, server, driver)
 	if err != nil {
 		return nil, nil, err
 	}
 
-	if len(allPoolKeys) > 0 {
-		for k := range poolConfig {
-			if !slices.Contains(allPoolKeys, k) {
-				return nil, nil, fmt.Errorf("Storage pool %q (%s) does not support config key %q", poolName, driver, k)
+	if server.CheckExtension("metadata_configuration") == nil {
+		for key := range poolConfig {
+			_, ok := configKeys.Lookup(key)
+			if !ok && !strings.HasPrefix(key, "user.") {
+				return nil, nil, fmt.Errorf("%s does not support config key %q", poolEntity, key)
 			}
 		}
 	}
@@ -630,7 +550,7 @@ func (m StoragePoolModel) ParsePoolConfigs(ctx context.Context, server lxd.Insta
 	// Return early if LXD is not clustered.
 	if !isServerClustered {
 		if hasMemberOverrides {
-			return nil, nil, fmt.Errorf("Storage pool %q (%s) member-specific config overrides are allowed only when LXD is clustered", poolName, driver)
+			return nil, nil, fmt.Errorf("%s member-specific config overrides are allowed only when LXD is clustered", poolEntity)
 		}
 
 		// Return early with global storage pool config.
@@ -642,108 +562,42 @@ func (m StoragePoolModel) ParsePoolConfigs(ctx context.Context, server lxd.Insta
 		return nil, nil, err
 	}
 
-	// Separate global and member-specific pool configuration.
-	memberPoolConfig := make(map[string]string)
-	for k, v := range poolConfig {
-		if slices.Contains(localPoolKeys, k) {
-			memberPoolConfig[k] = v
-			delete(poolConfig, k)
-		}
-	}
-
-	// Set member-specific config from global config to all members by default.
-	memberPoolConfigs := make(map[string]map[string]string)
-	for _, memberName := range memberNames {
-		memberPoolConfigs[memberName] = maps.Clone(memberPoolConfig)
-	}
-
-	// Extract member-specific config overrides.
-	memberOverrides := map[string]StoragePoolMemberModel{}
-	err = errors.FromDiagnostics(m.MemberOverrides.ElementsAs(ctx, &memberOverrides, true))
-	if err != nil {
-		return nil, nil, fmt.Errorf("Unable to extract member-specific config overrides: %v", err)
-	}
-
-	for memberName, override := range memberOverrides {
-		memberPoolConfig, ok := memberPoolConfigs[memberName]
-		if !ok {
-			return nil, nil, fmt.Errorf("Storage pool %q (%s) contains member-specific config override for a non-existent cluster member %q!", poolName, driver, memberName)
-		}
-
-		// Parse and apply member-specific override.
-		configMap, diags := common.ToConfigMap(ctx, override.Config)
-		err := errors.FromDiagnostics(diags)
-		if err != nil {
-			return nil, nil, fmt.Errorf("Unable to convert member-specific config override to map: %v", err)
-		}
-
-		maps.Copy(memberPoolConfig, configMap)
-
-		// Ensure member-specific config does not contain global keys.
-		for k := range memberPoolConfig {
-			if !slices.Contains(localPoolKeys, k) {
-				return nil, nil, fmt.Errorf("Invalid config key %q for storage pool member %q: Only member-specific keys are allowed in per-member configuration", k, memberName)
-			}
-		}
-
-		// Store resolved config.
-		memberPoolConfigs[memberName] = memberPoolConfig
-	}
-
-	return poolConfig, memberPoolConfigs, nil
+	return common.ResolveMemberConfigs(ctx, poolEntity, poolConfig, m.MemberOverrides, memberNames, configKeys)
 }
 
-// storagePoolConfigKeys retrieves a map of storage pool configuration keys and their scope.
-func (m StoragePoolModel) storagePoolConfigKeys(serverName string, server lxd.InstanceServer, driver string) (allKeys []string, localKeys []string, err error) {
+// storagePoolConfigKeys retrieves storage pool configuration keys and their scope.
+func (m StoragePoolModel) storagePoolConfigKeys(serverName string, server lxd.InstanceServer, driver string) (common.MetadataConfigKeys, error) {
 	if server.CheckExtension("metadata_configuration") != nil {
-		localKeys = m.MemberSpecificKeys(driver)
-		return nil, localKeys, nil
+		return common.NewLocalMetadataConfigKeys(m.MemberSpecificKeys(driver)), nil
 	}
 
 	meta, err := common.ServerMetadataConfiguration(serverName, server)
 	if err != nil {
-		return nil, nil, err
+		return common.MetadataConfigKeys{}, err
 	}
 
 	driverConfigKey := "storage-" + driver
 	driverConfig, ok := meta.Configs[driverConfigKey]
 	if !ok {
-		return nil, nil, fmt.Errorf("Metadata configuration %q not found", driverConfigKey)
+		return common.MetadataConfigKeys{}, fmt.Errorf("Metadata configuration %q not found", driverConfigKey)
 	}
 
 	// Parse pool config keys.
 	poolConfigKey := "pool-conf"
 	poolConfig, ok := driverConfig[poolConfigKey]
 	if !ok {
-		return nil, nil, fmt.Errorf("Metadata configuration %q does not contain %q key", driverConfigKey, poolConfigKey)
+		return common.MetadataConfigKeys{}, fmt.Errorf("Metadata configuration %q does not contain %q key", driverConfigKey, poolConfigKey)
 	}
 
-	for _, configKeys := range poolConfig.Keys {
-		for k, v := range configKeys {
-			allKeys = append(allKeys, k)
-			if v.Scope == "local" {
-				localKeys = append(localKeys, k)
-			}
-		}
-	}
+	sources := []common.MetadataConfigKeySource{{Keys: poolConfig}}
 
 	// Parse volume config keys.
 	volConfig, ok := driverConfig["volume-conf"]
 	if ok {
-		for _, configKeys := range volConfig.Keys {
-			for k, v := range configKeys {
-				// Pool accepts volume keys only with the "volume." prefix.
-				key := "volume." + k
-
-				allKeys = append(allKeys, key)
-				if v.Scope == "local" {
-					localKeys = append(localKeys, key)
-				}
-			}
-		}
+		sources = append(sources, common.MetadataConfigKeySource{Keys: volConfig, Prefix: "volume."})
 	}
 
-	return allKeys, localKeys, nil
+	return common.NewMetadataConfigKeys(sources...), nil
 }
 
 // ComputedKeys returns list of computed config keys.

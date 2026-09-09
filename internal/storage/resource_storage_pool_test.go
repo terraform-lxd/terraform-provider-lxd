@@ -263,6 +263,25 @@ func TestAccStoragePool_config(t *testing.T) {
 	})
 }
 
+func TestAccStoragePool_userConfig(t *testing.T) {
+	poolName := acctest.GenerateName(2, "-")
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { acctest.PreCheck(t) },
+		ProtoV6ProviderFactories: acctest.ProtoV6ProviderFactories,
+		Steps: []resource.TestStep{
+			{
+				Config: acctest.Provider() + testAccStoragePool_config(poolName, "dir", map[string]string{
+					"user.terraform-provider-test": "value",
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr("lxd_storage_pool.storage_pool1", "config.user.terraform-provider-test", "value"),
+				),
+			},
+		},
+	})
+}
+
 func TestAccStoragePool_configSource(t *testing.T) {
 	drivers := []string{"dir", "zfs", "btrfs", "lvm"}
 
