@@ -23,7 +23,7 @@ type MetadataConfigKeys struct {
 	// Map of exact keys.
 	exact map[string]api.MetadataConfigurationConfigKey
 
-	// Map of keys with dynamic segments, such as wildcards or named placeholders.
+	// List of keys with dynamic segments, such as wildcards or named placeholders.
 	patterns []metadataConfigKeyPattern
 }
 

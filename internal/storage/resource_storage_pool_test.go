@@ -6,6 +6,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"regexp"
 	"sort"
 	"strings"
 	"testing"
@@ -277,6 +278,27 @@ func TestAccStoragePool_userConfig(t *testing.T) {
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("lxd_storage_pool.storage_pool1", "config.user.terraform-provider-test", "value"),
 				),
+			},
+		},
+	})
+}
+
+func TestAccStoragePool_unsupportedConfigKey(t *testing.T) {
+	poolName := acctest.GenerateName(2, "-")
+
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			acctest.PreCheck(t)
+			acctest.PreCheckAPIExtensions(t, "metadata_configuration")
+		},
+		ProtoV6ProviderFactories: acctest.ProtoV6ProviderFactories,
+		Steps: []resource.TestStep{
+			{
+				// Config keys are validated against the metadata of the pool driver.
+				Config: acctest.Provider() + testAccStoragePool_config(poolName, "dir", map[string]string{
+					"zfs.pool_name": "unsupported",
+				}),
+				ExpectError: regexp.MustCompile(`does not support config key`),
 			},
 		},
 	})
