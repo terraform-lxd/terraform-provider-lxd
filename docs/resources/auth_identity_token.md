@@ -1,14 +1,15 @@
 # lxd_auth_identity_token
 
 The `lxd_auth_identity_token` resource allows you to issue a token for an LXD
-identity of type `bearer`.
+identity of type `bearer` or `devlxd`.
 
 ## Required API extensions
 
 The target LXD server must support the following API extensions:
 
 * `access_management_expiry`
-* `auth_bearer`
+* `auth_bearer` - For identities of type `bearer`.
+* `auth_bearer_devlxd` - For identities of type `devlxd`.
 
 ~> **Warning:** The issued token is stored in the Terraform state in plain text.
   Anyone who can read the state can authenticate against the LXD server as the
@@ -36,6 +37,30 @@ resource "lxd_auth_identity_token" "token" {
 output "token" {
   value     = lxd_auth_identity_token.token.token
   sensitive = true
+}
+```
+
+### Identity type change
+
+Changing identity type replaces the identity and revokes its token.
+The token resource references the identity by name, which does not change, so Terraform notices the
+revoked token only on the next plan.
+To issue a new token in the same apply, replace the token whenever the identity type changes:
+
+```hcl
+resource "lxd_auth_identity" "identity" {
+  type   = "bearer"
+  name   = "server-admin"
+  groups = ["admins"]
+}
+
+resource "lxd_auth_identity_token" "token" {
+  identity = lxd_auth_identity.identity.name
+  expiry   = "30d"
+
+  lifecycle {
+    replace_triggered_by = [lxd_auth_identity.identity.type]
+  }
 }
 ```
 

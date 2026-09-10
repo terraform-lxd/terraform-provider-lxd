@@ -85,6 +85,13 @@ func TestAuthMethodModifier(t *testing.T) {
 			Expect:         types.StringValue("bearer"),
 		},
 		{
+			Name:           "Derived from the configured devlxd identity type",
+			ConfigType:     "devlxd",
+			PlanAuthMethod: tftypes.UnknownValue,
+			PlanType:       "devlxd",
+			Expect:         types.StringValue("bearer"),
+		},
+		{
 			Name:           "Unknown identity type",
 			ConfigType:     tftypes.UnknownValue,
 			PlanAuthMethod: tftypes.UnknownValue,
@@ -148,6 +155,15 @@ func TestIdentityTypeModifier(t *testing.T) {
 			ConfigAuthMethod: "bearer",
 			PlanAuthMethod:   "bearer",
 			PlanType:         "tls",
+			Expect:           types.StringValue("bearer"),
+		},
+		{
+			// A prior state holding devlxd carries that value into the plan,
+			// which is the drift the derivation exists to report.
+			Name:             "Derived from the authentication method of a devlxd identity",
+			ConfigAuthMethod: "bearer",
+			PlanAuthMethod:   "bearer",
+			PlanType:         "devlxd",
 			Expect:           types.StringValue("bearer"),
 		},
 		{
@@ -217,6 +233,13 @@ func TestRequiresReplaceIdentityType(t *testing.T) {
 			StateAuthMethod: "tls",
 			PlanType:        "tls",
 			Expect:          false,
+		},
+		{
+			Name:            "Identity type changed to devlxd",
+			StateAuthMethod: "bearer",
+			StateType:       "bearer",
+			PlanType:        "devlxd",
+			Expect:          true,
 		},
 		{
 			// Same state, but the configuration asks for another identity

@@ -52,6 +52,10 @@ jobs:
         with:
           go-version-file: 'go.mod'
 
+      # Docker sets the iptables FORWARD policy to DROP, which blocks egress from instances on LXD bridges.
+      - name: Remove Docker
+        uses: canonical/lxd/.github/actions/disable-docker@c5184be310b13a8be5d9a5f286bfa1c0c286716e # lxd-5.21.5
+
       - name: Setup LXD from ${{ matrix.channel }} channel
         run: |
           sudo snap refresh lxd --channel=${{ matrix.channel }} --cohort=+ || sudo snap install lxd --channel=${{ matrix.channel }} --cohort=+

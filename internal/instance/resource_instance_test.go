@@ -560,6 +560,60 @@ func TestAccInstance_device(t *testing.T) {
 	})
 }
 
+func TestAccInstance_ownedDevice(t *testing.T) {
+	instanceName := acctest.GenerateName(2, "-")
+
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			acctest.PreCheck(t)
+			acctest.PreCheckAPIExtensions(t, "devlxd_volume_management")
+		},
+		ProtoV6ProviderFactories: acctest.ProtoV6ProviderFactories,
+		Steps: []resource.TestStep{
+			{
+				Config: acctest.Provider() + testAccInstance_device_1(instanceName),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr("lxd_instance.instance1", "device.#", "1"),
+					resource.TestCheckResourceAttr("lxd_instance.instance1", "device.0.name", "shared"),
+				),
+			},
+			{
+				// A configured device that became owned by an identity is
+				// dropped from the state on refresh.
+				PreConfig: func() {
+					server := acctest.InstanceServer(t)
+
+					instance, etag, err := server.GetInstance(instanceName)
+					if err != nil {
+						t.Fatalf("Failed to retrieve instance %q: %v", instanceName, err)
+					}
+
+					instance.Config["volatile.shared.devlxd.owner"] = "00000000-0000-0000-0000-000000000000"
+
+					op, err := server.UpdateInstance(instanceName, instance.Writable(), etag)
+					if err == nil {
+						err = op.Wait()
+					}
+
+					if err != nil {
+						t.Fatalf("Failed to set device owner on instance %q: %v", instanceName, err)
+					}
+				},
+				RefreshState:       true,
+				ExpectNonEmptyPlan: true,
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr("lxd_instance.instance1", "device.#", "0"),
+				),
+			},
+			{
+				// The owned device can no longer be configured by the provider.
+				Config:      acctest.Provider() + testAccInstance_device_1(instanceName),
+				ExpectError: regexp.MustCompile("Cannot modify an owned device"),
+			},
+		},
+	})
+}
+
 func TestAccInstance_addDevice(t *testing.T) {
 	instanceName := acctest.GenerateName(2, "-")
 

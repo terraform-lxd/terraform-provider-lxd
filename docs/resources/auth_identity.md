@@ -2,12 +2,28 @@
 
 Manages LXD identities.
 
+## Required API extensions
+
+The target LXD server must support the following API extensions:
+
+* `access_management_tls` - For identities of type `tls`.
+* `auth_bearer` - For identities of type `bearer`.
+* `auth_bearer_devlxd` - For identities of type `devlxd`.
+
 ## Example Usage
 
 ```hcl
 resource "lxd_auth_identity" "bearer-identity" {
   type   = "bearer"
   name   = "bearer-server-admin"
+  groups = ["admins"]
+}
+```
+
+```hcl
+resource "lxd_auth_identity" "devlxd-identity" {
+  type   = "devlxd"
+  name   = "devlxd-server-admin"
   groups = ["admins"]
 }
 ```
@@ -48,7 +64,7 @@ Requires the `access_management_tls` API extension.
 
 * `name` - **Required** - Name of the identity.
 
-* `type` - **Required** - Identity type, can be `tls` or `bearer`.
+* `type` - **Required** - Identity type, can be `tls`, `bearer`, or `devlxd`.
   See [Note on `auth_method`](#note-on-auth_method).
 
 * `groups` - *Optional* - List of group names to add this identity to.
@@ -79,8 +95,10 @@ This resource exports the following attributes in addition to the arguments abov
 `tls_certificate` attribute. If the certificate is omitted, the identity is created in a
 pending state and a trust token is issued instead.
 
-`bearer` identities authenticate using a token, which is issued with the
-[`lxd_auth_identity_token`](auth_identity_token.md) resource and is accepted by the LXD API.
+`bearer` and `devlxd` identities authenticate using a token, which is issued with the
+[`lxd_auth_identity_token`](auth_identity_token.md) resource. Both use the LXD `bearer`
+authentication method and differ only in where their tokens are accepted. A `bearer` token is
+accepted by the LXD API, and a `devlxd` token is accepted by the DevLXD API within an instance.
 
 ## Pending TLS trust token lifecycle
 

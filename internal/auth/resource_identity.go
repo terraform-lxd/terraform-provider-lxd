@@ -72,7 +72,7 @@ func (r AuthIdentityResource) Schema(_ context.Context, _ resource.SchemaRequest
 				Optional: true,
 				Computed: true,
 				Validators: []validator.String{
-					stringvalidator.OneOf("tls", "bearer"),
+					stringvalidator.OneOf("tls", "bearer", "devlxd"),
 				},
 				PlanModifiers: []planmodifier.String{
 					// Derivation must run before the replacement condition.
@@ -145,6 +145,7 @@ func (r *AuthIdentityResource) Configure(_ context.Context, req resource.Configu
 func (r AuthIdentityResource) ConfigValidators(_ context.Context) []resource.ConfigValidator {
 	return []resource.ConfigValidator{
 		identityTypeValidator{},
+		identityCertificateValidator{},
 	}
 }
 
@@ -216,7 +217,7 @@ func (r AuthIdentityResource) Create(ctx context.Context, req resource.CreateReq
 				plan.ExpiresAt = tokenExpiry(token.ExpiresAt)
 			}
 		}
-	case "bearer":
+	case "bearer", "devlxd":
 		if hasTLSCertificate {
 			resp.Diagnostics.AddError(
 				fmt.Sprintf("Invalid %q identity %q", identityType, identityName),
@@ -225,10 +226,15 @@ func (r AuthIdentityResource) Create(ctx context.Context, req resource.CreateReq
 			return
 		}
 
+		bearerType := api.IdentityTypeBearerTokenClient
+		if identityType == "devlxd" {
+			bearerType = api.IdentityTypeBearerTokenDevLXD
+		}
+
 		req := api.IdentitiesBearerPost{
 			Name:   identityName,
 			Groups: identityGroupNames,
-			Type:   api.IdentityTypeBearerTokenClient,
+			Type:   bearerType,
 		}
 
 		err = server.CreateIdentityBearer(req)
@@ -310,6 +316,16 @@ func (r AuthIdentityResource) Update(ctx context.Context, req resource.UpdateReq
 		return
 	}
 
+	// Checked again here, because the configuration validator skips an identity type that is
+	// unknown until apply.
+	if !configTLSCertificate.IsNull() && identityType != "tls" {
+		resp.Diagnostics.AddError(
+			fmt.Sprintf("Invalid %q identity %q", identityType, identityName),
+			fmt.Sprintf("Certificate must not be set for identities of type %q", identityType),
+		)
+		return
+	}
+
 	identity, etag, err := server.GetIdentity(identityAuthMethod, identityName)
 	if err != nil {
 		resp.Diagnostics.AddError(fmt.Sprintf("Failed to retrieve existing %q identity %q", identityType, identityName), err.Error())
@@ -361,8 +377,9 @@ func (r AuthIdentityResource) Delete(ctx context.Context, req resource.DeleteReq
 
 	identityName := state.Name.ValueString()
 	identityType := state.identityType()
+	identityAuthMethod := toAuthMethod(identityType)
 
-	err = server.DeleteIdentity(identityType, identityName)
+	err = server.DeleteIdentity(identityAuthMethod, identityName)
 	if err != nil && !errors.IsNotFoundError(err) {
 		resp.Diagnostics.AddError(fmt.Sprintf("Failed to delete %q identity %q", identityType, identityName), err.Error())
 		return
@@ -451,8 +468,9 @@ func (r AuthIdentityResource) SyncState(ctx context.Context, tfState *tfsdk.Stat
 
 	identityName := m.Name.ValueString()
 	identityType := m.identityType()
+	identityAuthMethod := toAuthMethod(identityType)
 
-	identity, _, err := server.GetIdentity(identityType, identityName)
+	identity, _, err := server.GetIdentity(identityAuthMethod, identityName)
 	if err != nil {
 		if forgetOnNotFound && errors.IsNotFoundError(err) {
 			tfState.RemoveResource(ctx)
@@ -463,8 +481,9 @@ func (r AuthIdentityResource) SyncState(ctx context.Context, tfState *tfsdk.Stat
 		return respDiags
 	}
 
-	// The identity type is taken from the server. LXD identity types that the
-	// provider cannot name keep the identity type already in state.
+	// The bearer authentication method returns client and devlxd identities
+	// alike, so the identity type is taken from the server. LXD identity types
+	// that the provider cannot name keep the identity type already in state.
 	serverType := toType(identity.Type)
 	if serverType != "" {
 		identityType = serverType
