@@ -319,6 +319,7 @@ func (p *LxdProvider) Resources(_ context.Context) []func() resource.Resource {
 	resources := []func() resource.Resource{
 		auth.NewAuthGroupResource,
 		auth.NewAuthIdentityResource,
+		auth.NewAuthIdentityProviderGroupResource,
 		auth.NewAuthIdentityTokenResource,
 		image.NewImageResource,
 		instance.NewInstanceResource,
@@ -356,6 +357,7 @@ func (p *LxdProvider) DataSources(_ context.Context) []func() datasource.DataSou
 	return []func() datasource.DataSource{
 		auth.NewAuthGroupDataSource,
 		auth.NewAuthIdentityDataSource,
+		auth.NewAuthIdentityProviderGroupDataSource,
 		image.NewImageDataSource,
 		instance.NewInstanceDataSource,
 		network.NewNetworkDataSource,
