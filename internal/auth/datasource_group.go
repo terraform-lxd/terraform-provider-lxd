@@ -7,6 +7,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/datasource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/types"
+	"github.com/terraform-lxd/terraform-provider-lxd/internal/common"
 	"github.com/terraform-lxd/terraform-provider-lxd/internal/errors"
 	provider_config "github.com/terraform-lxd/terraform-provider-lxd/internal/provider-config"
 )
@@ -16,8 +17,9 @@ type AuthGroupDataSourceModel struct {
 	Remote types.String `tfsdk:"remote"`
 
 	// Computed.
-	Description types.String      `tfsdk:"description"`
-	Permissions []PermissionModel `tfsdk:"permissions"`
+	Description            types.String      `tfsdk:"description"`
+	Permissions            []PermissionModel `tfsdk:"permissions"`
+	IdentityProviderGroups types.Set         `tfsdk:"identity_provider_groups"`
 }
 
 // AuthGroupDataSource reads LXD auth groups.
@@ -68,6 +70,11 @@ func (r AuthGroupDataSource) Schema(_ context.Context, _ datasource.SchemaReques
 					},
 				},
 			},
+
+			"identity_provider_groups": schema.SetAttribute{
+				ElementType: types.StringType,
+				Computed:    true,
+			},
 		},
 	}
 }
@@ -114,9 +121,16 @@ func (r *AuthGroupDataSource) Read(ctx context.Context, req datasource.ReadReque
 		return
 	}
 
+	idpGroups, diags := common.ToStringSetType(ctx, authGroup.IdentityProviderGroups)
+	if diags.HasError() {
+		resp.Diagnostics.Append(diags...)
+		return
+	}
+
 	config.Name = types.StringValue(authGroup.Name)
 	config.Description = types.StringValue(authGroup.Description)
 	config.Permissions = permissions
+	config.IdentityProviderGroups = idpGroups
 
 	resp.Diagnostics.Append(resp.State.Set(ctx, &config)...)
 }

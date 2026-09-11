@@ -14,8 +14,8 @@ data "lxd_auth_group" "group" {
 
 * `name` - **Required** - Name of the group.
 
-* `remote` - *Optional* - The remote in which the resource will be created. If
-	not provided, the provider's default remote will be used.
+* `remote` - *Optional* - The remote from which the group is retrieved. If
+  not provided, the provider's default remote is used.
 
 ## Attribute Reference
 
@@ -24,3 +24,5 @@ This data source exports the following attributes in addition to the arguments a
 * `description` - Description of the group.
 
 * `permissions` - List of group permissions.
+
+* `identity_provider_groups` - List of identity provider group names that are mapped to the group.
