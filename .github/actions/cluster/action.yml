@@ -16,13 +16,13 @@ inputs:
   lxd-version:
     description: The version of LXD to install on each cluster member.
     default: latest/edge
-  enable-ovn:
-    description: Install and configure OVN on cluster members.
+  microovn-enable:
+    description: Install and configure MicroOVN on cluster members.
     default: "false"
   microovn-version:
     description: The version of MicroOVN to install on each cluster member.
     default: latest/edge
-  enable-ceph:
+  microceph-enable:
     description: Deploy a dedicated MicroCeph instance and configure cluster members to use it for Ceph-backed storage pools.
     default: "false"
   microceph-version:
@@ -66,5 +66,5 @@ runs:
         VERSION_LXD: ${{ inputs.lxd-version }}
         VERSION_MICROOVN: ${{ inputs.microovn-version }}
         VERSION_MICROCEPH: ${{ inputs.microceph-version }}
-        MICROOVN_ENABLED: ${{ inputs.enable-ovn }}
-        MICROCEPH_ENABLED: ${{ inputs.enable-ceph }}
+        MICROOVN_ENABLED: ${{ inputs.microovn-enable }}
+        MICROCEPH_ENABLED: ${{ inputs.microceph-enable }}
