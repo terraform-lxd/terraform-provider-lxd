@@ -77,6 +77,8 @@ jobs:
         uses: canonical/lxd/.github/actions/setup-microceph@c5184be310b13a8be5d9a5f286bfa1c0c286716e # lxd-5.21.5
         with:
           osd-count: "1"
+          # Revert back to "latest/edge" once https://bugs.launchpad.net/ubuntu/+source/ceph/+bug/2166817 is fixed.
+          microceph-channel: tentacle/stable
 
       - name: Download minio/mc
         uses: canonical/lxd/.github/actions/download-minio@c5184be310b13a8be5d9a5f286bfa1c0c286716e # lxd-5.21.5
@@ -164,8 +166,10 @@ jobs:
           cluster-size: 2
           instance-type: virtual-machine
           lxd-version: ${{ matrix.channel }}
-          enable-ovn: true
-          enable-ceph: true
+          microovn-enable: true
+          microceph-enable: true
+          # Revert back to "latest/edge" once https://bugs.launchpad.net/ubuntu/+source/ceph/+bug/2166817 is fixed.
+          microceph-version: tentacle/stable
 
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@dfe3c3f87815947d99a8997f908cb6525fc44e9e # v4.0.1
