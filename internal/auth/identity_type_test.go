@@ -36,7 +36,9 @@ func TestToType(t *testing.T) {
 		{LXDIdentityType: api.IdentityTypeCertificateClientUnrestricted, Expect: "tls"},
 		{LXDIdentityType: api.IdentityTypeCertificateClientPending, Expect: "tls"},
 		{LXDIdentityType: api.IdentityTypeBearerTokenClient, Expect: "bearer"},
+		{LXDIdentityType: api.IdentityTypeBearerTokenClientPending, Expect: "bearer"},
 		{LXDIdentityType: api.IdentityTypeBearerTokenDevLXD, Expect: "devlxd"},
+		{LXDIdentityType: api.IdentityTypeBearerTokenDevLXDPending, Expect: "devlxd"},
 		{LXDIdentityType: api.IdentityTypeOIDCClient, Expect: "oidc"},
 		{LXDIdentityType: api.IdentityTypeCertificateServer, Expect: ""},
 		{LXDIdentityType: api.IdentityTypeCertificateMetricsRestricted, Expect: ""},
@@ -44,12 +46,39 @@ func TestToType(t *testing.T) {
 		{LXDIdentityType: api.IdentityTypeCertificateClusterLink, Expect: ""},
 		{LXDIdentityType: api.IdentityTypeCertificateClusterLinkPending, Expect: ""},
 		{LXDIdentityType: api.IdentityTypeBearerTokenInitialUI, Expect: ""},
+		{LXDIdentityType: api.IdentityTypeBearerTokenInitialUIPending, Expect: ""},
 		{LXDIdentityType: "", Expect: ""},
 	}
 
 	for _, test := range tests {
 		t.Run(test.LXDIdentityType, func(t *testing.T) {
 			assert.Equal(t, test.Expect, toType(test.LXDIdentityType))
+		})
+	}
+}
+
+func TestIsPending(t *testing.T) {
+	var tests = []struct {
+		LXDIdentityType string
+		Expect          bool
+	}{
+		{LXDIdentityType: api.IdentityTypeCertificateClient, Expect: false},
+		{LXDIdentityType: api.IdentityTypeCertificateClientPending, Expect: true},
+		{LXDIdentityType: api.IdentityTypeBearerTokenClient, Expect: false},
+		{LXDIdentityType: api.IdentityTypeBearerTokenClientPending, Expect: true},
+		{LXDIdentityType: api.IdentityTypeBearerTokenDevLXD, Expect: false},
+		{LXDIdentityType: api.IdentityTypeBearerTokenDevLXDPending, Expect: true},
+		{LXDIdentityType: api.IdentityTypeOIDCClient, Expect: false},
+		{LXDIdentityType: api.IdentityTypeCertificateClusterLink, Expect: false},
+		{LXDIdentityType: api.IdentityTypeCertificateClusterLinkPending, Expect: true},
+		{LXDIdentityType: api.IdentityTypeBearerTokenInitialUI, Expect: false},
+		{LXDIdentityType: api.IdentityTypeBearerTokenInitialUIPending, Expect: true},
+		{LXDIdentityType: "", Expect: false},
+	}
+
+	for _, test := range tests {
+		t.Run(test.LXDIdentityType, func(t *testing.T) {
+			assert.Equal(t, test.Expect, isPending(test.LXDIdentityType))
 		})
 	}
 }

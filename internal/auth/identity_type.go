@@ -25,14 +25,32 @@ func toType(lxdIdentityType string) string {
 		api.IdentityTypeCertificateClientUnrestricted,
 		api.IdentityTypeCertificateClientPending:
 		return "tls"
-	case api.IdentityTypeBearerTokenClient:
+	case api.IdentityTypeBearerTokenClient,
+		api.IdentityTypeBearerTokenClientPending:
 		return "bearer"
-	case api.IdentityTypeBearerTokenDevLXD:
+	case api.IdentityTypeBearerTokenDevLXD,
+		api.IdentityTypeBearerTokenDevLXDPending:
 		return "devlxd"
 	case api.IdentityTypeOIDCClient:
 		// Only the data source accepts oidc.
 		return "oidc"
+	default:
+		return ""
 	}
+}
 
-	return ""
+// isPending reports whether the given LXD identity type is a pending one. A
+// pending identity has no credential, because none was issued yet or the
+// issued one was revoked.
+func isPending(lxdIdentityType string) bool {
+	switch lxdIdentityType {
+	case api.IdentityTypeCertificateClientPending,
+		api.IdentityTypeCertificateClusterLinkPending,
+		api.IdentityTypeBearerTokenClientPending,
+		api.IdentityTypeBearerTokenDevLXDPending,
+		api.IdentityTypeBearerTokenInitialUIPending:
+		return true
+	default:
+		return false
+	}
 }
