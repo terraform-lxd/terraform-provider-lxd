@@ -66,7 +66,7 @@ resource "lxd_auth_identity_token" "token" {
 
 ## Argument Reference
 
-* `identity` - **Required** - Name of the bearer identity for which the token is issued.
+* `identity` - **Required** - Name of the `bearer` or `devlxd` identity for which the token is issued.
 
 * `expiry` - *Optional* - Token expiry as a space separated list of durations in
   the form `(\d)+(S|M|H|d|w|m|y)`, for example `30d` or `1H 30M`. If not provided,

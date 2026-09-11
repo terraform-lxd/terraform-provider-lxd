@@ -1833,7 +1833,7 @@ func checkOwnedDevices(instanceName string, instanceConfig map[string]string, de
 		if isOwnedDevice(instanceConfig, deviceName) {
 			return diag.NewErrorDiagnostic(
 				"Cannot modify an owned device",
-				fmt.Sprintf("Device %q on instance %q is owned by an identity", deviceName, instanceName),
+				fmt.Sprintf("Device %q on instance %q is owned by an identity and cannot be managed by the provider", deviceName, instanceName),
 			)
 		}
 	}

@@ -6,6 +6,7 @@ Manages LXD identities.
 
 The target LXD server must support the following API extensions:
 
+* `access_management` - For all identity types.
 * `access_management_tls` - For identities of type `tls`.
 * `auth_bearer` - For identities of type `bearer`.
 * `auth_bearer_devlxd` - For identities of type `devlxd`.
