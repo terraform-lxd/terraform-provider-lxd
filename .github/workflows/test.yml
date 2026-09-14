@@ -160,7 +160,7 @@ jobs:
           go-version-file: 'go.mod'
 
       - name: Setup LXD cluster
-        uses: ./.github/actions/cluster
+        uses: $/.github/actions/cluster
         with:
           cluster-name: acctest
           cluster-size: 2

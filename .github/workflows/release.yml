@@ -98,7 +98,7 @@ jobs:
     needs: precheck
     permissions:
       contents: read
-    uses: ./.github/workflows/test.yml
+    uses: $/.github/workflows/test.yml
 
   # Build, sign, and publish the release.
   # Runs only when precheck found a version without a published release and the tests passed.
