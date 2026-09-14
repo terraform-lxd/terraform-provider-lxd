@@ -41,6 +41,11 @@ This data source exports the following attributes in addition to the arguments a
 	it is empty once the identity bears no token. Requires the `access_management_expiry`
 	API extension.
 
+* `pending` - Whether no credential is issued for the identity. A TLS identity is pending
+	until its trust token is redeemed. An identity with authentication method `bearer` is pending
+	until a token is issued for it. If the server does not have the `access_management_bearer_pending` API
+	extension, the `pending` state is unknown and reported as null for a bearer identity.
+
 ## Note on `auth_method`
 
 The `auth_method` represents the authentication method and `type` represents the type of identity.

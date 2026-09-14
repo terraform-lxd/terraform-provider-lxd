@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
+	"github.com/hashicorp/terraform-plugin-testing/terraform"
 	"github.com/terraform-lxd/terraform-provider-lxd/internal/acctest"
 )
 
@@ -73,6 +74,7 @@ func TestAccIdentity_DS_tls(t *testing.T) {
 					resource.TestCheckResourceAttr("data.lxd_auth_identity.identity", "groups.#", "0"),
 					resource.TestCheckResourceAttrSet("data.lxd_auth_identity.identity", "tls_certificate"),
 					resource.TestCheckResourceAttrSet("data.lxd_auth_identity.identity", "identifier"),
+					resource.TestCheckResourceAttr("data.lxd_auth_identity.identity", "pending", "false"),
 				),
 			},
 			{
@@ -84,6 +86,7 @@ func TestAccIdentity_DS_tls(t *testing.T) {
 					resource.TestCheckResourceAttr("data.lxd_auth_identity.identity", "groups.#", "1"),
 					resource.TestCheckResourceAttr("data.lxd_auth_identity.identity", "groups.0", "admins"),
 					resource.TestCheckResourceAttrSet("data.lxd_auth_identity.identity", "tls_certificate"),
+					resource.TestCheckResourceAttr("data.lxd_auth_identity.identity", "pending", "false"),
 				),
 			},
 		},
@@ -134,6 +137,7 @@ func TestAccIdentity_DS_devlxd(t *testing.T) {
 					resource.TestCheckResourceAttr(dataSourceName, "name", identity),
 					resource.TestCheckResourceAttr(dataSourceName, "type", "devlxd"),
 					resource.TestCheckResourceAttr(dataSourceName, "auth_method", "bearer"),
+					testAccIdentity_DS_checkPending(t, dataSourceName, "true"),
 				),
 			},
 			{
@@ -150,6 +154,49 @@ func TestAccIdentity_DS_devlxd(t *testing.T) {
 				// Look up a devlxd identity as a client bearer identity.
 				Config:      acctest.Provider() + testAccIdentity_DS_devlxdAsBearer(identity),
 				ExpectError: regexp.MustCompile(`LXD identity type "DevLXD token bearer"`),
+			},
+		},
+	})
+}
+
+func TestAccIdentity_DS_pending(t *testing.T) {
+	identity := acctest.GenerateName(2, "-")
+	dataSourceName := "data.lxd_auth_identity.identity"
+
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			acctest.PreCheck(t)
+			acctest.PreCheckAPIExtensions(t, "access_management_bearer_pending")
+		},
+		ProtoV6ProviderFactories: acctest.ProtoV6ProviderFactories,
+		Steps: []resource.TestStep{
+			{
+				// A bearer identity is pending until a token is issued for it.
+				Config: acctest.Provider() + testAccIdentityToken_identityDataSource(identity, false),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr(dataSourceName, "name", identity),
+					resource.TestCheckResourceAttr(dataSourceName, "pending", "true"),
+				),
+			},
+			{
+				Config: acctest.Provider() + testAccIdentityToken_identityDataSource(identity, true),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr(dataSourceName, "name", identity),
+					resource.TestCheckResourceAttr(dataSourceName, "pending", "false"),
+				),
+			},
+			{
+				// Revoking the token makes the identity pending again. The
+				// identity is read once more so that the read follows the
+				// revocation.
+				Config: acctest.Provider() + testAccIdentityToken_identityDataSource(identity, false),
+			},
+			{
+				Config: acctest.Provider() + testAccIdentityToken_identityDataSource(identity, false),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr(dataSourceName, "name", identity),
+					resource.TestCheckResourceAttr(dataSourceName, "pending", "true"),
+				),
 			},
 		},
 	})
@@ -193,6 +240,19 @@ func testAccIdentity_DS_tls(name string, groups []string) string {
                   name        = lxd_auth_identity.identity.name
                 }
         `
+}
+
+// testAccIdentity_DS_checkPending checks the pending attribute of a bearer or
+// devlxd identity. Only a server with the access_management_bearer_pending
+// extension reports it, and it is null on a server without.
+func testAccIdentity_DS_checkPending(t *testing.T, dataSourceName string, pending string) resource.TestCheckFunc {
+	return func(s *terraform.State) error {
+		if !acctest.InstanceServer(t).HasExtension("access_management_bearer_pending") {
+			return resource.TestCheckNoResourceAttr(dataSourceName, "pending")(s)
+		}
+
+		return resource.TestCheckResourceAttr(dataSourceName, "pending", pending)(s)
+	}
 }
 
 func testAccIdentity_DS_tlsPending(name string) string {

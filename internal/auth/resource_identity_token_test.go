@@ -273,6 +273,7 @@ func TestAccIdentityToken_destroyed(t *testing.T) {
 					resource.TestCheckResourceAttr("data.lxd_auth_identity.identity", "name", identity),
 					resource.TestCheckResourceAttrWith("data.lxd_auth_identity.identity", "expires_at", checkExpiresInFuture),
 					resource.TestCheckResourceAttrPair("data.lxd_auth_identity.identity", "expires_at", "lxd_auth_identity_token.token", "expires_at"),
+					testAccIdentity_DS_checkPending(t, "data.lxd_auth_identity.identity", "false"),
 				),
 			},
 			{
