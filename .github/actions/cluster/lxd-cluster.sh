@@ -241,11 +241,16 @@ EOF
 
         # Install and configure MinIO on each cluster member.
         if [ "${MINIO_ENABLED}" == "true" ]; then
-                curl -sSfL https://dl.min.io/server/minio/release/linux-amd64/minio --output "/tmp/minio"
-                curl -sSfL https://dl.min.io/client/mc/release/linux-amd64/mc --output "/tmp/mc"
-
-                chmod +x "/tmp/minio"
-                chmod +x "/tmp/mc"
+                minio_dir="${GOPATH:-${HOME}/go}/bin"
+                minio_bin=""
+                mc_bin=""
+                if [ -x "${minio_dir}/minio" ] && [ -x "${minio_dir}/mc" ]; then
+                        minio_bin="${minio_dir}/minio"
+                        mc_bin="${minio_dir}/mc"
+                elif command -v minio >/dev/null && command -v mc >/dev/null; then
+                        minio_bin="$(command -v minio)"
+                        mc_bin="$(command -v mc)"
+                fi
 
                 for i in $(seq 1 "${CLUSTER_SIZE}"); do
                         instance="${INSTANCE}-${i}"
@@ -253,13 +258,18 @@ EOF
 
                         # Install MinIO if enabled.
                         if [ "${hasBucketSupport}" != "" ]; then
+                                if [ -z "${minio_bin}" ] || [ -z "${mc_bin}" ]; then
+                                        echo "Error: MinIO binaries (minio and mc) not found in ${minio_dir} or PATH" >&2
+                                        exit 1
+                                fi
+
                                 echo "Installing MinIO server and client on instance ${instance} ..."
 
                                 lxc exec "${instance}" -- mkdir -p "${MINIO_INSTALL_DIR}"
 
-                                # Upload MinIO sever and client binaries.
-                                lxc file push --quiet /tmp/minio "${instance}/${MINIO_INSTALL_DIR}/minio"
-                                lxc file push --quiet /tmp/mc "${instance}${MINIO_INSTALL_DIR}/mc"
+                                # Upload MinIO server and client binaries.
+                                lxc file push --quiet "${minio_bin}" "${instance}/${MINIO_INSTALL_DIR}/minio"
+                                lxc file push --quiet "${mc_bin}" "${instance}/${MINIO_INSTALL_DIR}/mc"
 
                                 # Configure MinIO.
                                 lxc exec "${instance}" -- snap set lxd minio.path="${MINIO_INSTALL_DIR}"
@@ -268,8 +278,6 @@ EOF
                                 lxc exec "${instance}" -- lxc config set core.storage_buckets_address ":8555" || true
                         fi
                 done
-
-                rm /tmp/minio /tmp/mc
         fi
 
         # Create default storage pool.
