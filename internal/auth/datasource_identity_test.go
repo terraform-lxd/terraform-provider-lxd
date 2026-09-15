@@ -43,7 +43,7 @@ func TestAccIdentity_DS_bearer(t *testing.T) {
 			{
 				// Look up a client bearer identity as a devlxd identity.
 				Config:      acctest.Provider() + testAccIdentity_DS_bearerAsDevlxd(identity, []string{"admins"}),
-				ExpectError: regexp.MustCompile(`LXD identity type "Client token bearer"`),
+				ExpectError: regexp.MustCompile(`LXD identity type .* corresponds to type\s+"bearer"`),
 			},
 		},
 	})
@@ -153,7 +153,7 @@ func TestAccIdentity_DS_devlxd(t *testing.T) {
 			{
 				// Look up a devlxd identity as a client bearer identity.
 				Config:      acctest.Provider() + testAccIdentity_DS_devlxdAsBearer(identity),
-				ExpectError: regexp.MustCompile(`LXD identity type "DevLXD token bearer"`),
+				ExpectError: regexp.MustCompile(`LXD identity type .* corresponds to type\s+"devlxd"`),
 			},
 		},
 	})
