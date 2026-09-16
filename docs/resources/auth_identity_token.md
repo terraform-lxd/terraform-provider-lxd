@@ -16,7 +16,7 @@ The target LXD server must support the following API extensions:
   identity that bears the token, therefore the state must be treated as a secret
   and stored accordingly.
 
-~> **Note:** LXD identities bear at most one token. Issuing a token revokes the
+-> **Note:** LXD identities bear at most one token. Issuing a token revokes the
   token that the identity currently bears, therefore a single identity must not be
   referenced by multiple `lxd_auth_identity_token` resources.
 

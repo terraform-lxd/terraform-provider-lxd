@@ -67,18 +67,18 @@ resource "lxd_instance_device" "vol1" {
 
 * `instance_name` - **Required** - Name of the instance.
 
+* `type` - **Required** - Type of the device Must be one of none, disk, nic,
+	unix-char, unix-block, usb, gpu, infiniband, proxy, unix-hotplug, tpm, pci.
+
+* `properties`- **Required** - Map of key/value pairs of
+	[device properties](https://documentation.ubuntu.com/lxd/latest/reference/devices/).
+
 * `project` - *Optional* - Name of the project where the instance to which this device will be attached exists
 
 * `remote` - *Optional* - The remote in which the resource will be created. If
 	not provided, the provider's default remote will be used.
 
 * `target` - *Optional* - Specify a target cluster member or cluster member group of the instance.
-
-* `type` - **Required** - Type of the device Must be one of none, disk, nic,
-	unix-char, unix-block, usb, gpu, infiniband, proxy, unix-hotplug, tpm, pci.
-
-* `properties`- **Required** - Map of key/value pairs of
-	[device properties](https://documentation.ubuntu.com/lxd/latest/reference/devices/).
 
 ## Notes
 
