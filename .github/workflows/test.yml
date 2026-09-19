@@ -81,7 +81,7 @@ jobs:
           microceph-channel: tentacle/stable
 
       - name: Download minio/mc
-        uses: canonical/lxd/.github/actions/download-minio@6578e82779db352cbc6d4251e872f083d76fc779
+        uses: canonical/lxd/.github/actions/download-minio@8029b2727ed2b67fe367e7c7d72a98f51352529a
         if: ${{ startsWith(matrix.channel, '5.21/') || matrix.channel == '6/stable' }}
 
       - name: Configure MinIO
