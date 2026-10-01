@@ -579,6 +579,11 @@ func (m NetworkModel) ParseNetworkConfigs(ctx context.Context, server lxd.Instan
 
 	if server.CheckExtension("metadata_configuration") == nil {
 		for key := range networkConfig {
+			// XXX: Exception for OVN uplink address keys which are missing in LXD metadata.
+			if networkType == "ovn" && (key == "volatile.network.ipv4.address" || key == "volatile.network.ipv6.address") {
+				continue
+			}
+
 			_, ok := configKeys.Lookup(key)
 			if !ok && !strings.HasPrefix(key, "user.") {
 				return nil, nil, fmt.Errorf("%s does not support config key %q", networkEntity, key)
