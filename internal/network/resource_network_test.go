@@ -524,6 +524,39 @@ func TestAccNetwork_clusterMemberOverrideUnknownConfigValue(t *testing.T) {
 	})
 }
 
+// TestAccNetwork_clusterUplinkRoutes verifies that a route can be removed from a clustered
+// uplink network while an OVN network forward listens on an address in a remaining route.
+func TestAccNetwork_clusterUplinkRoutes(t *testing.T) {
+	acctest.PreCheckClustering(t, 2)
+	uplinkName := acctest.GenerateName(2, "-")
+	networkName := acctest.GenerateName(2, "-")
+	uplinkSubnet := acctest.GenerateSubnet()
+	ovnSubnet := acctest.GenerateSubnet()
+	routesBefore := uplinkSubnet.HostIPv4(64) + "/27," + uplinkSubnet.HostIPv4(192) + "/26"
+	routesAfter := uplinkSubnet.HostIPv4(192) + "/26"
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { acctest.PreCheck(t) },
+		ProtoV6ProviderFactories: acctest.ProtoV6ProviderFactories,
+		Steps: []resource.TestStep{
+			{
+				Config: acctest.Provider() + testAccNetwork_clusterUplinkRoutes(uplinkName, networkName, uplinkSubnet, ovnSubnet, routesBefore),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr("lxd_network.uplink", "config.ipv4.routes", routesBefore),
+					resource.TestCheckResourceAttr("lxd_network_forward.forward", "listen_address", uplinkSubnet.HostIPv4(200)),
+				),
+			},
+			{
+				// Remove the route that does not contain the forward listen address.
+				Config: acctest.Provider() + testAccNetwork_clusterUplinkRoutes(uplinkName, networkName, uplinkSubnet, ovnSubnet, routesAfter),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr("lxd_network.uplink", "config.ipv4.routes", routesAfter),
+				),
+			},
+		},
+	})
+}
+
 func TestAccNetwork_project(t *testing.T) {
 	projectName := acctest.GenerateName(2, "-")
 	networkName := acctest.GenerateName(2, "-")
@@ -890,6 +923,53 @@ resource "lxd_network" "network" {
   }
 }
 `, networkName, target, configKey)
+}
+
+func testAccNetwork_clusterUplinkRoutes(uplinkName string, networkName string, uplinkSubnet acctest.Subnet, ovnSubnet acctest.Subnet, routes string) string {
+	return fmt.Sprintf(`
+resource "lxd_network" "uplink" {
+  name = "%[1]s"
+  type = "bridge"
+  config = {
+    "ipv4.address"     = "%[3]s"
+    "ipv4.routes"      = "%[4]s"
+    "ipv4.ovn.ranges"  = "%[5]s"
+    "ipv4.dhcp.ranges" = "%[6]s"
+    "ipv6.address"     = "%[7]s"
+    "ipv6.ovn.ranges"  = "%[8]s-%[9]s"
+  }
+}
+
+resource "lxd_network" "ovn" {
+  name = "%[2]s"
+  type = "ovn"
+  config = {
+    "network"      = lxd_network.uplink.name
+    "ipv4.address" = "%[10]s"
+    "ipv4.nat"     = "true"
+    "ipv6.address" = "%[11]s"
+    "ipv6.nat"     = "true"
+  }
+}
+
+resource "lxd_network_forward" "forward" {
+  network        = lxd_network.ovn.name
+  listen_address = "%[12]s"
+}
+`,
+		uplinkName,
+		networkName,
+		uplinkSubnet.GatewayCIDRv4(),
+		routes,
+		uplinkSubnet.SubRangeV4(224, 254),
+		uplinkSubnet.SubRangeV4(100, 150),
+		uplinkSubnet.GatewayCIDRv6(),
+		uplinkSubnet.HostIPv6(0x100),
+		uplinkSubnet.HostIPv6(0x1ff),
+		ovnSubnet.GatewayCIDRv4(),
+		ovnSubnet.GatewayCIDRv6(),
+		uplinkSubnet.HostIPv4(200),
+	)
 }
 
 func testAccNetwork_project(networkName string, projectName string) string {
