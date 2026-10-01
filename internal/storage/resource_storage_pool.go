@@ -303,6 +303,19 @@ func (r StoragePoolResource) Update(ctx context.Context, req resource.UpdateRequ
 		return
 	}
 
+	apiServer, _, err := server.GetServer()
+	if err != nil {
+		resp.Diagnostics.AddError("Failed to retrieve LXD server configuration", err.Error())
+		return
+	}
+
+	serverVersion := apiServer.Environment.ServerVersion
+	configKeys, err := plan.storagePoolConfigKeys(serverVersion, server, driver)
+	if err != nil {
+		resp.Diagnostics.AddError("Failed to retrieve storage pool configuration metadata", err.Error())
+		return
+	}
+
 	// Update all members present in the plan.
 	for memberName, memberPoolConfig := range memberPoolConfigs {
 		memberServer := server.UseTarget(memberName)
@@ -313,9 +326,11 @@ func (r StoragePoolResource) Update(ctx context.Context, req resource.UpdateRequ
 			return
 		}
 
-		newConfig := common.MergeConfig(pool.Config, memberPoolConfig, computedKeys)
+		newConfig := common.MergeMemberConfig(pool.Config, memberPoolConfig, computedKeys, configKeys)
 		poolUpdateReq := api.StoragePoolPut{
-			Config: newConfig,
+			// Keep the live description. The cluster-wide update below sets the planned one.
+			Description: pool.Description,
+			Config:      newConfig,
 		}
 
 		op, err := memberServer.UpdateStoragePool(poolName, poolUpdateReq, etag)
