@@ -174,3 +174,28 @@ func TestResolveMemberConfigs_GlobalKeyInOverride(t *testing.T) {
 	_, _, err := ResolveMemberConfigs(context.Background(), `Storage pool "p1" (zfs)`, nil, overrides, []string{"member-1"}, configKeys)
 	assert.ErrorContains(t, err, `Invalid config key "zfs.clone_copy" for member "member-1"`)
 }
+
+func TestMergeMemberConfig(t *testing.T) {
+	configKeys := NewLocalMetadataConfigKeys([]string{"parent", "bgp.ipv4.nexthop"})
+	computedKeys := []string{"volatile."}
+
+	resConfig := map[string]string{
+		"parent":                      "eth1",
+		"bgp.ipv4.nexthop":            "10.0.0.1",
+		"ipv4.gateway":                "192.0.2.1/24",
+		"ipv4.routes":                 "198.51.100.0/24,203.0.113.0/24",
+		"volatile.last_state.created": "false",
+	}
+
+	// The plan changes "parent" and removes "bgp.ipv4.nexthop".
+	usrConfig := map[string]string{
+		"parent": "eth2",
+	}
+
+	assert.Equal(t, map[string]string{
+		"parent":                      "eth2",
+		"ipv4.gateway":                "192.0.2.1/24",
+		"ipv4.routes":                 "198.51.100.0/24,203.0.113.0/24",
+		"volatile.last_state.created": "false",
+	}, MergeMemberConfig(resConfig, usrConfig, computedKeys, configKeys))
+}
