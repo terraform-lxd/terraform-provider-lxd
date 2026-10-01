@@ -335,6 +335,19 @@ func (r NetworkResource) Update(ctx context.Context, req resource.UpdateRequest,
 		return
 	}
 
+	apiServer, _, err := server.GetServer()
+	if err != nil {
+		resp.Diagnostics.AddError("Failed to retrieve LXD server configuration", err.Error())
+		return
+	}
+
+	serverVersion := apiServer.Environment.ServerVersion
+	configKeys, err := plan.networkConfigKeys(serverVersion, server, networkType)
+	if err != nil {
+		resp.Diagnostics.AddError("Failed to retrieve network configuration metadata", err.Error())
+		return
+	}
+
 	// Update all members present in the plan.
 	for memberName, memberNetworkConfig := range memberNetworkConfigs {
 		memberServer := server.UseTarget(memberName)
@@ -345,9 +358,11 @@ func (r NetworkResource) Update(ctx context.Context, req resource.UpdateRequest,
 			return
 		}
 
-		newConfig := common.MergeConfig(network.Config, memberNetworkConfig, computedKeys)
+		newConfig := common.MergeMemberConfig(network.Config, memberNetworkConfig, computedKeys, configKeys)
 		networkUpdateReq := api.NetworkPut{
-			Config: newConfig,
+			// Keep the live description. The cluster-wide update below sets the planned one.
+			Description: network.Description,
+			Config:      newConfig,
 		}
 
 		op, err := memberServer.UpdateNetwork(networkName, networkUpdateReq, etag)
