@@ -110,6 +110,43 @@ func TestAccNetwork_unsupportedConfigKey(t *testing.T) {
 	})
 }
 
+func TestAccNetwork_ovnUplinkAddress(t *testing.T) {
+	networkName := acctest.GenerateName(2, "-")
+	uplinkName := acctest.GenerateName(2, "-")
+	uplinkSubnet := acctest.GenerateSubnet()
+	ovnSubnet := acctest.GenerateSubnet()
+	uplinkIPv4 := uplinkSubnet.HostIPv4(230)
+	uplinkIPv6 := uplinkSubnet.HostIPv6(0x110)
+
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			acctest.PreCheck(t)
+			acctest.PreCheckAPIExtensions(t, "metadata_configuration")
+		},
+		ProtoV6ProviderFactories: acctest.ProtoV6ProviderFactories,
+		Steps: []resource.TestStep{
+			{
+				Config: acctest.Provider() + testAccNetwork_ovnUplinkAddress(networkName, uplinkName, uplinkSubnet, ovnSubnet, map[string]string{
+					"volatile.network.ipv4.address": uplinkIPv4,
+					"volatile.network.ipv6.address": uplinkIPv6,
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr("lxd_network.ovn", "config.volatile.network.ipv4.address", uplinkIPv4),
+					resource.TestCheckResourceAttr("lxd_network.ovn", "config.volatile.network.ipv6.address", uplinkIPv6),
+				),
+			},
+			{
+				// LXD keeps the uplink addresses and the provider leaves them out of the state.
+				Config: acctest.Provider() + testAccNetwork_ovnUplinkAddress(networkName, uplinkName, uplinkSubnet, ovnSubnet, nil),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckNoResourceAttr("lxd_network.ovn", "config.volatile.network.ipv4.address"),
+					resource.TestCheckNoResourceAttr("lxd_network.ovn", "config.volatile.network.ipv6.address"),
+				),
+			},
+		},
+	})
+}
+
 // TestAccNetwork_unknownConfigValue verifies that a network can be created
 // with a config value that is only known after apply (e.g. sourced from
 // another resource applied in the same plan). Regression test for the
@@ -719,6 +756,53 @@ resource "lxd_network" "network" {
   }
 }
 `, networkName)
+}
+
+func testAccNetwork_ovnUplinkAddress(networkName string, uplinkName string, uplinkSubnet acctest.Subnet, ovnSubnet acctest.Subnet, config map[string]string) string {
+	var entries strings.Builder
+	for k, v := range config {
+		fmt.Fprintf(&entries, "    %q = %q\n", k, v)
+	}
+
+	return fmt.Sprintf(`
+resource "lxd_network" "uplink" {
+  name = "%[1]s"
+  type = "bridge"
+  config = {
+    "ipv4.address"     = "%[3]s"
+    "ipv4.routes"      = "%[4]s/26"
+    "ipv4.ovn.ranges"  = "%[5]s"
+    "ipv4.dhcp.ranges" = "%[6]s"
+    "ipv6.address"     = "%[7]s"
+    "ipv6.ovn.ranges"  = "%[8]s-%[9]s"
+  }
+}
+
+resource "lxd_network" "ovn" {
+  name = "%[2]s"
+  type = "ovn"
+  config = {
+    "network"      = lxd_network.uplink.name
+    "ipv4.address" = "%[10]s"
+    "ipv4.nat"     = "true"
+    "ipv6.address" = "%[11]s"
+    "ipv6.nat"     = "true"
+%[12]s  }
+}
+`,
+		uplinkName,
+		networkName,
+		uplinkSubnet.GatewayCIDRv4(),
+		uplinkSubnet.HostIPv4(192),
+		uplinkSubnet.SubRangeV4(224, 254),
+		uplinkSubnet.SubRangeV4(100, 150),
+		uplinkSubnet.GatewayCIDRv6(),
+		uplinkSubnet.HostIPv6(0x100),
+		uplinkSubnet.HostIPv6(0x1ff),
+		ovnSubnet.GatewayCIDRv4(),
+		ovnSubnet.GatewayCIDRv6(),
+		entries.String(),
+	)
 }
 
 // testAccNetwork_memberOverrides returns a Terraform configuration for an
