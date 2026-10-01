@@ -160,3 +160,17 @@ func ResolveMemberConfigs(ctx context.Context, entity string, config map[string]
 
 	return globalConfig, memberConfigs, nil
 }
+
+// MergeMemberConfig merges the configuration using [MergeConfig] and retains the global keys from
+// the resource configuration.
+func MergeMemberConfig(resConfig map[string]string, usrConfig map[string]string, computedKeys []string, configKeys MetadataConfigKeys) map[string]string {
+	config := MergeConfig(resConfig, usrConfig, computedKeys)
+
+	for k, v := range resConfig {
+		if !configKeys.IsLocal(k) {
+			config[k] = v
+		}
+	}
+
+	return config
+}
