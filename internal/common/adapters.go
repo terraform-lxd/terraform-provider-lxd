@@ -2,6 +2,7 @@ package common
 
 import (
 	"context"
+	"time"
 
 	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/diag"
@@ -47,4 +48,30 @@ func ToStringSetType(ctx context.Context, items []string) (types.Set, diag.Diagn
 	}
 
 	return types.SetValue(types.StringType, values)
+}
+
+// TokenExpiry converts a trust token expiry into a Terraform value.
+// LXD returns a zero time when core.remote_token_expiry is disabled, which means the issued token
+// does not expire.
+func TokenExpiry(expiresAt time.Time) types.String {
+	if expiresAt.IsZero() {
+		return types.StringNull()
+	}
+
+	return types.StringValue(expiresAt.UTC().Format(time.RFC3339))
+}
+
+// IsTokenExpired reports whether a trust token with the given expiry, as produced by
+// TokenExpiry, can no longer be redeemed. A token without an expiry remains valid indefinitely.
+func IsTokenExpired(expiresAt types.String, now time.Time) bool {
+	if expiresAt.IsNull() || expiresAt.IsUnknown() {
+		return false
+	}
+
+	parsed, err := time.Parse(time.RFC3339, expiresAt.ValueString())
+	if err != nil {
+		return false
+	}
+
+	return now.After(parsed)
 }
