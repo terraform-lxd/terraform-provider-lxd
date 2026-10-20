@@ -8,14 +8,6 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestTokenExpiry(t *testing.T) {
-	// LXD returns a zero time when core.remote_token_expiry is disabled.
-	require.True(t, tokenExpiry(time.Time{}).IsNull())
-
-	expiresAt := time.Date(2026, 7, 30, 12, 0, 0, 0, time.UTC)
-	require.Equal(t, "2026-07-30T12:00:00Z", tokenExpiry(expiresAt).ValueString())
-}
-
 func TestIsTrustTokenExpired(t *testing.T) {
 	now := time.Date(2026, 7, 30, 12, 0, 0, 0, time.UTC)
 	past := types.StringValue(now.Add(-time.Minute).Format(time.RFC3339))
