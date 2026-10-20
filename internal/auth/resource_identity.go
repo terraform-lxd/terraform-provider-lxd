@@ -214,7 +214,7 @@ func (r AuthIdentityResource) Create(ctx context.Context, req resource.CreateReq
 			token, err = server.CreateIdentityTLSToken(req)
 			if err == nil {
 				plan.TrustToken = types.StringValue(token.String())
-				plan.ExpiresAt = tokenExpiry(token.ExpiresAt)
+				plan.ExpiresAt = common.TokenExpiry(token.ExpiresAt)
 			}
 		}
 	case "bearer", "devlxd":
@@ -545,36 +545,11 @@ func (r *AuthIdentityResource) ImportState(ctx context.Context, req resource.Imp
 	}
 }
 
-// tokenExpiry converts a trust token expiry into a Terraform value.
-// LXD returns a zero time when core.remote_token_expiry is disabled, which means the issued token
-// does not expire.
-func tokenExpiry(expiresAt time.Time) types.String {
-	if expiresAt.IsZero() {
-		return types.StringNull()
-	}
-
-	return types.StringValue(expiresAt.UTC().Format(time.RFC3339))
-}
-
 // isTrustTokenExpired reports whether an identity is still pending and its trust token can no
 // longer be redeemed.
 // Such an identity is unusable, and because LXD cannot reissue a token, it has to be replaced.
 func isTrustTokenExpired(isPending bool, expiresAt types.String, now time.Time) bool {
-	if !isPending {
-		return false
-	}
-
-	// A token without an expiry remains valid indefinitely.
-	if expiresAt.IsNull() || expiresAt.IsUnknown() {
-		return false
-	}
-
-	parsed, err := time.Parse(time.RFC3339, expiresAt.ValueString())
-	if err != nil {
-		return false
-	}
-
-	return now.After(parsed)
+	return isPending && common.IsTokenExpired(expiresAt, now)
 }
 
 // isCertificateSetOnPending reports whether a certificate is configured for an identity that is
