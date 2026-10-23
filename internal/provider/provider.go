@@ -16,6 +16,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
 	"github.com/terraform-lxd/terraform-provider-lxd/internal/auth"
+	"github.com/terraform-lxd/terraform-provider-lxd/internal/cluster"
 	"github.com/terraform-lxd/terraform-provider-lxd/internal/image"
 	"github.com/terraform-lxd/terraform-provider-lxd/internal/instance"
 	"github.com/terraform-lxd/terraform-provider-lxd/internal/network"
@@ -321,6 +322,7 @@ func (p *LxdProvider) Resources(_ context.Context) []func() resource.Resource {
 		auth.NewAuthIdentityResource,
 		auth.NewAuthIdentityProviderGroupResource,
 		auth.NewAuthIdentityTokenResource,
+		cluster.NewClusterGroupResource,
 		image.NewImageResource,
 		instance.NewInstanceResource,
 		instance.NewInstanceFileResource,
