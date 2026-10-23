@@ -1467,8 +1467,6 @@ func TestAccInstance_timeout(t *testing.T) {
 	})
 }
 
-// TODO: Create multiple cluster groups and test migration between them
-// by setting target to "@group1" and "@group2".
 func TestAccInstance_migration(t *testing.T) {
 	instanceName := acctest.GenerateName(2, "-")
 	targets := acctest.PreCheckClustering(t, 2)
@@ -1564,6 +1562,51 @@ func TestAccInstance_migration(t *testing.T) {
 	})
 }
 
+// TestAccInstance_migrationClusterGroup moves an instance between two cluster
+// groups that each contain a single, different cluster member.
+func TestAccInstance_migrationClusterGroup(t *testing.T) {
+	instanceName := acctest.GenerateName(2, "-")
+	groupName := acctest.GenerateName(2, "-")
+	targets := acctest.PreCheckClustering(t, 2)
+
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			acctest.PreCheck(t)
+			acctest.PreCheckAPIExtensions(t, "clustering_groups")
+		},
+		ProtoV6ProviderFactories: acctest.ProtoV6ProviderFactories,
+		Steps: []resource.TestStep{
+			{
+				// Create the instance in the 1st group, which places it on the 1st cluster member.
+				Config: acctest.Provider() + testAccInstance_migrationClusterGroup(instanceName, groupName, targets[0], targets[1], 1, true, false),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr("lxd_instance.instance1", "status", "Running"),
+					resource.TestCheckResourceAttr("lxd_instance.instance1", "target", "@"+groupName+"-1"),
+					resource.TestCheckResourceAttr("lxd_instance.instance1", "location", targets[0]),
+				),
+			},
+			{
+				// Move the running instance to the 2nd group. The restart is allowed, so the
+				// instance is stopped, moved to the 2nd cluster member and started again.
+				Config: acctest.Provider() + testAccInstance_migrationClusterGroup(instanceName, groupName, targets[0], targets[1], 2, true, true),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr("lxd_instance.instance1", "status", "Running"),
+					resource.TestCheckResourceAttr("lxd_instance.instance1", "target", "@"+groupName+"-2"),
+					resource.TestCheckResourceAttr("lxd_instance.instance1", "location", targets[1]),
+				),
+			},
+			{
+				// Move the instance back to the 1st group while stopping it.
+				Config: acctest.Provider() + testAccInstance_migrationClusterGroup(instanceName, groupName, targets[0], targets[1], 1, false, false),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr("lxd_instance.instance1", "status", "Stopped"),
+					resource.TestCheckResourceAttr("lxd_instance.instance1", "target", "@"+groupName+"-1"),
+					resource.TestCheckResourceAttr("lxd_instance.instance1", "location", targets[0]),
+				),
+			},
+		},
+	})
+}
 func TestAccInstance_importBasic(t *testing.T) {
 	instanceName := acctest.GenerateName(2, "-")
 	resourceName := "lxd_instance.instance1"
@@ -2713,6 +2756,27 @@ resource "lxd_instance" "instance1" {
 	`, instanceName, target, running, allowRestart, acctest.TestImage)
 }
 
+func testAccInstance_migrationClusterGroup(instanceName string, groupName string, member1 string, member2 string, targetGroup int, running bool, allowRestart bool) string {
+	return fmt.Sprintf(`
+resource "lxd_cluster_group" "group1" {
+  name    = "%[2]s-1"
+  members = [%[3]q]
+}
+
+resource "lxd_cluster_group" "group2" {
+  name    = "%[2]s-2"
+  members = [%[4]q]
+}
+
+resource "lxd_instance" "instance1" {
+  name          = %[1]q
+  target        = "@${lxd_cluster_group.group%[5]d.name}"
+  running       = %[6]v
+  allow_restart = %[7]v
+  image         = %[8]q
+}
+	`, instanceName, groupName, member1, member2, targetGroup, running, allowRestart, acctest.TestImage)
+}
 func testAccInstance_waitForAgent(name string) string {
 	return fmt.Sprintf(`
 resource "lxd_instance" "instance1" {
