@@ -379,9 +379,9 @@ func ConfigureMutualTLS(t *testing.T) (clientCert string, clientKey string, clea
 }
 
 // GetServerCertificateFingerprint retrieves the certificate fingerprint of the
-// LXD server listening on https://127.0.0.1:8443.
-func GetServerCertificateFingerprint(t *testing.T) string {
-	serverCert, err := shared.GetRemoteCertificate(context.Background(), "https://127.0.0.1:8443", "test")
+// LXD server listening on the given HTTPS address, e.g. https://127.0.0.1:8443.
+func GetServerCertificateFingerprint(t *testing.T, address string) string {
+	serverCert, err := shared.GetRemoteCertificate(context.Background(), address, "test")
 	if err != nil {
 		t.Fatalf("Failed to get server certificate: %v", err)
 	}

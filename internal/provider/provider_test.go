@@ -89,7 +89,7 @@ func TestAccProvider_mtls(t *testing.T) {
 	clientCert, clientKey, cleanup := acctest.ConfigureMutualTLS(t)
 	defer cleanup()
 
-	serverCertFingerprint := acctest.GetServerCertificateFingerprint(t)
+	serverCertFingerprint := acctest.GetServerCertificateFingerprint(t, "https://127.0.0.1:8443")
 
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
@@ -116,7 +116,7 @@ func TestAccProvider_mtlsFromFile(t *testing.T) {
 	clientCert, clientKey, cleanup := acctest.ConfigureMutualTLS(t)
 	defer cleanup()
 
-	serverCertFingerprint := acctest.GetServerCertificateFingerprint(t)
+	serverCertFingerprint := acctest.GetServerCertificateFingerprint(t, "https://127.0.0.1:8443")
 
 	// Write credentials to temporary files.
 	tmpDir := t.TempDir()
@@ -159,7 +159,7 @@ func TestAccProvider_mtlsTrustToken(t *testing.T) {
 	clientCert, clientKey, cleanup := acctest.GenerateClientCertificate(t)
 	defer cleanup()
 
-	serverCertFingerprint := acctest.GetServerCertificateFingerprint(t)
+	serverCertFingerprint := acctest.GetServerCertificateFingerprint(t, "https://127.0.0.1:8443")
 	invalidToken := `eyJjbGllbnRfbmFtZSI6InRtcF90b2tlbiIsImZpbmdlcnByaW50IjoiWW91X2hhdmVfZGVjb2RlZF9hX3RlbXBvcmFyeV90b2tlbi5Db25ncmF0dWxhdGlvbnMhIiwiYWRkcmVzc2VzIjpbIjEyNy4wLjAuMTo4NDQzIl0sInNlY3JldCI6IlRoaXNfaXNfYV90b3Bfc2VjcmV0LkRvX25vdF90ZWxsX2l0X3RvX2FueW9uZSEiLCJleHBpcmVzX2F0IjoiMDAwMS0wMS0wMVQwMDowMDowMFoifQo=`
 
 	resource.Test(t, resource.TestCase{
