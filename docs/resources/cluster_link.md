@@ -149,10 +149,17 @@ The following attributes are exported:
 
 ## Importing
 
+The resource can be imported using either an import ID or its resource identity.
+
 Import ID syntax: `[<remote>:]<name>`
 
 * `<remote>` - *Optional* - Remote name.
 * `<name>` - **Required** - Cluster link name.
+
+Resource identity attributes:
+
+* `name` - **Required** - Cluster link name.
+* `remote` - *Optional* - Remote name. If not provided, the provider's default remote is used.
 
 ### Import example
 
@@ -162,7 +169,7 @@ Example using terraform import command:
 $ terraform import lxd_cluster_link.mylink cluster-b
 ```
 
-Example using the import block:
+Example using the import block with an ID:
 
 ```hcl
 resource "lxd_cluster_link" "mylink" {
@@ -172,6 +179,21 @@ resource "lxd_cluster_link" "mylink" {
 import {
   to = lxd_cluster_link.mylink
   id = "cluster-b"
+}
+```
+
+Example using the import block with a resource identity:
+
+```hcl
+resource "lxd_cluster_link" "mylink" {
+  name = "cluster-b"
+}
+
+import {
+  to = lxd_cluster_link.mylink
+  identity = {
+    name = "cluster-b"
+  }
 }
 ```
 
