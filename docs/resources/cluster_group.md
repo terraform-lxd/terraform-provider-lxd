@@ -42,10 +42,17 @@ No attributes are exported.
 
 ## Importing
 
+The resource can be imported using either an import ID or its resource identity.
+
 Import ID syntax: `[<remote>:]<name>`
 
 * `<remote>` - *Optional* - Remote name.
 * `<name>` - **Required** - Cluster group name.
+
+Resource identity attributes:
+
+* `name` - **Required** - Cluster group name.
+* `remote` - *Optional* - Remote name. If not provided, the provider's default remote is used.
 
 ### Import example
 
@@ -55,7 +62,7 @@ Example using terraform import command:
 $ terraform import lxd_cluster_group.amd64 amd64
 ```
 
-Example using the import block:
+Example using the import block with an ID:
 
 ```hcl
 resource "lxd_cluster_group" "amd64" {
@@ -65,6 +72,21 @@ resource "lxd_cluster_group" "amd64" {
 import {
   to = lxd_cluster_group.amd64
   id = "amd64"
+}
+```
+
+Example using the import block with a resource identity:
+
+```hcl
+resource "lxd_cluster_group" "amd64" {
+  name = "amd64"
+}
+
+import {
+  to = lxd_cluster_group.amd64
+  identity = {
+    name = "amd64"
+  }
 }
 ```
 
