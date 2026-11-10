@@ -12,6 +12,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
+	"github.com/hashicorp/terraform-plugin-framework/resource/identityschema"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/setdefault"
@@ -31,6 +32,12 @@ type ClusterGroupModel struct {
 	Description types.String `tfsdk:"description"`
 	Members     types.Set    `tfsdk:"members"`
 	Remote      types.String `tfsdk:"remote"`
+}
+
+// ClusterGroupIdentityModel is the resource identity that addresses a cluster group.
+type ClusterGroupIdentityModel struct {
+	Name   types.String `tfsdk:"name"`
+	Remote types.String `tfsdk:"remote"`
 }
 
 // ClusterGroupResource represent LXD cluster group resource.
@@ -88,6 +95,23 @@ func (r ClusterGroupResource) Schema(_ context.Context, _ resource.SchemaRequest
 				PlanModifiers: []planmodifier.String{
 					stringplanmodifier.RequiresReplace(),
 				},
+			},
+		},
+	}
+}
+
+// IdentitySchema for cluster group resource.
+func (r ClusterGroupResource) IdentitySchema(_ context.Context, _ resource.IdentitySchemaRequest, resp *resource.IdentitySchemaResponse) {
+	resp.IdentitySchema = identityschema.Schema{
+		Attributes: map[string]identityschema.Attribute{
+			"name": identityschema.StringAttribute{
+				RequiredForImport: true,
+				Description:       "Name of the cluster group.",
+			},
+
+			"remote": identityschema.StringAttribute{
+				OptionalForImport: true,
+				Description:       "Remote in which the cluster group is defined. If not provided, the provider's default remote is used.",
 			},
 		},
 	}
@@ -152,6 +176,12 @@ func (r ClusterGroupResource) Create(ctx context.Context, req resource.CreateReq
 		return
 	}
 
+	diags = plan.SetIdentity(ctx, resp.Identity)
+	if diags.HasError() {
+		resp.Diagnostics.Append(diags...)
+		return
+	}
+
 	diags = r.SyncState(ctx, &resp.State, server, plan, false)
 	resp.Diagnostics.Append(diags...)
 }
@@ -169,6 +199,14 @@ func (r ClusterGroupResource) Read(ctx context.Context, req resource.ReadRequest
 	server, err := r.provider.InstanceServer(remote, "", "")
 	if err != nil {
 		resp.Diagnostics.Append(errors.NewInstanceServerError(err))
+		return
+	}
+
+	// Set before syncing the state, so that state imported by ID or written by a
+	// provider version without resource identity also carries the identity.
+	diags = state.SetIdentity(ctx, resp.Identity)
+	if diags.HasError() {
+		resp.Diagnostics.Append(diags...)
 		return
 	}
 
@@ -214,6 +252,12 @@ func (r ClusterGroupResource) Update(ctx context.Context, req resource.UpdateReq
 	err = server.UpdateClusterGroup(groupName, groupPut, etag)
 	if err != nil {
 		resp.Diagnostics.AddError(fmt.Sprintf("Failed to update cluster group %q", groupName), err.Error())
+		return
+	}
+
+	diags = plan.SetIdentity(ctx, resp.Identity)
+	if diags.HasError() {
+		resp.Diagnostics.Append(diags...)
 		return
 	}
 
@@ -304,6 +348,14 @@ func (m ClusterGroupModel) TaintState(ctx context.Context, tfState *tfsdk.State)
 	return diags
 }
 
+// SetIdentity writes the resource identity that addresses the cluster group.
+func (m ClusterGroupModel) SetIdentity(ctx context.Context, tfIdentity *tfsdk.ResourceIdentity) diag.Diagnostics {
+	return tfIdentity.Set(ctx, ClusterGroupIdentityModel{
+		Name:   m.Name,
+		Remote: m.Remote,
+	})
+}
+
 // SyncState fetches the server's current state for a cluster group and updates
 // the provided model. It then applies this updated model as the new state
 // in Terraform.
@@ -342,6 +394,19 @@ func (r ClusterGroupResource) SyncState(ctx context.Context, tfState *tfsdk.Stat
 }
 
 func (r ClusterGroupResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
+	// An import block with an identity carries no ID.
+	if req.ID == "" {
+		var identity ClusterGroupIdentityModel
+		resp.Diagnostics.Append(req.Identity.Get(ctx, &identity)...)
+		if resp.Diagnostics.HasError() {
+			return
+		}
+
+		resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("name"), identity.Name)...)
+		resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("remote"), identity.Remote)...)
+		return
+	}
+
 	meta := common.ImportMetadata{
 		ResourceName:   "cluster_group",
 		RequiredFields: []string{"name"},
