@@ -9,7 +9,10 @@ import (
 	"github.com/canonical/lxd/shared"
 	"github.com/canonical/lxd/shared/api"
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
+	"github.com/hashicorp/terraform-plugin-testing/knownvalue"
+	"github.com/hashicorp/terraform-plugin-testing/statecheck"
 	"github.com/hashicorp/terraform-plugin-testing/terraform"
+	"github.com/hashicorp/terraform-plugin-testing/tfjsonpath"
 	"github.com/terraform-lxd/terraform-provider-lxd/internal/acctest"
 	"github.com/terraform-lxd/terraform-provider-lxd/internal/errors"
 )
@@ -54,6 +57,9 @@ func TestAccClusterLink_pending(t *testing.T) {
 					resource.TestCheckResourceAttr(resourceName, "config.user.env", "prod"),
 					resource.TestCheckResourceAttrPtr(resourceName, "trust_token", &token),
 				),
+				ConfigStateChecks: []statecheck.StateCheck{
+					statecheck.ExpectIdentityValue(resourceName, tfjsonpath.New("name"), knownvalue.StringExact(linkName)),
+				},
 			},
 			{
 				// The trust token cannot be read back from the server.
@@ -63,6 +69,11 @@ func TestAccClusterLink_pending(t *testing.T) {
 				ImportStateVerify:                    true,
 				ImportStateVerifyIdentifierAttribute: "name",
 				ImportStateVerifyIgnore:              []string{"trust_token", "expires_at"},
+			},
+			{
+				ResourceName:    resourceName,
+				ImportState:     true,
+				ImportStateKind: resource.ImportBlockWithResourceIdentity,
 			},
 		},
 	})
