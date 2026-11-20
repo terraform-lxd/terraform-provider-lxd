@@ -3,6 +3,7 @@ package instance
 import (
 	"context"
 	"fmt"
+	"sync"
 
 	lxd "github.com/canonical/lxd/client"
 	"github.com/hashicorp/terraform-plugin-framework-validators/mapvalidator"
@@ -21,6 +22,33 @@ import (
 	"github.com/terraform-lxd/terraform-provider-lxd/internal/errors"
 	provider_config "github.com/terraform-lxd/terraform-provider-lxd/internal/provider-config"
 )
+
+// instanceDeviceMutexes serializes changes made by lxd_instance_device resources to the same
+// instance. A device is attached, updated or removed by reading the whole instance, modifying its
+// devices and writing it back behind an etag. Without serialization, devices on the same instance
+// that Terraform applies in parallel race, and all but one fail with an etag mismatch.
+var (
+	instanceDeviceMutexes   = map[string]*sync.Mutex{}
+	instanceDeviceMutexesMu sync.Mutex
+)
+
+// lockInstanceDevices locks device changes on the given instance and returns the unlock function.
+func lockInstanceDevices(remote string, project string, instanceName string) func() {
+	key := remote + "/" + project + "/" + instanceName
+
+	instanceDeviceMutexesMu.Lock()
+	mu, ok := instanceDeviceMutexes[key]
+	if !ok {
+		mu = &sync.Mutex{}
+		instanceDeviceMutexes[key] = mu
+	}
+
+	instanceDeviceMutexesMu.Unlock()
+
+	mu.Lock()
+
+	return mu.Unlock
+}
 
 // InstanceDeviceModel represents a single device attached to an LXD instance.
 type InstanceDeviceModel struct {
@@ -172,6 +200,9 @@ func (r InstanceDeviceResource) Create(ctx context.Context, req resource.CreateR
 		return
 	}
 
+	unlock := lockInstanceDevices(r.provider.SelectRemote(remote), project, plan.InstanceName.ValueString())
+	defer unlock()
+
 	instance, etag, err := server.GetInstance(plan.InstanceName.ValueString())
 	if err != nil {
 		resp.Diagnostics.AddError(fmt.Sprintf("Failed to retrieve existing instance %q", plan.InstanceName.ValueString()), err.Error())
@@ -269,6 +300,9 @@ func (r InstanceDeviceResource) Update(ctx context.Context, req resource.UpdateR
 		return
 	}
 
+	unlock := lockInstanceDevices(r.provider.SelectRemote(remote), project, plan.InstanceName.ValueString())
+	defer unlock()
+
 	instance, etag, err := server.GetInstance(plan.InstanceName.ValueString())
 	if err != nil {
 		resp.Diagnostics.AddError(fmt.Sprintf("Failed to retrieve existing instance %q", plan.InstanceName.ValueString()), err.Error())
@@ -342,6 +376,9 @@ func (r InstanceDeviceResource) Delete(ctx context.Context, req resource.DeleteR
 
 	instanceName := state.InstanceName.ValueString()
 	deviceName := state.Name.ValueString()
+
+	unlock := lockInstanceDevices(r.provider.SelectRemote(remote), project, instanceName)
+	defer unlock()
 
 	instance, etag, err := server.GetInstance(instanceName)
 	if err != nil {
