@@ -116,7 +116,7 @@ func NewLxdProviderConfig(version string, remotes map[string]LxdRemote, defaultR
 // InstanceServer returns a LXD InstanceServer client for the given remote.
 // An error is returned if the remote is not a InstanceServer.
 func (p *LxdProviderConfig) InstanceServer(remoteName string, project string, target string) (lxd.InstanceServer, error) {
-	remoteName = p.selectRemote(remoteName)
+	remoteName = p.SelectRemote(remoteName)
 
 	server, err := p.server(remoteName)
 	if err != nil {
@@ -146,7 +146,7 @@ func (p *LxdProviderConfig) InstanceServer(remoteName string, project string, ta
 // ImageServer returns a LXD ImageServer client for the given remote.
 // An error is returned if the remote is not an ImageServer.
 func (p *LxdProviderConfig) ImageServer(remoteName string) (lxd.ImageServer, error) {
-	remoteName = p.selectRemote(remoteName)
+	remoteName = p.SelectRemote(remoteName)
 
 	server, err := p.server(remoteName)
 	if err != nil {
@@ -179,7 +179,7 @@ func (p *LxdProviderConfig) server(remoteName string) (lxd.Server, error) {
 	var server lxd.Server
 	var err error
 
-	remoteName = p.selectRemote(remoteName)
+	remoteName = p.SelectRemote(remoteName)
 
 	remote, ok := p.remotes[remoteName]
 	if !ok {
@@ -357,9 +357,9 @@ func (p *LxdProviderConfig) buildConnectionArgs(remote LxdRemote, userAgent stri
 	return args, nil
 }
 
-// selectRemote returns the provided remote name if it is not empty,
+// SelectRemote returns the provided remote name if it is not empty,
 // otherwise it returns the default remote name.
-func (p *LxdProviderConfig) selectRemote(remoteName string) string {
+func (p *LxdProviderConfig) SelectRemote(remoteName string) string {
 	if remoteName != "" {
 		return remoteName
 	}
