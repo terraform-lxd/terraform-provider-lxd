@@ -33,6 +33,39 @@ func TestAccInstanceDevice_basic(t *testing.T) {
 	})
 }
 
+func TestAccInstanceDevice_parallelDevices(t *testing.T) {
+	instanceName := acctest.GenerateName(2, "-")
+
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			acctest.PreCheck(t)
+		},
+		ProtoV6ProviderFactories: acctest.ProtoV6ProviderFactories,
+		Steps: []resource.TestStep{
+			{
+				// Attach several devices to the same instance. Terraform creates
+				// them in parallel, so each update must not fail on a stale etag.
+				Config: acctest.Provider() + testAccInstanceDevice_parallelDevices(instanceName, 8),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr("data.lxd_instance.inst", "name", instanceName),
+					resource.TestCheckResourceAttr("data.lxd_instance.inst", "devices.%", "8"),
+					resource.TestCheckResourceAttr("data.lxd_instance.inst", "devices.dev0.properties.path", "/tmp/dev0"),
+					resource.TestCheckResourceAttr("data.lxd_instance.inst", "devices.dev7.properties.path", "/tmp/dev7"),
+				),
+			},
+			{
+				// Change all devices at once.
+				Config: acctest.Provider() + testAccInstanceDevice_parallelDevices(instanceName, 8, "/mnt"),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr("data.lxd_instance.inst", "devices.%", "8"),
+					resource.TestCheckResourceAttr("data.lxd_instance.inst", "devices.dev0.properties.path", "/mnt/dev0"),
+					resource.TestCheckResourceAttr("data.lxd_instance.inst", "devices.dev7.properties.path", "/mnt/dev7"),
+				),
+			},
+		},
+	})
+}
+
 func TestAccInstanceDevice_volumeAttach(t *testing.T) {
 	instanceName := acctest.GenerateName(2, "-")
 	poolName := acctest.GenerateName(2, "-")
@@ -213,6 +246,39 @@ data "lxd_instance" "inst" {
    ]
 }
    `, instanceName, deviceName, deviceName)
+}
+
+func testAccInstanceDevice_parallelDevices(instanceName string, count int, pathPrefix ...string) string {
+	prefix := "/tmp"
+	if len(pathPrefix) > 0 {
+		prefix = pathPrefix[0]
+	}
+
+	return fmt.Sprintf(`
+resource "lxd_instance" "inst" {
+   name    = %q
+   running = false
+}
+
+resource "lxd_instance_device" "disk" {
+   count         = %d
+   name          = "dev${count.index}"
+   instance_name = lxd_instance.inst.name
+   type          = "disk"
+   properties = {
+      source = "/tmp"
+      path   = "%s/dev${count.index}"
+   }
+}
+
+data "lxd_instance" "inst" {
+   name = lxd_instance.inst.name
+
+   depends_on = [
+      lxd_instance_device.disk
+   ]
+}
+   `, instanceName, count, prefix)
 }
 
 func testAccInstanceDevice_volumeAttach(poolName string, volumeName string, instanceName string, mountPath string) string {
