@@ -6,6 +6,9 @@ import (
 	"testing"
 
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
+	"github.com/hashicorp/terraform-plugin-testing/knownvalue"
+	"github.com/hashicorp/terraform-plugin-testing/statecheck"
+	"github.com/hashicorp/terraform-plugin-testing/tfjsonpath"
 	"github.com/terraform-lxd/terraform-provider-lxd/internal/acctest"
 )
 
@@ -40,6 +43,9 @@ func TestAccClusterGroup_basic(t *testing.T) {
 					resource.TestCheckResourceAttr(resourceName, "members.#", "1"),
 					resource.TestCheckTypeSetElemAttr(resourceName, "members.*", members[0]),
 				),
+				ConfigStateChecks: []statecheck.StateCheck{
+					statecheck.ExpectIdentityValue(resourceName, tfjsonpath.New("name"), knownvalue.StringExact(groupName)),
+				},
 			},
 			{
 				ResourceName:                         resourceName,
@@ -47,6 +53,11 @@ func TestAccClusterGroup_basic(t *testing.T) {
 				ImportState:                          true,
 				ImportStateVerify:                    true,
 				ImportStateVerifyIdentifierAttribute: "name",
+			},
+			{
+				ResourceName:    resourceName,
+				ImportState:     true,
+				ImportStateKind: resource.ImportBlockWithResourceIdentity,
 			},
 			// The group still has a member here, so the final destroy must remove it before
 			// deleting the group.
