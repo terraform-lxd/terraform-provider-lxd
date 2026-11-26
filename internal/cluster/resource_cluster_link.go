@@ -15,6 +15,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
+	"github.com/hashicorp/terraform-plugin-framework/resource/identityschema"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/setdefault"
@@ -50,6 +51,12 @@ type ClusterLinkModel struct {
 	ExpiresAt types.String `tfsdk:"expires_at"`
 }
 
+// ClusterLinkIdentityModel is the resource identity that addresses a cluster link.
+type ClusterLinkIdentityModel struct {
+	Name   types.String `tfsdk:"name"`
+	Remote types.String `tfsdk:"remote"`
+}
+
 // ClusterLinkResource represent LXD cluster link resource.
 type ClusterLinkResource struct {
 	provider *provider_config.LxdProviderConfig
@@ -63,6 +70,9 @@ func NewClusterLinkResource() resource.Resource {
 // Metadata for cluster link resource.
 func (r ClusterLinkResource) Metadata(_ context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
 	resp.TypeName = req.ProviderTypeName + "_cluster_link"
+
+	// The identity contains the remote name, which the user can change in place.
+	resp.ResourceBehavior.MutableIdentity = true
 }
 
 // Schema for cluster link resource.
@@ -198,6 +208,23 @@ func requiresReplaceUnlessImported(_ context.Context, req planmodifier.StringReq
 	resp.RequiresReplace = !req.StateValue.IsNull()
 }
 
+// IdentitySchema for cluster link resource.
+func (r ClusterLinkResource) IdentitySchema(_ context.Context, _ resource.IdentitySchemaRequest, resp *resource.IdentitySchemaResponse) {
+	resp.IdentitySchema = identityschema.Schema{
+		Attributes: map[string]identityschema.Attribute{
+			"name": identityschema.StringAttribute{
+				RequiredForImport: true,
+				Description:       "Name of the cluster link.",
+			},
+
+			"remote": identityschema.StringAttribute{
+				OptionalForImport: true,
+				Description:       "Remote in which the cluster link is defined. If not provided, the provider's default remote is used.",
+			},
+		},
+	}
+}
+
 func (r ClusterLinkResource) ConfigValidators(_ context.Context) []resource.ConfigValidator {
 	return []resource.ConfigValidator{
 		clusterLinkTypeValidator{},
@@ -306,6 +333,12 @@ func (r ClusterLinkResource) Create(ctx context.Context, req resource.CreateRequ
 		return
 	}
 
+	diags = plan.SetIdentity(ctx, resp.Identity)
+	if diags.HasError() {
+		resp.Diagnostics.Append(diags...)
+		return
+	}
+
 	diags = r.SyncState(ctx, &resp.State, server, plan, false)
 	resp.Diagnostics.Append(diags...)
 }
@@ -323,6 +356,14 @@ func (r ClusterLinkResource) Read(ctx context.Context, req resource.ReadRequest,
 	server, err := r.provider.InstanceServer(remote, "", "")
 	if err != nil {
 		resp.Diagnostics.Append(errors.NewInstanceServerError(err))
+		return
+	}
+
+	// Set before syncing the state, so that state imported by ID or written by a
+	// provider version without resource identity also carries the identity.
+	diags = state.SetIdentity(ctx, resp.Identity)
+	if diags.HasError() {
+		resp.Diagnostics.Append(diags...)
 		return
 	}
 
@@ -419,6 +460,12 @@ func (r ClusterLinkResource) Update(ctx context.Context, req resource.UpdateRequ
 
 	plan.ExpiresAt = state.ExpiresAt
 
+	diags = plan.SetIdentity(ctx, resp.Identity)
+	if diags.HasError() {
+		resp.Diagnostics.Append(diags...)
+		return
+	}
+
 	diags = r.SyncState(ctx, &resp.State, server, plan, false)
 	resp.Diagnostics.Append(diags...)
 }
@@ -463,6 +510,14 @@ func (m ClusterLinkModel) TaintState(ctx context.Context, tfState *tfsdk.State) 
 	diags.Append(tfState.SetAttribute(ctx, path.Root("expires_at"), m.ExpiresAt)...)
 
 	return diags
+}
+
+// SetIdentity writes the resource identity that addresses the cluster link.
+func (m ClusterLinkModel) SetIdentity(ctx context.Context, tfIdentity *tfsdk.ResourceIdentity) diag.Diagnostics {
+	return tfIdentity.Set(ctx, ClusterLinkIdentityModel{
+		Name:   m.Name,
+		Remote: m.Remote,
+	})
 }
 
 // SyncState fetches the server's current state for a cluster link and updates
@@ -532,6 +587,19 @@ func (r ClusterLinkResource) SyncState(ctx context.Context, tfState *tfsdk.State
 }
 
 func (r ClusterLinkResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
+	// An import block with an identity carries no ID.
+	if req.ID == "" {
+		var identity ClusterLinkIdentityModel
+		resp.Diagnostics.Append(req.Identity.Get(ctx, &identity)...)
+		if resp.Diagnostics.HasError() {
+			return
+		}
+
+		resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("name"), identity.Name)...)
+		resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("remote"), identity.Remote)...)
+		return
+	}
+
 	meta := common.ImportMetadata{
 		ResourceName:   "cluster_link",
 		RequiredFields: []string{"name"},
